@@ -416,13 +416,9 @@ class Lexer {
               break;
             }
             case u'u': {  // UnicodeEscapeSequence
-              Advance();
-              for (size_t i = 0; i < 4; i++) {
-                if (!character::IsHexDigit(c_)) {
-                  Advance();
-                  goto error;
-                }
+              if (!SkipUnicodeEscapeSequence()) {
                 Advance();
+                goto error;
               }
               break;
             }
@@ -544,16 +540,47 @@ error:
     return Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start));
   }
 
+  bool SkipUnicodeEscapeSequence() {
+    if (c_ != u'u') {
+      return false;
+    }
+    Advance();
+    for (size_t i = 0; i < 4; i++) {
+      if (!character::IsHexDigit(c_)) {
+        return false;
+      }
+      Advance();
+    }
+    return true;
+  }
+
   Token ScanIdentifier() {
     assert(character::IsIdentifierStart(c_));
     size_t start = pos_;
-    Advance();
-
-    while (character::IsIdentifierPart(c_)) {
+    std::u16string_view source;
+    if (c_ == u'\\') {
+      Advance();
+      if (!SkipUnicodeEscapeSequence()) {
+        Advance();
+        goto error;
+      }
+    } else {
       Advance();
     }
 
-    auto source = source_.substr(start, pos_ - start);
+    while (character::IsIdentifierPart(c_)) {
+      if (c_ == u'\\') {
+        Advance();
+        if (!SkipUnicodeEscapeSequence()) {
+          Advance();
+          goto error;
+        }
+      } else {
+        Advance();
+      }
+    }
+
+    source = source_.substr(start, pos_ - start);
     if (source == u"null") {
       return Token(Token::Type::TK_NULL, source);
     }

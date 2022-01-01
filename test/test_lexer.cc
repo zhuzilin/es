@@ -114,7 +114,7 @@ TEST(TestLexer, Number) {
 TEST(TestLexer, Identifier) {
   {
     std::vector<std::u16string> sources = {
-      u"a", u"$abc", u"你好",
+      u"a", u"$abc", u"你好", u"\u12AbC",
     };
     for (auto source : sources) {
       es::Lexer lexer(source);
@@ -145,6 +145,20 @@ TEST(TestLexer, Identifier) {
       es::Token token = lexer.Next();
       EXPECT_EQ(es::Token::Type::TK_FUTURE, token.type());
       EXPECT_EQ(source, token.source());
+    }
+  }
+
+  {
+    std::vector<std::pair<std::u16string, std::u16string>> sources = {
+      {u"\\u12", u"\\u12"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      auto error = pair.second;
+      es::Lexer lexer(source);
+      es::Token token = lexer.Next();
+      EXPECT_EQ(es::Token::Type::TK_ILLEGAL, token.type());
+      EXPECT_EQ(error, token.source());
     }
   }
 }
