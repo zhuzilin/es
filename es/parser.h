@@ -61,6 +61,68 @@ error:
     return new AST(AST::AST_ILLEGAL, token.source());
   }
 
+  AST* ParseFunctionExpression() {
+    size_t start = lexer_.Pos();
+    assert(lexer_.Next().source() == u"function");
+
+    Token name(Token::TK_NOT_FOUND, u"");
+    std::vector<Token> params;
+    AST* tmp;
+    FunctionBody* body;
+    Function* func;
+
+    // Identifier_opt
+    Token token = lexer_.Next();
+    if (token.type() == Token::TK_IDENT) {
+      name = token;
+      token = lexer_.Next();
+    }
+    if (token.type() != Token::TK_LPAREN) {
+      goto error;
+    }
+    token = lexer_.Next();
+    if (token.type() == Token::TK_IDENT) {
+      params.emplace_back(token);
+      token = lexer_.Next();
+    } else if (token.type() != Token::TK_RPAREN) {
+      goto error;
+    }
+    while (token.type() != Token::TK_RPAREN) {
+      if (token.type() != Token::TK_COMMA) {
+        goto error;
+      }
+      token = lexer_.Next();
+      if (token.type() != Token::TK_IDENT) {
+        goto error;
+      }
+      params.emplace_back(token);
+      token = lexer_.Next();
+    }
+    token = lexer_.Next();  // skip {
+    if (token.type() != Token::TK_LBRACE) {
+      goto error;
+    }
+    // tmp = ParseFunctionBody();
+    // if (tmp->IsIllegal())
+    //   return tmp;
+    // body = static_cast<FunctionBody*>(tmp);
+
+    token = lexer_.Next();  // skip }
+    if (token.type() != Token::TK_RBRACE) {
+      goto error;
+    }
+
+    func = new Function(name, params, nullptr);
+    func->SetSource(source_.substr(start, lexer_.Pos() - start));
+    return func;
+error:
+    return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+  }
+
+  AST* ParseFunctionBody() {
+    return nullptr;
+  }
+
   AST* ParseArrayLiteral() {
     size_t start = lexer_.Pos();
     assert(lexer_.Next().type() == Token::TK_LBRACK);
@@ -195,11 +257,19 @@ error:
     Token token = lexer_.NextAndRewind();
     if (token.type() != Token::TK_QUESTION)
       return cond;
+    lexer_.Next();
     AST* lhs = ParseAssignmentExpression(no_in);
     if (lhs->IsIllegal()) {
       delete cond;
       return lhs;
     }
+    token = lexer_.NextAndRewind();
+    if (token.type() != Token::TK_COLON) {
+      delete cond;
+      delete lhs;
+      return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+    }
+    lexer_.Next();
     AST* rhs = ParseAssignmentExpression(no_in);
     if (lhs->IsIllegal()) {
       delete cond;
@@ -268,6 +338,8 @@ error:
   }
 
   AST* ParseLeftHandSideExpression() {
+    size_t start = lexer_.Pos();
+
     return ParsePrimaryExpression();
   }
 

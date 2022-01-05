@@ -124,7 +124,6 @@ TEST(TestParser, PrimaryExpression) {
       u"{}", u"{a: 1}", u"{in: bed}", u"{1: 1}", u"{\"abc\": 1}"
     };
     for (auto source : sources) {
-      es::test::PrintSource("", source);
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
       EXPECT_EQ(es::AST::AST_EXP_OBJ, ast->type());
@@ -218,12 +217,88 @@ TEST(TestParser, Unary) {
     };
     for (auto pair : sources) {
       auto source = pair.first;
-      auto node = pair.second;
+      auto error = pair.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
       EXPECT_NE(es::AST::AST_EXP_UNARY, ast->type());
-      EXPECT_EQ(node, ast->source());
+      EXPECT_EQ(error, ast->source());
     }
   }
 }
 
+TEST(TestParser, TripleCondition) {
+  {
+    std::vector<std::vector<std::u16string>> sources = {
+      {u"a ?b:c", u"a", u"b", u"c"},
+      {u"a ?c ? d : e : c", u"a", u"c ? d : e", u" c"},
+    };
+    for (auto vec : sources) {
+      auto source = vec[0];
+      es::Parser parser(vec[0]);
+      es::AST* ast = parser.ParseConditionalExpression(false);
+      EXPECT_EQ(es::AST::AST_EXP_TRIPLE, ast->type());
+      EXPECT_EQ(source, ast->source());
+      auto cond = static_cast<es::TripleCondition*>(ast);
+      EXPECT_EQ(vec[1], cond->cond()->source());
+      EXPECT_EQ(vec[2], cond->lhs()->source());
+      EXPECT_EQ(vec[3], cond->rhs()->source());
+    }
+  }
+
+  // invalid
+  {
+    std::vector<std::pair<std::u16string, std::u16string>> sources = {
+      {u"a ?b c", u"a ?b"}, {u"a ", u"a"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      auto error = pair.second;
+      es::Parser parser(source);
+      es::AST* ast = parser.ParseConditionalExpression(false);
+      EXPECT_NE(es::AST::AST_EXP_TRIPLE, ast->type());
+      EXPECT_EQ(error, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, FunctionExpression) {
+  // TODO(zhuzilin) Check FunctionBody
+  {
+    std::vector<std::pair<std::u16string,
+                          std::vector<std::u16string>>> sources = {
+      {u"function () {}", {u""}},
+      {u"function name (a, b) {}", {u"name", u"a", u"b"}},
+      {u"function (a, a, c) {}", {u"", u"a", u"a", u"c"}},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      auto params = pair.second;
+      es::Parser parser(source);
+      es::AST* ast = parser.ParseFunctionExpression();
+      EXPECT_EQ(es::AST::AST_EXP_FUNC, ast->type());
+      EXPECT_EQ(source, ast->source());
+      auto func = static_cast<es::Function*>(ast);
+      EXPECT_EQ(params[0], func->name().source());
+      EXPECT_EQ(params.size() - 1, func->params().size());
+      for (size_t i = 0; i < func->params().size(); i++) {
+        EXPECT_EQ(params[i + 1], func->params()[i].source());
+      }
+    }
+  }
+
+  // invalid
+  {
+    std::vector<std::pair<std::u16string, std::u16string>> sources = {
+      {u"function (,) {}", u"function (,"}, {u"function (a a) {}", u"function (a a"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      es::test::PrintSource("", source);
+      auto error = pair.second;
+      es::Parser parser(source);
+      es::AST* ast = parser.ParseFunctionExpression();
+      EXPECT_NE(es::AST::AST_EXP_FUNC, ast->type());
+      EXPECT_EQ(error, ast->source());
+    }
+  }
+}

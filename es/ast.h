@@ -32,7 +32,11 @@ class AST {
     AST_EXP_UNARY,
     AST_EXP_TRIPLE,
 
+    AST_EXP_FUNC,
+
     AST_EXP,
+
+    AST_FUNC_BODY,
 
     AST_ILLEGAL,
   };
@@ -162,6 +166,28 @@ class Expression : public AST {
  private:
   std::vector<AST*> elements_;
 };
+
+class FunctionBody : public AST {
+ public:
+  FunctionBody() : AST(AST_FUNC_BODY) {}
+};
+
+class Function : public AST {
+ public:
+  Function(Token name, std::vector<Token> params, FunctionBody* body) :
+    AST(AST_EXP_FUNC), name_(name), params_(params), body_(body) {}
+
+    Token name() { return name_; }
+    std::vector<Token> params() { return params_; }
+    FunctionBody* body() { return body_; }
+
+ private:
+  Token name_;
+  std::vector<Token> params_;
+  FunctionBody* body_;
+};
+
+
 
 }  // namespace es
 
