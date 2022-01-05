@@ -1,4 +1,6 @@
 #include <iostream>
+#include <string>
+#include <string_view>
 #include <vector>
 #include <utility>
 
@@ -30,7 +32,6 @@ TEST(TestLexer, Basic) {
   }
 }
 
-
 TEST(TestLexer, String) {
   {
     std::u16string source(u"\"abc\"'def'");
@@ -46,7 +47,7 @@ TEST(TestLexer, String) {
 
   {
     std::vector<std::u16string> sources = {
-      u"''", u"'\\n\\b\\u1234\\x12'",
+      u"''", u"'\\n\\b\\u1234\\x12'", u"'😊'",
     };
     for (auto source : sources) {
       es::Lexer lexer(source);
@@ -149,14 +150,54 @@ TEST(TestLexer, Identifier) {
   }
 
   {
+    std::vector<std::u16string> sources = {
+      u"true", u"false",
+    };
+    for (auto source : sources) {
+      es::Lexer lexer(source);
+      es::Token token = lexer.Next();
+      EXPECT_EQ(es::Token::Type::TK_BOOL, token.type());
+      EXPECT_EQ(source, token.source());
+    }
+  }
+
+  {
     std::vector<std::pair<std::u16string, std::u16string>> sources = {
-      {u"\\u12", u"\\u12"},
+      {u"\\u12", u"\\u12"}, {u"😊", u"\xD83D"}
     };
     for (auto pair : sources) {
       auto source = pair.first;
       auto error = pair.second;
       es::Lexer lexer(source);
       es::Token token = lexer.Next();
+      EXPECT_EQ(es::Token::Type::TK_ILLEGAL, token.type());
+      EXPECT_EQ(error, token.source());
+    }
+  }
+}
+
+TEST(TestLexer, Regex) {
+  {
+    std::vector<std::u16string> sources = {
+      u"/a/", u"/[a-z]*?/", u"/[012]/gba", u"/[012]/$", u"/你好/",
+    };
+    for (auto source : sources) {
+      es::Lexer lexer(source);
+      es::Token token = lexer.ScanRegexLiteral();
+      EXPECT_EQ(es::Token::Type::TK_REGEX, token.type());
+      EXPECT_EQ(source, token.source());
+    }
+  }
+
+  {
+    std::vector<std::pair<std::u16string, std::u16string>> sources = {
+      {u"//", u"//"}, {u"/*/", u"/*"}, {u"/a ", u"/a "}, {u"/[a /", u"/[a /"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      auto error = pair.second;
+      es::Lexer lexer(source);
+      es::Token token = lexer.ScanRegexLiteral();
       EXPECT_EQ(es::Token::Type::TK_ILLEGAL, token.type());
       EXPECT_EQ(error, token.source());
     }

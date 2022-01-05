@@ -1,0 +1,37 @@
+===============================================================================
+EXTENSION NAME : linecounter
+EXTENSION VERSION : 0.2.7
+-------------------------------------------------------------------------------
+count time : 2022-01-05 18:21:06
+count workspace : /Users/zilinzhu/Documents/es/es
+total files : 20
+total code lines : 3014
+total comment lines : 313
+total blank lines : 399
+
+    statistics
+   |      extension|     total code|  total comment|    total blank|percent|
+   -------------------------------------------------------------------------
+   |             .h|           3014|            313|            399| 1.0e+2|
+   -------------------------------------------------------------------------
+ast.h, code is 107, comment is 4, blank is 35.
+character.h, code is 84, comment is 18, blank is 28.
+error.h, code is 49, comment is 2, blank is 13.
+execution_context.h, code is 14, comment is 2, blank is 6.
+lexer.h, code is 689, comment is 54, blank is 44.
+parser.h, code is 219, comment is 11, blank is 23.
+token.h, code is 201, comment is 108, blank is 39.
+types/base.h, code is 117, comment is 4, blank is 31.
+types/built_in_object.h, code is 6, comment is 2, blank is 6.
+types/completion.h, code is 21, comment is 2, blank is 7.
+types/conversion.h, code is 71, comment is 4, blank is 12.
+types/environment_record.h, code is 131, comment is 3, blank is 25.
+types/lexical_environment.h, code is 43, comment is 3, blank is 10.
+types/list.h, code is 13, comment is 2, blank is 7.
+types/object.h, code is 337, comment is 22, blank is 40.
+types/object/global.h, code is 8, comment is 1, blank is 6.
+types/property_descriptor.h, code is 82, comment is 4, blank is 24.
+types/property_descriptor_object_conversion.h, code is 46, comment is 3, blank is 11.
+types/reference.h, code is 74, comment is 4, blank is 13.
+unicode.h, code is 702, comment is 60, blank is 19.
+===============================================================================

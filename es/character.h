@@ -32,7 +32,6 @@ static const char16_t LS = 0x2028;
 static const char16_t PS = 0x2029;
 
 
-
 inline bool IsUSP(char16_t c) {
   return c == 0x1680 || (c >= 0x2000 && c <= 0x200A) ||
          c == 0x202F || c == 0x205F || c == 0x3000;
@@ -100,6 +99,18 @@ inline bool IsIdentifierPart(char16_t c) {
   return IsIdentifierStart(c) || IsUnicodeCombiningMark(c) ||
          IsUnicodeDigit(c) || IsUnicodeConnectorPunctuation(c) ||
          c == ZWNJ || c == ZWJ;
+}
+
+inline bool IsRegularExpressionChar(char16_t c) {
+  return !IsLineTerminator(c) && c != u'\\' && c != u'/' && c != u'[';
+}
+
+inline bool IsRegularExpressionFirstChar(char16_t c) {
+  return !IsLineTerminator(c) && c != u'*' && c != u'/';
+}
+
+inline bool IsRegularExpressionClassChar(char16_t c) {
+  return !IsLineTerminator(c) && c != u']';
 }
 
 }  // namespace character

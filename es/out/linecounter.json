@@ -1,0 +1,144 @@
+{
+    "extension": "linecounter",
+    "version": "0.2.7",
+    "workspace": "/Users/zilinzhu/Documents/es/es",
+    "linecount": [
+        {
+            "version": "0.2.7",
+            "counttime": "2022-01-05 18:21:06",
+            "filesum": 20,
+            "codesum": 3014,
+            "commentsum": 313,
+            "blanksum": 399,
+            "statistics": {
+                ".h": {
+                    "code": 3014,
+                    "comment": 313,
+                    "blank": 399
+                }
+            },
+            "filelist": [
+                {
+                    "blank": 35,
+                    "code": 107,
+                    "comment": 4,
+                    "filename": "ast.h"
+                },
+                {
+                    "blank": 28,
+                    "code": 84,
+                    "comment": 18,
+                    "filename": "character.h"
+                },
+                {
+                    "blank": 13,
+                    "code": 49,
+                    "comment": 2,
+                    "filename": "error.h"
+                },
+                {
+                    "blank": 6,
+                    "code": 14,
+                    "comment": 2,
+                    "filename": "execution_context.h"
+                },
+                {
+                    "blank": 44,
+                    "code": 689,
+                    "comment": 54,
+                    "filename": "lexer.h"
+                },
+                {
+                    "blank": 23,
+                    "code": 219,
+                    "comment": 11,
+                    "filename": "parser.h"
+                },
+                {
+                    "blank": 39,
+                    "code": 201,
+                    "comment": 108,
+                    "filename": "token.h"
+                },
+                {
+                    "blank": 31,
+                    "code": 117,
+                    "comment": 4,
+                    "filename": "types/base.h"
+                },
+                {
+                    "blank": 6,
+                    "code": 6,
+                    "comment": 2,
+                    "filename": "types/built_in_object.h"
+                },
+                {
+                    "blank": 7,
+                    "code": 21,
+                    "comment": 2,
+                    "filename": "types/completion.h"
+                },
+                {
+                    "blank": 12,
+                    "code": 71,
+                    "comment": 4,
+                    "filename": "types/conversion.h"
+                },
+                {
+                    "blank": 25,
+                    "code": 131,
+                    "comment": 3,
+                    "filename": "types/environment_record.h"
+                },
+                {
+                    "blank": 10,
+                    "code": 43,
+                    "comment": 3,
+                    "filename": "types/lexical_environment.h"
+                },
+                {
+                    "blank": 7,
+                    "code": 13,
+                    "comment": 2,
+                    "filename": "types/list.h"
+                },
+                {
+                    "blank": 40,
+                    "code": 337,
+                    "comment": 22,
+                    "filename": "types/object.h"
+                },
+                {
+                    "blank": 6,
+                    "code": 8,
+                    "comment": 1,
+                    "filename": "types/object/global.h"
+                },
+                {
+                    "blank": 24,
+                    "code": 82,
+                    "comment": 4,
+                    "filename": "types/property_descriptor.h"
+                },
+                {
+                    "blank": 11,
+                    "code": 46,
+                    "comment": 3,
+                    "filename": "types/property_descriptor_object_conversion.h"
+                },
+                {
+                    "blank": 13,
+                    "code": 74,
+                    "comment": 4,
+                    "filename": "types/reference.h"
+                },
+                {
+                    "blank": 19,
+                    "code": 702,
+                    "comment": 60,
+                    "filename": "unicode.h"
+                }
+            ]
+        }
+    ]
+}

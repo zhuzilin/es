@@ -12,12 +12,13 @@ namespace es {
 class Lexer {
  public:
   Lexer(std::u16string_view source) :
-    source_(source), pos_(0), end_(source.size()) {
+    source_(source), pos_(0), end_(source.size()),
+    token_(Token::Type::TK_NOT_FOUND, u"") {
     UpdateC();
   }
 
-  Token Next() {
-    Token token = Token(Token::Type::TK_NOT_FOUND, source_.substr(pos_, 0));
+  Token Next(bool line_terminator = false) {
+    Token token = Token(Token::Type::TK_NOT_FOUND, u"");
     do {
       size_t start = pos_;
       switch (c_) {
@@ -53,7 +54,7 @@ class Lexer {
         }
         case u']': {
           Advance();
-          token = Token(Token::Type::TK_LBRACK, source_.substr(start, 1));
+          token = Token(Token::Type::TK_RBRACK, source_.substr(start, 1));
           break;
         }
         case u'.': {
@@ -316,15 +317,92 @@ class Lexer {
           if (character::IsWhiteSpace(c_)) {
             SkipWhiteSpace();
           } else if (character::IsLineTerminator(c_)) {
-            SkipLineTerminatorSequence();
+            if (line_terminator) {
+              token = ScanLineTerminatorSequence();
+            } else {
+              SkipLineTerminatorSequence();
+            }
           } else if (character::IsDecimalDigit(c_)) {
             token = ScanNumericLiteral();
           } else if (character::IsIdentifierStart(c_)) {
             token = ScanIdentifier();
+          } else {
+            Advance();
+            token = Token(Token::TK_ILLEGAL, source_.substr(start, 1));
           }
       }
     } while(token.type() == Token::Type::TK_NOT_FOUND && c_ != character::EOS);
+    token_ = token;
+    return token_;
+  }
+
+  inline Token Last() { return token_; }
+  inline size_t Pos() { return pos_; }
+  inline char16_t Now() { return c_; }
+
+  void Rewind(size_t pos, Token token) {
+    pos_ = pos;
+    token_ = token;
+    UpdateC();
+  }
+
+  Token NextAndRewind(bool line_terminator = false) {
+    size_t old_pos = Pos();
+    Token old_token = Last();
+    Token token = Next(line_terminator);
+    Rewind(old_pos, old_token);
     return token;
+  }
+
+  Token ScanRegexLiteral() {
+    assert(c_ == u'/');
+    size_t start = pos_;
+    Advance();
+    if (!character::IsRegularExpressionFirstChar(c_)) {
+      Advance();
+      goto error;
+    }
+    while(c_ != character::EOS && c_ != u'/' && !character::IsLineTerminator(c_)) {
+      switch (c_) {
+        case u'\\': {  // Regular Expression
+          if (!SkipRegularExpressionBackslashSequence()) {
+            Advance();
+            goto error;
+          }
+          break;
+        }
+        case u'[': {
+          if (!SkipRegularExpressionClass()) {
+            Advance();
+            goto error;
+          }
+          break;
+        }
+        default:
+          SkipRegularExpressionChars();
+      }
+    }
+
+    if (c_ == u'/') {
+      Advance();
+      // RegularExpressionFlags
+      while (character::IsIdentifierPart(c_)) {
+        if (c_ == u'\\') {
+          Advance();
+          if (!SkipUnicodeEscapeSequence()) {
+            Advance();
+            goto error;
+          }
+        } else {
+          Advance();
+        }
+      }
+      token_ = Token(Token::Type::TK_REGEX, source_.substr(start, pos_ - start));
+      return token_;
+    }
+error:
+    token_ = Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start));
+    return token_;
   }
 
  private:
@@ -348,6 +426,44 @@ class Lexer {
     } else {
       c_ = character::EOS;
     }
+  }
+
+
+  bool SkipRegularExpressionBackslashSequence() {
+    assert(c_ == u'\\');
+    Advance();
+    if (character::IsLineTerminator(c_)) {
+      return false;
+    }
+    Advance();
+    return true;
+  }
+
+  void SkipRegularExpressionChars() {
+    while (c_ != character::EOS && character::IsRegularExpressionChar(c_)) {
+      Advance();
+    }
+  }
+
+  bool SkipRegularExpressionClass() {
+    assert(c_ == u'[');
+    Advance();
+    while (c_ != character::EOS && character::IsRegularExpressionClassChar(c_)) {
+      switch (c_) {
+        case u'\\': {
+          if (!SkipRegularExpressionBackslashSequence()) {
+            return false;
+          }
+          break;
+        }
+        default:
+          Advance();
+      }
+    }
+    if (c_ == u']') {
+      return true;
+    }
+    return false;
   }
 
   void SkipMultiLineComment() {
@@ -375,6 +491,17 @@ class Lexer {
     while(character::IsWhiteSpace(c_)) {
       Advance();
     }
+  }
+
+  Token ScanLineTerminatorSequence() {
+    assert(character::IsLineTerminator(c_));
+    size_t start = pos_;
+    if (c_ == character::CR && LookAhead() == character::LF) {
+      Advance(); Advance();
+    } else {
+      Advance();
+    }
+    return Token(Token::TK_LINE_TERM, source_.substr(start, pos_ - start));
   }
 
   void SkipLineTerminatorSequence() {
@@ -584,11 +711,8 @@ error:
     if (source == u"null") {
       return Token(Token::Type::TK_NULL, source);
     }
-    if (source == u"true") {
-      return Token(Token::Type::TK_TRUE, source);
-    }
-    if (source == u"false") {
-      return Token(Token::Type::TK_FALSE, source);
+    if (source == u"true" || source == u"false") {
+      return Token(Token::Type::TK_BOOL, source);
     }
     for (auto keyword : kKeywords) {
       if (source == keyword) {
@@ -610,6 +734,7 @@ error:
   char16_t c_;
   size_t pos_;
   size_t end_;
+  Token token_;
   std::u16string_view source_;
 };
 

@@ -84,8 +84,7 @@ class Token {
     TK_NULL,  // null
 
     // Bool Literal
-    TK_TRUE,   // true
-    TK_FALSE,  // false
+    TK_BOOL,   // true & false
 
     // Number Literal
     TK_NUMBER,
@@ -96,6 +95,8 @@ class Token {
     // Regular Expression Literal
     TK_REGEX,
 
+    TK_LINE_TERM,
+
     TK_EOF,
     TK_NOT_FOUND,
     TK_ILLEGAL,
@@ -103,6 +104,108 @@ class Token {
 
   Token(Type type, std::u16string_view source) :
     type_(type), source_(source) {}
+
+  inline bool IsAssignmentOperator() {
+    switch(type_) {
+      case TK_ASSIGN:      // =
+      case TK_ADD_ASSIGN:  // +=
+      case TK_SUB_ASSIGN:  // -=
+      case TK_MUL_ASSIGN:  // *=
+      case TK_MOD_ASSIGN:  // %=
+      case TK_DIV_ASSIGN:  // /=
+
+      case TK_BIT_LSH_ASSIGN:   // <<=
+      case TK_BIT_RSH_ASSIGN:   // >>=
+      case TK_BIT_URSH_ASSIGN:  // >>>=
+      case TK_BIT_AND_ASSIGN:   // &=
+      case TK_BIT_OR_ASSIGN:    // |=
+      case TK_BIT_XOR_ASSIGN:   // ^=
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  inline bool IsLineTerminator() {
+    return type_ == TK_LINE_TERM;
+  }
+
+  inline int BinaryPriority(bool no_in) {
+    switch (type_) {
+      // Binary
+      case TK_LOGICAL_OR:  // ||
+        return 2;
+      case TK_LOGICAL_AND:  // &&
+        return 3;
+      case TK_BIT_OR:  // |
+        return 4;
+      case TK_BIT_XOR:  // ^
+        return 5;
+      case TK_BIT_AND:  // &
+        return 6;
+      case TK_EQ:   // ==
+      case TK_NE:   // !=
+      case TK_EQ3:  // ===
+      case TK_NE3:  // !==
+        return 7;
+      case TK_LT:   // <
+      case TK_GT:   // >
+      case TK_LE:   // <=
+      case TK_GE:   // >=
+        return 8;
+      case TK_BIT_LSH:   // <<
+      case TK_BIT_RSH:   // >>
+      case TK_BIT_URSH:  // >>>
+        return 9;
+      case TK_ADD:
+      case TK_SUB:
+        return 10;
+      case TK_MUL:
+      case TK_DIV:
+      case TK_MOD:
+        return 11;
+
+      case TK_KEYWORD:
+        if (source_ == u"instanceof") {
+          return 8;
+        } else if (no_in && source_ == u"in") {
+          return 8;
+        }
+      default:
+        return -1;
+    }
+  }
+
+  inline int UnaryPrefixPriority() {
+    switch (type_) {
+      // Prefix
+      case TK_INC:
+      case TK_DEC:
+      case TK_ADD:
+      case TK_SUB:
+      case TK_BIT_NOT:
+      case TK_LOGICAL_NOT:
+        return 100;  // UnaryExpresion always have higher priority.
+
+      case TK_KEYWORD:
+        if (source_ == u"delete" || source_ == u"void" || source_ == u"typeof") {
+          return 100;
+        }
+      default:
+        return -1;
+    }
+  }
+
+  inline int UnaryPostfixPriority() {
+    switch (type_) {
+      // Prefix
+      case TK_INC:
+      case TK_DEC:
+        return 200;  // UnaryExpresion always have higher priority.
+      default:
+        return -1;
+    }
+  }
 
   Type type() { return type_; }
   std::u16string_view source() { return source_; }
