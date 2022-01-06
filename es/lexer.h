@@ -7,6 +7,8 @@
 #include <es/character.h>
 #include <es/token.h>
 
+#include <test/helper.h>
+
 namespace es {
 
 class Lexer {
@@ -23,7 +25,7 @@ class Lexer {
       size_t start = pos_;
       switch (c_) {
         case character::EOS: {
-          token = Token(Token::Type::TK_EOF, source_.substr(pos_, 0));
+          token = Token(Token::Type::TK_EOS, source_.substr(pos_, 0));
           break;
         }
 
@@ -331,7 +333,7 @@ class Lexer {
             token = Token(Token::TK_ILLEGAL, source_.substr(start, 1));
           }
       }
-    } while(token.type() == Token::Type::TK_NOT_FOUND && c_ != character::EOS);
+    } while(token.type() == Token::Type::TK_NOT_FOUND);
     token_ = token;
     return token_;
   }
@@ -352,6 +354,22 @@ class Lexer {
     Token token = Next(line_terminator);
     Rewind(old_pos, old_token);
     return token;
+  }
+
+  bool LineTermAhead() {
+    return NextAndRewind(true).IsLineTerminator();
+  }
+
+  bool TrySkipSemiColon() {
+    Token token = NextAndRewind();
+    if (token.IsSemiColon()) {
+      Next();
+      return true;
+    }
+    // 7.9 Automatic Semicolon Insertion
+    if (token.type() == Token::TK_EOS || LineTermAhead())
+      return true;
+    return false;
   }
 
   Token ScanRegexLiteral() {

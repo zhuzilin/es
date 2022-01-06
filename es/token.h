@@ -97,7 +97,7 @@ class Token {
 
     TK_LINE_TERM,
 
-    TK_EOF,
+    TK_EOS,
     TK_NOT_FOUND,
     TK_ILLEGAL,
   };
@@ -126,13 +126,15 @@ class Token {
     }
   }
 
-  inline bool IsLineTerminator() {
-    return type_ == TK_LINE_TERM;
-  }
+  inline bool IsLineTerminator() { return type_ == TK_LINE_TERM; }
 
   inline bool IsIdentifierName() {
     return type_ == TK_IDENT || type_ == TK_KEYWORD || type_ == TK_FUTURE;
   }
+
+  inline bool IsSemiColon() { return type_ == TK_SEMICOLON; }
+
+  inline bool IsIdentifier() { return type_ == TK_IDENT; }
 
   inline int BinaryPriority(bool no_in) {
     switch (type_) {

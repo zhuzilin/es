@@ -310,14 +310,12 @@ error:
       // Because the priority of postfix operators are higher than prefix ones,
       // they won't be parsed at the same time.
       Token postfix_op = lexer_.NextAndRewind();
-      bool is_line_terminator = lexer_.NextAndRewind(true).IsLineTerminator();
-      if (!is_line_terminator && postfix_op.UnaryPostfixPriority() > priority) {
+      bool is_line_term = lexer_.NextAndRewind(true).IsLineTerminator();
+      if (!is_line_term && postfix_op.UnaryPostfixPriority() > priority) {
         if (lhs->type() != AST::AST_EXPR_BINARY && lhs->type() != AST::AST_EXPR_UNARY) {
           lexer_.Next();
-          test::PrintSource("Find postfix op: ", postfix_op.source());
           lhs = new Unary(lhs, postfix_op, false);
           lhs->SetSource(source_.substr(start, lexer_.Pos() - start));
-          test::PrintSource("lhs:", lhs->source());
         } else {
           delete lhs;
           return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
@@ -327,13 +325,10 @@ error:
     while (true) {
       Token binary_op = lexer_.NextAndRewind();
       if (binary_op.BinaryPriority(no_in) > priority) {
-        test::PrintSource("Find binary op: ", binary_op.source());
         lexer_.Next();
         rhs = ParseBinaryAndUnaryExpression(no_in, binary_op.BinaryPriority(no_in));
         if (rhs->IsIllegal())
           return rhs;
-        test::PrintSource("lhs:", lhs->source());
-        test::PrintSource("rhs:", rhs->source());
         lhs = new Binary(lhs, rhs, binary_op);
         lhs->SetSource(source_.substr(start, lexer_.Pos() - start));
       } else {
@@ -452,6 +447,179 @@ error:
     return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
   }
 
+  AST* ParseProgram() {
+    size_t start = lexer_.Pos();
+    Program* prog = new Program();
+    AST* element;
+
+    Token token = lexer_.NextAndRewind();
+    while (token.type() != Token::TK_EOS) {
+      if (token.source() == u"function") {
+        assert(false);
+        // element = ParseFunctionDeclaration();
+        //   if (element->IsIllegal()) {
+        //   delete prog;
+        //   return element;
+        // }
+        // prog->AddFunctionDecl(element);
+      } else {
+        element = ParseStatement();
+          if (element->IsIllegal()) {
+          delete prog;
+          return element;
+        }
+        prog->AddStatement(element);
+      }
+      token = lexer_.NextAndRewind();
+    }
+    prog->SetSource(source_.substr(start, lexer_.Pos() - start));
+    return prog;
+  }
+
+  AST* ParseStatement() {
+    size_t start = lexer_.Pos();
+    Token token = lexer_.NextAndRewind();
+
+    switch (token.type()) {
+      case Token::TK_LBRACE:  // {
+        return ParseBlockStatement();
+      case Token::TK_SEMICOLON:  // ;
+        return new AST(AST::AST_STMT_EMPTY, u";");
+      case Token::TK_KEYWORD: {
+        if (token.source() == u"var")
+          return ParseVariableStatement();
+        else if (token.source() == u"if")
+          return ParseIfStatement();
+        else if (token.source() == u"do")
+          return ParseDoWhileStatement();
+        else if (token.source() == u"while")
+          return ParseWhileStatement();
+        else if (token.source() == u"for")
+          return ParseForStatement();
+        else if (token.source() == u"continue")
+          return ParseContinueStatement();
+        else if (token.source() == u"break")
+          return ParseBreakStatement();
+        else if (token.source() == u"return")
+          return ParseReturnStatement();
+        else if (token.source() == u"with")
+          return ParseWithStatement();
+        else if (token.source() == u"switch")
+          return ParseSwitchStatement();
+        else if (token.source() == u"throw")
+          return ParseThrowStatement();
+        else if (token.source() == u"try")
+          return ParseTryStatement();
+        else if (token.source() == u"debugger") {
+          lexer_.Next();
+          if (!lexer_.TrySkipSemiColon()) {
+            goto error;
+          }
+          return new AST(AST::AST_STMT_DEBUG, source_.substr(start, lexer_.Pos() - start));
+        }
+        break;
+      }
+      case Token::TK_IDENT: {
+        size_t old_pos = lexer_.Pos();
+        Token old_token = lexer_.Last();
+        Token colon = lexer_.Next();
+        lexer_.Rewind(old_pos, old_token);
+        if (colon.type() == Token::TK_COLON)
+          return ParseLabelStatement();
+      }
+      default:
+        break;
+    }
+    return ParseExpressionStatement();
+error:
+    return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+  }
+
+  AST* ParseBlockStatement() {
+
+  }
+
+  AST* ParseVariableStatement() {
+
+  }
+
+  AST* ParseExpressionStatement() {
+
+  }
+
+  AST* ParseIfStatement() {
+
+  }
+
+  AST* ParseDoWhileStatement() {
+
+  }
+
+  AST* ParseWhileStatement() {
+
+  }
+
+  AST* ParseForStatement() {
+
+  }
+
+  AST* ParseContinueStatement() {
+    size_t start = lexer_.Pos();
+    assert(lexer_.Next().source() == u"continue");
+    bool is_line_term = lexer_.LineTermAhead();
+    Token ident = Token(Token::TK_NOT_FOUND, u"");
+    if (!lexer_.TrySkipSemiColon()) {
+      ident = lexer_.NextAndRewind();
+      if (ident.IsIdentifier()) {
+        lexer_.Next();  // Skip Identifier
+      }
+      if (!lexer_.TrySkipSemiColon()) {
+        return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+      }
+    }
+    return new Continue(ident, source_.substr(start, lexer_.Pos() - start));
+  }
+
+  // TODO(zhuzilin) Shall I merge the continue and break?
+  AST* ParseBreakStatement() {
+    size_t start = lexer_.Pos();
+    assert(lexer_.Next().source() == u"break");
+    bool is_line_term = lexer_.LineTermAhead();
+    Token ident = Token(Token::TK_NOT_FOUND, u"");
+    if (!lexer_.TrySkipSemiColon()) {
+      ident = lexer_.NextAndRewind();
+      if (ident.IsIdentifier()) {
+        lexer_.Next();  // Skip Identifier
+      }
+      if (!lexer_.TrySkipSemiColon()) {
+        return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+      }
+    }
+    return new Break(ident, source_.substr(start, lexer_.Pos() - start));
+  }
+
+  AST* ParseReturnStatement() {
+  }
+
+  AST* ParseThrowStatement() {
+
+  }
+
+  AST* ParseWithStatement() {
+
+  }
+
+  AST* ParseSwitchStatement() {
+
+  }
+
+  AST* ParseTryStatement() {
+
+  }
+
+  AST* ParseLabelStatement() {
+
+  }
 
  private:
   std::u16string_view source_;
