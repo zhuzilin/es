@@ -42,6 +42,7 @@ class AST {
     AST_STMT_EMPTY,
     AST_STMT_BLOCK,
     AST_STMT_TRY,
+    AST_STMT_IF,
 
     AST_STMT_VAR,
     AST_STMT_VAR_DECL,
@@ -399,8 +400,7 @@ class Try : public AST {
  public:
   Try() : AST(AST_STMT_TRY) {}
   ~Try() {
-    if (try_block_ != nullptr)
-      delete try_block_;
+    delete try_block_;
     if (catch_block_ != nullptr)
       delete catch_block_;
     if (finally_block_ != nullptr)
@@ -411,6 +411,23 @@ class Try : public AST {
   AST* try_block_;
   AST* catch_block_;
   AST* finally_block_;
+};
+
+class If : public AST {
+ public:
+  If(AST* cond, AST* if_block, AST* else_block, std::u16string_view source) :
+    AST(AST_STMT_IF, source), if_block_(if_block), else_block_(else_block) {}
+  ~If() {
+    delete cond_;
+    delete if_block_;
+    if (else_block_ != nullptr)
+      delete else_block_;
+  }
+
+ public:
+  AST* cond_;
+  AST* if_block_;
+  AST* else_block_;
 };
 
 class Function : public AST {

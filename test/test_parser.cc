@@ -161,8 +161,9 @@ TEST(TestParser, PrimaryExpression_Array) {
 TEST(TestParser, PrimaryExpression_Object) {
   {
     vec_string sources = {
-      u"{}", u"{a: 1}", u"{in: bed, b: 10 + 5}", u"{1: 1}", u"{\"abc\": 1}",
-      u"{get name() { return 10 },}", u"{set name(a) { return 10 },}"
+      u"{}", u"{a: 1,}", u"{in: bed, b: 10 + 5}", u"{1: 1}", u"{\"abc\": 1}",
+      u"{get name() { return 10 },}",
+      u"{set name(a) { return 10 },}"
     };
     for (auto source : sources) {
       Parser parser(source);
@@ -175,9 +176,9 @@ TEST(TestParser, PrimaryExpression_Object) {
   // Illegal
   {
     vec_pair_string sources = {
-      {u"{a,}", u"{a,"}, {u"{a 1}", u"{a 1"},
-      {u"{get name()  return 10 }}", u"{get name() return"},
-      {u"{set name() { return 10 },}", u"{set name(a"},
+      {u"{,}", u"{,"}, {u"{a,}", u"{a,"}, {u"{a 1}", u"{a 1"},
+      {u"{get name() return 10 }}", u"{get name() return"},
+      {u"{set name() { return 10 },}", u"{set name()"},
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -653,6 +654,36 @@ TEST(TestParser, Statement_Block) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParseBlockStatement();;
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, Statement_If) {
+  {
+    vec_pair_string sources = {
+      {u"if (a == b) { a++ } else if (a > b) {d}", u"if (a == b) { a++ } else if (a > b) {d}"},
+      {u"if (a == b) a++\n else {d}", u"if (a == b) a++\n else {d}"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseIfStatement();
+      EXPECT_EQ(AST::AST_STMT_IF, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"if (a == b) a++ else {d}", u" a++"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseIfStatement();;
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }

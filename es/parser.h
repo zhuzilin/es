@@ -54,7 +54,7 @@ class Parser {
       case Token::TK_LPAREN: { // (
         lexer_.Next();   // skip (
         AST* value = ParseExpression(false);
-        if (value->type() == AST::AST_ILLEGAL)
+        if (value->IsIllegal())
           return value;
         if (lexer_.Next().type() != Token::TK_RPAREN) {
           delete value;
@@ -197,7 +197,7 @@ error:
           if (lexer_.Next().type() != Token::TK_RPAREN) { // Skip )
             goto error;
           }
-          if (lexer_.Next().type() != Token::TK_LPAREN) { // Skip {
+          if (lexer_.Next().type() != Token::TK_LBRACE) { // Skip {
             goto error;
           }
           AST* body = ParseFunctionBody();
@@ -205,7 +205,7 @@ error:
             delete obj;
             return body;
           }
-          if (lexer_.Next().type() != Token::TK_RPAREN) { // Skip }
+          if (lexer_.Next().type() != Token::TK_RBRACE) { // Skip }
             delete body;
             goto error;
           }
@@ -221,9 +221,14 @@ error:
           obj->AddProperty(ObjectLiteral::Property(token, value, ObjectLiteral::Property::NORMAL));
         }
       } else {
+        lexer_.Next();
         goto error;
       }
       token = lexer_.NextAndRewind();
+      if (token.type() == Token::TK_COMMA) {
+        lexer_.Next();  // Skip ,
+        token = lexer_.NextAndRewind();
+      }
     }
     assert(token.type() == Token::TK_RBRACE);
     assert(lexer_.Next().type() == Token::TK_RBRACE);
@@ -658,7 +663,37 @@ error:
   }
 
   AST* ParseIfStatement() {
+    START_POS;
+    AST* cond;
+    AST* if_block;
+    AST* else_block = nullptr;
 
+    assert(lexer_.Next().source() == u"if");
+    lexer_.Next();   // skip (
+    cond = ParseExpression(false);
+    if (cond->IsIllegal())
+      return cond;
+    if (lexer_.Next().type() != Token::TK_RPAREN) {  // skip )
+      delete cond;
+      goto error;
+    }
+    if_block = ParseStatement();
+    if (if_block->IsIllegal()) {
+      delete cond;
+      return if_block;
+    }
+    if (lexer_.NextAndRewind().source() == u"else") {
+      lexer_.Next();  // skip else
+      else_block = ParseStatement();
+      if (else_block->IsIllegal()) {
+        delete cond;
+        delete if_block;
+        return else_block;
+      }
+    }
+    return new If(cond, if_block, else_block, SOURCE_PARSED);
+error:
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseDoWhileStatement() {
