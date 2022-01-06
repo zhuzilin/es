@@ -435,7 +435,7 @@ TEST(TestParser, Statement_Debugger) {
   // Illegal
   {
     vec_pair_string sources = {
-      {u"debugger 1", u"debugger"},
+      {u"debugger 1", u"debugger 1"},
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -468,7 +468,7 @@ TEST(TestParser, Statement_Continue) {
   // Illegal
   {
     vec_pair_string sources = {
-      {u"continue 1", u"continue"}, {u"continue a b", u"continue a"},
+      {u"continue 1", u"continue 1"}, {u"continue a b", u"continue a b"},
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -499,7 +499,7 @@ TEST(TestParser, Statement_Break) {
   // Illegal
   {
     vec_pair_string sources = {
-      {u"break 1", u"break"}, {u"break a b", u"break a"},
+      {u"break 1", u"break 1"}, {u"break a b", u"break a b"},
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -530,7 +530,7 @@ TEST(TestParser, Statement_Return) {
   // Illegal
   {
     vec_pair_string sources = {
-      {u"return a b", u"return a"},
+      {u"return a b", u"return a b"},
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -561,7 +561,7 @@ TEST(TestParser, Statement_Throw) {
   // Illegal
   {
     vec_pair_string sources = {
-      {u"throw a b", u"throw a"},
+      {u"throw a b", u"throw a b"},
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -619,7 +619,7 @@ TEST(TestParser, Statement_Variable) {
   // Illegal
   {
     vec_pair_string sources = {
-      {u"var a = b b", u"var a = b"}, {u"var 1 = a", u"var 1"}
+      {u"var a = b b", u"var a = b b"}, {u"var 1 = a", u"var 1"}
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -678,7 +678,7 @@ TEST(TestParser, Statement_If) {
   // Illegal
   {
     vec_pair_string sources = {
-      {u"if (a == b) a++ else {d}", u" a++"}
+      {u"if (a == b) a++ else {d}", u" a++ else"}
     };
     for (auto pair : sources) {
       auto source = pair.first;

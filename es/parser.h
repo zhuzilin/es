@@ -552,6 +552,7 @@ error:
         else if (token.source() == u"debugger") {
           lexer_.Next();
           if (!lexer_.TrySkipSemiColon()) {
+            lexer_.Next();
             goto error;
           }
           return new AST(AST::AST_STMT_DEBUG, SOURCE_PARSED);
@@ -638,8 +639,11 @@ error:
       token = lexer_.NextAndRewind();
     }
 
-    if (!lexer_.TrySkipSemiColon())
+    if (!lexer_.TrySkipSemiColon()) {
+      lexer_.Next();
       goto error;
+    }
+      
 
     var_stmt->SetSource(SOURCE_PARSED);
     return var_stmt;
@@ -656,6 +660,7 @@ error:
     if (exp->IsIllegal())
       return exp;
     if (!lexer_.TrySkipSemiColon()) {
+      lexer_.Next();
       delete exp;
       return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
     }
@@ -718,6 +723,7 @@ error:
         lexer_.Next();  // Skip Identifier
       }
       if (!lexer_.TrySkipSemiColon()) {
+        lexer_.Next();
         return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
       }
     }
@@ -735,6 +741,7 @@ error:
         lexer_.Next();  // Skip Identifier
       }
       if (!lexer_.TrySkipSemiColon()) {
+        lexer_.Next();
         return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
       }
     }
@@ -751,6 +758,7 @@ error:
         return expr;
       }
       if (!lexer_.TrySkipSemiColon()) {
+        lexer_.Next();
         delete expr;
         return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
       }
@@ -768,6 +776,7 @@ error:
         return expr;
       }
       if (!lexer_.TrySkipSemiColon()) {
+        lexer_.Next();
         delete expr;
         return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
       }
