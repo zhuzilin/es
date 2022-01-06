@@ -6,6 +6,7 @@
 
 #include <test/helper.h>
 
+#define START_POS size_t start = lexer_.Pos()
 #define SOURCE_PARSED source_.substr(start, lexer_.Pos() - start)
 
 namespace es {
@@ -70,7 +71,7 @@ error:
   }
 
   AST* ParseFunctionExpression() {
-    size_t start = lexer_.Pos();
+    START_POS;
     assert(lexer_.Next().source() == u"function");
 
     Token name(Token::TK_NOT_FOUND, u"");
@@ -132,7 +133,7 @@ error:
   }
 
   AST* ParseArrayLiteral() {
-    size_t start = lexer_.Pos();
+    START_POS;
     assert(lexer_.Next().type() == Token::TK_LBRACK);
 
     ArrayLiteral* array = new ArrayLiteral();
@@ -167,7 +168,7 @@ error:
   }
 
   AST* ParseObjectLiteral() {
-    size_t start = lexer_.Pos();
+    START_POS;
     assert(lexer_.Next().type() == Token::TK_LBRACE);
 
     ObjectLiteral* obj = new ObjectLiteral();
@@ -207,8 +208,8 @@ error:
   }
 
   AST* ParseExpression(bool no_in) {
+    START_POS;
     Expression* expr = new Expression();
-    size_t start = lexer_.Pos();
 
     AST* element = ParseAssignmentExpression(no_in);
     if (element->IsIllegal()) {
@@ -256,7 +257,7 @@ error:
   }
 
   AST* ParseConditionalExpression(bool no_in) {
-    size_t start = lexer_.Pos();
+    START_POS;
     AST* cond = ParseBinaryAndUnaryExpression(no_in, 0);
     if (cond->IsIllegal())
       return cond;
@@ -288,7 +289,7 @@ error:
   }
 
   AST* ParseBinaryAndUnaryExpression(bool no_in, int priority) {
-    size_t start = lexer_.Pos();
+    START_POS;
     AST* lhs = nullptr;
     AST* rhs = nullptr;
     // Prefix Operators.
@@ -337,7 +338,7 @@ error:
   }
 
   AST* ParseLeftHandSideExpression() {
-    size_t start = lexer_.Pos();
+    START_POS;
     Token token = lexer_.NextAndRewind();
     AST* base;
     size_t new_count = 0;
@@ -406,7 +407,7 @@ error:
   }
 
   AST* ParseArguments() {
-    size_t start = lexer_.Pos();
+    START_POS;
     assert(lexer_.Next().type() == Token::TK_LPAREN);
     std::vector<AST*> args;
     AST* arg;
@@ -445,7 +446,7 @@ error:
   }
 
   AST* ParseProgram() {
-    size_t start = lexer_.Pos();
+    START_POS;
     Program* prog = new Program();
     AST* element;
 
@@ -474,7 +475,7 @@ error:
   }
 
   AST* ParseStatement() {
-    size_t start = lexer_.Pos();
+    START_POS;
     Token token = lexer_.NextAndRewind();
 
     switch (token.type()) {
@@ -537,7 +538,7 @@ error:
   }
 
   AST* ParseVariableDeclaration(bool no_in) {
-    size_t start = lexer_.Pos();
+    START_POS;
     Token ident = lexer_.Next();
     AST* init;
     assert(ident.IsIdentifier());
@@ -553,7 +554,7 @@ error:
   }
 
   AST* ParseVariableStatement(bool no_in) {
-    size_t start = lexer_.Pos();
+    START_POS;
     assert(lexer_.Next().source() == u"var");
     VarStmt* var_stmt = new VarStmt();
     AST* decl;
@@ -591,7 +592,17 @@ error:
   }
 
   AST* ParseExpressionStatement() {
-
+    START_POS;
+    Token token = lexer_.NextAndRewind();
+    assert(token.type() != Token::TK_LBRACE && token.source() != u"function");
+    AST* exp = ParseExpression(false);
+    if (exp->IsIllegal())
+      return exp;
+    if (!lexer_.TrySkipSemiColon()) {
+      delete exp;
+      return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
+    }
+    return exp;
   }
 
   AST* ParseIfStatement() {
@@ -611,7 +622,7 @@ error:
   }
 
   AST* ParseContinueStatement() {
-    size_t start = lexer_.Pos();
+    START_POS;
     assert(lexer_.Next().source() == u"continue");
     Token ident = Token(Token::TK_NOT_FOUND, u"");
     if (!lexer_.TrySkipSemiColon()) {
@@ -628,7 +639,7 @@ error:
 
   // TODO(zhuzilin) Shall I merge the continue and break?
   AST* ParseBreakStatement() {
-    size_t start = lexer_.Pos();
+    START_POS;
     assert(lexer_.Next().source() == u"break");
     Token ident = Token(Token::TK_NOT_FOUND, u"");
     if (!lexer_.TrySkipSemiColon()) {
@@ -644,7 +655,7 @@ error:
   }
 
   AST* ParseReturnStatement() {
-    size_t start = lexer_.Pos();
+    START_POS;
     assert(lexer_.Next().source() == u"return");
     AST* expr = nullptr;
     if (!lexer_.TrySkipSemiColon()) {
@@ -661,7 +672,7 @@ error:
   }
 
   AST* ParseThrowStatement() {
-    size_t start = lexer_.Pos();
+    START_POS;
     assert(lexer_.Next().source() == u"throw");
     AST* expr = nullptr;
     if (!lexer_.TrySkipSemiColon()) {
