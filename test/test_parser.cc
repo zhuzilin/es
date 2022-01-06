@@ -9,7 +9,7 @@
 #include <es/parser.h>
 #include <test/helper.h>
 
-TEST(TestParser, PrimaryExpression) {
+TEST(TestParser, PrimaryExpressionLiteral) {
   // This
   {
     std::vector<std::u16string> sources = {
@@ -101,9 +101,23 @@ TEST(TestParser, PrimaryExpression) {
     }
   }
 
+  // Illegal Literal
+  {
+    std::vector<std::u16string> sources = {
+      {u"for", u"for"}, {u"😊", u"\xD83D"},
+    };
+    for (auto source : sources) {
+      es::Parser parser(source);
+      es::AST* ast = parser.ParsePrimaryExpression();
+      EXPECT_EQ(es::AST::AST_ILLEGAL, ast->type());
+    }
+  }
+}
+
+TEST(TestParser, PrimaryExpressionArray) {
   // Array
   {
-    std::vector<std::pair<std::u16string, int>> sources = {
+    std::vector<std::pair<std::u16string, size_t>> sources = {
       {u"[]", 0}, {u"[,]", 1}, {u"[abc, 123,'string', ]", 3}, {u"[1+2*3, ++a]", 2}
     };
     for (auto pair : sources) {
@@ -118,6 +132,20 @@ TEST(TestParser, PrimaryExpression) {
     }
   }
 
+  // Illegal Array
+  {
+    std::vector<std::u16string> sources = {
+      {u"[a,", u"[a,"}, {u"[", u"["},
+    };
+    for (auto source : sources) {
+      es::Parser parser(source);
+      es::AST* ast = parser.ParsePrimaryExpression();
+      EXPECT_EQ(es::AST::AST_ILLEGAL, ast->type());
+    }
+  }
+}
+
+TEST(TestParser, PrimaryExpressionObject) {
   // Object
   {
     std::vector<std::u16string> sources = {
@@ -128,30 +156,6 @@ TEST(TestParser, PrimaryExpression) {
       es::AST* ast = parser.ParsePrimaryExpression();
       EXPECT_EQ(es::AST::AST_EXP_OBJ, ast->type());
       EXPECT_EQ(source, ast->source());
-    }
-  }
-
-  // Illegal Literal
-  {
-    std::vector<std::u16string> sources = {
-      {u"for", u"for"}, {u"😊", u"\xD83D"},
-    };
-    for (auto source : sources) {
-      es::Parser parser(source);
-      es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_ILLEGAL, ast->type());
-    }
-  }
-
-  // Illegal Array
-  {
-    std::vector<std::u16string> sources = {
-      {u"[a,", u"[a,"}, {u"[", u"["},
-    };
-    for (auto source : sources) {
-      es::Parser parser(source);
-      es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_ILLEGAL, ast->type());
     }
   }
 
@@ -293,12 +297,34 @@ TEST(TestParser, FunctionExpression) {
     };
     for (auto pair : sources) {
       auto source = pair.first;
-      es::test::PrintSource("", source);
       auto error = pair.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParseFunctionExpression();
       EXPECT_NE(es::AST::AST_EXP_FUNC, ast->type());
       EXPECT_EQ(error, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, Arguments) {
+  {
+    std::vector<std::pair<std::u16string,
+                          std::vector<std::u16string>>> sources = {
+      {u"()", {}},
+      {u"(a)", {u"a"}},
+      {u"(a, 1+3, function(){})", {u"a", u" 1+3", u" function(){}"}},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      auto args = pair.second;
+      es::Parser parser(source);
+      es::AST* ast = parser.ParseArguments();
+      EXPECT_EQ(es::AST::AST_EXP_ARGS, ast->type());
+      EXPECT_EQ(source, ast->source());
+      auto func = static_cast<es::Arguments*>(ast);
+      for (size_t i = 0; i < func->args().size(); i++) {
+        EXPECT_EQ(args[i], func->args()[i]->source());
+      }
     }
   }
 }

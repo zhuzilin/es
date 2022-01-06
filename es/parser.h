@@ -132,7 +132,6 @@ error:
 
     Token token = lexer_.NextAndRewind();
     while (token.type() != Token::TK_RBRACK) {
-      test::PrintSource("", token.source());
       switch (token.type()) {
         case Token::TK_COMMA:
           lexer_.Next();
@@ -339,8 +338,111 @@ error:
 
   AST* ParseLeftHandSideExpression() {
     size_t start = lexer_.Pos();
+    Token token = lexer_.NextAndRewind();
+    AST* base;
+    size_t new_count = 0;
+    while (token.source() == u"new") {
+      lexer_.Next();
+      new_count++;
+      token = lexer_.NextAndRewind();
+    }
+    if (token.source() == u"function") {
+      base = ParseFunctionExpression();
+    } else {
+      base = ParsePrimaryExpression();
+    }
+    if (base->IsIllegal()) {
+      return base;
+    }
 
-    return ParsePrimaryExpression();
+    LHS* lhs = new LHS(base, new_count);
+
+    while (true) {
+      token = lexer_.NextAndRewind();
+      switch (token.type()) {
+        case Token::TK_LPAREN: {  // (
+          AST* ast = ParseArguments();
+          if (ast->IsIllegal()) {
+            delete lhs;
+            return ast;
+          }
+          assert(ast->type() == AST::AST_EXP_ARGS);
+          Arguments* args = static_cast<Arguments*>(ast);
+          lhs->AddArguments(args);
+          break;
+        }
+        case Token::TK_LBRACK: {  // [
+          lexer_.Next();  // skip [
+          AST* index = ParseExpression(false);
+          if (index->IsIllegal()) {
+            delete lhs;
+            return index;
+          }
+          token = lexer_.Next();  // skip ]
+          if (token.type() != Token::TK_RBRACK) {
+            delete lhs;
+            delete index;
+            goto error;
+          }
+          lhs->AddIndex(index);
+          break;
+        }
+        case Token::TK_DOT: {  // .
+          lexer_.Next();  // skip .
+          token = lexer_.Next();  // skip IdentifierName
+          if (!token.IsIdentifierName()) {
+            delete lhs;
+            goto error;
+          }
+          lhs->AddProp(token);
+          break;
+        }
+        default:
+          lhs->SetSource(source_.substr(start, lexer_.Pos() - start));
+          return lhs;
+      }
+    }
+error:
+    return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+  }
+
+  AST* ParseArguments() {
+    size_t start = lexer_.Pos();
+    assert(lexer_.Next().type() == Token::TK_LPAREN);
+    std::vector<AST*> args;
+    AST* arg;
+    Arguments* arg_ast;
+    Token token = lexer_.NextAndRewind();
+    es::test::PrintSource("token:", token.source());
+    if (token.type() != Token::TK_RPAREN) {
+      arg = ParseAssignmentExpression(false);
+      if (arg->IsIllegal())
+        return arg;
+      args.emplace_back(arg);
+      token = lexer_.NextAndRewind();
+    }
+    while (token.type() != Token::TK_RPAREN) {
+      if (token.type() != Token::TK_COMMA) {
+        goto error;
+      }
+      lexer_.Next();  // skip ,
+      arg = ParseAssignmentExpression(false);
+      if (arg->IsIllegal()) {
+        for (auto arg : args)
+          delete arg;
+        return arg;
+      }
+      args.emplace_back(arg);
+      token = lexer_.NextAndRewind();
+    }
+    assert(lexer_.Next().type() == Token::TK_RPAREN);  // skip )
+    arg_ast = new Arguments(args);
+    arg_ast->SetSource(source_.substr(start, lexer_.Pos() - start));
+    return arg_ast;
+error:
+    for (auto arg : args)
+      delete arg;
+    return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
   }
 
  private:

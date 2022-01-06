@@ -130,6 +130,10 @@ class Token {
     return type_ == TK_LINE_TERM;
   }
 
+  inline bool IsIdentifierName() {
+    return type_ == TK_IDENT || type_ == TK_KEYWORD || type_ == TK_FUTURE;
+  }
+
   inline int BinaryPriority(bool no_in) {
     switch (type_) {
       // Binary

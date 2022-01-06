@@ -34,6 +34,9 @@ class AST {
 
     AST_EXP_FUNC,
 
+    AST_EXP_ARGS,
+    AST_EXP_LHS,
+
     AST_EXP,
 
     AST_FUNC_BODY,
@@ -42,6 +45,8 @@ class AST {
   };
 
   AST(Type type, std::u16string_view source = u"") : type_(type), source_(source) {}
+  virtual ~AST() {};
+
   Type type() { return type_; }
   std::u16string_view source() { return source_; }
 
@@ -160,6 +165,11 @@ class TripleCondition : public AST {
 class Expression : public AST {
  public:
   Expression() : AST(AST_EXP) {}
+  ~Expression() {
+    for (auto element : elements_) {
+      delete element;
+    }
+  }
 
   void AddElement(AST* element) { elements_.push_back(element); }
 
@@ -177,9 +187,13 @@ class Function : public AST {
   Function(Token name, std::vector<Token> params, FunctionBody* body) :
     AST(AST_EXP_FUNC), name_(name), params_(params), body_(body) {}
 
-    Token name() { return name_; }
-    std::vector<Token> params() { return params_; }
-    FunctionBody* body() { return body_; }
+  ~Function() {
+    delete body_;
+  }
+
+  Token name() { return name_; }
+  std::vector<Token> params() { return params_; }
+  FunctionBody* body() { return body_; }
 
  private:
   Token name_;
@@ -187,7 +201,63 @@ class Function : public AST {
   FunctionBody* body_;
 };
 
+class Arguments : public AST {
+ public:
+  Arguments(std::vector<AST*> args) : AST(AST_EXP_ARGS), args_(args) {}
 
+  ~Arguments() {
+    for (auto arg : args_)
+      delete arg;
+  }
+
+  std::vector<AST*> args() { return args_; }
+
+ private:
+  std::vector<AST*> args_;
+};
+
+class LHS : public AST {
+ public:
+  LHS(AST* base, size_t new_count) :
+    AST(AST_EXP_LHS), base_(base), new_count_(new_count) {}
+
+  ~LHS() {
+    for (auto args : args_list_)
+      delete args;
+    for (auto index : index_list_)
+      delete index;
+  }
+
+  enum PostfixType{
+    CALL,
+    INDEX,
+    PROP,
+  };
+
+  void AddArguments(Arguments* args) {
+    order_.emplace_back(std::make_pair(args_list_.size(), CALL));
+    args_list_.emplace_back(args);
+  }
+
+  void AddIndex(AST* index) {
+    order_.emplace_back(std::make_pair(index_list_.size(), INDEX));
+    index_list_.emplace_back(index);
+  }
+
+  void AddProp(Token prop_name) {
+    order_.emplace_back(std::make_pair(prop_name_list_.size(), PROP));
+    prop_name_list_.emplace_back(prop_name);
+  }
+
+ private:
+  AST* base_;
+  size_t new_count_;
+
+  std::vector<std::pair<size_t, PostfixType>> order_;
+  std::vector<Arguments*> args_list_;
+  std::vector<AST*> index_list_;
+  std::vector<Token> prop_name_list_;
+};
 
 }  // namespace es
 
