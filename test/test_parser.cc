@@ -18,7 +18,7 @@ TEST(TestParser, PrimaryExpressionLiteral) {
     for (auto source : sources) {
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_EXP_THIS, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_THIS, ast->type());
       EXPECT_EQ(u"this", ast->source());
     }
   }
@@ -31,7 +31,7 @@ TEST(TestParser, PrimaryExpressionLiteral) {
     for (auto source : sources) {
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_EXP_IDENT, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_IDENT, ast->type());
       EXPECT_EQ(source, ast->source());
     }
   }
@@ -44,7 +44,7 @@ TEST(TestParser, PrimaryExpressionLiteral) {
     for (auto source : sources) {
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_EXP_NULL, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_NULL, ast->type());
       EXPECT_EQ(source, ast->source());
     }
   }
@@ -57,7 +57,7 @@ TEST(TestParser, PrimaryExpressionLiteral) {
     for (auto source : sources) {
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_EXP_BOOL, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_BOOL, ast->type());
       EXPECT_EQ(source, ast->source());
     }
   }
@@ -70,7 +70,7 @@ TEST(TestParser, PrimaryExpressionLiteral) {
     for (auto source : sources) {
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_EXP_NUMBER, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_NUMBER, ast->type());
       EXPECT_EQ(source, ast->source());
     }
   }
@@ -83,7 +83,7 @@ TEST(TestParser, PrimaryExpressionLiteral) {
     for (auto source : sources) {
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_EXP_STRING, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_STRING, ast->type());
       EXPECT_EQ(source, ast->source());
     }
   }
@@ -96,7 +96,7 @@ TEST(TestParser, PrimaryExpressionLiteral) {
     for (auto source : sources) {
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_EXP_REGEX, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_REGEX, ast->type());
       EXPECT_EQ(source, ast->source());
     }
   }
@@ -124,7 +124,7 @@ TEST(TestParser, PrimaryExpressionArray) {
       size_t length = pair.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_EXP_ARRAY, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_ARRAY, ast->type());
       EXPECT_EQ(source, ast->source());
       auto array = static_cast<es::ArrayLiteral*>(ast);
       EXPECT_EQ(length, array->length());
@@ -156,7 +156,7 @@ TEST(TestParser, PrimaryExpressionObject) {
     for (auto source : sources) {
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_EXP_OBJ, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_OBJ, ast->type());
       EXPECT_EQ(source, ast->source());
     }
   }
@@ -187,7 +187,7 @@ TEST(TestParser, PrimaryExpressionParentheses) {
       es::Parser parser(source);
       es::test::PrintSource("source:", source);
       es::AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(es::AST::AST_EXP, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
   }
@@ -227,7 +227,7 @@ TEST(TestParser, Binary) {
       auto rhs = pair.second.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
-      EXPECT_EQ(es::AST::AST_EXP_BINARY, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_BINARY, ast->type());
       EXPECT_EQ(source, ast->source());
       auto binary = static_cast<es::Binary*>(ast);
       EXPECT_EQ(lhs, binary->lhs()->source());
@@ -246,7 +246,7 @@ TEST(TestParser, Unary) {
       auto node = pair.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
-      EXPECT_EQ(es::AST::AST_EXP_UNARY, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_UNARY, ast->type());
       EXPECT_EQ(source, ast->source());
       auto unary = static_cast<es::Unary*>(ast);
       EXPECT_EQ(node, unary->node()->source());
@@ -263,7 +263,7 @@ TEST(TestParser, Unary) {
       auto error = pair.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
-      EXPECT_NE(es::AST::AST_EXP_UNARY, ast->type());
+      EXPECT_NE(es::AST::AST_EXPR_UNARY, ast->type());
       EXPECT_EQ(error, ast->source());
     }
   }
@@ -279,7 +279,7 @@ TEST(TestParser, TripleCondition) {
       auto source = vec[0];
       es::Parser parser(vec[0]);
       es::AST* ast = parser.ParseConditionalExpression(false);
-      EXPECT_EQ(es::AST::AST_EXP_TRIPLE, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_TRIPLE, ast->type());
       EXPECT_EQ(source, ast->source());
       auto cond = static_cast<es::TripleCondition*>(ast);
       EXPECT_EQ(vec[1], cond->cond()->source());
@@ -298,7 +298,7 @@ TEST(TestParser, TripleCondition) {
       auto error = pair.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParseConditionalExpression(false);
-      EXPECT_NE(es::AST::AST_EXP_TRIPLE, ast->type());
+      EXPECT_NE(es::AST::AST_EXPR_TRIPLE, ast->type());
       EXPECT_EQ(error, ast->source());
     }
   }
@@ -318,7 +318,7 @@ TEST(TestParser, FunctionExpression) {
       auto params = pair.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParseFunctionExpression();
-      EXPECT_EQ(es::AST::AST_EXP_FUNC, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_FUNC, ast->type());
       EXPECT_EQ(source, ast->source());
       auto func = static_cast<es::Function*>(ast);
       EXPECT_EQ(params[0], func->name().source());
@@ -339,7 +339,7 @@ TEST(TestParser, FunctionExpression) {
       auto error = pair.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParseFunctionExpression();
-      EXPECT_NE(es::AST::AST_EXP_FUNC, ast->type());
+      EXPECT_NE(es::AST::AST_EXPR_FUNC, ast->type());
       EXPECT_EQ(error, ast->source());
     }
   }
@@ -358,7 +358,7 @@ TEST(TestParser, Arguments) {
       auto args = pair.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParseArguments();
-      EXPECT_EQ(es::AST::AST_EXP_ARGS, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_ARGS, ast->type());
       EXPECT_EQ(source, ast->source());
       auto func = static_cast<es::Arguments*>(ast);
       for (size_t i = 0; i < func->args().size(); i++) {
@@ -379,7 +379,7 @@ TEST(TestParser, LeftHandSide) {
       es::test::PrintSource("source:", source);
       es::AST* ast = parser.ParseLeftHandSideExpression();
       es::test::PrintSource("ast:", ast->source());
-      EXPECT_EQ(es::AST::AST_EXP_LHS, ast->type());
+      EXPECT_EQ(es::AST::AST_EXPR_LHS, ast->type());
       EXPECT_EQ(source, ast->source());
     }
   }

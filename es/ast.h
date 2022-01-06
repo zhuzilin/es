@@ -14,30 +14,30 @@ namespace es {
 class AST {
  public:
   enum Type {
-    AST_EXP_THIS,
-    AST_EXP_IDENT,
+    AST_EXPR_THIS,
+    AST_EXPR_IDENT,
 
-    AST_EXP_NULL,
-    AST_EXP_BOOL,
-    AST_EXP_NUMBER,
-    AST_EXP_STRING,
-    AST_EXP_REGEX,
+    AST_EXPR_NULL,
+    AST_EXPR_BOOL,
+    AST_EXPR_NUMBER,
+    AST_EXPR_STRING,
+    AST_EXPR_REGEX,
 
-    AST_EXP_ARRAY,
-    AST_EXP_OBJ,
+    AST_EXPR_ARRAY,
+    AST_EXPR_OBJ,
 
-    AST_EXP_PAREN,  // ( Expression )
+    AST_EXPR_PAREN,  // ( Expression )
 
-    AST_EXP_BINARY,
-    AST_EXP_UNARY,
-    AST_EXP_TRIPLE,
+    AST_EXPR_BINARY,
+    AST_EXPR_UNARY,
+    AST_EXPR_TRIPLE,
 
-    AST_EXP_FUNC,
+    AST_EXPR_FUNC,
 
-    AST_EXP_ARGS,
-    AST_EXP_LHS,
+    AST_EXPR_ARGS,
+    AST_EXPR_LHS,
 
-    AST_EXP,
+    AST_EXPR,
 
     AST_FUNC_BODY,
 
@@ -61,7 +61,7 @@ class AST {
 
 class ArrayLiteral : public AST {
  public:
-  ArrayLiteral() : AST(AST_EXP_ARRAY), len_(0) {}
+  ArrayLiteral() : AST(AST_EXPR_ARRAY), len_(0) {}
 
   ~ArrayLiteral() {
     for (auto pair : elements_) {
@@ -85,7 +85,7 @@ class ArrayLiteral : public AST {
 
 class ObjectLiteral : public AST {
  public:
-  ObjectLiteral() : AST(AST_EXP_OBJ) {}
+  ObjectLiteral() : AST(AST_EXPR_OBJ) {}
 
   ~ObjectLiteral() {
     for (auto pair : properties_) {
@@ -120,7 +120,7 @@ class ObjectLiteral : public AST {
 class Binary : public AST {
  public:
   Binary(AST* lhs, AST* rhs, Token op) :
-    AST(AST_EXP_BINARY), lhs_(lhs), rhs_(rhs), op_(op) {}
+    AST(AST_EXPR_BINARY), lhs_(lhs), rhs_(rhs), op_(op) {}
 
   AST* lhs() { return lhs_; }
   AST* rhs() { return rhs_; }
@@ -135,7 +135,7 @@ class Binary : public AST {
 class Unary : public AST {
  public:
   Unary(AST* node, Token op, bool prefix) :
-    AST(AST_EXP_UNARY), node_(node), op_(op), prefix_(prefix) {}
+    AST(AST_EXPR_UNARY), node_(node), op_(op), prefix_(prefix) {}
 
   AST* node() { return node_; }
   Token op() { return op_; }
@@ -150,7 +150,7 @@ class Unary : public AST {
 class TripleCondition : public AST {
  public:
   TripleCondition(AST* cond, AST* lhs, AST* rhs) :
-    AST(AST_EXP_TRIPLE), cond_(cond), lhs_(lhs), rhs_(rhs) {}
+    AST(AST_EXPR_TRIPLE), cond_(cond), lhs_(lhs), rhs_(rhs) {}
 
   AST* cond() { return cond_; }
   AST* lhs() { return lhs_; }
@@ -164,7 +164,7 @@ class TripleCondition : public AST {
 
 class Expression : public AST {
  public:
-  Expression() : AST(AST_EXP) {}
+  Expression() : AST(AST_EXPR) {}
   ~Expression() {
     for (auto element : elements_) {
       delete element;
@@ -185,7 +185,7 @@ class FunctionBody : public AST {
 class Function : public AST {
  public:
   Function(Token name, std::vector<Token> params, FunctionBody* body) :
-    AST(AST_EXP_FUNC), name_(name), params_(params), body_(body) {}
+    AST(AST_EXPR_FUNC), name_(name), params_(params), body_(body) {}
 
   ~Function() {
     delete body_;
@@ -203,7 +203,7 @@ class Function : public AST {
 
 class Arguments : public AST {
  public:
-  Arguments(std::vector<AST*> args) : AST(AST_EXP_ARGS), args_(args) {}
+  Arguments(std::vector<AST*> args) : AST(AST_EXPR_ARGS), args_(args) {}
 
   ~Arguments() {
     for (auto arg : args_)
@@ -219,7 +219,7 @@ class Arguments : public AST {
 class LHS : public AST {
  public:
   LHS(AST* base, size_t new_count) :
-    AST(AST_EXP_LHS), base_(base), new_count_(new_count) {}
+    AST(AST_EXPR_LHS), base_(base), new_count_(new_count) {}
 
   ~LHS() {
     for (auto args : args_list_)

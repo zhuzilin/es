@@ -17,7 +17,7 @@ class Parser {
     if (lexer_.Now() == u'/') {
       token = lexer_.ScanRegexLiteral();
       if (token.type() == Token::TK_REGEX) {
-        return new AST(AST::AST_EXP_REGEX, token.source());
+        return new AST(AST::AST_EXPR_REGEX, token.source());
       } else {
         goto error;
       }
@@ -26,24 +26,24 @@ class Parser {
     switch (token.type()) {
       case Token::TK_KEYWORD:
         if (token.source() == u"this") {
-          return new AST(AST::AST_EXP_THIS, token.source());
+          return new AST(AST::AST_EXPR_THIS, token.source());
         }
         goto error;
       case Token::TK_IDENT:
         lexer_.Next();
-        return new AST(AST::AST_EXP_IDENT, token.source());
+        return new AST(AST::AST_EXPR_IDENT, token.source());
       case Token::TK_NULL:
         lexer_.Next();
-        return new AST(AST::AST_EXP_NULL, token.source());
+        return new AST(AST::AST_EXPR_NULL, token.source());
       case Token::TK_BOOL:
         lexer_.Next();
-        return new AST(AST::AST_EXP_BOOL, token.source());
+        return new AST(AST::AST_EXPR_BOOL, token.source());
       case Token::TK_NUMBER:
         lexer_.Next();
-        return new AST(AST::AST_EXP_NUMBER, token.source());
+        return new AST(AST::AST_EXPR_NUMBER, token.source());
       case Token::TK_STRING:
         lexer_.Next();
-        return new AST(AST::AST_EXP_STRING, token.source());
+        return new AST(AST::AST_EXPR_STRING, token.source());
       case Token::TK_LBRACK:  // [
         return ParseArrayLiteral();
       case Token::TK_LBRACE:  // {
@@ -238,8 +238,8 @@ error:
       return lhs;
 
     // Not LeftHandSideExpression
-    if (lhs->type() == AST::AST_EXP_BINARY || lhs->type() == AST::AST_EXP_UNARY ||
-        lhs->type() == AST::AST_EXP_TRIPLE) {
+    if (lhs->type() == AST::AST_EXPR_BINARY || lhs->type() == AST::AST_EXPR_UNARY ||
+        lhs->type() == AST::AST_EXPR_TRIPLE) {
       return lhs;
     }
     Token op = lexer_.NextAndRewind();
@@ -312,7 +312,7 @@ error:
       Token postfix_op = lexer_.NextAndRewind();
       bool is_line_terminator = lexer_.NextAndRewind(true).IsLineTerminator();
       if (!is_line_terminator && postfix_op.UnaryPostfixPriority() > priority) {
-        if (lhs->type() != AST::AST_EXP_BINARY && lhs->type() != AST::AST_EXP_UNARY) {
+        if (lhs->type() != AST::AST_EXPR_BINARY && lhs->type() != AST::AST_EXPR_UNARY) {
           lexer_.Next();
           test::PrintSource("Find postfix op: ", postfix_op.source());
           lhs = new Unary(lhs, postfix_op, false);
@@ -373,7 +373,7 @@ error:
             delete lhs;
             return ast;
           }
-          assert(ast->type() == AST::AST_EXP_ARGS);
+          assert(ast->type() == AST::AST_EXPR_ARGS);
           Arguments* args = static_cast<Arguments*>(ast);
           lhs->AddArguments(args);
           break;
@@ -451,6 +451,7 @@ error:
       delete arg;
     return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
   }
+
 
  private:
   std::u16string_view source_;
