@@ -115,7 +115,6 @@ TEST(TestParser, PrimaryExpressionLiteral) {
 }
 
 TEST(TestParser, PrimaryExpressionArray) {
-  // Array
   {
     std::vector<std::pair<std::u16string, size_t>> sources = {
       {u"[]", 0}, {u"[,]", 1}, {u"[abc, 123,'string', ]", 3}, {u"[1+2*3, ++a]", 2}
@@ -132,21 +131,24 @@ TEST(TestParser, PrimaryExpressionArray) {
     }
   }
 
-  // Illegal Array
+  // Illegal
   {
-    std::vector<std::u16string> sources = {
-      {u"[a,", u"[a,"}, {u"[", u"["},
+    // TODO(zhuzilin) This error messsage is not intuitive.
+    std::vector<std::pair<std::u16string,std::u16string>> sources = {
+      {u"[a,", u""}, {u"[", u""},
     };
-    for (auto source : sources) {
+    for (auto pair : sources) {
+      auto source = pair.first;
+      auto error = pair.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
       EXPECT_EQ(es::AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(error, ast->source());
     }
   }
 }
 
 TEST(TestParser, PrimaryExpressionObject) {
-  // Object
   {
     std::vector<std::u16string> sources = {
       u"{}", u"{a: 1}", u"{in: bed}", u"{1: 1}", u"{\"abc\": 1}"
@@ -159,15 +161,51 @@ TEST(TestParser, PrimaryExpressionObject) {
     }
   }
 
-  // Illegal Object
+  // Illegal
   {
-    std::vector<std::u16string> sources = {
+    std::vector<std::pair<std::u16string,std::u16string>> sources = {
       {u"{a,}", u"{a,"}, {u"{a 1}", u"{a 1"},
     };
-    for (auto source : sources) {
+    for (auto pair : sources) {
+      auto source = pair.first;
+      auto error = pair.second;
       es::Parser parser(source);
       es::AST* ast = parser.ParsePrimaryExpression();
       EXPECT_EQ(es::AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(error, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, PrimaryExpressionParentheses) {
+  {
+    std::vector<std::pair<std::u16string,std::u16string>> sources = {
+      {u"(a)", u"a"}, {u"(a + b)", u"a + b"}, {u"(a + b, a++)", u"a + b, a++"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      es::Parser parser(source);
+      es::test::PrintSource("source:", source);
+      es::AST* ast = parser.ParsePrimaryExpression();
+      EXPECT_EQ(es::AST::AST_EXP, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    // TODO(zhuzilin) This error message is not intuitive.
+    std::vector<std::pair<std::u16string,std::u16string>> sources = {
+      {u"()", u")"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      auto error = pair.second;
+      es::Parser parser(source);
+      es::test::PrintSource("source:", source);
+      es::AST* ast = parser.ParsePrimaryExpression();
+      EXPECT_EQ(es::AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(error, ast->source());
     }
   }
 }
@@ -325,6 +363,23 @@ TEST(TestParser, Arguments) {
       for (size_t i = 0; i < func->args().size(); i++) {
         EXPECT_EQ(args[i], func->args()[i]->source());
       }
+    }
+  }
+}
+
+TEST(TestParser, LeftHandSide) {
+  {
+    std::vector<std::u16string> sources = {
+      u"new Object()", u"function(a, b, c){}(c, d)",
+      u"new new a[123 + xyz].__ABC['您好']()()"
+    };
+    for (auto source : sources) {
+      es::Parser parser(source);
+      es::test::PrintSource("source:", source);
+      es::AST* ast = parser.ParseLeftHandSideExpression();
+      es::test::PrintSource("ast:", ast->source());
+      EXPECT_EQ(es::AST::AST_EXP_LHS, ast->type());
+      EXPECT_EQ(source, ast->source());
     }
   }
 }

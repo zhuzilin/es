@@ -49,9 +49,15 @@ class Parser {
       case Token::TK_LBRACE:  // {
         return ParseObjectLiteral();
       case Token::TK_LPAREN: { // (
+        lexer_.Next();   // skip (
         AST* value = ParseExpression(false);
         if (value->type() == AST::AST_ILLEGAL)
+          return value;
+        if (lexer_.Next().type() != Token::TK_RPAREN) {
+          delete value;
           goto error;
+        }
+        return value;
       }
       default:
         goto error;
@@ -208,15 +214,17 @@ error:
       return element;
     }
     expr->AddElement(element);
-    Token token = lexer_.Next();
+    Token token = lexer_.NextAndRewind();
     while (token.type() == Token::TK_COMMA) {
-      lexer_.Next();
+      lexer_.Next();  // skip ,
       element = ParseAssignmentExpression(no_in);
       if (element->type() == AST::AST_ILLEGAL) {
         return element;
       }
       expr->AddElement(element);
+      token = lexer_.NextAndRewind();
     }
+    expr->SetSource(source_.substr(start, lexer_.Pos() - start));
     return expr;
 error:
     delete expr;
@@ -354,7 +362,6 @@ error:
     if (base->IsIllegal()) {
       return base;
     }
-
     LHS* lhs = new LHS(base, new_count);
 
     while (true) {
