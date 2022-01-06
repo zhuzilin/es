@@ -211,7 +211,7 @@ void JSObject::Put(std::u16string_view p, JSValue* v, bool throw_flag, Error *e)
     return;
   }
   JSValue* value = GetOwnProperty(p);
-  if (!value->IfsUndefined()) {
+  if (!value->IsUndefined()) {
     PropertyDescriptor* own_desc = static_cast<PropertyDescriptor*>(value);
     if (own_desc->IsDataDescriptor()) {
       PropertyDescriptor* value_desc = new PropertyDescriptor();
@@ -272,7 +272,7 @@ JSValue* JSObject::DefaultValue(std::u16string_view hint, Error *e) {
 
   JSValue* to_string = Get(first);
   if (to_string->IsCallable()) {
-    JSObject* to_string_obj = static_cast<JSValue*>(to_string);
+    JSObject* to_string_obj = static_cast<JSObject*>(to_string);
     JSValue* str = to_string_obj->Call(this);
     if (str->IsPrimitive()) {
       return str;
@@ -280,7 +280,7 @@ JSValue* JSObject::DefaultValue(std::u16string_view hint, Error *e) {
   }
   JSValue* value_of = Get(second);
   if (value_of->IsCallable()) {
-    JSObject* value_of_obj = static_cast<JSValue*>(value_of);
+    JSObject* value_of_obj = static_cast<JSObject*>(value_of);
     JSValue* val = value_of_obj->Call(this);
     if (val->IsPrimitive()) {
       return val;

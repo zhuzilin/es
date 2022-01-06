@@ -132,6 +132,10 @@ class Token {
     return type_ == TK_IDENT || type_ == TK_KEYWORD || type_ == TK_FUTURE;
   }
 
+  inline bool IsPropertyName() {
+    return IsIdentifierName() || type_ == TK_STRING || type_ == TK_NUMBER;
+  }
+
   inline bool IsSemiColon() { return type_ == TK_SEMICOLON; }
 
   inline bool IsIdentifier() { return type_ == TK_IDENT; }

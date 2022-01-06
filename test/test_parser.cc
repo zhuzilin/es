@@ -16,7 +16,7 @@ typedef std::vector<std::pair<string,string>> vec_pair_string;
 
 using namespace es;
 
-TEST(TestParser, PrimaryExpressionLiteral) {
+TEST(TestParser, PrimaryExpression_Literal) {
   // This
   {
     vec_string sources = {
@@ -124,7 +124,7 @@ TEST(TestParser, PrimaryExpressionLiteral) {
   }
 }
 
-TEST(TestParser, PrimaryExpressionArray) {
+TEST(TestParser, PrimaryExpression_Array) {
   {
     std::vector<std::pair<string, size_t>> sources = {
       {u"[]", 0}, {u"[,]", 1}, {u"[abc, 123,'string', ]", 3}, {u"[1+2*3, ++a]", 2}
@@ -158,10 +158,11 @@ TEST(TestParser, PrimaryExpressionArray) {
   }
 }
 
-TEST(TestParser, PrimaryExpressionObject) {
+TEST(TestParser, PrimaryExpression_Object) {
   {
     vec_string sources = {
-      u"{}", u"{a: 1}", u"{in: bed}", u"{1: 1}", u"{\"abc\": 1}"
+      u"{}", u"{a: 1}", u"{in: bed, b: 10 + 5}", u"{1: 1}", u"{\"abc\": 1}",
+      u"{get name() { return 10 },}", u"{set name(a) { return 10 },}"
     };
     for (auto source : sources) {
       Parser parser(source);
@@ -175,6 +176,8 @@ TEST(TestParser, PrimaryExpressionObject) {
   {
     vec_pair_string sources = {
       {u"{a,}", u"{a,"}, {u"{a 1}", u"{a 1"},
+      {u"{get name()  return 10 }}", u"{get name() return"},
+      {u"{set name() { return 10 },}", u"{set name(a"},
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -187,7 +190,7 @@ TEST(TestParser, PrimaryExpressionObject) {
   }
 }
 
-TEST(TestParser, PrimaryExpressionParentheses) {
+TEST(TestParser, PrimaryExpression_Parentheses) {
   {
     vec_pair_string sources = {
       {u"(a)", u"a"}, {u"(a + b)", u"a + b"}, {u"(a + b, a++)", u"a + b, a++"}
@@ -220,7 +223,7 @@ TEST(TestParser, PrimaryExpressionParentheses) {
   }
 }
 
-TEST(TestParser, Binary) {
+TEST(TestParser, Expression_Binary) {
   {
     std::vector<
       std::pair<string,
@@ -246,7 +249,7 @@ TEST(TestParser, Binary) {
   }
 }
 
-TEST(TestParser, Unary) {
+TEST(TestParser, Expression_Unary) {
   {
     std::vector<std::pair<string, string>> sources = {
       {u"a ++", u"a"}, {u"++\na", u"\na"}, {u"++ a", u" a"},
@@ -279,7 +282,7 @@ TEST(TestParser, Unary) {
   }
 }
 
-TEST(TestParser, TripleCondition) {
+TEST(TestParser, Expression_TripleCondition) {
   {
     std::vector<vec_string> sources = {
       {u"a ?b:c", u"a", u"b", u"c"},
@@ -314,48 +317,7 @@ TEST(TestParser, TripleCondition) {
   }
 }
 
-TEST(TestParser, FunctionExpression) {
-  // TODO(zhuzilin) Check FunctionBody
-  {
-    std::vector<std::pair<string,
-                          vec_string>> sources = {
-      {u"function () {}", {u""}},
-      {u"function name (a, b) {}", {u"name", u"a", u"b"}},
-      {u"function (a, a, c) {}", {u"", u"a", u"a", u"c"}},
-    };
-    for (auto pair : sources) {
-      auto source = pair.first;
-      auto params = pair.second;
-      Parser parser(source);
-      AST* ast = parser.ParseFunctionExpression();
-      EXPECT_EQ(AST::AST_EXPR_FUNC, ast->type());
-      EXPECT_EQ(source, ast->source());
-      auto func = static_cast<Function*>(ast);
-      EXPECT_EQ(params[0], func->name().source());
-      EXPECT_EQ(params.size() - 1, func->params().size());
-      for (size_t i = 0; i < func->params().size(); i++) {
-        EXPECT_EQ(params[i + 1], func->params()[i].source());
-      }
-    }
-  }
-
-  // invalid
-  {
-    std::vector<std::pair<string, string>> sources = {
-      {u"function (,) {}", u"function (,"}, {u"function (a a) {}", u"function (a a"}
-    };
-    for (auto pair : sources) {
-      auto source = pair.first;
-      auto error = pair.second;
-      Parser parser(source);
-      AST* ast = parser.ParseFunctionExpression();
-      EXPECT_NE(AST::AST_EXPR_FUNC, ast->type());
-      EXPECT_EQ(error, ast->source());
-    }
-  }
-}
-
-TEST(TestParser, Arguments) {
+TEST(TestParser, Expression_Arguments) {
   {
     std::vector<std::pair<string,
                           vec_string>> sources = {
@@ -378,7 +340,7 @@ TEST(TestParser, Arguments) {
   }
 }
 
-TEST(TestParser, LeftHandSide) {
+TEST(TestParser, Expression_LeftHandSide) {
   {
     vec_string sources = {
       u"new Object()", u"function(a, b, c){}(c, d)",
@@ -395,7 +357,66 @@ TEST(TestParser, LeftHandSide) {
   }
 }
 
-TEST(TestParser, Debugger) {
+TEST(TestParser, Function) {
+  {
+    std::vector<std::pair<string,
+                          vec_string>> sources = {
+      {u"function () {}", {u"", u""}},
+      {u"function name (a, b) {a=1}", {u"name", u"a", u"b", u"a=1"}},
+      {u"function (a, a, c) {return a,b}", {u"", u"a", u"a", u"c", u"return a,b"}},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      auto params = pair.second;
+      test::PrintSource("source: ", source);
+      Parser parser(source);
+      AST* ast = parser.ParseFunction(false);
+      EXPECT_EQ(AST::AST_FUNC, ast->type());
+      EXPECT_EQ(source, ast->source());
+      auto func = static_cast<Function*>(ast);
+      EXPECT_EQ(params[0], func->name().source());
+      EXPECT_EQ(params.size() - 2, func->params().size());
+      for (size_t i = 0; i < func->params().size(); i++) {
+        EXPECT_EQ(params[i + 1], func->params()[i].source());
+      }
+      test::PrintSource("test body: ", func->body()->source());
+      EXPECT_EQ(AST::AST_FUNC_BODY, func->body()->type());
+      EXPECT_EQ(params[func->params().size() + 1], func->body()->source());
+    }
+  }
+
+  // invalid not named
+  {
+    std::vector<std::pair<string, string>> sources = {
+      {u"function (,) {}", u"function (,"}, {u"function (a a) {}", u"function (a a"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      auto error = pair.second;
+      Parser parser(source);
+      AST* ast = parser.ParseFunction(false);
+      EXPECT_NE(AST::AST_FUNC, ast->type());
+      EXPECT_EQ(error, ast->source());
+    }
+  }
+
+  // invalid named
+  {
+    std::vector<std::pair<string, string>> sources = {
+      {u"function () {}", u"function ("},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      auto error = pair.second;
+      Parser parser(source);
+      AST* ast = parser.ParseFunction(true);
+      EXPECT_NE(AST::AST_FUNC, ast->type());
+      EXPECT_EQ(error, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, Statement_Debugger) {
   {
     vec_pair_string sources = {
       {u"\n \t debugger", u"\n \t debugger"},
@@ -425,7 +446,7 @@ TEST(TestParser, Debugger) {
   }
 }
 
-TEST(TestParser, Continue) {
+TEST(TestParser, Statement_Continue) {
   {
     vec_pair_string sources = {
       {u"continue ;", u"continue ;"}, {u"continue a ", u"continue a"},
@@ -458,7 +479,7 @@ TEST(TestParser, Continue) {
   }
 }
 
-TEST(TestParser, Break) {
+TEST(TestParser, Statement_Break) {
   {
     vec_pair_string sources = {
       {u"break ;", u"break ;"}, {u"break a ", u"break a"},
@@ -489,7 +510,7 @@ TEST(TestParser, Break) {
   }
 }
 
-TEST(TestParser, Return) {
+TEST(TestParser, Statement_Return) {
   {
     vec_pair_string sources = {
       {u"return ;", u"return ;"}, {u"return a+6 ", u"return a+6"},
@@ -520,7 +541,7 @@ TEST(TestParser, Return) {
   }
 }
 
-TEST(TestParser, Throw) {
+TEST(TestParser, Statement_Throw) {
   {
     vec_pair_string sources = {
       {u"throw ;", u"throw ;"}, {u"throw a+6 ", u"throw a+6"},
@@ -580,7 +601,7 @@ TEST(TestParser, VariableDeclaration) {
   }
 }
 
-TEST(TestParser, VariableStatement) {
+TEST(TestParser, Statement_Variable) {
   {
     vec_pair_string sources = {
       {u"var a = b, c = 1 + 5", u"var a = b, c = 1 + 5"},
@@ -609,7 +630,7 @@ TEST(TestParser, VariableStatement) {
   }
 }
 
-TEST(TestParser, Block) {
+TEST(TestParser, Statement_Block) {
   {
     vec_pair_string sources = {
       {u"{}", u"{}"}, {u"{var a =b\n b=c}", u"{var a =b\n b=c}"}

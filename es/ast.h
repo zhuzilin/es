@@ -32,17 +32,16 @@ class AST {
     AST_EXPR_UNARY,
     AST_EXPR_TRIPLE,
 
-    AST_EXPR_FUNC,
-
     AST_EXPR_ARGS,
     AST_EXPR_LHS,
 
     AST_EXPR,
 
-    AST_FUNC_BODY,
+    AST_FUNC,
 
     AST_STMT_EMPTY,
     AST_STMT_BLOCK,
+    AST_STMT_TRY,
 
     AST_STMT_VAR,
     AST_STMT_VAR_DECL,
@@ -56,6 +55,7 @@ class AST {
     AST_STMT_DEBUG,
 
     AST_PROGRAM,
+    AST_FUNC_BODY,
 
     AST_ILLEGAL,
   };
@@ -208,30 +208,6 @@ class Expression : public AST {
   std::vector<AST*> elements_;
 };
 
-class FunctionBody : public AST {
- public:
-  FunctionBody() : AST(AST_FUNC_BODY) {}
-};
-
-class Function : public AST {
- public:
-  Function(Token name, std::vector<Token> params, FunctionBody* body) :
-    AST(AST_EXPR_FUNC), name_(name), params_(params), body_(body) {}
-
-  ~Function() override {
-    delete body_;
-  }
-
-  Token name() { return name_; }
-  std::vector<Token> params() { return params_; }
-  FunctionBody* body() { return body_; }
-
- private:
-  Token name_;
-  std::vector<Token> params_;
-  FunctionBody* body_;
-};
-
 class Arguments : public AST {
  public:
   Arguments(std::vector<AST*> args) : AST(AST_EXPR_ARGS), args_(args) {}
@@ -290,20 +266,19 @@ class LHS : public AST {
   std::vector<Token> prop_name_list_;
 };
 
-class Program : public AST {
+class ProgramOrFunctionBody : public AST {
  public:
-  Program() : AST(AST_PROGRAM) {}
-  ~Program() override {
+  ProgramOrFunctionBody(Type type) : AST(type) {}
+  ~ProgramOrFunctionBody() override {
     for (auto element : elements_)
       delete element;
   }
 
-  void AddFunctionDecl(Function* func) {
-    // TODO(zhuzilin) check function has name.
+  void AddFunctionDecl(AST* func) {
+    assert(func->type() == AST_FUNC);
     elements_.emplace_back(func);
   }
   void AddStatement(AST* stmt) {
-    // TODO(zhuzilin) check stmt is statment.
     elements_.emplace_back(stmt);
   }
 
@@ -418,6 +393,47 @@ class Block : public AST {
 
  public:
   std::vector<AST*> stmts_;
+};
+
+class Try : public AST {
+ public:
+  Try() : AST(AST_STMT_TRY) {}
+  ~Try() {
+    if (try_block_ != nullptr)
+      delete try_block_;
+    if (catch_block_ != nullptr)
+      delete catch_block_;
+    if (finally_block_ != nullptr)
+      delete finally_block_;
+  }
+
+ public:
+  AST* try_block_;
+  AST* catch_block_;
+  AST* finally_block_;
+};
+
+class Function : public AST {
+ public:
+  Function(Token name, std::vector<Token> params, AST* body, std::u16string_view source) :
+    AST(AST_FUNC, source), name_(name), params_(params) {
+      assert(body->type() == AST::AST_FUNC_BODY);
+      body_ = static_cast<ProgramOrFunctionBody*>(body);
+    }
+
+  ~Function() override {
+    delete body_;
+  }
+
+  bool is_named() { return name_.source() == u""; }
+  Token name() { return name_; }
+  std::vector<Token> params() { return params_; }
+  ProgramOrFunctionBody* body() { return body_; }
+
+ private:
+  Token name_;
+  std::vector<Token> params_;
+  ProgramOrFunctionBody* body_;
 };
 
 }  // namespace es

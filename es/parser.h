@@ -70,21 +70,23 @@ error:
     return new AST(AST::AST_ILLEGAL, token.source());
   }
 
-  AST* ParseFunctionExpression() {
+  AST* ParseFunction(bool must_be_named) {
     START_POS;
     assert(lexer_.Next().source() == u"function");
 
     Token name(Token::TK_NOT_FOUND, u"");
     std::vector<Token> params;
     AST* tmp;
-    FunctionBody* body;
+    AST* body;
     Function* func;
 
     // Identifier_opt
     Token token = lexer_.Next();
     if (token.type() == Token::TK_IDENT) {
       name = token;
-      token = lexer_.Next();
+      token = lexer_.Next();  // skip "("
+    } else if (must_be_named) {
+      goto error;
     }
     if (token.type() != Token::TK_LPAREN) {
       goto error;
@@ -111,25 +113,19 @@ error:
     if (token.type() != Token::TK_LBRACE) {
       goto error;
     }
-    // tmp = ParseFunctionBody();
-    // if (tmp->IsIllegal())
-    //   return tmp;
-    // body = static_cast<FunctionBody*>(tmp);
+    body = ParseFunctionBody();
+    if (body->IsIllegal())
+      return body;
 
     token = lexer_.Next();  // skip }
     if (token.type() != Token::TK_RBRACE) {
       goto error;
     }
 
-    func = new Function(name, params, nullptr);
-    func->SetSource(SOURCE_PARSED);
+    func = new Function(name, params, body, SOURCE_PARSED);
     return func;
 error:
     return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
-  }
-
-  AST* ParseFunctionBody() {
-    return nullptr;
   }
 
   AST* ParseArrayLiteral() {
@@ -174,16 +170,48 @@ error:
     ObjectLiteral* obj = new ObjectLiteral();
     Token token = lexer_.NextAndRewind();
     while (token.type() != Token::TK_RBRACE) {
-      switch (token.type()) {
-        case Token::TK_IDENT:
-          if (token.source() == u"get" || token.source() == u"set") {
-            assert("false");
-            break;
+      if (token.IsPropertyName()) {
+        if (token.source() == u"get" || token.source() == u"set") {
+          START_POS;
+          ObjectLiteral::Property::Type type;
+          if (token.source() == u"get")
+            type = ObjectLiteral::Property::GET;
+          else
+            type = ObjectLiteral::Property::SET;
+          lexer_.Next();  // skip type
+          Token key = lexer_.Next();  // skip property name
+          if (!token.IsPropertyName()) {
+            goto error;
           }
-        case Token::TK_KEYWORD:
-        case Token::TK_FUTURE:
-        case Token::TK_STRING:
-        case Token::TK_NUMBER: {
+          if (lexer_.Next().type() != Token::TK_LPAREN) {
+            goto error;
+          }
+          std::vector<Token> params;
+          if (type == ObjectLiteral::Property::SET) {
+            Token param = lexer_.Next();
+            if (!param.IsIdentifier()) {
+              goto error;
+            }
+            params.emplace_back(param);
+          }
+          if (lexer_.Next().type() != Token::TK_RPAREN) { // Skip )
+            goto error;
+          }
+          if (lexer_.Next().type() != Token::TK_LPAREN) { // Skip {
+            goto error;
+          }
+          AST* body = ParseFunctionBody();
+          if (body->IsIllegal()) {
+            delete obj;
+            return body;
+          }
+          if (lexer_.Next().type() != Token::TK_RPAREN) { // Skip }
+            delete body;
+            goto error;
+          }
+          Function* value = new Function(Token(Token::TK_NOT_FOUND, u""), params, body, SOURCE_PARSED);
+          obj->AddProperty(ObjectLiteral::Property(key, value, type));
+        } else {
           lexer_.Next();
           if (lexer_.Next().type() != Token::TK_COLON)
             goto error;
@@ -191,10 +219,9 @@ error:
           if (value->type() == AST::AST_ILLEGAL)
             goto error;
           obj->AddProperty(ObjectLiteral::Property(token, value, ObjectLiteral::Property::NORMAL));
-          break;
         }
-        default:
-          goto error;
+      } else {
+        goto error;
       }
       token = lexer_.NextAndRewind();
     }
@@ -348,7 +375,7 @@ error:
       token = lexer_.NextAndRewind();
     }
     if (token.source() == u"function") {
-      base = ParseFunctionExpression();
+      base = ParseFunction(false);
     } else {
       base = ParsePrimaryExpression();
     }
@@ -445,21 +472,28 @@ error:
     return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
+  AST* ParseFunctionBody() {
+    return ParseProgramOrFunctionBody(Token::TK_RBRACE, AST::AST_FUNC_BODY);
+  }
+
   AST* ParseProgram() {
+    return ParseProgramOrFunctionBody(Token::TK_EOS, AST::AST_PROGRAM);
+  }
+
+  AST* ParseProgramOrFunctionBody(Token::Type ending_token_type, AST::Type program_or_function) {
     START_POS;
-    Program* prog = new Program();
+    ProgramOrFunctionBody* prog = new ProgramOrFunctionBody(program_or_function);
     AST* element;
 
     Token token = lexer_.NextAndRewind();
-    while (token.type() != Token::TK_EOS) {
+    while (token.type() != ending_token_type) {
       if (token.source() == u"function") {
-        assert(false);
-        // element = ParseFunctionDeclaration();
-        //   if (element->IsIllegal()) {
-        //   delete prog;
-        //   return element;
-        // }
-        // prog->AddFunctionDecl(element);
+        element = ParseFunction(true);
+          if (element->IsIllegal()) {
+          delete prog;
+          return element;
+        }
+        prog->AddFunctionDecl(element);
       } else {
         element = ParseStatement();
           if (element->IsIllegal()) {
@@ -470,6 +504,8 @@ error:
       }
       token = lexer_.NextAndRewind();
     }
+    assert(token.type() == ending_token_type);
+    test::PrintSource("source parsed: ", SOURCE_PARSED);
     prog->SetSource(SOURCE_PARSED);
     return prog;
   }
@@ -713,7 +749,8 @@ error:
   }
 
   AST* ParseTryStatement() {
-
+    START_POS;
+    assert(lexer_.Next().source() == u"try");
   }
 
   AST* ParseLabelStatement() {
