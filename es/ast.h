@@ -42,10 +42,14 @@ class AST {
     AST_FUNC_BODY,
 
     AST_STMT_EMPTY,
+    AST_STMT_VAR,
+    AST_STMT_VAR_DECL,
+
     AST_STMT_CONTINUE,
     AST_STMT_BREAK,
     AST_STMT_RETURN,
     AST_STMT_THROW,
+
     AST_STMT_LABEL,
     AST_STMT_DEBUG,
 
@@ -292,7 +296,7 @@ class Program : public AST {
       delete element;
   }
 
-  void AddFunctionDecl(AST* func) {
+  void AddFunctionDecl(Function* func) {
     // TODO(zhuzilin) check function has name.
     elements_.emplace_back(func);
   }
@@ -368,6 +372,34 @@ class Throw : public AST {
 
  private:
   AST* expr_;
+};
+
+class VarDecl : public AST {
+ public:
+  VarDecl(Token ident, AST* init, std::u16string_view source) :
+    AST(AST_STMT_VAR_DECL, source), ident_(ident), init_(init) {}
+  ~VarDecl() { delete init_; }
+
+ private:
+  Token ident_;
+  AST* init_;
+};
+
+class VarStmt : public AST {
+ public:
+  VarStmt() : AST(AST_STMT_VAR) {}
+  ~VarStmt() {
+    for (auto decl : decls_)
+      delete decl;
+  }
+
+  void AddDecl(AST* decl) {
+    assert(decl->type() == AST_STMT_VAR_DECL);
+    decls_.emplace_back(static_cast<VarDecl*>(decl));
+  }
+
+ public:
+  std::vector<VarDecl*> decls_;
 };
 
 }  // namespace es

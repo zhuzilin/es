@@ -367,7 +367,7 @@ class Lexer {
       return true;
     }
     // 7.9 Automatic Semicolon Insertion
-    if (token.type() == Token::TK_EOS || LineTermAhead())
+    if (token.type() == Token::TK_EOS || token.type() == Token::TK_RBRACE || LineTermAhead())
       return true;
     return false;
   }

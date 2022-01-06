@@ -6,6 +6,8 @@
 
 #include <test/helper.h>
 
+#define SOURCE_PARSED source_.substr(start, lexer_.Pos() - start)
+
 namespace es {
 
 class Parser {
@@ -119,10 +121,10 @@ error:
     }
 
     func = new Function(name, params, nullptr);
-    func->SetSource(source_.substr(start, lexer_.Pos() - start));
+    func->SetSource(SOURCE_PARSED);
     return func;
 error:
-    return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseFunctionBody() {
@@ -157,11 +159,11 @@ error:
     }
     assert(token.type() == Token::TK_RBRACK);
     assert(lexer_.Next().type() == Token::TK_RBRACK);
-    array->SetSource(source_.substr(start, lexer_.Pos() - start));
+    array->SetSource(SOURCE_PARSED);
     return array;
 error:
     delete array;
-    return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseObjectLiteral() {
@@ -197,20 +199,20 @@ error:
     }
     assert(token.type() == Token::TK_RBRACE);
     assert(lexer_.Next().type() == Token::TK_RBRACE);
-    obj->SetSource(source_.substr(start, lexer_.Pos() - start));
+    obj->SetSource(SOURCE_PARSED);
     return obj;
 error:
     delete obj;
-    return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseExpression(bool no_in) {
-    std::cout << "ParseExpression" << std::endl;
     Expression* expr = new Expression();
     size_t start = lexer_.Pos();
 
     AST* element = ParseAssignmentExpression(no_in);
-    if (element->type() == AST::AST_ILLEGAL) {
+    if (element->IsIllegal()) {
+      delete expr;
       return element;
     }
     expr->AddElement(element);
@@ -218,21 +220,18 @@ error:
     while (token.type() == Token::TK_COMMA) {
       lexer_.Next();  // skip ,
       element = ParseAssignmentExpression(no_in);
-      if (element->type() == AST::AST_ILLEGAL) {
+      if (element->IsIllegal()) {
+        delete expr;
         return element;
       }
       expr->AddElement(element);
       token = lexer_.NextAndRewind();
     }
-    expr->SetSource(source_.substr(start, lexer_.Pos() - start));
+    expr->SetSource(SOURCE_PARSED);
     return expr;
-error:
-    delete expr;
-    return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
   }
 
   AST* ParseAssignmentExpression(bool no_in) {
-    std::cout << "ParseAssignmentExpression" << std::endl;
     AST* lhs = ParseConditionalExpression(no_in);
     if (lhs->IsIllegal())
       return lhs;
@@ -274,7 +273,7 @@ error:
     if (token.type() != Token::TK_COLON) {
       delete cond;
       delete lhs;
-      return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+      return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
     }
     lexer_.Next();
     AST* rhs = ParseAssignmentExpression(no_in);
@@ -284,12 +283,11 @@ error:
       return rhs;
     }
     AST* triple = new TripleCondition(cond, lhs, rhs);
-    triple->SetSource(source_.substr(start, lexer_.Pos() - start));
+    triple->SetSource(SOURCE_PARSED);
     return triple;
   }
 
   AST* ParseBinaryAndUnaryExpression(bool no_in, int priority) {
-    std::cout << "ParseBinaryAndUnaryExpression " << priority << std::endl;
     size_t start = lexer_.Pos();
     AST* lhs = nullptr;
     AST* rhs = nullptr;
@@ -314,10 +312,10 @@ error:
         if (lhs->type() != AST::AST_EXPR_BINARY && lhs->type() != AST::AST_EXPR_UNARY) {
           lexer_.Next();
           lhs = new Unary(lhs, postfix_op, false);
-          lhs->SetSource(source_.substr(start, lexer_.Pos() - start));
+          lhs->SetSource(SOURCE_PARSED);
         } else {
           delete lhs;
-          return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+          return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
         }
       }
     }
@@ -329,12 +327,12 @@ error:
         if (rhs->IsIllegal())
           return rhs;
         lhs = new Binary(lhs, rhs, binary_op);
-        lhs->SetSource(source_.substr(start, lexer_.Pos() - start));
+        lhs->SetSource(SOURCE_PARSED);
       } else {
         break;
       }
     }
-    lhs->SetSource(source_.substr(start, lexer_.Pos() - start));
+    lhs->SetSource(SOURCE_PARSED);
     return lhs;
   }
 
@@ -399,12 +397,12 @@ error:
           break;
         }
         default:
-          lhs->SetSource(source_.substr(start, lexer_.Pos() - start));
+          lhs->SetSource(SOURCE_PARSED);
           return lhs;
       }
     }
 error:
-    return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseArguments() {
@@ -438,12 +436,12 @@ error:
     }
     assert(lexer_.Next().type() == Token::TK_RPAREN);  // skip )
     arg_ast = new Arguments(args);
-    arg_ast->SetSource(source_.substr(start, lexer_.Pos() - start));
+    arg_ast->SetSource(SOURCE_PARSED);
     return arg_ast;
 error:
     for (auto arg : args)
       delete arg;
-    return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseProgram() {
@@ -471,7 +469,7 @@ error:
       }
       token = lexer_.NextAndRewind();
     }
-    prog->SetSource(source_.substr(start, lexer_.Pos() - start));
+    prog->SetSource(SOURCE_PARSED);
     return prog;
   }
 
@@ -486,7 +484,7 @@ error:
         return new AST(AST::AST_STMT_EMPTY, u";");
       case Token::TK_KEYWORD: {
         if (token.source() == u"var")
-          return ParseVariableStatement();
+          return ParseVariableStatement(false);
         else if (token.source() == u"if")
           return ParseIfStatement();
         else if (token.source() == u"do")
@@ -514,7 +512,7 @@ error:
           if (!lexer_.TrySkipSemiColon()) {
             goto error;
           }
-          return new AST(AST::AST_STMT_DEBUG, source_.substr(start, lexer_.Pos() - start));
+          return new AST(AST::AST_STMT_DEBUG, SOURCE_PARSED);
         }
         break;
       }
@@ -531,15 +529,65 @@ error:
     }
     return ParseExpressionStatement();
 error:
-    return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseBlockStatement() {
 
   }
 
-  AST* ParseVariableStatement() {
+  AST* ParseVariableDeclaration(bool no_in) {
+    size_t start = lexer_.Pos();
+    Token ident = lexer_.Next();
+    AST* init;
+    assert(ident.IsIdentifier());
+    if (lexer_.Next().type() != Token::TK_ASSIGN) {
+      goto error;
+    }
+    init = ParseAssignmentExpression(no_in);
+    if (init->IsIllegal())
+      return init;
+    return new VarDecl(ident, init, SOURCE_PARSED);
+error:
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
+  }
 
+  AST* ParseVariableStatement(bool no_in) {
+    size_t start = lexer_.Pos();
+    assert(lexer_.Next().source() == u"var");
+    VarStmt* var_stmt = new VarStmt();
+    AST* decl;
+    Token token = lexer_.NextAndRewind();
+    if (!token.IsIdentifier()) {
+      lexer_.Next();
+      goto error;
+    }
+    // Similar to ParseExpression
+    decl = ParseVariableDeclaration(no_in);
+    if (decl->IsIllegal()) {
+      delete var_stmt;
+      return decl;
+    }
+    token = lexer_.NextAndRewind();
+    while (token.type() == Token::TK_COMMA) {
+      lexer_.Next();  // skip ,
+      decl = ParseVariableDeclaration(no_in);
+      if (decl->IsIllegal()) {
+        delete var_stmt;
+        return decl;
+      }
+      var_stmt->AddDecl(decl);
+      token = lexer_.NextAndRewind();
+    }
+
+    if (!lexer_.TrySkipSemiColon())
+      goto error;
+
+    var_stmt->SetSource(SOURCE_PARSED);
+    return var_stmt;
+error:
+    delete var_stmt;
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseExpressionStatement() {
@@ -572,10 +620,10 @@ error:
         lexer_.Next();  // Skip Identifier
       }
       if (!lexer_.TrySkipSemiColon()) {
-        return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+        return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
       }
     }
-    return new Continue(ident, source_.substr(start, lexer_.Pos() - start));
+    return new Continue(ident, SOURCE_PARSED);
   }
 
   // TODO(zhuzilin) Shall I merge the continue and break?
@@ -589,10 +637,10 @@ error:
         lexer_.Next();  // Skip Identifier
       }
       if (!lexer_.TrySkipSemiColon()) {
-        return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+        return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
       }
     }
-    return new Break(ident, source_.substr(start, lexer_.Pos() - start));
+    return new Break(ident, SOURCE_PARSED);
   }
 
   AST* ParseReturnStatement() {
@@ -606,10 +654,10 @@ error:
       }
       if (!lexer_.TrySkipSemiColon()) {
         delete expr;
-        return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+        return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
       }
     }
-    return new Return(expr, source_.substr(start, lexer_.Pos() - start));
+    return new Return(expr, SOURCE_PARSED);
   }
 
   AST* ParseThrowStatement() {
@@ -623,10 +671,10 @@ error:
       }
       if (!lexer_.TrySkipSemiColon()) {
         delete expr;
-        return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+        return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
       }
     }
-    return new Throw(expr, source_.substr(start, lexer_.Pos() - start));
+    return new Throw(expr, SOURCE_PARSED);
   }
 
   AST* ParseWithStatement() {

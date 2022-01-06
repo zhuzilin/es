@@ -432,6 +432,7 @@ TEST(TestParser, Continue) {
       {u"continue a ;", u"continue a ;"}, {u"continue \n a ;", u"continue"},
       // NOTE(zhuzilin) This may be wrong...
       {u"continue a \n ;", u"continue a \n ;"},
+      {u"continue a }", u"continue a"}, {u"continue }", u"continue"},
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -462,6 +463,7 @@ TEST(TestParser, Break) {
     vec_pair_string sources = {
       {u"break ;", u"break ;"}, {u"break a ", u"break a"},
       {u"break a ;", u"break a ;"}, {u"break \n a ;", u"break"},
+      {u"break a }", u"break a"}, {u"break }", u"break"},
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -492,6 +494,7 @@ TEST(TestParser, Return) {
     vec_pair_string sources = {
       {u"return ;", u"return ;"}, {u"return a+6 ", u"return a+6"},
       {u"return 1,\n2 ;", u"return 1,\n2 ;"}, {u"return \n a ;", u"return"},
+      {u"return a }", u"return a"}, {u"return }", u"return"},
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -522,6 +525,7 @@ TEST(TestParser, Throw) {
     vec_pair_string sources = {
       {u"throw ;", u"throw ;"}, {u"throw a+6 ", u"throw a+6"},
       {u"throw 1,\n2 ;", u"throw 1,\n2 ;"}, {u"throw \n a ;", u"throw"},
+      {u"throw a }", u"throw a"}, {u"throw }", u"throw"},
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -541,6 +545,64 @@ TEST(TestParser, Throw) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParseStatement();
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, VariableDeclaration) {
+  {
+    vec_pair_string sources = {
+      {u"a = b", u"a = b"}, {u"c123 = function() {}", u"c123 = function() {}"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseVariableDeclaration(false);
+      EXPECT_EQ(AST::AST_STMT_VAR_DECL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"a b", u"a b"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseVariableDeclaration(false);;
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, VariableStatement) {
+  {
+    vec_pair_string sources = {
+      {u"var a = b, c = 1 + 5", u"var a = b, c = 1 + 5"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseVariableStatement(false);
+      EXPECT_EQ(AST::AST_STMT_VAR, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"var a = b b", u"var a = b"}, {u"var 1 = a", u"var 1"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseVariableStatement(false);;
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
