@@ -486,3 +486,63 @@ TEST(TestParser, Break) {
     }
   }
 }
+
+TEST(TestParser, Return) {
+  {
+    vec_pair_string sources = {
+      {u"return ;", u"return ;"}, {u"return a+6 ", u"return a+6"},
+      {u"return 1,\n2 ;", u"return 1,\n2 ;"}, {u"return \n a ;", u"return"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseStatement();
+      EXPECT_EQ(AST::AST_STMT_RETURN, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"return a b", u"return a"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseStatement();
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, Throw) {
+  {
+    vec_pair_string sources = {
+      {u"throw ;", u"throw ;"}, {u"throw a+6 ", u"throw a+6"},
+      {u"throw 1,\n2 ;", u"throw 1,\n2 ;"}, {u"throw \n a ;", u"throw"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseStatement();
+      EXPECT_EQ(AST::AST_STMT_THROW, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"throw a b", u"throw a"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseStatement();
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}

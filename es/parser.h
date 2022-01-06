@@ -310,8 +310,7 @@ error:
       // Because the priority of postfix operators are higher than prefix ones,
       // they won't be parsed at the same time.
       Token postfix_op = lexer_.NextAndRewind();
-      bool is_line_term = lexer_.NextAndRewind(true).IsLineTerminator();
-      if (!is_line_term && postfix_op.UnaryPostfixPriority() > priority) {
+      if (!lexer_.LineTermAhead() && postfix_op.UnaryPostfixPriority() > priority) {
         if (lhs->type() != AST::AST_EXPR_BINARY && lhs->type() != AST::AST_EXPR_UNARY) {
           lexer_.Next();
           lhs = new Unary(lhs, postfix_op, false);
@@ -566,7 +565,6 @@ error:
   AST* ParseContinueStatement() {
     size_t start = lexer_.Pos();
     assert(lexer_.Next().source() == u"continue");
-    bool is_line_term = lexer_.LineTermAhead();
     Token ident = Token(Token::TK_NOT_FOUND, u"");
     if (!lexer_.TrySkipSemiColon()) {
       ident = lexer_.NextAndRewind();
@@ -584,7 +582,6 @@ error:
   AST* ParseBreakStatement() {
     size_t start = lexer_.Pos();
     assert(lexer_.Next().source() == u"break");
-    bool is_line_term = lexer_.LineTermAhead();
     Token ident = Token(Token::TK_NOT_FOUND, u"");
     if (!lexer_.TrySkipSemiColon()) {
       ident = lexer_.NextAndRewind();
@@ -599,10 +596,37 @@ error:
   }
 
   AST* ParseReturnStatement() {
+    size_t start = lexer_.Pos();
+    assert(lexer_.Next().source() == u"return");
+    AST* expr = nullptr;
+    if (!lexer_.TrySkipSemiColon()) {
+      expr = ParseExpression(false);
+      if (expr->IsIllegal()) {
+        return expr;
+      }
+      if (!lexer_.TrySkipSemiColon()) {
+        delete expr;
+        return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+      }
+    }
+    return new Return(expr, source_.substr(start, lexer_.Pos() - start));
   }
 
   AST* ParseThrowStatement() {
-
+    size_t start = lexer_.Pos();
+    assert(lexer_.Next().source() == u"throw");
+    AST* expr = nullptr;
+    if (!lexer_.TrySkipSemiColon()) {
+      expr = ParseExpression(false);
+      if (expr->IsIllegal()) {
+        return expr;
+      }
+      if (!lexer_.TrySkipSemiColon()) {
+        delete expr;
+        return new AST(AST::AST_ILLEGAL, source_.substr(start, lexer_.Pos() - start));
+      }
+    }
+    return new Throw(expr, source_.substr(start, lexer_.Pos() - start));
   }
 
   AST* ParseWithStatement() {

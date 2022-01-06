@@ -343,7 +343,26 @@ class Break : public AST {
 class Return : public AST {
  public:
   Return(AST* expr, std::u16string_view source) :
-    AST(AST_STMT_BREAK, source), expr_(expr) {}
+    AST(AST_STMT_RETURN, source), expr_(expr) {}
+  ~Return() {
+    if (expr_ != nullptr)
+      delete expr_;
+  }
+
+  AST* expr() { return expr_; }
+
+ private:
+  AST* expr_;
+};
+
+class Throw : public AST {
+ public:
+  Throw(AST* expr, std::u16string_view source) :
+    AST(AST_STMT_THROW, source), expr_(expr) {}
+  ~Throw() {
+    if (expr_ != nullptr)
+      delete expr_;
+  }
 
   AST* expr() { return expr_; }
 
