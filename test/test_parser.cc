@@ -219,6 +219,7 @@ TEST(TestParser, Binary) {
       {u"a * b + c", {u"a * b", u" c"}},
       {u"a * b + + c - d", {u"a * b + + c", u" d"}},
       {u"a++ == b && ++c != d", {u"a++ == b", u" ++c != d"}},
+      {u"(1 + 3) * 5 - (8 + 16)", {u"(1 + 3) * 5", u" (8 + 16)"}}
     };
     for (auto pair : sources) {
       auto source = pair.first;
