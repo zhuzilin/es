@@ -534,7 +534,23 @@ error:
   }
 
   AST* ParseBlockStatement() {
-
+    START_POS;
+    assert(lexer_.Next().type() == Token::TK_LBRACE);
+    Block* block = new Block();
+    Token token = lexer_.NextAndRewind();
+    while (token.type() != Token::TK_RBRACE) {
+      AST* stmt = ParseStatement();
+      if (stmt->IsIllegal()) {
+        delete block;
+        return stmt;
+      }
+      block->AddStatement(stmt);
+      token = lexer_.NextAndRewind();
+    }
+    assert(token.type() == Token::TK_RBRACE);
+    lexer_.Next();
+    block->SetSource(SOURCE_PARSED);
+    return block;
   }
 
   AST* ParseVariableDeclaration(bool no_in) {

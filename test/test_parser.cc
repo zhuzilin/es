@@ -608,3 +608,32 @@ TEST(TestParser, VariableStatement) {
     }
   }
 }
+
+TEST(TestParser, Block) {
+  {
+    vec_pair_string sources = {
+      {u"{}", u"{}"}, {u"{var a =b\n b=c}", u"{var a =b\n b=c}"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseBlockStatement();
+      EXPECT_EQ(AST::AST_STMT_BLOCK, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"{", u""}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseBlockStatement();;
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}

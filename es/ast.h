@@ -42,6 +42,8 @@ class AST {
     AST_FUNC_BODY,
 
     AST_STMT_EMPTY,
+    AST_STMT_BLOCK,
+
     AST_STMT_VAR,
     AST_STMT_VAR_DECL,
 
@@ -400,6 +402,22 @@ class VarStmt : public AST {
 
  public:
   std::vector<VarDecl*> decls_;
+};
+
+class Block : public AST {
+ public:
+  Block() : AST(AST_STMT_BLOCK) {}
+  ~Block() {
+    for (auto stmt : stmts_)
+      delete stmt;
+  }
+
+  void AddStatement(AST* stmt) {
+    stmts_.emplace_back(stmt);
+  }
+
+ public:
+  std::vector<AST*> stmts_;
 };
 
 }  // namespace es
