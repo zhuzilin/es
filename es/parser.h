@@ -784,26 +784,16 @@ error:
   }
 
   AST* ParseContinueStatement() {
-    START_POS;
-    assert(lexer_.Next().source() == u"continue");
-    if (!lexer_.TrySkipSemiColon()) {
-      Token ident = lexer_.NextAndRewind();
-      if (ident.IsIdentifier()) {
-        lexer_.Next();  // Skip Identifier
-      }
-      if (!lexer_.TrySkipSemiColon()) {
-        lexer_.Next();
-        return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
-      }
-      return new Continue(ident, SOURCE_PARSED);
-    }
-    return new Continue(SOURCE_PARSED);
+    return ParseContinueOrBreakStatement(u"continue", AST::AST_STMT_CONTINUE);
   }
 
-  // TODO(zhuzilin) Shall I merge the continue and break?
   AST* ParseBreakStatement() {
+    return ParseContinueOrBreakStatement(u"break", AST::AST_STMT_BREAK);
+  }
+
+  AST* ParseContinueOrBreakStatement(std::u16string_view keyword, AST::Type type) {
     START_POS;
-    assert(lexer_.Next().source() == u"break");
+    assert(lexer_.Next().source() == keyword);
     if (!lexer_.TrySkipSemiColon()) {
       Token ident = lexer_.NextAndRewind();
       if (ident.IsIdentifier()) {
@@ -813,9 +803,9 @@ error:
         lexer_.Next();
         return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
       }
-      return new Break(ident, SOURCE_PARSED);
+      return new ContinueOrBreak(type, ident, SOURCE_PARSED);
     }
-    return new Break(SOURCE_PARSED);
+    return new ContinueOrBreak(type, SOURCE_PARSED);
   }
 
   AST* ParseReturnStatement() {

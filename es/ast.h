@@ -303,27 +303,13 @@ class LabelledStmt : public AST {
   AST* stmt_;
 };
 
-class Continue : public AST {
+class ContinueOrBreak : public AST {
  public:
-  Continue(std::u16string_view source) :
-    Continue(Token(Token::TK_NOT_FOUND, u""), source) {}
+  ContinueOrBreak(Type type, std::u16string_view source) :
+    ContinueOrBreak(type, Token(Token::TK_NOT_FOUND, u""), source) {}
 
-  Continue(Token ident, std::u16string_view source) :
-    AST(AST_STMT_CONTINUE, source), ident_(ident) {}
-
-  Token ident() { return ident_; }
-
- private:
-  Token ident_;
-};
-
-class Break : public AST {
- public:
-  Break(std::u16string_view source) :
-    Break(Token(Token::TK_NOT_FOUND, u""), source) {}
-
-  Break(Token ident, std::u16string_view source) :
-    AST(AST_STMT_BREAK, source), ident_(ident) {}
+  ContinueOrBreak(Type type, Token ident, std::u16string_view source) :
+    AST(type, source), ident_(ident) {}
 
   Token ident() { return ident_; }
 
