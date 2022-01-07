@@ -9,7 +9,7 @@
 namespace es {
 namespace test {
 
-void PrintSource(std::string comment, std::u16string_view str) {
+void PrintSource(std::string comment, std::u16string_view str = u"") {
   std::cout << comment;
   for (const auto& c: str)
     std::cout << static_cast<char>(c);

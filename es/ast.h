@@ -55,6 +55,8 @@ class AST {
     AST_STMT_RETURN,
     AST_STMT_THROW,
 
+    AST_STMT_SWITCH,
+
     AST_STMT_LABEL,
     AST_STMT_DEBUG,
 
@@ -132,6 +134,10 @@ class ObjectLiteral : public AST {
     // but {1.0: 1, 1.00: 2} will have 2 key-val pair.
     properties_.emplace(p.key.source(), p);
   }
+
+  std::unordered_map<std::u16string_view, Property> properties() { return properties_; }
+
+  size_t length() { return properties_.size(); }
 
  private:
   std::unordered_map<std::u16string_view, Property> properties_;
@@ -490,6 +496,55 @@ class Function : public AST {
   Token name_;
   std::vector<Token> params_;
   ProgramOrFunctionBody* body_;
+};
+
+class Switch : public AST {
+ public:
+  Switch() : AST(AST_STMT_SWITCH) {}
+
+  ~Switch() override {
+    for (CaseClause clause : case_clauses_) {
+      if (clause.type == CaseClause::CASE) {
+        delete clause.expr;
+      }
+      for (auto stmt : clause.stmts) {
+        delete stmt;
+      }
+    }
+  }
+
+  void SetExpr(AST* expr) {
+    expr_ = expr;
+  }
+
+  struct CaseClause {
+    enum Type {
+      CASE = 0,
+      DEFAULT,
+    };
+
+    CaseClause(Type t, std::vector<AST*> ss) : CaseClause(t, nullptr, ss) {
+      assert(type == DEFAULT);
+    }
+    CaseClause(Type t, AST* e, std::vector<AST*> ss) :
+      type(t), expr(e), stmts(ss) {}
+
+    Type type;
+    AST* expr;
+    std::vector<AST*> stmts;
+  };
+
+  void AddCaseClause(CaseClause c) {
+    // When having same key, will keep the last one.
+    // but {1.0: 1, 1.00: 2} will have 2 key-val pair.
+    case_clauses_.emplace_back(c);
+  }
+
+  std::vector<CaseClause> case_clauses() { return case_clauses_; }
+
+ private:
+  AST* expr_;
+  std::vector<CaseClause> case_clauses_;
 };
 
 }  // namespace es

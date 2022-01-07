@@ -160,16 +160,21 @@ TEST(TestParser, PrimaryExpression_Array) {
 
 TEST(TestParser, PrimaryExpression_Object) {
   {
-    vec_string sources = {
-      u"{}", u"{a: 1,}", u"{in: bed, b: 10 + 5}", u"{1: 1}", u"{\"abc\": 1}",
-      u"{get name() { return 10 },}",
-      u"{set name(a) { return 10 },}"
+    std::vector<std::pair<string, size_t>> sources = {
+      {u"{}", 0}, {u"{a: 1,}", 1}, {u"{in: bed, b: 10 + 5}", 2},
+      {u"{1: 1}", 1}, {u"{\"abc\": 1}", 1},
+      {u"{get name() { return 10 },}", 1},
+      {u"{set name(a) { return 10 },}", 1}
     };
-    for (auto source : sources) {
+    for (auto pair : sources) {
+      auto source = pair.first;
+      size_t length = pair.second;
       Parser parser(source);
       AST* ast = parser.ParsePrimaryExpression();
       EXPECT_EQ(AST::AST_EXPR_OBJ, ast->type());
       EXPECT_EQ(source, ast->source());
+      auto obj = static_cast<ObjectLiteral*>(ast);
+      EXPECT_EQ(length, obj->length());
     }
   }
 
@@ -199,7 +204,6 @@ TEST(TestParser, PrimaryExpression_Parentheses) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      test::PrintSource("source:", source);
       AST* ast = parser.ParsePrimaryExpression();
       EXPECT_EQ(AST::AST_EXPR, ast->type());
       EXPECT_EQ(pair.second, ast->source());
@@ -216,7 +220,6 @@ TEST(TestParser, PrimaryExpression_Parentheses) {
       auto source = pair.first;
       auto error = pair.second;
       Parser parser(source);
-      test::PrintSource("source:", source);
       AST* ast = parser.ParsePrimaryExpression();
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(error, ast->source());
@@ -349,9 +352,7 @@ TEST(TestParser, Expression_LeftHandSide) {
     };
     for (auto source : sources) {
       Parser parser(source);
-      test::PrintSource("source:", source);
       AST* ast = parser.ParseLeftHandSideExpression();
-      test::PrintSource("ast:", ast->source());
       EXPECT_EQ(AST::AST_EXPR_LHS, ast->type());
       EXPECT_EQ(source, ast->source());
     }
@@ -369,7 +370,6 @@ TEST(TestParser, Function) {
     for (auto pair : sources) {
       auto source = pair.first;
       auto params = pair.second;
-      test::PrintSource("source: ", source);
       Parser parser(source);
       AST* ast = parser.ParseFunction(false);
       EXPECT_EQ(AST::AST_FUNC, ast->type());
@@ -380,7 +380,6 @@ TEST(TestParser, Function) {
       for (size_t i = 0; i < func->params().size(); i++) {
         EXPECT_EQ(params[i + 1], func->params()[i].source());
       }
-      test::PrintSource("test body: ", func->body()->source());
       EXPECT_EQ(AST::AST_FUNC_BODY, func->body()->type());
       EXPECT_EQ(params[func->params().size() + 1], func->body()->source());
     }
@@ -820,6 +819,40 @@ TEST(TestParser, Statement_Labelled) {
       Parser parser(source);
       AST* ast = parser.ParseLabelledStatement();
       EXPECT_EQ(AST::AST_STMT_LABEL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, Statement_Switch) {
+  {
+    std::vector<std::pair<string, size_t>> sources = {
+      {u"switch(c){case a:}", 1}, {u"switch(c){default: 10\ncase (1+2):}", 2},
+      {u"switch(c){case a:{}break;\ndefault: break;}", 2},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      size_t length = pair.second;
+      Parser parser(source);
+      AST* ast = parser.ParseSwitchStatement();
+      EXPECT_EQ(AST::AST_STMT_SWITCH, ast->type());
+      EXPECT_EQ(source, ast->source());
+      auto switch_stmt = static_cast<Switch*>(ast);
+      EXPECT_EQ(length, switch_stmt->case_clauses().size());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      // TODO(zhuzilin) This error message is unintuive...
+      {u"switch(c){case :}", u":"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseSwitchStatement();;
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
   }

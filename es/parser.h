@@ -450,7 +450,6 @@ error:
     AST* arg;
     Arguments* arg_ast;
     Token token = lexer_.NextAndRewind();
-    es::test::PrintSource("token:", token.source());
     if (token.type() != Token::TK_RPAREN) {
       arg = ParseAssignmentExpression(false);
       if (arg->IsIllegal())
@@ -515,7 +514,6 @@ error:
       token = lexer_.NextAndRewind();
     }
     assert(token.type() == ending_token_type);
-    test::PrintSource("source parsed: ", SOURCE_PARSED);
     prog->SetSource(SOURCE_PARSED);
     return prog;
   }
@@ -845,7 +843,80 @@ error:
   }
 
   AST* ParseSwitchStatement() {
-
+    START_POS;
+    Switch* switch_stmt = new Switch();
+    AST* expr;
+    Token token = lexer_.Last();
+    assert(lexer_.Next().source() == u"switch");
+    if (lexer_.Next().type() != Token::TK_LPAREN) { // skip (
+      goto error;
+    }
+    expr = ParseExpression(false);
+    if (expr->IsIllegal()) {
+      delete switch_stmt;
+      return expr;
+    }
+    if (lexer_.Next().type() != Token::TK_RPAREN) {  // skip )
+      delete expr;
+      goto error;
+    }
+    switch_stmt->SetExpr(expr);
+    if (lexer_.Next().type() != Token::TK_LBRACE) { // skip {
+      goto error;
+    }
+    // Loop for parsing CaseClause
+    token = lexer_.NextAndRewind();
+    while (token.type() != Token::TK_RBRACE) {
+      AST* case_expr = nullptr;
+      std::vector<AST*> stmts;
+      Switch::CaseClause::Type type;
+      if (token.source() == u"case") {
+        lexer_.Next();  // skip case
+        type = Switch::CaseClause::CASE;
+        case_expr = ParseExpression(false);
+        if (case_expr->IsIllegal()) {
+          delete switch_stmt;
+          return case_expr;
+        }
+      } else if (token.source() == u"default") {
+        lexer_.Next();  // skip default
+        type = Switch::CaseClause::DEFAULT;
+      } else {
+        lexer_.Next();
+        goto error;
+      }
+      if (lexer_.Next().type() != Token::TK_COLON) { // skip :
+        delete case_expr;
+        goto error;
+      }
+      token = lexer_.NextAndRewind();
+      while (token.source() != u"case" && token.source() != u"default" &&
+             token.type() != Token::TK_RBRACE) {
+        AST* stmt = ParseStatement();
+        if (stmt->IsIllegal()) {
+          for (auto s : stmts) {
+            delete s;
+          }
+          delete switch_stmt;
+          return stmt;
+        }
+        stmts.emplace_back(stmt);
+        token = lexer_.NextAndRewind();
+      }
+      if (type == Switch::CaseClause::CASE) {
+        switch_stmt->AddCaseClause(Switch::CaseClause(type, case_expr, stmts));
+      } else {
+        switch_stmt->AddCaseClause(Switch::CaseClause(type, stmts));
+      }
+      token = lexer_.NextAndRewind();
+    }
+    assert(token.type() == Token::TK_RBRACE);
+    assert(lexer_.Next().type() == Token::TK_RBRACE);
+    switch_stmt->SetSource(SOURCE_PARSED);
+    return switch_stmt;
+error:
+    delete switch_stmt;
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseTryStatement() {
