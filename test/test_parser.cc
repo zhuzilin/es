@@ -638,7 +638,7 @@ TEST(TestParser, Statement_Block) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseBlockStatement();
+      AST* ast = parser.ParseStatement();
       EXPECT_EQ(AST::AST_STMT_BLOCK, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -652,7 +652,7 @@ TEST(TestParser, Statement_Block) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseBlockStatement();;
+      AST* ast = parser.ParseStatement();;
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -668,7 +668,7 @@ TEST(TestParser, Statement_If) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseIfStatement();
+      AST* ast = parser.ParseStatement();
       EXPECT_EQ(AST::AST_STMT_IF, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -682,7 +682,7 @@ TEST(TestParser, Statement_If) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseIfStatement();;
+      AST* ast = parser.ParseStatement();;
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -698,7 +698,7 @@ TEST(TestParser, Statement_While) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseWhileStatement();
+      AST* ast = parser.ParseStatement();
       EXPECT_EQ(AST::AST_STMT_WHILE, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -712,7 +712,7 @@ TEST(TestParser, Statement_While) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseWhileStatement();;
+      AST* ast = parser.ParseStatement();;
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -728,7 +728,7 @@ TEST(TestParser, Statement_With) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseWithStatement();
+      AST* ast = parser.ParseStatement();
       EXPECT_EQ(AST::AST_STMT_WITH, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -742,7 +742,7 @@ TEST(TestParser, Statement_With) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseWithStatement();;
+      AST* ast = parser.ParseStatement();;
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -757,7 +757,7 @@ TEST(TestParser, Statement_DoWhile) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseDoWhileStatement();
+      AST* ast = parser.ParseStatement();
       EXPECT_EQ(AST::AST_STMT_DO_WHILE, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -771,7 +771,7 @@ TEST(TestParser, Statement_DoWhile) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseDoWhileStatement();;
+      AST* ast = parser.ParseStatement();;
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -788,7 +788,7 @@ TEST(TestParser, Statement_Try) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseTryStatement();
+      AST* ast = parser.ParseStatement();
       EXPECT_EQ(AST::AST_STMT_TRY, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -802,7 +802,7 @@ TEST(TestParser, Statement_Try) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseTryStatement();;
+      AST* ast = parser.ParseStatement();;
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -817,7 +817,7 @@ TEST(TestParser, Statement_Labelled) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseLabelledStatement();
+      AST* ast = parser.ParseStatement();
       EXPECT_EQ(AST::AST_STMT_LABEL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
@@ -834,7 +834,7 @@ TEST(TestParser, Statement_Switch) {
       auto source = pair.first;
       size_t length = pair.second;
       Parser parser(source);
-      AST* ast = parser.ParseSwitchStatement();
+      AST* ast = parser.ParseStatement();
       EXPECT_EQ(AST::AST_STMT_SWITCH, ast->type());
       EXPECT_EQ(source, ast->source());
       auto switch_stmt = static_cast<Switch*>(ast);
@@ -851,7 +851,7 @@ TEST(TestParser, Statement_Switch) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-      AST* ast = parser.ParseSwitchStatement();;
+      AST* ast = parser.ParseStatement();;
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
