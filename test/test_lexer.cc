@@ -6,28 +6,30 @@
 
 #include <gtest/gtest.h>
 
-#include <es/lexer.h>
+#include <es/parser/lexer.h>
 #include <test/helper.h>
+
+using namespace es::parser;
 
 TEST(TestLexer, Basic) {
   {
     std::u16string source(u"{}()[].;,?:");
-    es::Lexer lexer(source);
+    Lexer lexer(source);
 
-    es::Token token = lexer.Next();
-    EXPECT_EQ(es::Token::Type::TK_LBRACE, token.type());
+    Token token = lexer.Next();
+    EXPECT_EQ(Token::Type::TK_LBRACE, token.type());
     EXPECT_EQ(u"{", token.source());
 
     token = lexer.Next();
-    EXPECT_EQ(es::Token::Type::TK_RBRACE, token.type());
+    EXPECT_EQ(Token::Type::TK_RBRACE, token.type());
     EXPECT_EQ(u"}", token.source());
 
     token = lexer.Next();
-    EXPECT_EQ(es::Token::Type::TK_LPAREN, token.type());
+    EXPECT_EQ(Token::Type::TK_LPAREN, token.type());
     EXPECT_EQ(u"(", token.source());
 
     token = lexer.Next();
-    EXPECT_EQ(es::Token::Type::TK_RPAREN, token.type());
+    EXPECT_EQ(Token::Type::TK_RPAREN, token.type());
     EXPECT_EQ(u")", token.source());
   }
 }
@@ -35,13 +37,13 @@ TEST(TestLexer, Basic) {
 TEST(TestLexer, String) {
   {
     std::u16string source(u"\"abc\"'def'");
-    es::Lexer lexer(source);
-    es::Token token = lexer.Next();
-    EXPECT_EQ(es::Token::Type::TK_STRING, token.type());
+    Lexer lexer(source);
+    Token token = lexer.Next();
+    EXPECT_EQ(Token::Type::TK_STRING, token.type());
     EXPECT_EQ(u"\"abc\"", token.source());
 
     token = lexer.Next();
-    EXPECT_EQ(es::Token::Type::TK_STRING, token.type());
+    EXPECT_EQ(Token::Type::TK_STRING, token.type());
     EXPECT_EQ(u"'def'", token.source());
   }
 
@@ -50,9 +52,9 @@ TEST(TestLexer, String) {
       u"''", u"'\\n\\b\\u1234\\x12'", u"'😊'",
     };
     for (auto source : sources) {
-      es::Lexer lexer(source);
-      es::Token token = lexer.Next();
-      EXPECT_EQ(es::Token::Type::TK_STRING, token.type());
+      Lexer lexer(source);
+      Token token = lexer.Next();
+      EXPECT_EQ(Token::Type::TK_STRING, token.type());
       EXPECT_EQ(source, token.source());
     }
   }
@@ -64,9 +66,9 @@ TEST(TestLexer, String) {
     for (auto pair : sources) {
       auto source = pair.first;
       auto error = pair.second;
-      es::Lexer lexer(source);
-      es::Token token = lexer.Next();
-      EXPECT_EQ(es::Token::Type::TK_ILLEGAL, token.type());
+      Lexer lexer(source);
+      Token token = lexer.Next();
+      EXPECT_EQ(Token::Type::TK_ILLEGAL, token.type());
       EXPECT_EQ(error, token.source());
     }
   }
@@ -78,9 +80,9 @@ TEST(TestLexer, Number) {
       u"0", u"101", u"0.01", u"12.05", u".8" ,u"0xAbC09",
     };
     for (auto source : sources) {
-      es::Lexer lexer(source);
-      es::Token token = lexer.Next();
-      EXPECT_EQ(es::Token::Type::TK_NUMBER, token.type());
+      Lexer lexer(source);
+      Token token = lexer.Next();
+      EXPECT_EQ(Token::Type::TK_NUMBER, token.type());
       EXPECT_EQ(source, token.source());
     }
   }
@@ -90,9 +92,9 @@ TEST(TestLexer, Number) {
       u"0e10", u"101E02", u"0.01E5", u".8E5" ,u"12.05e05",
     };
     for (auto source : sources) {
-      es::Lexer lexer(source);
-      es::Token token = lexer.Next();
-      EXPECT_EQ(es::Token::Type::TK_NUMBER, token.type());
+      Lexer lexer(source);
+      Token token = lexer.Next();
+      EXPECT_EQ(Token::Type::TK_NUMBER, token.type());
       EXPECT_EQ(source, token.source());
     }
   }
@@ -104,9 +106,9 @@ TEST(TestLexer, Number) {
     for (auto pair : sources) {
       auto source = pair.first;
       auto error = pair.second;
-      es::Lexer lexer(source);
-      es::Token token = lexer.Next();
-      EXPECT_EQ(es::Token::Type::TK_ILLEGAL, token.type());
+      Lexer lexer(source);
+      Token token = lexer.Next();
+      EXPECT_EQ(Token::Type::TK_ILLEGAL, token.type());
       EXPECT_EQ(error, token.source());
     }
   }
@@ -118,9 +120,9 @@ TEST(TestLexer, Identifier) {
       u"a", u"$abc", u"你好", u"\u12AbC",
     };
     for (auto source : sources) {
-      es::Lexer lexer(source);
-      es::Token token = lexer.Next();
-      EXPECT_EQ(es::Token::Type::TK_IDENT, token.type());
+      Lexer lexer(source);
+      Token token = lexer.Next();
+      EXPECT_EQ(Token::Type::TK_IDENT, token.type());
       EXPECT_EQ(source, token.source());
     }
   }
@@ -130,9 +132,9 @@ TEST(TestLexer, Identifier) {
       u"break", u"for", u"in",
     };
     for (auto source : sources) {
-      es::Lexer lexer(source);
-      es::Token token = lexer.Next();
-      EXPECT_EQ(es::Token::Type::TK_KEYWORD, token.type());
+      Lexer lexer(source);
+      Token token = lexer.Next();
+      EXPECT_EQ(Token::Type::TK_KEYWORD, token.type());
       EXPECT_EQ(source, token.source());
     }
   }
@@ -142,9 +144,9 @@ TEST(TestLexer, Identifier) {
       u"class", u"import", u"export",
     };
     for (auto source : sources) {
-      es::Lexer lexer(source);
-      es::Token token = lexer.Next();
-      EXPECT_EQ(es::Token::Type::TK_FUTURE, token.type());
+      Lexer lexer(source);
+      Token token = lexer.Next();
+      EXPECT_EQ(Token::Type::TK_FUTURE, token.type());
       EXPECT_EQ(source, token.source());
     }
   }
@@ -154,9 +156,9 @@ TEST(TestLexer, Identifier) {
       u"true", u"false",
     };
     for (auto source : sources) {
-      es::Lexer lexer(source);
-      es::Token token = lexer.Next();
-      EXPECT_EQ(es::Token::Type::TK_BOOL, token.type());
+      Lexer lexer(source);
+      Token token = lexer.Next();
+      EXPECT_EQ(Token::Type::TK_BOOL, token.type());
       EXPECT_EQ(source, token.source());
     }
   }
@@ -168,9 +170,9 @@ TEST(TestLexer, Identifier) {
     for (auto pair : sources) {
       auto source = pair.first;
       auto error = pair.second;
-      es::Lexer lexer(source);
-      es::Token token = lexer.Next();
-      EXPECT_EQ(es::Token::Type::TK_ILLEGAL, token.type());
+      Lexer lexer(source);
+      Token token = lexer.Next();
+      EXPECT_EQ(Token::Type::TK_ILLEGAL, token.type());
       EXPECT_EQ(error, token.source());
     }
   }
@@ -182,9 +184,9 @@ TEST(TestLexer, Regex) {
       u"/a/", u"/[a-z]*?/", u"/[012]/gba", u"/[012]/$", u"/你好/",
     };
     for (auto source : sources) {
-      es::Lexer lexer(source);
-      es::Token token = lexer.ScanRegexLiteral();
-      EXPECT_EQ(es::Token::Type::TK_REGEX, token.type());
+      Lexer lexer(source);
+      Token token = lexer.ScanRegexLiteral();
+      EXPECT_EQ(Token::Type::TK_REGEX, token.type());
       EXPECT_EQ(source, token.source());
     }
   }
@@ -196,9 +198,9 @@ TEST(TestLexer, Regex) {
     for (auto pair : sources) {
       auto source = pair.first;
       auto error = pair.second;
-      es::Lexer lexer(source);
-      es::Token token = lexer.ScanRegexLiteral();
-      EXPECT_EQ(es::Token::Type::TK_ILLEGAL, token.type());
+      Lexer lexer(source);
+      Token token = lexer.ScanRegexLiteral();
+      EXPECT_EQ(Token::Type::TK_ILLEGAL, token.type());
       EXPECT_EQ(error, token.source());
     }
   }

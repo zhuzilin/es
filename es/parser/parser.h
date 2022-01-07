@@ -1,8 +1,8 @@
-#ifndef ES_PARSER_H
-#define ES_PARSER_H
+#ifndef ES_PARSER_PARSER_H
+#define ES_PARSER_PARSER_H
 
-#include <es/lexer.h>
-#include <es/ast.h>
+#include <es/parser/lexer.h>
+#include <es/parser/ast.h>
 
 #include <test/helper.h>
 
@@ -10,6 +10,7 @@
 #define SOURCE_PARSED source_.substr(start, lexer_.Pos() - start)
 
 namespace es {
+namespace parser {
 
 class Parser {
  public:
@@ -1155,6 +1156,7 @@ error:
   Lexer lexer_;
 };
 
+}  // namespace parser
 }  // namespace es
 
-#endif  // ES_PARSER_H
+#endif  // ES_PARSER_PARSER_H

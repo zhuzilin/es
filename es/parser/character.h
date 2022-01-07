@@ -1,9 +1,10 @@
 #ifndef ES_CHARACTER_H
 #define ES_CHARACTER_H
 
-#include <es/unicode.h>
+#include <es/parser/unicode.h>
 
 namespace es {
+namespace parser {
 namespace character {
 
 using namespace unicode;
@@ -114,6 +115,7 @@ inline bool IsRegularExpressionClassChar(char16_t c) {
 }
 
 }  // namespace character
+}  // namespace parser
 }  // namespace es
 
 #endif  // ES_CHARACTER_H

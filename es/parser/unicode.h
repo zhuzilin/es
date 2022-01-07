@@ -1,14 +1,15 @@
 /*
  * The code in this file is extracted directly from iv.
  */
-#ifndef ES_UNICODE_H
-#define ES_UNICODE_H
+#ifndef ES_PARSER_UNICODE_H
+#define ES_PARSER_UNICODE_H
 
 #include <assert.h>
 
 #include <array>
 
 namespace es {
+namespace parser {
 namespace character {
 namespace unicode {
 
@@ -720,6 +721,7 @@ inline Category GetCategory(char16_t c) {
 
 }  // namespace unicode
 }  // namespace character
+}  // namespace parser
 }  // namespace es
 
-#endif
+#endif  // ES_PARSER_UNICODE_H

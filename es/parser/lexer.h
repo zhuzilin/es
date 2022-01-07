@@ -1,15 +1,16 @@
-#ifndef ES_LEXER_H
-#define ES_LEXER_H
+#ifndef ES_PARSER_LEXER_H
+#define ES_PARSER_LEXER_H
 
 #include <string>
 #include <string_view>
 
-#include <es/character.h>
-#include <es/token.h>
+#include <es/parser/character.h>
+#include <es/parser/token.h>
 
 #include <test/helper.h>
 
 namespace es {
+namespace parser {
 
 class Lexer {
  public:
@@ -756,6 +757,7 @@ error:
   std::u16string_view source_;
 };
 
-}
+}  // namespace parser
+}  // namespace parser
 
-#endif  // ES_LEXER_H
+#endif  // ES_PARSER_LEXER_H

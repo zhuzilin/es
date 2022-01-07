@@ -6,15 +6,15 @@
 
 #include <gtest/gtest.h>
 
-#include <es/parser.h>
+#include <es/parser/parser.h>
 #include <test/helper.h>
+
+using namespace es::parser;
 
 typedef std::u16string_view string;
 typedef std::vector<string> vec_string;
 typedef std::pair<string,string> pair_string;
 typedef std::vector<std::pair<string,string>> vec_pair_string;
-
-using namespace es;
 
 TEST(TestParser, PrimaryExpression_Literal) {
   // This
@@ -911,9 +911,7 @@ TEST(TestParser, Statement_ForIn) {
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
-            test::PrintSource("source: ", source);
       AST* ast = parser.ParseStatement();;
-test::PrintSource("ast source: ", ast->source());
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }

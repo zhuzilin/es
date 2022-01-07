@@ -1,5 +1,5 @@
-#ifndef ES_AST_H
-#define ES_AST_H
+#ifndef ES_PARSER_AST_H
+#define ES_PARSER_AST_H
 
 #include <string>
 #include <string_view>
@@ -7,9 +7,10 @@
 #include <unordered_map>
 #include <utility>
 
-#include <es/token.h>
+#include <es/parser/token.h>
 
 namespace es {
+namespace parser {
 
 class AST {
  public:
@@ -576,6 +577,7 @@ class ForIn : public AST {
   AST* stmt_;
 };
 
+}  // namespace parser
 }  // namespace es
 
-#endif
+#endif  // ES_PARSER_AST_H
