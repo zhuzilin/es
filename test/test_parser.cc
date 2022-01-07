@@ -689,3 +689,33 @@ TEST(TestParser, Statement_If) {
     }
   }
 }
+
+TEST(TestParser, Statement_While) {
+  {
+    vec_pair_string sources = {
+      {u"while (true) { a++\n break }", u"while (true) { a++\n break }"},
+      {u"while (a == b);", u"while (a == b);"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseWhileStatement();
+      EXPECT_EQ(AST::AST_STMT_WHILE, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"while (a == b) a++ b", u" a++ b"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseWhileStatement();;
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}

@@ -43,6 +43,7 @@ class AST {
     AST_STMT_BLOCK,
     AST_STMT_TRY,
     AST_STMT_IF,
+    AST_STMT_WHILE,
 
     AST_STMT_VAR,
     AST_STMT_VAR_DECL,
@@ -416,7 +417,7 @@ class Try : public AST {
 class If : public AST {
  public:
   If(AST* cond, AST* if_block, AST* else_block, std::u16string_view source) :
-    AST(AST_STMT_IF, source), if_block_(if_block), else_block_(else_block) {}
+    AST(AST_STMT_IF, source), cond_(cond), if_block_(if_block), else_block_(else_block) {}
   ~If() {
     delete cond_;
     delete if_block_;
@@ -428,6 +429,20 @@ class If : public AST {
   AST* cond_;
   AST* if_block_;
   AST* else_block_;
+};
+
+class While : public AST {
+ public:
+  While(AST* cond, AST* loop_block, std::u16string_view source) :
+    AST(AST_STMT_WHILE, source), cond_(cond), loop_block_(loop_block) {}
+  ~While() {
+    delete cond_;
+    delete loop_block_;
+  }
+
+ public:
+  AST* cond_;
+  AST* loop_block_;
 };
 
 class Function : public AST {

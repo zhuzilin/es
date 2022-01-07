@@ -523,6 +523,7 @@ error:
       case Token::TK_LBRACE:  // {
         return ParseBlockStatement();
       case Token::TK_SEMICOLON:  // ;
+        lexer_.Next();
         return new AST(AST::AST_STMT_EMPTY, u";");
       case Token::TK_KEYWORD: {
         if (token.source() == u"var")
@@ -706,7 +707,27 @@ error:
   }
 
   AST* ParseWhileStatement() {
+    START_POS;
+    AST* cond;
+    AST* loop_block;
 
+    assert(lexer_.Next().source() == u"while");
+    lexer_.Next();   // skip (
+    cond = ParseExpression(false);
+    if (cond->IsIllegal())
+      return cond;
+    if (lexer_.Next().type() != Token::TK_RPAREN) {  // skip )
+      delete cond;
+      goto error;
+    }
+    loop_block = ParseStatement();
+    if (loop_block->IsIllegal()) {
+      delete cond;
+      return loop_block;
+    }
+    return new While(cond, loop_block, SOURCE_PARSED);
+error:
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseForStatement() {
