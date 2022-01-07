@@ -246,15 +246,19 @@ error:
 
   AST* ParseExpression(bool no_in) {
     START_POS;
-    Expression* expr = new Expression();
 
     AST* element = ParseAssignmentExpression(no_in);
     if (element->IsIllegal()) {
-      delete expr;
       return element;
     }
-    expr->AddElement(element);
+    // NOTE(zhuzilin) If expr has only one element, then just return the element.
     Token token = lexer_.NextAndRewind();
+    if (token.type() != Token::TK_COMMA) {
+      return element;
+    }
+
+    Expression* expr = new Expression();
+    expr->AddElement(element);
     while (token.type() == Token::TK_COMMA) {
       lexer_.Next();  // skip ,
       element = ParseAssignmentExpression(no_in);
@@ -275,8 +279,7 @@ error:
       return lhs;
 
     // Not LeftHandSideExpression
-    if (lhs->type() == AST::AST_EXPR_BINARY || lhs->type() == AST::AST_EXPR_UNARY ||
-        lhs->type() == AST::AST_EXPR_TRIPLE) {
+    if (lhs->type() != AST::AST_EXPR_LHS) {
       return lhs;
     }
     Token op = lexer_.NextAndRewind();
@@ -778,7 +781,161 @@ error:
   }
 
   AST* ParseForStatement() {
+    START_POS;
+    assert(lexer_.Next().source() == u"for");
+    Token token = lexer_.Next();  // skip (
+    AST* expr0;
+    if (token.type() != Token::TK_LPAREN)
+      goto error;
+    token = lexer_.NextAndRewind();
+    if (token.IsSemiColon()) {
+      return ParseForStatement({}, start);  // for (;
+    } else if (token.source() == u"var") {
+      lexer_.Next();  // skip var
+      std::vector<AST*> expr0s;
 
+      // NOTE(zhuzilin) the starting token for ParseVariableDeclaration
+      // must be identifier. This is for better error code.
+      if (!lexer_.NextAndRewind().IsIdentifier()) {
+        goto error;
+      }
+      expr0 = ParseVariableDeclaration(true);
+      if (expr0->IsIllegal())
+        return expr0;
+
+      token = lexer_.NextAndRewind();
+      if (token.source() == u"in")  // var VariableDeclarationNoIn in
+        return ParseForInStatement(expr0, start);
+
+      expr0s.emplace_back(expr0);
+      while (!token.IsSemiColon()) {
+        // NOTE(zhuzilin) the starting token for ParseVariableDeclaration
+        // must be identifier. This is for better error code.
+        if (lexer_.Next().type() != Token::TK_COMMA ||  // skip ,
+            !lexer_.NextAndRewind().IsIdentifier()) {
+          for (auto expr : expr0s)
+            delete expr;
+          goto error;
+        }
+
+        expr0 = ParseVariableDeclaration(true);
+        if (expr0->IsIllegal()) {
+          for (auto expr : expr0s)
+            delete expr;
+          return expr0;
+        }
+        expr0s.emplace_back(expr0);
+        token = lexer_.NextAndRewind();
+      }
+      return ParseForStatement(expr0s, start);  // var VariableDeclarationListNoIn;
+    } else {
+      expr0 = ParseExpression(true);
+      if (expr0->IsIllegal()) {
+        return expr0;
+      }
+      token = lexer_.NextAndRewind();
+      if (token.IsSemiColon()) {
+        return ParseForStatement({expr0}, start);  // for ( ExpressionNoIn;
+      } else if (token.source() == u"in" &&
+                 expr0->type() == AST::AST_EXPR_LHS) {  // for ( LeftHandSideExpression in
+        return ParseForInStatement(expr0, start);  
+      } else {
+        delete expr0;
+        goto error;
+      }
+    }
+error:
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
+  }
+
+  AST* ParseForStatement(std::vector<AST*> expr0s, size_t start) {
+    assert(lexer_.Next().IsSemiColon());
+    AST* expr1 = nullptr;
+    AST* expr2 = nullptr;
+    AST* stmt;
+    Token token = lexer_.NextAndRewind();
+    if (!token.IsSemiColon()) {
+      expr1 = ParseExpression(false);  // for (xxx; Expression
+      if (expr1->IsIllegal()) {
+        for (auto expr : expr0s) {
+          delete expr;
+        }
+        return expr1;
+      }
+    }
+
+    if (!lexer_.Next().IsSemiColon()) {  // skip ;
+      lexer_.Next();
+      goto error;
+    }
+
+    token = lexer_.NextAndRewind();
+    if (token.type() != Token::TK_RPAREN) {
+      expr2 = ParseExpression(false);  // for (xxx; xxx; Expression
+      if (expr2->IsIllegal()) {
+        for (auto expr : expr0s) {
+          delete expr;
+        }
+        if (expr1 != nullptr)
+          delete expr1;
+        return expr2;
+      }
+    }
+
+    if (lexer_.Next().type() != Token::TK_RPAREN) {  // skip )
+      lexer_.Next();
+      goto error;
+    }
+
+    stmt = ParseStatement();
+    if (stmt->IsIllegal()) {
+      for (auto expr : expr0s) {
+        delete expr;
+      }
+      if (expr1 != nullptr)
+        delete expr1;
+      if (expr2 != nullptr)
+        delete expr2;
+      return stmt;
+    }
+
+    return new For(expr0s, expr1, expr2, stmt, SOURCE_PARSED);
+error:
+    for (auto expr : expr0s) {
+      delete expr;
+    }
+    if (expr1 != nullptr)
+      delete expr1;
+    if (expr2 != nullptr)
+      delete expr2;
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
+  }
+
+  AST* ParseForInStatement(AST* expr0, size_t start) {
+    assert(lexer_.Next().source() == u"in");
+    AST* expr1 = ParseExpression(false);  // for ( xxx in Expression
+    AST* stmt;
+    if (expr1->IsIllegal()) {
+      delete expr0;
+      return expr1;
+    }
+
+    if (lexer_.Next().type() != Token::TK_RPAREN) {  // skip )
+      lexer_.Next();
+      goto error;
+    }
+
+    stmt = ParseStatement();
+    if (stmt->IsIllegal()) {
+      delete expr0;
+      delete expr1;
+      return stmt;
+    }
+    return new ForIn(expr0, expr1, stmt, SOURCE_PARSED);
+error:
+    delete expr0;
+    delete expr1;
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseContinueStatement() {

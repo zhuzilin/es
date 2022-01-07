@@ -43,6 +43,8 @@ class AST {
     AST_STMT_BLOCK,
     AST_STMT_IF,
     AST_STMT_WHILE,
+    AST_STMT_FOR,
+    AST_STMT_FOR_IN,
     AST_STMT_WITH,
     AST_STMT_DO_WHILE,
     AST_STMT_TRY,
@@ -213,6 +215,8 @@ class Expression : public AST {
   }
 
   void AddElement(AST* element) { elements_.push_back(element); }
+
+  std::vector<AST*> elements() { return elements_; }
 
  private:
   std::vector<AST*> elements_;
@@ -545,6 +549,31 @@ class Switch : public AST {
  private:
   AST* expr_;
   std::vector<CaseClause> case_clauses_;
+};
+
+class For : public AST {
+ public:
+  For(std::vector<AST*> expr0s, AST* expr1, AST* expr2, AST* stmt, std::u16string_view source) :
+    AST(AST_STMT_FOR, source), expr0s_(expr0s), expr1_(expr1), expr2_(expr2), stmt_(stmt) {}
+
+ private:
+  std::vector<AST*> expr0s_;
+  AST* expr1_;
+  AST* expr2_;
+
+  AST* stmt_;
+};
+
+class ForIn : public AST {
+ public:
+  ForIn(AST* expr0, AST* expr1, AST* stmt, std::u16string_view source) :
+    AST(AST_STMT_FOR_IN, source), expr0_(expr0), expr1_(expr1), stmt_(stmt) {}
+
+ private:
+  AST* expr0_;
+  AST* expr1_;
+
+  AST* stmt_;
 };
 
 }  // namespace es

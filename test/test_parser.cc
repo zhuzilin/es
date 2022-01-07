@@ -205,7 +205,8 @@ TEST(TestParser, PrimaryExpression_Parentheses) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(AST::AST_EXPR, ast->type());
+      // NOTE(zhuzilin) If expr has only one element, then just return the element.
+      // EXPECT_EQ(AST::AST_EXPR, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
   }
@@ -852,6 +853,67 @@ TEST(TestParser, Statement_Switch) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParseStatement();;
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, Statement_For) {
+  {
+    vec_string sources = {
+      u"for (;;) {}", u"for (a,b,c;;) {}",
+      u"for (var a=10;;) {}", u"for (var a=10,b=20;;) {}"
+    };
+    for (auto source : sources) {
+      Parser parser(source);
+      AST* ast = parser.ParseStatement();
+      EXPECT_EQ(AST::AST_STMT_FOR, ast->type());
+      EXPECT_EQ(source, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"for (var a=10 b=20;;) {}", u"for (var a=10 b"},
+      {u"for (;var a=5;) {}", u"var"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseStatement();;
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, Statement_ForIn) {
+  {
+    vec_string sources = {
+      u"for (a in 1 + 1) {}", u"for (var a = 10 in 'abc') {}",
+    };
+    for (auto source : sources) {
+      Parser parser(source);
+      AST* ast = parser.ParseStatement();
+      EXPECT_EQ(AST::AST_STMT_FOR_IN, ast->type());
+      EXPECT_EQ(source, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"for (a,b in c) {}", u"for (a,b"},
+      {u"for (var a=1,b=2 in d", u"for (var a=1,b=2 in"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+            test::PrintSource("source: ", source);
+      AST* ast = parser.ParseStatement();;
+test::PrintSource("ast source: ", ast->source());
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }

@@ -178,7 +178,8 @@ class Token {
       case TK_KEYWORD:
         if (source_ == u"instanceof") {
           return 8;
-        } else if (no_in && source_ == u"in") {
+        // To prevent parsing for(a in b).
+        } else if (!no_in && source_ == u"in") {
           return 8;
         }
       default:
