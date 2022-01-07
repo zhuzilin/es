@@ -122,7 +122,12 @@ error:
       goto error;
     }
 
-    func = new Function(name, params, body, SOURCE_PARSED);
+    if (name.type() == Token::TK_NOT_FOUND) {
+      func = new Function(params, body, SOURCE_PARSED);
+    } else {
+      func = new Function(name, params, body, SOURCE_PARSED);
+    }
+
     return func;
 error:
     return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
@@ -209,7 +214,7 @@ error:
             delete body;
             goto error;
           }
-          Function* value = new Function(Token(Token::TK_NOT_FOUND, u""), params, body, SOURCE_PARSED);
+          Function* value = new Function(params, body, SOURCE_PARSED);
           obj->AddProperty(ObjectLiteral::Property(key, value, type));
         } else {
           lexer_.Next();
@@ -563,10 +568,11 @@ error:
       case Token::TK_IDENT: {
         size_t old_pos = lexer_.Pos();
         Token old_token = lexer_.Last();
+        lexer_.Next();
         Token colon = lexer_.Next();
         lexer_.Rewind(old_pos, old_token);
         if (colon.type() == Token::TK_COLON)
-          return ParseLabelStatement();
+          return ParseLabelledStatement();
       }
       default:
         break;
@@ -672,7 +678,6 @@ error:
     START_POS;
     AST* cond;
     AST* if_block;
-    AST* else_block = nullptr;
 
     assert(lexer_.Next().source() == u"if");
     lexer_.Next();   // skip (
@@ -690,42 +695,86 @@ error:
     }
     if (lexer_.NextAndRewind().source() == u"else") {
       lexer_.Next();  // skip else
-      else_block = ParseStatement();
+      AST* else_block = ParseStatement();
       if (else_block->IsIllegal()) {
         delete cond;
         delete if_block;
         return else_block;
       }
+      return new If(cond, if_block, else_block, SOURCE_PARSED);
     }
-    return new If(cond, if_block, else_block, SOURCE_PARSED);
+    return new If(cond, if_block, SOURCE_PARSED);
+    
 error:
     return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseDoWhileStatement() {
-
-  }
-
-  AST* ParseWhileStatement() {
     START_POS;
+    assert(lexer_.Next().source() == u"do");
     AST* cond;
     AST* loop_block;
-
-    assert(lexer_.Next().source() == u"while");
-    lexer_.Next();   // skip (
+    loop_block = ParseStatement();
+    if (loop_block->IsIllegal()) {
+      return loop_block;
+    }
+    if (lexer_.Next().source() != u"while") {  // skip while
+      delete loop_block;
+      goto error;
+    }
+    if (lexer_.Next().type() != Token::TK_LPAREN) {  // skip (
+      delete loop_block;
+      goto error;
+    }
     cond = ParseExpression(false);
-    if (cond->IsIllegal())
+    if (cond->IsIllegal()) {
+      delete loop_block;
       return cond;
+    }
     if (lexer_.Next().type() != Token::TK_RPAREN) {  // skip )
       delete cond;
       goto error;
     }
-    loop_block = ParseStatement();
-    if (loop_block->IsIllegal()) {
+    if (!lexer_.TrySkipSemiColon()) {
+      lexer_.Next();
       delete cond;
-      return loop_block;
+      delete loop_block;
+      goto error;
     }
-    return new While(cond, loop_block, SOURCE_PARSED);
+    return new DoWhile(cond, loop_block, SOURCE_PARSED);
+error:
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
+  }
+
+  AST* ParseWhileStatement() {
+    return ParseWhileOrWithStatement(u"while", AST::AST_STMT_WHILE);
+  }
+
+  AST* ParseWithStatement() {
+    return ParseWhileOrWithStatement(u"with", AST::AST_STMT_WITH);
+  }
+
+  AST* ParseWhileOrWithStatement(std::u16string_view keyword, AST::Type type) {
+    START_POS;
+    assert(lexer_.Next().source() == keyword);
+    AST* expr;
+    AST* stmt;
+    if (lexer_.Next().type() != Token::TK_LPAREN) { // skip (
+      goto error;
+    }
+    expr = ParseExpression(false);
+    if (expr->IsIllegal())
+      return expr;
+    if (lexer_.Next().type() != Token::TK_RPAREN) {  // skip )
+      delete expr;
+      goto error;
+    }
+    stmt = ParseStatement();
+    if (stmt->IsIllegal()) {
+      delete expr;
+      return stmt;
+    }
+    return new WhileOrWith(type, expr, stmt, SOURCE_PARSED);
 error:
     return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
@@ -737,9 +786,8 @@ error:
   AST* ParseContinueStatement() {
     START_POS;
     assert(lexer_.Next().source() == u"continue");
-    Token ident = Token(Token::TK_NOT_FOUND, u"");
     if (!lexer_.TrySkipSemiColon()) {
-      ident = lexer_.NextAndRewind();
+      Token ident = lexer_.NextAndRewind();
       if (ident.IsIdentifier()) {
         lexer_.Next();  // Skip Identifier
       }
@@ -747,17 +795,17 @@ error:
         lexer_.Next();
         return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
       }
+      return new Continue(ident, SOURCE_PARSED);
     }
-    return new Continue(ident, SOURCE_PARSED);
+    return new Continue(SOURCE_PARSED);
   }
 
   // TODO(zhuzilin) Shall I merge the continue and break?
   AST* ParseBreakStatement() {
     START_POS;
     assert(lexer_.Next().source() == u"break");
-    Token ident = Token(Token::TK_NOT_FOUND, u"");
     if (!lexer_.TrySkipSemiColon()) {
-      ident = lexer_.NextAndRewind();
+      Token ident = lexer_.NextAndRewind();
       if (ident.IsIdentifier()) {
         lexer_.Next();  // Skip Identifier
       }
@@ -765,8 +813,9 @@ error:
         lexer_.Next();
         return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
       }
+      return new Break(ident, SOURCE_PARSED);
     }
-    return new Break(ident, SOURCE_PARSED);
+    return new Break(SOURCE_PARSED);
   }
 
   AST* ParseReturnStatement() {
@@ -805,10 +854,6 @@ error:
     return new Throw(expr, SOURCE_PARSED);
   }
 
-  AST* ParseWithStatement() {
-
-  }
-
   AST* ParseSwitchStatement() {
 
   }
@@ -816,10 +861,75 @@ error:
   AST* ParseTryStatement() {
     START_POS;
     assert(lexer_.Next().source() == u"try");
+
+    AST* try_block;
+    Token catch_ident(Token::TK_NOT_FOUND, u"");
+    AST* catch_block = nullptr;
+    AST* finally_block = nullptr;
+
+    try_block = ParseBlockStatement();
+    if (try_block->IsIllegal())
+      return try_block;
+    if (lexer_.NextAndRewind().source() == u"catch") {
+      lexer_.Next();  // skip catch
+      if (lexer_.Next().type() != Token::TK_LPAREN) {  // skip (
+        delete try_block;
+        goto error;
+      }
+      catch_ident = lexer_.Next();  // skip identifier
+      if (!catch_ident.IsIdentifier()) {
+        goto error;
+      }
+      if (lexer_.Next().type() != Token::TK_RPAREN) {  // skip )
+        delete try_block;
+        goto error;
+      }
+      catch_block = ParseBlockStatement();
+      if (catch_block->IsIllegal()) {
+        delete try_block;
+        return catch_block;
+      }
+    }
+    if (lexer_.NextAndRewind().source() == u"finally") {
+      lexer_.Next();  // skip finally
+      finally_block = ParseBlockStatement();
+      if (finally_block->IsIllegal()) {
+        delete try_block;
+        if (catch_block != nullptr)
+          delete catch_block;
+        return finally_block;
+      }
+    }
+    if (catch_block == nullptr && finally_block == nullptr) {
+      goto error;
+    } else if (finally_block == nullptr) {
+      assert(catch_block != nullptr && catch_ident.type() == Token::TK_IDENT);
+      return new Try(try_block, catch_ident, catch_block, SOURCE_PARSED);
+    } else if (catch_block == nullptr) {
+      assert(finally_block != nullptr);
+      return new Try(try_block, finally_block, SOURCE_PARSED);
+    }
+    assert(catch_block != nullptr && catch_ident.type() == Token::TK_IDENT);
+    assert(finally_block != nullptr);
+    return new Try(try_block, catch_ident, catch_block, finally_block, SOURCE_PARSED);
+error:
+    delete try_block;
+    if (catch_block != nullptr)
+      delete try_block;
+    if (finally_block != nullptr)
+      delete finally_block;
+    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
-  AST* ParseLabelStatement() {
-
+  AST* ParseLabelledStatement() {
+    START_POS;
+    Token ident = lexer_.Next();  // skip identifier
+    assert(lexer_.Next().type() == Token::TK_COLON);  // skip colon
+    AST* stmt = ParseStatement();
+    if (stmt->IsIllegal()) {
+      return stmt;
+    }
+    return new LabelledStmt(ident, stmt, SOURCE_PARSED);
   }
 
  private:

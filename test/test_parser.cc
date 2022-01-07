@@ -708,13 +708,118 @@ TEST(TestParser, Statement_While) {
   // Illegal
   {
     vec_pair_string sources = {
-      {u"while (a == b) a++ b", u" a++ b"}
+      {u"while (a == b a++", u"while (a == b a"}
     };
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParseWhileStatement();;
       EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, Statement_With) {
+  {
+    vec_pair_string sources = {
+      {u"with (true) { a++\n break }", u"with (true) { a++\n break }"},
+      {u"with (a == b);", u"with (a == b);"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseWithStatement();
+      EXPECT_EQ(AST::AST_STMT_WITH, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"with (a == b a++", u"with (a == b a"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseWithStatement();;
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, Statement_DoWhile) {
+  {
+    vec_pair_string sources = {
+      {u"do ; while(true) ", u"do ; while(true)"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseDoWhileStatement();
+      EXPECT_EQ(AST::AST_STMT_DO_WHILE, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"do ; while(true) a", u"do ; while(true) a"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseDoWhileStatement();;
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, Statement_Try) {
+  {
+    vec_pair_string sources = {
+      {u"try { throw error; } catch (e) {console.log(e)}", u"try { throw error; } catch (e) {console.log(e)}"},
+      {u"try { throw error; } finally { return -1}", u"try { throw error; } finally { return -1}"},
+      {u"try { throw error; } catch (e) {throw e;} finally { return -1; }", u"try { throw error; } catch (e) {throw e;} finally { return -1; }"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseTryStatement();
+      EXPECT_EQ(AST::AST_STMT_TRY, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+
+  // Illegal
+  {
+    vec_pair_string sources = {
+      {u"try { throw error; }", u"try { throw error; }"}
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseTryStatement();;
+      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
+      EXPECT_EQ(pair.second, ast->source());
+    }
+  }
+}
+
+TEST(TestParser, Statement_Labelled) {
+  {
+    vec_pair_string sources = {
+      {u"loop1 : while (true) { while (true) { break loop1 }}", u"loop1 : while (true) { while (true) { break loop1 }}"},
+    };
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseLabelledStatement();
+      EXPECT_EQ(AST::AST_STMT_LABEL, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
   }

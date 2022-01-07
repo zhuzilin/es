@@ -41,9 +41,11 @@ class AST {
 
     AST_STMT_EMPTY,
     AST_STMT_BLOCK,
-    AST_STMT_TRY,
     AST_STMT_IF,
     AST_STMT_WHILE,
+    AST_STMT_WITH,
+    AST_STMT_DO_WHILE,
+    AST_STMT_TRY,
 
     AST_STMT_VAR,
     AST_STMT_VAR_DECL,
@@ -288,11 +290,11 @@ class ProgramOrFunctionBody : public AST {
   std::vector<AST*> elements_;
 };
 
-class LabelStmt : public AST {
+class LabelledStmt : public AST {
  public:
-  LabelStmt(Token ident, AST* stmt) :
-    AST(AST_STMT_LABEL), ident_(ident), stmt_(stmt) {}
-  ~LabelStmt() {
+  LabelledStmt(Token ident, AST* stmt, std::u16string_view source) :
+    AST(AST_STMT_LABEL, source), ident_(ident), stmt_(stmt) {}
+  ~LabelledStmt() {
     delete stmt_;
   }
 
@@ -303,6 +305,9 @@ class LabelStmt : public AST {
 
 class Continue : public AST {
  public:
+  Continue(std::u16string_view source) :
+    Continue(Token(Token::TK_NOT_FOUND, u""), source) {}
+
   Continue(Token ident, std::u16string_view source) :
     AST(AST_STMT_CONTINUE, source), ident_(ident) {}
 
@@ -314,6 +319,9 @@ class Continue : public AST {
 
 class Break : public AST {
  public:
+  Break(std::u16string_view source) :
+    Break(Token(Token::TK_NOT_FOUND, u""), source) {}
+
   Break(Token ident, std::u16string_view source) :
     AST(AST_STMT_BREAK, source), ident_(ident) {}
 
@@ -399,7 +407,16 @@ class Block : public AST {
 
 class Try : public AST {
  public:
-  Try() : AST(AST_STMT_TRY) {}
+  Try(AST* try_block, Token catch_ident, AST* catch_block, std::u16string_view source) :
+    Try(try_block, catch_ident, catch_block, nullptr, source) {}
+
+  Try(AST* try_block, AST* finally_block, std::u16string_view source) :
+    Try(try_block, Token(Token::TK_NOT_FOUND, u""), nullptr, finally_block, source) {}
+
+  Try(AST* try_block, Token catch_ident, AST* catch_block, AST* finally_block, std::u16string_view source)
+    : AST(AST_STMT_TRY, source), try_block_(try_block), catch_ident_(catch_ident),
+      catch_block_(catch_block), finally_block_(finally_block) {}
+
   ~Try() {
     delete try_block_;
     if (catch_block_ != nullptr)
@@ -410,12 +427,16 @@ class Try : public AST {
 
  public:
   AST* try_block_;
+  Token catch_ident_;
   AST* catch_block_;
   AST* finally_block_;
 };
 
 class If : public AST {
  public:
+  If(AST* cond, AST* if_block, std::u16string_view source) :
+    If(cond, if_block, nullptr, source) {}
+
   If(AST* cond, AST* if_block, AST* else_block, std::u16string_view source) :
     AST(AST_STMT_IF, source), cond_(cond), if_block_(if_block), else_block_(else_block) {}
   ~If() {
@@ -431,11 +452,25 @@ class If : public AST {
   AST* else_block_;
 };
 
-class While : public AST {
+class WhileOrWith : public AST {
  public:
-  While(AST* cond, AST* loop_block, std::u16string_view source) :
-    AST(AST_STMT_WHILE, source), cond_(cond), loop_block_(loop_block) {}
-  ~While() {
+  WhileOrWith(Type type, AST* expr, AST* stmt, std::u16string_view source) :
+    AST(type, source), expr_(expr), stmt_(stmt) {}
+  ~WhileOrWith() {
+    delete expr_;
+    delete stmt_;
+  }
+
+ public:
+  AST* expr_;
+  AST* stmt_;
+};
+
+class DoWhile : public AST {
+ public:
+  DoWhile(AST* cond, AST* loop_block, std::u16string_view source) :
+    AST(AST_STMT_DO_WHILE, source), cond_(cond), loop_block_(loop_block) {}
+  ~DoWhile() {
     delete cond_;
     delete loop_block_;
   }
@@ -447,6 +482,9 @@ class While : public AST {
 
 class Function : public AST {
  public:
+  Function(std::vector<Token> params, AST* body, std::u16string_view source) :
+    Function(Token(Token::TK_NOT_FOUND, u""), params, body, source) {}
+
   Function(Token name, std::vector<Token> params, AST* body, std::u16string_view source) :
     AST(AST_FUNC, source), name_(name), params_(params) {
       assert(body->type() == AST::AST_FUNC_BODY);
