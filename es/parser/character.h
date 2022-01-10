@@ -4,7 +4,6 @@
 #include <es/parser/unicode.h>
 
 namespace es {
-namespace parser {
 namespace character {
 
 using namespace unicode;
@@ -114,8 +113,43 @@ inline bool IsRegularExpressionClassChar(char16_t c) {
   return !IsLineTerminator(c) && c != u']';
 }
 
+inline double Digit(char16_t c) {
+  switch (c) {
+    case u'0':
+    case u'1':
+    case u'2':
+    case u'3':
+    case u'4':
+    case u'5':
+    case u'6':
+    case u'7':
+    case u'8':
+    case u'9':
+      return c - u'0';
+    case u'A':
+    case u'a':
+      return 10;
+    case u'B':
+    case u'b':
+      return 11;
+    case u'C':
+    case u'c':
+      return 12;
+    case u'D':
+    case u'd':
+      return 13;
+    case u'E':
+    case u'e':
+      return 14;
+    case u'F':
+    case u'f':
+      return 15;
+    default:
+      assert(false);
+  }
+}
+
 }  // namespace character
-}  // namespace parser
 }  // namespace es
 
 #endif  // ES_CHARACTER_H

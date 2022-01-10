@@ -19,40 +19,40 @@ JSValue* ToPrimitive(JSValue* input, std::u16string_view preferred_type = u"", E
   return obj->DefaultValue(preferred_type, e);
 }
 
-JSBool* ToBoolean(JSValue* input) {
+Bool* ToBoolean(JSValue* input) {
   assert(input->IsLanguageType());
   switch (input->type()) {
     case JSValue::JS_UNDEFINED:
     case JSValue::JS_NULL:
-      return JSBool::False();
+      return Bool::False();
     case JSValue::JS_BOOL:
-      return JSBool::False();
+      return Bool::False();
     case JSValue::JS_NUMBER:
-      JSNumber* num = static_cast<JSNumber*>(input);
-      if (num->data() == 0 || num->data() == JSNumber::NaN) {
-        return JSBool::False();
+      Number* num = static_cast<Number*>(input);
+      if (num->data() == 0 || num->data() == Number::NaN) {
+        return Bool::False();
       }
-      return JSBool::True();
+      return Bool::True();
     case JSValue::JS_STRING:
-      JSString* str = static_cast<JSString*>(input);
-      return JSBool::Wrap(str->data() != u"");
+      String* str = static_cast<String*>(input);
+      return Bool::Wrap(str->data() != u"");
     case JSValue::JS_OBJECT:
-      return JSBool::True();
+      return Bool::True();
   }
 }
 
-JSNumber* ToNumber(JSValue* input, Error* e) {
+Number* ToNumber(JSValue* input, Error* e) {
   assert(input->IsLanguageType());
   switch (input->type()) {
     case JSValue::JS_UNDEFINED:
-      return new JSNumber(JSNumber::NaN);
+      return new Number(Number::NaN);
     case JSValue::JS_NULL:
-      return new JSNumber(0);
+      return new Number(0);
     case JSValue::JS_BOOL:
-      JSBool* b = static_cast<JSBool*>(input);
-      return new JSNumber(b->data() ? 1 : 0);
+      Bool* b = static_cast<Bool*>(input);
+      return new Number(b->data() ? 1 : 0);
     case JSValue::JS_NUMBER:
-      return static_cast<JSNumber*>(input);
+      return static_cast<Number*>(input);
     case JSValue::JS_STRING:
       // TODO(zhuzilin)
       // ...
@@ -62,19 +62,19 @@ JSNumber* ToNumber(JSValue* input, Error* e) {
   }
 }
 
-JSNumber* ToInteger(JSValue* input, Error* e) {
-  JSNumber* num = ToNumber(input, e);
+Number* ToInteger(JSValue* input, Error* e) {
+  Number* num = ToNumber(input, e);
   if (num->IsNaN()) {
-    return JSNumber::Zero();
+    return Number::Zero();
   }
   if (num->IsInfinity() || std::fpclassify(num->data()) == 0) {
   }
 }
 
-JSNumber* ToInt32(JSValue* input);
-JSNumber* ToUint32(JSValue* input);
-JSNumber* ToUint16(JSValue* input);
-JSString* ToString(JSValue* input);
+Number* ToInt32(JSValue* input);
+Number* ToUint32(JSValue* input);
+Number* ToUint16(JSValue* input);
+String* ToString(JSValue* input);
 JSObject* ToObject(JSValue* input);
 
 bool SameValue(JSValue* x, JSValue* y);

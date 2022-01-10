@@ -16,7 +16,16 @@ target_link_libraries(
   gtest_main
 )
 
+add_executable(
+  test_eval_expr
+  test_eval_expr.cc
+)
+target_link_libraries(
+  test_eval_expr
+  gtest_main
+)
+
 include(GoogleTest)
 gtest_discover_tests(test_lexer)
 gtest_discover_tests(test_parser)
-
+gtest_discover_tests(test_eval_expr)

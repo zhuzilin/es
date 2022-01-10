@@ -1,6 +1,9 @@
 #ifndef ES_OBJECT_H
 #define ES_OBJECT_H
 
+#include <string>
+#include <string_view>
+#include <vector>
 #include <unordered_map>
 
 #include <es/types/base.h>
@@ -15,7 +18,7 @@ class JSObject : public JSValue {
   enum ObjType {
     OBJ_GLOBAL,
     OBJ_OBJECT,
-    OBJ_FUNCTION,
+    OBJ_FUNC,
     OBJ_ARRAY,
     OBJ_STRING,
     OBJ_BOOL,
@@ -30,14 +33,21 @@ class JSObject : public JSValue {
   JSObject(
     ObjType obj_type,
     JSValue* prototype,
-    std::u16string_view klass = u"object",
-    bool extensible = true
-  ) : JSValue(JS_OBJECT), obj_type_(obj_type), class_(klass), extensible_(extensible) {
+    std::u16string_view klass,
+    bool extensible,
+    JSValue* primitive_value,
+    bool is_constructor,
+    bool is_callable
+  ) : JSValue(JS_OBJECT), obj_type_(obj_type), class_(klass), extensible_(extensible),
+      primitive_value_(primitive_value), is_constructor_(is_constructor),
+      is_callable_(is_callable) {
     assert(prototype->type() == JS_OBJECT || prototype->type() == JS_NULL);
     prototype_ = prototype;
   }
 
   ObjType obj_type() { return obj_type_; }
+
+  bool IsFunction() { return obj_type_ == OBJ_FUNC; }
 
   struct NamedProperty {
     enum Type {
@@ -52,10 +62,10 @@ class JSObject : public JSValue {
 
   struct NamedDataProperty : public NamedProperty {
     NamedDataProperty(
-      JSValue* v = JSUndefined::Instance(),
-      bool w = JSBool::False(),
-      bool e = JSBool::False(),
-      bool c = JSBool::False()
+      JSValue* v = Undefined::Instance(),
+      bool w = false,
+      bool e = false,
+      bool c = false
     ) : NamedProperty(DATA), value(v), writable(w),
         enumerable(e), configurable(c) {}
 
@@ -67,10 +77,10 @@ class JSObject : public JSValue {
 
   struct NamedAccessorProperty : public NamedProperty {
     NamedAccessorProperty(
-      JSValue* g = JSUndefined::Instance(),
-      JSValue* s = JSUndefined::Instance(),
-      bool e = JSBool::False(),
-      bool c = JSBool::False()
+      JSValue* g = Undefined::Instance(),
+      JSValue* s = Undefined::Instance(),
+      bool e = false,
+      bool c = false
     ) : NamedProperty(ACCESSOR), enumerable(e), configurable(c) {
       assert(g->IsUndefined() || g->IsObject());
       assert(s->IsUndefined() || s->IsObject());
@@ -101,18 +111,35 @@ class JSObject : public JSValue {
   bool DefineOwnProperty(std::u16string_view p, PropertyDescriptor* desc, bool throw_flag, Error *e);
 
   // Internal Properties Only Defined for Some Objects
-  JSValue* PrimitiveValue() { return primitive_value_; };
-  JSObject* Construct(std::vector<JSValue*>& arguments);
-  JSValue* Call(JSValue* argument);
-  JSValue* Call(std::vector<JSValue*>& arguments);
-  bool HasInstance(JSValue* value);
+  // [[PrimitiveValue]]
+  JSValue* PrimitiveValue() {
+    assert(primitive_value_ != nullptr);
+    return primitive_value_;
+  };
+  bool HasPrimitiveValue() {
+    return obj_type_ == OBJ_BOOL || obj_type_ == OBJ_DATE ||
+           obj_type_ == OBJ_NUMBER || obj_type_ == OBJ_STRING;
+  }
+  // [[Construct]]
+  virtual JSObject* Construct(std::vector<JSValue*> arguments) {
+    assert(false);
+  }
+  bool IsConstructor() { return is_constructor_; }
+  // [[Call]]
+  virtual JSValue* Call(JSValue* argument, std::vector<JSValue*> arguments = {}) {
+    assert(false);
+  }
+  bool IsCallable() override { return is_callable_; }
+  // [[HasInstance]]
+  virtual bool HasInstance(JSValue* value) {
+    assert(false);
+  }
 
-  virtual bool IsCallable() override { return is_callable_; }
+ protected:
+  std::unordered_map<std::u16string_view, NamedProperty*> named_properties_;
 
  private:  
   ObjType obj_type_;
-
-  std::unordered_map<std::u16string_view, NamedProperty*> named_properties_;
 
   JSValue* prototype_;
   std::u16string_view class_;
@@ -120,6 +147,7 @@ class JSObject : public JSValue {
 
   JSValue* primitive_value_;
 
+  bool is_constructor_;
   bool is_callable_;
 };
 
@@ -127,7 +155,7 @@ JSValue* JSObject::GetOwnProperty(std::u16string_view p) {
   // TODO(zhuzilin) String Object has a more elaborate impl 15.5.5.2.
   auto iter = named_properties_.find(p);
   if (iter == named_properties_.end()) {
-    return JSUndefined::Instance();
+    return Undefined::Instance();
   }
   PropertyDescriptor* D = new PropertyDescriptor();
   NamedProperty* X = iter->second;
@@ -149,7 +177,7 @@ JSValue* JSObject::GetProperty(std::u16string_view p) {
   }
   JSValue* proto = Prototype();
   if (proto->IsNull()) {
-    return JSUndefined::Instance();
+    return Undefined::Instance();
   }
   assert(proto->IsObject());
   JSObject* proto_obj = static_cast<JSObject*>(proto);
@@ -159,7 +187,7 @@ JSValue* JSObject::GetProperty(std::u16string_view p) {
 JSValue* JSObject::Get(std::u16string_view p) {
   JSValue* value = GetProperty(p);
   if (value->IsUndefined()) {
-    return JSUndefined::Instance();
+    return Undefined::Instance();
   }
   PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(value);
   if (desc->IsDataDescriptor()) {
@@ -168,7 +196,7 @@ JSValue* JSObject::Get(std::u16string_view p) {
     assert(desc->IsAccessorDescriptor());
     JSValue* getter = desc->Get();
     if (getter->IsUndefined()) {
-      return JSUndefined::Instance();
+      return Undefined::Instance();
     }
     JSObject* getter_obj = static_cast<JSObject*>(getter);
     return getter_obj->Call(this);
@@ -227,13 +255,13 @@ void JSObject::Put(std::u16string_view p, JSValue* v, bool throw_flag, Error *e)
       JSValue* setter = desc->Set();
       assert(!setter->IsUndefined());
       JSObject* setter_obj = static_cast<JSObject*>(setter);
-      setter_obj->Call({this, v});
+      setter_obj->Call(this, {v});
       return;
     }
   }
   PropertyDescriptor* new_desc = new PropertyDescriptor();
   new_desc->SetDataDescriptor(v, true, true, true);
-  DefineOwnProperty(p, new_desc, throw_flag);
+  DefineOwnProperty(p, new_desc, throw_flag, e);
 }
 
 bool JSObject::HasProperty(std::u16string_view p) {

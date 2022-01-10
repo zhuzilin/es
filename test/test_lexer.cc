@@ -7,9 +7,9 @@
 #include <gtest/gtest.h>
 
 #include <es/parser/lexer.h>
-#include <test/helper.h>
+#include <es/helper.h>
 
-using namespace es::parser;
+using namespace es;
 
 TEST(TestLexer, Basic) {
   {

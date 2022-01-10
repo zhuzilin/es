@@ -9,7 +9,6 @@
 #include <array>
 
 namespace es {
-namespace parser {
 namespace character {
 namespace unicode {
 
@@ -721,7 +720,6 @@ inline Category GetCategory(char16_t c) {
 
 }  // namespace unicode
 }  // namespace character
-}  // namespace parser
 }  // namespace es
 
 #endif  // ES_PARSER_UNICODE_H

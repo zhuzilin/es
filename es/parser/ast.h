@@ -10,7 +10,6 @@
 #include <es/parser/token.h>
 
 namespace es {
-namespace parser {
 
 class AST {
  public:
@@ -577,7 +576,6 @@ class ForIn : public AST {
   AST* stmt_;
 };
 
-}  // namespace parser
 }  // namespace es
 
 #endif  // ES_PARSER_AST_H

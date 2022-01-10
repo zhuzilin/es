@@ -4,13 +4,12 @@
 #include <es/parser/lexer.h>
 #include <es/parser/ast.h>
 
-#include <test/helper.h>
+#include <es/helper.h>
 
 #define START_POS size_t start = lexer_.Pos()
 #define SOURCE_PARSED source_.substr(start, lexer_.Pos() - start)
 
 namespace es {
-namespace parser {
 
 class Parser {
  public:
@@ -485,8 +484,8 @@ error:
     return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
-  AST* ParseFunctionBody() {
-    return ParseProgramOrFunctionBody(Token::TK_RBRACE, AST::AST_FUNC_BODY);
+  AST* ParseFunctionBody(Token::Type ending_token_type = Token::TK_RBRACE) {
+    return ParseProgramOrFunctionBody(ending_token_type, AST::AST_FUNC_BODY);
   }
 
   AST* ParseProgram() {
@@ -1156,7 +1155,6 @@ error:
   Lexer lexer_;
 };
 
-}  // namespace parser
 }  // namespace es
 
 #endif  // ES_PARSER_PARSER_H

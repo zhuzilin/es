@@ -1,4 +1,3 @@
-#include <iostream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -7,9 +6,9 @@
 #include <gtest/gtest.h>
 
 #include <es/parser/parser.h>
-#include <test/helper.h>
+#include <es/helper.h>
 
-using namespace es::parser;
+using namespace es;
 
 typedef std::u16string_view string;
 typedef std::vector<string> vec_string;

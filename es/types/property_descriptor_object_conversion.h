@@ -9,7 +9,7 @@ namespace es {
 
 JSValue* FromPropertyDescriptor(JSValue* value, Error* e) {
   if (value->IsUndefined()) {
-    return JSUndefined::Instance();
+    return Undefined::Instance();
   }
   PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(value);
   JSObject* obj = new JSObject(JSObject::OBJ_OBJECT);
@@ -19,7 +19,7 @@ JSValue* FromPropertyDescriptor(JSValue* value, Error* e) {
     obj->DefineOwnProperty(u"value", value_desc, false, e);
 
     PropertyDescriptor* writable_desc = new PropertyDescriptor();
-    writable_desc->SetDataDescriptor(JSBool::Wrap(desc->Writable()), true, true, true);
+    writable_desc->SetDataDescriptor(Bool::Wrap(desc->Writable()), true, true, true);
     obj->DefineOwnProperty(u"writable", writable_desc, false, e);
   } else {
     assert(desc->IsAccessorDescriptor());
@@ -33,11 +33,11 @@ JSValue* FromPropertyDescriptor(JSValue* value, Error* e) {
   }
 
   PropertyDescriptor* enumerable_desc = new PropertyDescriptor();
-  enumerable_desc->SetDataDescriptor(JSBool::Wrap(desc->Enumerable()), true, true, true);
+  enumerable_desc->SetDataDescriptor(Bool::Wrap(desc->Enumerable()), true, true, true);
   obj->DefineOwnProperty(u"get", enumerable_desc, false, e);
 
   PropertyDescriptor* configurable_desc = new PropertyDescriptor();
-  configurable_desc->SetDataDescriptor(JSBool::Wrap(desc->Configurable()), true, true, true);
+  configurable_desc->SetDataDescriptor(Bool::Wrap(desc->Configurable()), true, true, true);
   obj->DefineOwnProperty(u"set", configurable_desc, false, e);
 
   return obj;

@@ -6,7 +6,6 @@
 #include <string_view>
 
 namespace es {
-namespace parser {
 
 class Token {
  public:
@@ -247,7 +246,6 @@ const std::array<std::u16string_view, 9> kStrictModeFutureReservedWords = {
   u"interface",  u"package", u"protected", u"static"
 };
 
-}  // namespace parser
 }  // namespace es
 
 #endif  // ES_PARSER_TOKEN_H

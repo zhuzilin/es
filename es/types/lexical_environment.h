@@ -21,7 +21,7 @@ class LexicalEnvironment : public JSValue {
       return new Reference(env_rec_, name, strict);
     }
     if (outer_->IsNull()) {
-      return new Reference(JSUndefined::Instance(), name, strict);
+      return new Reference(Undefined::Instance(), name, strict);
     }
     LexicalEnvironment* outer = static_cast<LexicalEnvironment*>(outer_);
     return outer->GetIdentifierReference(name, strict);
@@ -37,9 +37,9 @@ class LexicalEnvironment : public JSValue {
     return new LexicalEnvironment(lex, env_rec);
   }
 
-  static LexicalEnvironment* Global() {
+  static LexicalEnvironment* Instance() {
     static ObjectEnvironmentRecord env_rec(GlobalObject::Instance());
-    static LexicalEnvironment global_env(JSNull::Instance(), &env_rec);
+    static LexicalEnvironment global_env(Null::Instance(), &env_rec);
     return &global_env;
   }
 

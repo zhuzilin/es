@@ -23,7 +23,6 @@ class JSValue {
 
     JS_REF,
     JS_LIST,
-    JS_COMP,
     JS_PROP_DESC,
     JS_PROP_IDEN,
     JS_LEX_ENV,
@@ -45,7 +44,6 @@ class JSValue {
   inline bool IsObject() { return type_ == JS_OBJECT; }
 
   inline bool IsReference() { return type_ == JS_REF; }
-  inline bool IsCompletion() { return type_ == JS_COMP; }
   inline bool IsPropertyDescriptor() { return type_ == JS_PROP_DESC; }
   inline bool IsPropertyIdentifier() { return type_ == JS_PROP_IDEN; }
   inline bool IsLexicalEnvironment() { return type_ == JS_LEX_ENV; }
@@ -66,69 +64,69 @@ class JSValue {
   Type type_;
 };
 
-class JSUndefined : public JSValue {
+class Undefined : public JSValue {
  public:
-  static JSUndefined* Instance() {
-    static JSUndefined singleton;
+  static Undefined* Instance() {
+    static Undefined singleton;
     return &singleton;
   }
 
  private:
-  JSUndefined() : JSValue(JS_UNDEFINED) {}
+  Undefined() : JSValue(JS_UNDEFINED) {}
 };
 
-class JSNull : public JSValue {
+class Null : public JSValue {
  public:
-  static JSNull* Instance() {
-    static JSNull singleton;
+  static Null* Instance() {
+    static Null singleton;
     return &singleton;
   }
 
  private:
-  JSNull() : JSValue(JS_NULL) {}
+  Null() : JSValue(JS_NULL) {}
 };
 
-class JSBool : public JSValue {
+class Bool : public JSValue {
  public:
-  static JSBool* True() {
-    static JSBool singleton(true);
+  static Bool* True() {
+    static Bool singleton(true);
     return &singleton;
   }
-  static JSBool* False() {
-    static JSBool singleton(false);
+  static Bool* False() {
+    static Bool singleton(false);
     return &singleton;
   }
 
-  static JSBool* Wrap(bool val) {
+  static Bool* Wrap(bool val) {
     return val ? True() : False();
   }
 
   bool data() { return data_; }
 
  private:
-  JSBool(bool data) : JSValue(JS_BOOL), data_(data) {}
+  Bool(bool data) : JSValue(JS_BOOL), data_(data) {}
 
   bool data_;
 };
 
-class JSString : public JSValue {
+class String : public JSValue {
  public:
-  JSString(std::u16string_view data) : JSValue(JS_STRING), data_(data) {}
-  std::u16string_view data() { return data_; }
+  String(std::u16string data) : JSValue(JS_STRING), data_(data) {}
+  std::u16string data() { return data_; }
 
  private:
-  std::u16string_view data_;
+  std::u16string data_;
 };
 
-class JSNumber : public JSValue {
+class Number : public JSValue {
  public:
-  JSNumber(double data, char infinity_flag = 0) :
+  Number(double data, int8_t infinity_flag = 0) :
     JSValue(JS_NUMBER), infinity_flag_(infinity_flag), data_(data) {}
 
   static constexpr double NaN = 9007199254740990.0;  // (1.0 << 53) - 2
 
-  static JSNumber* Zero() {
-    static JSNumber singleton(0);
+  static Number* Zero() {
+    static Number singleton(0);
     return &singleton;
   }
 

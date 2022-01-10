@@ -38,7 +38,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   void CreateMutableBinding(std::u16string_view N, bool D, Error* e) override {
     assert(!HasBinding(N));
     Binding b;
-    b.value = JSUndefined::Instance();
+    b.value = Undefined::Instance();
     b.can_delete = D;
     b.is_mutable = true;
     bindings_[N] = b;
@@ -63,7 +63,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
         e = Error::ReferenceError();
         return nullptr;
       } else {
-        return JSUndefined::Instance();
+        return Undefined::Instance();
       }
     }
     return b.value;
@@ -80,13 +80,13 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   JSValue* ImplicitThisValue() override {
-    return JSUndefined::Instance();
+    return Undefined::Instance();
   }
 
   void CreateImmutableBinding(std::u16string_view N) {
     assert(!HasBinding(N));
     Binding b;
-    b.value = JSUndefined::Instance();
+    b.value = Undefined::Instance();
     b.can_delete = false;
     b.is_mutable = false;
     bindings_[N] = b;
@@ -114,7 +114,7 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
   void CreateMutableBinding(std::u16string_view N, bool D, Error* e) override {
     assert(!HasBinding(N));
     PropertyDescriptor* desc = new PropertyDescriptor();
-    desc->SetDataDescriptor(JSUndefined::Instance(), true, true, D);
+    desc->SetDataDescriptor(Undefined::Instance(), true, true, D);
     bindings_->DefineOwnProperty(N, desc, true, e);
   }
 
@@ -130,7 +130,7 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
         e = Error::ReferenceError();
         return nullptr;
       } else {
-        return JSUndefined::Instance();
+        return Undefined::Instance();
       }
     }
     return bindings_->Get(N);
@@ -144,7 +144,7 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
     if (provide_this_) {
       return bindings_;
     }
-    return JSUndefined::Instance();
+    return Undefined::Instance();
   }
 
  private:

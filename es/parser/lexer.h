@@ -7,10 +7,9 @@
 #include <es/parser/character.h>
 #include <es/parser/token.h>
 
-#include <test/helper.h>
+#include <es/helper.h>
 
 namespace es {
-namespace parser {
 
 class Lexer {
  public:
@@ -757,7 +756,6 @@ error:
   std::u16string_view source_;
 };
 
-}  // namespace parser
-}  // namespace parser
+}  // namespace es
 
 #endif  // ES_PARSER_LEXER_H
