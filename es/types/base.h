@@ -170,6 +170,11 @@ class Number : public JSValue {
     return &singleton;
   }
 
+  static Number* One() {
+    static Number singleton(1);
+    return &singleton;
+  }
+
   bool IsInfinity() { return infinity_flag_ != 0; }
   bool IsPositiveInfinity() { return infinity_flag_ > 0; }
   bool IsNegativeInfinity() { return infinity_flag_ < 0; }

@@ -9,8 +9,7 @@ namespace es {
 // the evaluation result of the statement.
 // It won't interact with other types, so does not need to
 // inherit JSValue.
-class Completion {
- public:
+struct Completion {
   enum Type {
     NORMAL,
     BREAK,
@@ -19,15 +18,16 @@ class Completion {
     THROW,
   };
 
+  Completion() : Completion(NORMAL, nullptr, nullptr) {}
+
   Completion(Type type, JSValue* value, JSValue* target) :
-    type_(type), value_(value), target_(target) {}
+    type(type), value(value), target(target) {}
 
-  bool IsAbruptCompletion() { return type_ != NORMAL; }
+  bool IsAbruptCompletion() { return type != NORMAL; }
 
- private:
-  Type type_;
-  JSValue* value_;
-  JSValue* target_;
+  Type type;
+  JSValue* value;
+  JSValue* target;
 };
 
 }  // namespace es

@@ -270,6 +270,8 @@ class LHS : public AST {
     prop_name_list_.emplace_back(prop_name);
   }
 
+  AST* base() { return base_; }
+
  private:
   AST* base_;
   size_t new_count_;
@@ -295,6 +297,8 @@ class ProgramOrFunctionBody : public AST {
   void AddStatement(AST* stmt) {
     elements_.emplace_back(stmt);
   }
+
+  std::vector<AST*> elements() { return elements_; }
 
  private:
   std::vector<AST*> elements_;

@@ -4,7 +4,8 @@
 #include <math.h>
 
 #include <es/types/base.h>
-//#include <es/types/object.h>
+#include <es/types/object.h>
+#include <es/types/builtin/number_object.h>
 #include <es/error.h>
 
 namespace es {
@@ -14,8 +15,8 @@ JSValue* ToPrimitive(JSValue* input, std::u16string_view preferred_type, Error* 
   if (input->IsPrimitive()) {
     return input;
   }
-  // JSObject* obj = static_cast<JSObject*>(input);
-  // return obj->DefaultValue(preferred_type, e);
+  JSObject* obj = static_cast<JSObject*>(input);
+  return obj->DefaultValue(preferred_type, e);
 }
 
 Bool* ToBoolean(JSValue* input) {
@@ -190,13 +191,15 @@ Number* ToInt32(JSValue* input, Error* e) {
   double int32_bit = fmod(pos_int, pow(2, 32));
   if (int32_bit < 0)
     int32_bit += pow(2, 32);
-  if (int32_bit > pow(2, 31))
+
+  if (int32_bit > pow(2, 31)) {
     return new Number(int32_bit - pow(2, 32));
-  else
+  } else {
     return new Number(int32_bit);
+  }
 }
 
-Number* ToUint(JSValue* input, uint8 bits, Error* e) {
+Number* ToUint(JSValue* input, char bits, Error* e) {
   Number* num = ToNumber(input, e);
   if (num->IsNaN() || num->IsInfinity() || num->data() == 0) {
     return Number::Zero();
@@ -236,7 +239,7 @@ String* ToString(JSValue* input, Error* e) {
     case JSValue::JS_BOOL:
       return static_cast<Bool*>(input)->data() ? String::True() : String::False();
     case JSValue::JS_NUMBER:
-      return NumberToString(static_cast<Bool*>(input));
+      return NumberToString(static_cast<Number*>(input));
     case JSValue::JS_STRING:
       return static_cast<String*>(input);
     // case JSValue::JS_OBJECT:
@@ -244,12 +247,29 @@ String* ToString(JSValue* input, Error* e) {
     //   return ToString(prim_value, e);
     default:
       assert(false);
+  }
 }
 
-// JSObject* ToObject(JSValue* input, Error* e);
+JSObject* ToObject(JSValue* input, Error* e) {
+  assert(input->IsLanguageType());
+  switch (input->type()) {
+    case JSValue::JS_UNDEFINED:
+    case JSValue::JS_NULL:
+      e = Error::TypeError();
+      return nullptr;
+    case JSValue::JS_BOOL:
+      assert(false);
+    case JSValue::JS_NUMBER:
+      return new NumberObject(input);
+    case JSValue::JS_STRING:
+      assert(false);
+    case JSValue::JS_OBJECT:
+      return static_cast<JSObject*>(input);
+    default:
+      assert(false);
+}
 
-// bool SameValue(JSValue* x, JSValue* y);
-
+}  // namespace es
 
 }  // namespace es
 

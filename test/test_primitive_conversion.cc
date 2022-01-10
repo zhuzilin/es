@@ -18,7 +18,7 @@ typedef std::vector<std::pair<string,string>> vec_pair_string;
 
 TEST(TestPrimitiveConversion, ToPrimitive) {
   JSValue* val;
-  Error* e;
+  Error* e = nullptr;
   val = ToPrimitive(Undefined::Instance(), u"", e);
   EXPECT_EQ(JSValue::JS_UNDEFINED, val->type());
 
@@ -49,7 +49,7 @@ TEST(TestPrimitiveConversion, ToPrimitive) {
 
 TEST(TestPrimitiveConversion, ToBoolean) {
   Bool* b;
-  Error* e;
+  Error* e = nullptr;
   b = ToBoolean(Undefined::Instance());
   EXPECT_EQ(false, b->data());
 
@@ -79,7 +79,7 @@ TEST(TestPrimitiveConversion, ToBoolean) {
 
 TEST(TestPrimitiveConversion, ToNumber) {
   Number* num;
-  Error* e;
+  Error* e = nullptr;
   // Undefined
   num = ToNumber(Undefined::Instance(), e);
   EXPECT_EQ(Number::nan, num->data());
@@ -131,7 +131,7 @@ TEST(TestPrimitiveConversion, ToNumber) {
 
 TEST(TestPrimitiveConversion, ToInteger) {
   Number* num;
-  Error* e;
+  Error* e = nullptr;
   {
     std::vector<std::pair<double, double>> vals = {
       {4.2, 4}, {-4.2, -4},
@@ -151,7 +151,7 @@ TEST(TestPrimitiveConversion, ToInteger) {
 
 TEST(TestPrimitiveConversion, ToInt32) {
   Number* num, *num1;
-  Error* e;
+  Error* e = nullptr;
   {
     std::vector<std::pair<double, double>> vals = {
       {4.2, 4}, {-4.2, -4}, {pow(2, 31) + 2, 2 - pow(2, 31)}, {pow(2, 33), 0}
@@ -174,7 +174,7 @@ TEST(TestPrimitiveConversion, ToInt32) {
 
 TEST(TestPrimitiveConversion, ToUint32) {
   Number* num, *num1;
-  Error* e;
+  Error* e = nullptr;
   {
     std::vector<std::pair<double, double>> vals = {
       {4.2, 4}, {-4.2, -4 + pow(2, 32)}, {pow(2, 31) + 2, pow(2, 31) + 2}, {pow(2, 33), 0}

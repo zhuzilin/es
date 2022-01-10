@@ -2,6 +2,7 @@
 #define ES_TYPES_PROPERTY_DESCRIPTOR_H
 
 #include <map>
+#include <bitset>
 
 #include <es/types/base.h>
 
@@ -9,17 +10,10 @@ namespace es {
 
 class PropertyDescriptor : public JSValue {
  public:
-  enum Field {
-    VALUE        = 1,
-    WRITABLE     = 1 << 2,
-    GET          = 1 << 3,
-    SET          = 1 << 4,
-    ENUMERABLE   = 1 << 5,
-    CONFIGURABLE = 1 << 6,
-  };
-
   PropertyDescriptor(
-  ) : JSValue(JS_PROP_DESC), bitmask_(0) {}
+  ) : JSValue(JS_PROP_DESC), bitmask_(0), value_(Undefined::Instance()),
+      getter_(Undefined::Instance()), setter_(Undefined::Instance()),
+      writable_(false), enumerable_(false), configurable_(false) {}
 
   inline bool IsAccessorDescriptor() {
     return bitmask_ & (GET | SET);
@@ -76,13 +70,37 @@ class PropertyDescriptor : public JSValue {
     SetConfigurable(configurable);
   }
 
+  // Set the value to `this` if `other` has.
   inline void Set(PropertyDescriptor* other) {
-    // TODO(zhuzilin)
+    std::cout << "old value: " << static_cast<Number*>(value_)->data() << std::endl;
+    if (other->HasValue())
+      SetValue(other->Value());
+    if (other->HasWritable())
+      SetWritable(other->Writable());
+    if (other->HasGet())
+      SetGet(other->Get());
+    if (other->HasSet())
+      SetSet(other->Set());
+    if (other->HasConfigurable())
+      SetConfigurable(other->Configurable());
+    if (other->HasEnumerable())
+      SetEnumerable(other->Enumerable());
+    std::cout << "new value: " << static_cast<Number*>(value_)->data() << std::endl;
   }
 
   char bitmask() { return bitmask_; }
+  void SetBitMask(char bitmask) { bitmask_ = bitmask; }
 
  private:
+  enum Field {
+    VALUE        = 1,
+    WRITABLE     = 1 << 2,
+    GET          = 1 << 3,
+    SET          = 1 << 4,
+    ENUMERABLE   = 1 << 5,
+    CONFIGURABLE = 1 << 6,
+  };
+
   char bitmask_;
 
   JSValue* value_;

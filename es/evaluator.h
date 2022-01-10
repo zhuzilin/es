@@ -3,24 +3,73 @@
 
 #include <math.h>
 
-#include <es/types/completion.h>
 #include <es/parser/character.h>
 #include <es/parser/ast.h>
+#include <es/types/completion.h>
+#include <es/types/reference.h>
+#include <es/execution_context.h>
 #include <es/helper.h>
 
 namespace es {
 
 class Evaluator {
  public:
-  Evaluator() = default;
+  Evaluator() : context_stack_(ExecutionContextStack::Global()) {
+    EnterGlobalCode();
+  };
 
-  Completion EvalStatement() {
-
+  Completion EvalProgram(AST* ast, Error* e) {
+    assert(ast->type() == AST::AST_PROGRAM);
+    auto prog = static_cast<ProgramOrFunctionBody*>(ast);
+    auto elements = prog->elements();
+    Completion head_result, tail_result;
+    if (elements.size() == 0)
+      return Completion();
+    if (elements[0]->type() == AST::AST_FUNC) {
+      head_result = EvalFunctionDeclaration(elements[0]);
+    } else {
+      head_result = EvalStatement(elements[0], e);
+    }
+    for (size_t i = 1; i < prog->elements().size(); i++) {
+      if (head_result.IsAbruptCompletion())
+        break;
+      auto ast = elements[i];
+      if (ast->type() == AST::AST_FUNC) {
+        tail_result = EvalFunctionDeclaration(ast);
+      } else {
+        tail_result = EvalStatement(ast, e);
+      }
+      head_result = Completion(
+        tail_result.type,
+        tail_result.value == nullptr? head_result.value : tail_result.value,
+        tail_result.target
+      );
+    }
+    return head_result;
   }
 
-  Completion EvalExpression(AST* ast) {
+  Completion EvalFunctionDeclaration(AST* ast) {
+    return Completion(Completion::NORMAL, nullptr, nullptr);
+  }
+
+  Completion EvalStatement(AST* ast, Error* e) {
+    switch(ast->type()) {
+      default:
+        return EvalExpressionStatement(ast, e);
+    }
+  }
+
+  Completion EvalExpressionStatement(AST* ast, Error* e) {
+    JSValue* val = EvalExpression(ast, e);
+    return Completion(Completion::NORMAL, val, nullptr);
+  }
+
+  JSValue* EvalExpression(AST* ast, Error* e) {
     JSValue* val;
     switch (ast->type()) {
+      case AST::AST_EXPR_IDENT:
+        val = EvalIdentifier(ast);
+        break;
       case AST::AST_EXPR_NULL:
         val = Null::Instance();
         break;
@@ -30,13 +79,27 @@ class Evaluator {
       case AST::AST_EXPR_NUMBER:
         val = EvalNumber(ast);
         break;
+      case AST::AST_EXPR_BINARY:
+        val = EvalBinaryExpression(ast, e);
+        break;
+      case AST::AST_EXPR_LHS:
+        val = EvalLeftHandSideExpression(ast, e);
+        break;
     }
-    return Completion(Completion::NORMAL, val, nullptr);
+    return val;
   }
 
-  Number* EvalNumber(AST* num) {
-    assert(num->type() == AST::AST_EXPR_NUMBER);
-    auto source = num->source();
+  Reference* EvalIdentifier(AST* ast) {
+    assert(ast->type() == AST::AST_EXPR_IDENT);
+    // 10.3.1 Identifier Resolution
+    LexicalEnvironment* env = context_stack_->Top()->lexical_env();
+    // TODO(zhuzilin) strict mode code
+    return env->GetIdentifierReference(ast->source(), false);
+  }
+
+  Number* EvalNumber(AST* ast) {
+    assert(ast->type() == AST::AST_EXPR_NUMBER);
+    auto source = ast->source();
     double val = 0;
     double frac = 1;
     size_t pos = 0;
@@ -94,6 +157,7 @@ class Evaluator {
   }
 
   String* EvalString(AST* ast) {
+    assert(ast->type() == AST::AST_EXPR_STRING);
     auto source = ast->source();
     source = source.substr(1, source.size() - 2);
     size_t pos = 0;
@@ -183,8 +247,45 @@ class Evaluator {
     return new String(StrCat(vals));
   }
 
+  JSValue* EvalBinaryExpression(AST* ast, Error* e) {
+    assert(ast->type() == AST::AST_EXPR_BINARY);
+    Binary* b = static_cast<Binary*>(ast);
+    if (b->op().source() == u"=") {
+      JSValue* lref = EvalLeftHandSideExpression(b->lhs(), e);
+      if (e != nullptr)
+        return nullptr;
+      JSValue* rref = EvalExpression(b->rhs(), e);
+      if (e != nullptr)
+        return nullptr;
+      JSValue* rval = GetValue(rref, e);
+      if (e != nullptr)
+        return nullptr;
+      if (lref->type() == JSValue::JS_REF) {
+        Reference* ref = static_cast<Reference*>(lref);
+        if (ref->IsStrictReference() && ref->GetBase()->type() == JSValue::JS_ENV_REC &&
+            (ref->GetReferencedName() == u"eval" || ref->GetReferencedName() == u"arguments")) {
+          e = Error::SyntaxError();
+          return nullptr;
+        }
+      }
+      PutValue(lref, rval, e);
+      if (e != nullptr)
+        return nullptr;
+      return rval;
+    }
+    assert(false);
+  }
+
+  JSValue* EvalLeftHandSideExpression(AST* ast, Error* e) {
+    assert(ast->type() == AST::AST_EXPR_LHS);
+    LHS* lhs = static_cast<LHS*>(ast);
+    JSValue* base = EvalExpression(lhs->base(), e);
+    // TODO(zhuzilin)
+    return base;
+  }
+
  private:
-  
+  ExecutionContextStack* context_stack_;
 };
 
 }  // namespace es

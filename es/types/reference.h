@@ -3,6 +3,8 @@
 
 #include <es/types/base.h>
 #include <es/types/environment_record.h>
+#include <es/types/builtin/global_object.h>
+#include <es/types/conversion.h>
 #include <es/error.h>
 
 namespace es {
@@ -19,11 +21,11 @@ class Reference : public JSValue {
   JSValue* GetBase() { return base_; }
   std::u16string_view GetReferencedName() { return reference_name_; }
   bool IsStrictReference() { return strict_reference_; }
-  bool HashPrimitiveBase() {
+  bool HasPrimitiveBase() {
     return base_->IsBool() || base_->IsString() || base_->IsNumber();
   }
   bool IsPropertyReference() {
-    return base_->IsObject() || HashPrimitiveBase();
+    return base_->IsObject() || HasPrimitiveBase();
   }
   bool IsUnresolvableReference() { return base_->IsUndefined(); }
 
@@ -34,6 +36,7 @@ class Reference : public JSValue {
 };
 
 JSValue* GetValue(JSValue* V, Error* e) {
+  log::PrintSource("GetValue");
   if (!V->IsReference()) {
     return V;
   }
@@ -44,20 +47,34 @@ JSValue* GetValue(JSValue* V, Error* e) {
   }
   JSValue* base = ref->GetBase();
   if (ref->IsPropertyReference()) {
-    // TODO(zhuzilin)
-    if (!ref->HashPrimitiveBase()) {
-      
+    // 4.a & 4.b
+    if (!ref->HasPrimitiveBase()) {
+      assert(base->IsObject());
+      JSObject* obj = static_cast<JSObject*>(base);
+      return obj->Get(ref->GetReferencedName());
     } else {
-
+      JSObject* O = ToObject(base, e);
+      if (e != nullptr)
+        return nullptr;
+      JSValue* tmp = O->GetProperty(ref->GetReferencedName());
+      if (tmp->IsUndefined())
+        return Undefined::Instance();
+      PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(tmp);
+      if (desc->IsDataDescriptor()) {
+        return desc->Value();
+      } else {
+        // TODO(zhuzilin)
+      }
     }
   } else {
     assert(base->IsEnvironmentRecord());
     EnvironmentRecord* er = static_cast<EnvironmentRecord*>(base);
-    return er->GetBindingValue(ref->GetReferencedName(), ref->IsStrictReference());
+    return er->GetBindingValue(ref->GetReferencedName(), ref->IsStrictReference(), e);
   }
 }
 
 void PutValue(JSValue* V, JSValue* W, Error* e) {
+  log::PrintSource("PutValue");
   if (!V->IsReference()) {
     e = Error::ReferenceError();
     return;
@@ -68,20 +85,19 @@ void PutValue(JSValue* V, JSValue* W, Error* e) {
       e = Error::ReferenceError();
       return;
     }
+    GlobalObject::Instance()->Put(ref->GetReferencedName(), W, false, e);
+  } else if (ref->IsPropertyReference()) {
     // TODO(zhuzilin)
-  }
-  JSValue* base = ref->GetBase();
-  if (ref->IsPropertyReference()) {
-    // TODO(zhuzilin)
-    if (!ref->HashPrimitiveBase()) {
+    if (!ref->HasPrimitiveBase()) {
       
     } else {
 
     }
   } else {
+    JSValue* base = ref->GetBase();
     assert(base->IsEnvironmentRecord());
     EnvironmentRecord* er = static_cast<EnvironmentRecord*>(base);
-    er->SetMutableBinding(ref->GetReferencedName(), W, ref->IsStrictReference());
+    er->SetMutableBinding(ref->GetReferencedName(), W, ref->IsStrictReference(), e);
   }
 }
 

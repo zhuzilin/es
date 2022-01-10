@@ -18,6 +18,13 @@ void PrintSource(std::string comment, std::u16string_view str = u"", std::string
   std::cout << postfix << std::endl;
 }
 
+std::string ToString(std::u16string_view str) {
+  std::string result(str.size(), ' ');
+  for (size_t i = 0; i < str.size(); i++)
+    result[i] = str[i];
+  return result;
+}
+
 }  // namespace test
 
 std::u16string StrCat(std::vector<std::u16string> vals) {

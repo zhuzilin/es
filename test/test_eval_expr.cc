@@ -52,3 +52,27 @@ TEST(TestEvalExpr, String) {
     }
   }
 }
+
+TEST(TestEvalExpr, Identifier) {
+  Error* e = nullptr;
+  {
+    Evaluator eval;
+    Parser parser(u"a");
+    AST* ast = parser.ParsePrimaryExpression();
+    Reference* ref = eval.EvalIdentifier(ast);
+    EXPECT_EQ(nullptr, GetValue(ref, e));
+  }
+}
+
+TEST(TestEvalExpr, SimpleAssign) {
+  Error* e = nullptr;
+  {
+    Evaluator eval;
+    Parser parser(u"a = 1");
+    AST* ast = parser.ParseAssignmentExpression(false);
+    JSValue* val = eval.EvalBinaryExpression(ast, e);
+    EXPECT_EQ(JSValue::JS_NUMBER, val->type());
+    Number* num = static_cast<Number*>(val);
+    EXPECT_EQ(1, num->data());
+  }
+}

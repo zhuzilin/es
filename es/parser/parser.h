@@ -489,6 +489,12 @@ error:
   }
 
   AST* ParseProgram() {
+    Token token = lexer_.NextAndRewind();
+    // 14.1
+    if (token.source() == u"\"use strict\"" || token.source() == u"'use strict'") {
+      lexer_.Next();
+      // TODO(zhuzilin) Use Strict Directive.
+    }
     return ParseProgramOrFunctionBody(Token::TK_EOS, AST::AST_PROGRAM);
   }
 

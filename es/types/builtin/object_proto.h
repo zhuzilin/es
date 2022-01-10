@@ -6,22 +6,19 @@
 namespace es {
 
 class ObjectProto : public JSObject {
-
+ public:
+  ObjectProto() :
+    JSObject(
+      OBJ_OTHER,
+      Null::Instance(),
+      u"Object",
+      true,  // extensible
+      nullptr,
+      false,
+      false
+    ) {}
 };
 
-class ObjectConstructor : public JSObject {
-  ObjectConstructor() :
-    JSObject(
-      ObjType obj_type,
-      JSValue* prototype,
-      std::u16string_view klass,
-      bool extensible,
-      JSValue* primitive_value,
-      true,
-      true,
-    )
-}
-
-}
+}  // namespace es
 
 #endif  // ES_TYPES_BUILTIN_OBJECT_PROTO

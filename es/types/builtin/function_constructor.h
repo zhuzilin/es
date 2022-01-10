@@ -11,12 +11,7 @@ class FunctionConstructor : public Function {
 
  private:
   FunctionConstructor() :
-    Function(new FunctionProto::Instance(), true) {
-    auto prototype = new NamedDataProperty(new FunctionProto::Instance(), false, false, false);
-    named_properties_.emplace(u"prototype", prototype);
-    auto length = new NamedDataProperty(new Number(1), false, false, false);
-    named_properties_.emplace(u"length", length);
-  }
+    Function(new FunctionProto::Instance(), true) {}
 };
 
 }

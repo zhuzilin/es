@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include <es/types/base.h>
+#include <es/types/same_value.h>
 #include <es/types/property_descriptor.h>
 #include <es/error.h>
 
@@ -28,6 +29,8 @@ class JSObject : public JSValue {
     OBJ_REGEX,
     OBJ_JSON,
     OBJ_ERROR,
+
+    OBJ_OTHER,
   };
 
   JSObject(
@@ -48,52 +51,6 @@ class JSObject : public JSValue {
   ObjType obj_type() { return obj_type_; }
 
   bool IsFunction() { return obj_type_ == OBJ_FUNC; }
-
-  struct NamedProperty {
-    enum Type {
-      DATA,
-      ACCESSOR,
-    };
-
-    NamedProperty(Type t) : type(t) {}
-
-    Type type;
-  };
-
-  struct NamedDataProperty : public NamedProperty {
-    NamedDataProperty(
-      JSValue* v = Undefined::Instance(),
-      bool w = false,
-      bool e = false,
-      bool c = false
-    ) : NamedProperty(DATA), value(v), writable(w),
-        enumerable(e), configurable(c) {}
-
-    JSValue* value;
-    bool writable;
-    bool enumerable;
-    bool configurable;
-  };
-
-  struct NamedAccessorProperty : public NamedProperty {
-    NamedAccessorProperty(
-      JSValue* g = Undefined::Instance(),
-      JSValue* s = Undefined::Instance(),
-      bool e = false,
-      bool c = false
-    ) : NamedProperty(ACCESSOR), enumerable(e), configurable(c) {
-      assert(g->IsUndefined() || g->IsObject());
-      assert(s->IsUndefined() || s->IsObject());
-      // TODO(zhuzilin) Check getter and setter are functions.
-      getter = g;
-      setter = s;
-    }
-
-    JSValue* getter;
-    JSValue* setter;
-    bool enumerable;
-    bool configurable;
-  };
 
   // Internal Preperties Common to All Objects
   JSValue* Prototype() { return prototype_; }
@@ -136,7 +93,7 @@ class JSObject : public JSValue {
   }
 
  protected:
-  std::unordered_map<std::u16string_view, NamedProperty*> named_properties_;
+  std::unordered_map<std::u16string_view, PropertyDescriptor*> named_properties_;
 
  private:  
   ObjType obj_type_;
@@ -151,23 +108,18 @@ class JSObject : public JSValue {
   bool is_callable_;
 };
 
+// 8.12.1 [[GetOwnProperty]] (P)
 JSValue* JSObject::GetOwnProperty(std::u16string_view p) {
   // TODO(zhuzilin) String Object has a more elaborate impl 15.5.5.2.
   auto iter = named_properties_.find(p);
   if (iter == named_properties_.end()) {
     return Undefined::Instance();
   }
-  PropertyDescriptor* D = new PropertyDescriptor();
-  NamedProperty* X = iter->second;
-  if (X->type == NamedProperty::DATA) {
-    NamedDataProperty* dp = static_cast<NamedDataProperty*>(X);
-    D->SetDataDescriptor(dp->value, dp->writable, dp->enumerable, dp->configurable);
-  } else {
-    assert(X->type == NamedProperty::ACCESSOR);
-    NamedAccessorProperty* ap = static_cast<NamedAccessorProperty*>(X);
-    D->SetDataDescriptor(ap->getter, ap->setter, ap->enumerable, ap->configurable);
-  }
-  return D;
+  // NOTE(zhuzilin) In the spec, we need to create a new property descriptor D,
+  // And assign the property to it. However, if we init D->value = a, and
+  // set D->value = b in DefineOwnProperty, the value saved in the named_properties_ will
+  // remain b and that is not what we want.
+  return iter->second;
 }
 
 JSValue* JSObject::GetProperty(std::u16string_view p) {
@@ -204,6 +156,7 @@ JSValue* JSObject::Get(std::u16string_view p) {
 }
 
 bool JSObject::CanPut(std::u16string_view p) {
+  log::PrintSource("CanPut ", p);
   JSValue* value = GetOwnProperty(p);
   if (!value->IsUndefined()) {
     PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(value);
@@ -232,6 +185,7 @@ bool JSObject::CanPut(std::u16string_view p) {
 }
 
 void JSObject::Put(std::u16string_view p, JSValue* v, bool throw_flag, Error *e) {
+  log::PrintSource("Put ", p);
   if (!CanPut(p)) {
     if (throw_flag) {
       e = Error::TypeError();
@@ -318,66 +272,58 @@ JSValue* JSObject::DefaultValue(std::u16string_view hint, Error *e) {
   return nullptr;
 }
 
-bool SameValue(JSValue* x, JSValue* y);
-
 bool JSObject::DefineOwnProperty(std::u16string_view p, PropertyDescriptor* desc, bool throw_flag, Error *e) {
+  log::PrintSource("DefineOwnProperty: ", p);
   JSValue* current = GetOwnProperty(p);
   if (current->IsUndefined() && !extensible_) {
     goto reject;
   }
-  if (current->IsUndefined() && extensible_) {
-    if (desc->IsGenericDescriptor() || desc->IsDataDescriptor()) {
-      NamedDataProperty* data_property = new NamedDataProperty();
-      if (desc->HasValue()) data_property->value = desc->Value();
-      if (desc->HasWritable()) data_property->writable = desc->Writable();
-      if (desc->HasEnumerable()) data_property->enumerable = desc->Enumerable();
-      if (desc->HasConfigurable()) data_property->configurable = desc->Configurable();
-      named_properties_[p] = data_property;
-    } else {
-      assert(desc->IsAccessorDescriptor());
-      NamedAccessorProperty* accessor_property = new NamedAccessorProperty();
-      if (desc->HasGet()) accessor_property->getter = desc->Get();
-      if (desc->HasSet()) accessor_property->setter = desc->Set();
-      if (desc->HasEnumerable()) accessor_property->enumerable = desc->Enumerable();
-      if (desc->HasConfigurable()) accessor_property->configurable = desc->Configurable();
-      named_properties_[p] = accessor_property;
-    }
+  if (current->IsUndefined() && extensible_) {  // 4.
+    log::PrintSource("DefineOwnProperty: ", p, " undefined and extensible_");
+    named_properties_[p] = desc;
     return true;
   }
-  if (desc->bitmask() == 0) {
+  if (desc->bitmask() == 0) {  // 5
     return true;
   }
   if (!current->IsUndefined()) {
+    log::PrintSource("DefineOwnProperty: ", p, " defined");
     PropertyDescriptor* current_desc = static_cast<PropertyDescriptor*>(current);
     if ((desc->bitmask() & current_desc->bitmask()) == desc->bitmask()) {
       bool same = true;
-      // TODO(zhuzilin)
-
-      if (same) return true;
+      if (desc->HasValue())
+        same = same && SameValue(desc->Value(), current_desc->Value());
+      if (desc->HasWritable())
+        same = same && (desc->Writable() == current_desc->Writable());
+      if (desc->HasGet())
+        same = same && SameValue(desc->Get(), current_desc->Get());
+      if (desc->HasSet())
+        same = same && SameValue(desc->Set(), current_desc->Set());
+      if (desc->HasConfigurable())
+        same = same && (desc->Configurable() == current_desc->Configurable());
+      if (desc->HasEnumerable())
+        same = same && (desc->Enumerable() == current_desc->Enumerable());
+      if (same) return true;  // 6
     }
-
-    if (!current_desc->Configurable()) {
-      if (desc->Configurable()) goto reject;
-      if (desc->HasEnumerable() && (desc->Enumerable() != current_desc->Enumerable())) goto reject;
+    log::PrintSource("DefineOwnProperty: ", p, " not same");
+    if (!current_desc->Configurable()) { // 7
+      log::PrintSource("DefineOwnProperty: ", p, " not configurable");
+      if (desc->Configurable()) goto reject;  // 7.1
+      if (desc->HasEnumerable() && (desc->Enumerable() != current_desc->Enumerable())) goto reject;  // 7.b
     }
     // 8.
     if (!desc->IsGenericDescriptor()) {
       if (current_desc->IsDataDescriptor() != desc->IsDataDescriptor()) {  // 9.
         // 9.a
         if (!current_desc->Configurable()) goto reject;
-        if (current_desc->IsDataDescriptor()) {  // 9.b.i
-          NamedDataProperty* data_property = static_cast<NamedDataProperty*>(named_properties_[p]);
-          NamedAccessorProperty* accessor_property = new NamedAccessorProperty();
-          accessor_property->configurable = data_property->configurable;
-          accessor_property->enumerable = data_property->enumerable;
-          named_properties_[p] = accessor_property;
-        } else {  // 9.c.i
-          NamedAccessorProperty* accessor_property = static_cast<NamedAccessorProperty*>(named_properties_[p]);
-          NamedDataProperty* data_property = new NamedDataProperty();
-          data_property->configurable = accessor_property->configurable;
-          data_property->enumerable = accessor_property->enumerable;
-          named_properties_[p] = data_property;
-        }
+        // 9.b.i & 9.c.i
+        PropertyDescriptor* old_property = named_properties_[p];
+        PropertyDescriptor* new_property = new PropertyDescriptor();
+        new_property->SetConfigurable(old_property->Configurable());
+        new_property->SetEnumerable(old_property->Enumerable());
+        new_property->SetBitMask(old_property->bitmask());
+        named_properties_[p] = new_property;
+        delete old_property;
       } else if (current_desc->IsDataDescriptor() && desc->IsDataDescriptor()) {  // 10.
         if (!current_desc->Configurable()) {  // 10.a
           if (!current_desc->Writable()) {
@@ -397,10 +343,11 @@ bool JSObject::DefineOwnProperty(std::u16string_view p, PropertyDescriptor* desc
         }
       }
     }
+    log::PrintSource("DefineOwnProperty: ", p, " set");
     // 12.
     current_desc->Set(desc);
   }
-  
+  // 13.
   return true;
 reject:
   if (throw_flag) {
