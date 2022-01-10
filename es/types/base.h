@@ -114,6 +114,41 @@ class String : public JSValue {
   String(std::u16string data) : JSValue(JS_STRING), data_(data) {}
   std::u16string_view data() { return data_; }
 
+  static String* Undefined() {
+    static String singleton(u"undefined");
+    return &singleton;
+  }
+
+  static String* Null() {
+    static String singleton(u"null");
+    return &singleton;
+  }
+
+  static String* True() {
+    static String singleton(u"true");
+    return &singleton;
+  }
+
+  static String* False() {
+    static String singleton(u"false");
+    return &singleton;
+  }
+
+  static String* NaN() {
+    static String singleton(u"NaN");
+    return &singleton;
+  }
+
+  static String* Zero() {
+    static String singleton(u"0");
+    return &singleton;
+  }
+
+  static String* Infinity() {
+    static String singleton(u"Infinity");
+    return &singleton;
+  }
+
  private:
   std::u16string data_;
 };

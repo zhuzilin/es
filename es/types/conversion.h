@@ -1,8 +1,7 @@
 #ifndef ES_TYPES_CONVERSION_H
 #define ES_TYPES_CONVERSION_H
 
-#include <cmath>
-#include <cfloat>
+#include <math.h>
 
 #include <es/types/base.h>
 //#include <es/types/object.h>
@@ -155,7 +154,7 @@ Number* ToNumber(JSValue* input, Error* e) {
     case JSValue::JS_UNDEFINED:
       return Number::NaN();
     case JSValue::JS_NULL:
-      return new Number(0);
+      return Number::Zero();
     case JSValue::JS_BOOL:
       return new Number(static_cast<Bool*>(input)->data() ? 1 : 0);
     case JSValue::JS_NUMBER:
@@ -170,20 +169,84 @@ Number* ToNumber(JSValue* input, Error* e) {
   }
 }
 
-// Number* ToInteger(JSValue* input, Error* e) {
-//   Number* num = ToNumber(input, e);
-//   if (num->IsNaN()) {
-//     return Number::Zero();
-//   }
-//   // if (num->IsInfinity() || std::fpclassify(num->data()) == 0) {
-//   // }
-// }
+Number* ToInteger(JSValue* input, Error* e) {
+  Number* num = ToNumber(input, e);
+  if (num->IsNaN()) {
+    return Number::Zero();
+  }
+  if (num->IsInfinity() || num->data() == 0) {
+    return num;
+  }
+  double data = num->data();
+  return new Number(data > 0 ? floor(abs(data)) : -(floor(abs(-data))));
+}
 
-// Number* ToInt32(JSValue* input);
-// Number* ToUint32(JSValue* input);
-// Number* ToUint16(JSValue* input);
-// String* ToString(JSValue* input);
-// JSObject* ToObject(JSValue* input);
+Number* ToInt32(JSValue* input, Error* e) {
+  Number* num = ToNumber(input, e);
+  if (num->IsNaN() || num->IsInfinity() || num->data() == 0) {
+    return Number::Zero();
+  }
+  double pos_int = ToInteger(num, e)->data();
+  double int32_bit = fmod(pos_int, pow(2, 32));
+  if (int32_bit < 0)
+    int32_bit += pow(2, 32);
+  if (int32_bit > pow(2, 31))
+    return new Number(int32_bit - pow(2, 32));
+  else
+    return new Number(int32_bit);
+}
+
+Number* ToUint(JSValue* input, uint8 bits, Error* e) {
+  Number* num = ToNumber(input, e);
+  if (num->IsNaN() || num->IsInfinity() || num->data() == 0) {
+    return Number::Zero();
+  }
+  double pos_int = ToInteger(num, e)->data();
+  double int_bit = fmod(pos_int, pow(2, bits));
+  if (int_bit < 0)
+    int_bit += pow(2, bits);
+  return new Number(int_bit);
+}
+
+Number* ToUint32(JSValue* input, Error* e) {
+  return ToUint(input, 32, e);
+}
+
+Number* ToUint16(JSValue* input, Error* e) {
+  return ToUint(input, 16, e);
+}
+
+String* NumberToString(Number* num) {
+  if (num->IsNaN())
+    return String::NaN();
+  if (num->IsInfinity())
+    return String::Infinity();
+  if (num->data() == 0)
+    return String::Zero();
+  assert(false);
+}
+
+String* ToString(JSValue* input, Error* e) {
+  assert(input->IsLanguageType());
+  switch (input->type()) {
+    case JSValue::JS_UNDEFINED:
+      return String::Undefined();
+    case JSValue::JS_NULL:
+      return String::Null();
+    case JSValue::JS_BOOL:
+      return static_cast<Bool*>(input)->data() ? String::True() : String::False();
+    case JSValue::JS_NUMBER:
+      return NumberToString(static_cast<Bool*>(input));
+    case JSValue::JS_STRING:
+      return static_cast<String*>(input);
+    // case JSValue::JS_OBJECT:
+    //   JSValue* prim_value = ToPrimitive(input, u"String", e);
+    //   return ToString(prim_value, e);
+    default:
+      assert(false);
+}
+
+// JSObject* ToObject(JSValue* input, Error* e);
 
 // bool SameValue(JSValue* x, JSValue* y);
 

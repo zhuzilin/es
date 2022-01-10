@@ -128,3 +128,69 @@ TEST(TestPrimitiveConversion, ToNumber) {
   }
 
 }
+
+TEST(TestPrimitiveConversion, ToInteger) {
+  Number* num;
+  Error* e;
+  {
+    std::vector<std::pair<double, double>> vals = {
+      {4.2, 4}, {-4.2, -4},
+    };
+    for (auto pair : vals) {
+      num = ToInteger(new Number(pair.first), e);
+      EXPECT_EQ(pair.second, num->data());
+    }
+  }
+
+  num = ToInteger(Number::NaN(), e);
+  EXPECT_EQ(0, num->data());
+
+  num = ToInteger(new Number(0, 1), e);
+  EXPECT_EQ(true, num->IsPositiveInfinity());
+}
+
+TEST(TestPrimitiveConversion, ToInt32) {
+  Number* num, *num1;
+  Error* e;
+  {
+    std::vector<std::pair<double, double>> vals = {
+      {4.2, 4}, {-4.2, -4}, {pow(2, 31) + 2, 2 - pow(2, 31)}, {pow(2, 33), 0}
+    };
+    for (auto pair : vals) {
+      num = ToInt32(new Number(pair.first), e);
+      EXPECT_EQ(pair.second, num->data());
+      // idempotent
+      num1 = ToInt32(num, e);
+      EXPECT_EQ(num->data(), num1->data());
+    }
+  }
+
+  num = ToInt32(Number::NaN(), e);
+  EXPECT_EQ(0, num->data());
+
+  num = ToInt32(new Number(0, 1), e);
+  EXPECT_EQ(0, num->data());
+}
+
+TEST(TestPrimitiveConversion, ToUint32) {
+  Number* num, *num1;
+  Error* e;
+  {
+    std::vector<std::pair<double, double>> vals = {
+      {4.2, 4}, {-4.2, -4 + pow(2, 32)}, {pow(2, 31) + 2, pow(2, 31) + 2}, {pow(2, 33), 0}
+    };
+    for (auto pair : vals) {
+      num = ToUint32(new Number(pair.first), e);
+      EXPECT_EQ(pair.second, num->data());
+      // idempotent
+      num1 = ToUint32(num, e);
+      EXPECT_EQ(num->data(), num1->data());
+    }
+  }
+
+  num = ToUint32(Number::NaN(), e);
+  EXPECT_EQ(0, num->data());
+
+  num = ToUint32(new Number(0, 1), e);
+  EXPECT_EQ(0, num->data());
+}
