@@ -14,9 +14,8 @@ namespace es {
 
 class Evaluator {
  public:
-  Evaluator() : context_stack_(ExecutionContextStack::Global()) {
-    EnterGlobalCode();
-  };
+  Evaluator(ExecutionContextStack* context_stack) :
+    context_stack_(context_stack) {};
 
   Completion EvalProgram(AST* ast, Error* e) {
     assert(ast->type() == AST::AST_PROGRAM);
@@ -287,6 +286,11 @@ class Evaluator {
  private:
   ExecutionContextStack* context_stack_;
 };
+
+Evaluator GetGlobalEvaluator() {
+  EnterGlobalCode();
+  return Evaluator(ExecutionContextStack::Global());
+}
 
 }  // namespace es
 

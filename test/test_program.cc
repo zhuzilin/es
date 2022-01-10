@@ -19,9 +19,9 @@ typedef std::vector<std::pair<string,string>> vec_pair_string;
 TEST(TestProgram, SimpleAssign) {
   {
     Error* e = nullptr;
-    Evaluator eval;
     Parser parser(u"a = 1;a");
     AST* ast = parser.ParseProgram();
+    Evaluator eval = GetGlobalEvaluator();
     Completion res = eval.EvalProgram(ast, e);
     EXPECT_EQ(JSValue::JS_REF, res.value->type());
     Number* num = static_cast<Number*>(GetValue(static_cast<Reference*>(res.value), e));
@@ -33,9 +33,9 @@ TEST(TestProgram, SimpleAssign) {
 TEST(TestProgram, SimpleAssign1) {
   {
     Error* e = nullptr;
-    Evaluator eval;
     Parser parser(u"a = 1;a=2;a");
     AST* ast = parser.ParseProgram();
+    Evaluator eval = GetGlobalEvaluator();
     Completion res = eval.EvalProgram(ast, e);
     EXPECT_EQ(JSValue::JS_REF, res.value->type());
     Reference* ref = static_cast<Reference*>(res.value);

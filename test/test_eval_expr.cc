@@ -23,7 +23,7 @@ TEST(TestEvalExpr, Number) {
       {u".8", 0.8} ,{u"0xAbC09", 0xAbC09},
     };
 
-    Evaluator eval;
+    Evaluator eval = GetGlobalEvaluator();
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
@@ -42,7 +42,7 @@ TEST(TestEvalExpr, String) {
       {u"'\x24'", u"$"}, {u"'abc\\\ndef'", u"abcdef"},
     };
 
-    Evaluator eval;
+    Evaluator eval = GetGlobalEvaluator();
     for (auto pair : sources) {
       auto source = pair.first;
       Parser parser(source);
@@ -56,7 +56,7 @@ TEST(TestEvalExpr, String) {
 TEST(TestEvalExpr, Identifier) {
   Error* e = nullptr;
   {
-    Evaluator eval;
+    Evaluator eval = GetGlobalEvaluator();
     Parser parser(u"a");
     AST* ast = parser.ParsePrimaryExpression();
     Reference* ref = eval.EvalIdentifier(ast);
@@ -67,7 +67,7 @@ TEST(TestEvalExpr, Identifier) {
 TEST(TestEvalExpr, SimpleAssign) {
   Error* e = nullptr;
   {
-    Evaluator eval;
+    Evaluator eval = GetGlobalEvaluator();
     Parser parser(u"a = 1");
     AST* ast = parser.ParseAssignmentExpression(false);
     JSValue* val = eval.EvalBinaryExpression(ast, e);
