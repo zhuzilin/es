@@ -112,7 +112,7 @@ class Bool : public JSValue {
 class String : public JSValue {
  public:
   String(std::u16string data) : JSValue(JS_STRING), data_(data) {}
-  std::u16string data() { return data_; }
+  std::u16string_view data() { return data_; }
 
  private:
   std::u16string data_;
@@ -123,7 +123,12 @@ class Number : public JSValue {
   Number(double data, int8_t infinity_flag = 0) :
     JSValue(JS_NUMBER), infinity_flag_(infinity_flag), data_(data) {}
 
-  static constexpr double NaN = 9007199254740990.0;  // (1.0 << 53) - 2
+  static constexpr double nan = 9007199254740990.0;  // (1.0 << 53) - 2
+
+  static Number* NaN() {
+    static Number singleton(nan);
+    return &singleton;
+  }
 
   static Number* Zero() {
     static Number singleton(0);
@@ -133,7 +138,7 @@ class Number : public JSValue {
   bool IsInfinity() { return infinity_flag_ != 0; }
   bool IsPositiveInfinity() { return infinity_flag_ > 0; }
   bool IsNegativeInfinity() { return infinity_flag_ < 0; }
-  bool IsNaN() { return data_ == NaN; }
+  bool IsNaN() { return data_ == nan; }
 
   double data() { return data_; }
 
