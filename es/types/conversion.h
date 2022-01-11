@@ -29,7 +29,7 @@ Bool* ToBoolean(JSValue* input) {
       return Bool::False();
     case JSValue::JS_NUMBER: {
       Number* num = static_cast<Number*>(input);
-      if (num->data() == 0 || num->data() == Number::nan) {
+      if (num->data() == 0.0 || num->data() == -0.0 || num->IsNaN()) {
         return Bool::False();
       }
       return Bool::True();
@@ -88,7 +88,7 @@ Number* StringToNumber(String* str) {
     goto error;
 
   if (source.substr(start, end - start) == u"Infinity") {
-    return new Number(0, positive ? 1 : -1);
+    return positive ? Number::PositiveInfinity() : Number::NegativeInfinity();
   }
 
   while (start < end) {

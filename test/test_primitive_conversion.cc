@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include <string>
 #include <string_view>
 #include <vector>
@@ -57,7 +59,7 @@ TEST(TestPrimitiveConversion, ToBoolean) {
   EXPECT_EQ(false, b->data());
 
   // Number
-  for (auto num : {0.0, -0.0, Number::nan}) {
+  for (auto num : {0.0, -0.0, nan("")}) {
     b = ToBoolean(new Number(num));
     EXPECT_EQ(false, b->data());
   }
@@ -82,7 +84,7 @@ TEST(TestPrimitiveConversion, ToNumber) {
   Error* e = nullptr;
   // Undefined
   num = ToNumber(e, Undefined::Instance());
-  EXPECT_EQ(Number::nan, num->data());
+  EXPECT_EQ(true, num->IsNaN());
 
   // Null
   num = ToNumber(e, Null::Instance());
@@ -113,7 +115,7 @@ TEST(TestPrimitiveConversion, ToNumber) {
     };
     for (auto val : vals) {
       num = ToNumber(e, new String(val));
-      EXPECT_EQ(Number::nan, num->data());
+      EXPECT_EQ(true, num->IsNaN());
     }
   }
   // Infinity
@@ -145,7 +147,7 @@ TEST(TestPrimitiveConversion, ToInteger) {
   num = ToInteger(e, Number::NaN());
   EXPECT_EQ(0, num->data());
 
-  num = ToInteger(e, new Number(0, 1));
+  num = ToInteger(e, Number::PositiveInfinity());
   EXPECT_EQ(true, num->IsPositiveInfinity());
 }
 
@@ -168,7 +170,7 @@ TEST(TestPrimitiveConversion, ToInt32) {
   num = ToInt32(e, Number::NaN());
   EXPECT_EQ(0, num->data());
 
-  num = ToInt32(e, new Number(0, 1));
+  num = ToInt32(e, Number::PositiveInfinity());
   EXPECT_EQ(0, num->data());
 }
 
@@ -191,6 +193,6 @@ TEST(TestPrimitiveConversion, ToUint32) {
   num = ToUint32(e, Number::NaN());
   EXPECT_EQ(0, num->data());
 
-  num = ToUint32(e, new Number(0, 1));
+  num = ToUint32(e, Number::PositiveInfinity());
   EXPECT_EQ(0, num->data());
 }

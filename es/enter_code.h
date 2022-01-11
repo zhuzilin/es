@@ -148,7 +148,7 @@ void InitGlobalObject() {
   auto global_obj = GlobalObject::Instance();
   // 15.1.1 Value Properties of the Global Object
   global_obj->AddValueProperty(u"NaN", Number::NaN(), false, false, false);
-  global_obj->AddValueProperty(u"Infinity", new Number(0, 1), false, false, false);
+  global_obj->AddValueProperty(u"Infinity", Number::PositiveInfinity(), false, false, false);
   global_obj->AddValueProperty(u"undefined", Undefined::Instance(), false, false, false);
   // 15.1.2 Function Properties of the Global Object
   global_obj->AddFuncProperty(u"eval", GlobalObject::eval, true, false, true);
@@ -221,8 +221,8 @@ void InitNumber() {
   constructor->AddValueProperty(u"MAX_VALUE", new Number(1.7976931348623157e308), false, false, false);
   constructor->AddValueProperty(u"MIN_VALUE", new Number(5e-324), false, false, false);
   constructor->AddValueProperty(u"NaN", Number::NaN(), false, false, false);
-  constructor->AddValueProperty(u"NEGATIVE_INFINITY", new Number(0, 1), false, false, false);
-  constructor->AddValueProperty(u"POSITIVE_INFINITY", new Number(0, -1), false, false, false);
+  constructor->AddValueProperty(u"NEGATIVE_INFINITY", Number::PositiveInfinity(), false, false, false);
+  constructor->AddValueProperty(u"POSITIVE_INFINITY", Number::NegativeInfinity(), false, false, false);
 
   NumberProto* proto = NumberProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());

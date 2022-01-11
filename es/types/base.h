@@ -1,6 +1,8 @@
 #ifndef ES_TYPES_BASE_H
 #define ES_TYPES_BASE_H
 
+#include <math.h>
+
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -73,7 +75,7 @@ class Undefined : public JSValue {
     return &singleton;
   }
 
-  std::string ToString() override { return "Undefined"; }
+  inline std::string ToString() override { return "Undefined"; }
 
  private:
   Undefined() : JSValue(JS_UNDEFINED) {}
@@ -106,9 +108,9 @@ class Bool : public JSValue {
     return val ? True() : False();
   }
 
-  bool data() { return data_; }
+  inline bool data() { return data_; }
 
-  std::string ToString() override { return data_ ? "true" : "false"; }
+  inline std::string ToString() override { return data_ ? "true" : "false"; }
 
  private:
   Bool(bool data) : JSValue(JS_BOOL), data_(data) {}
@@ -156,7 +158,7 @@ class String : public JSValue {
     return &singleton;
   }
 
-  std::string ToString() override { return log::ToString(data_); }
+  inline std::string ToString() override { return log::ToString(data_); }
 
  private:
   std::u16string data_;
@@ -164,38 +166,50 @@ class String : public JSValue {
 
 class Number : public JSValue {
  public:
-  Number(double data, int8_t infinity_flag = 0) :
-    JSValue(JS_NUMBER), infinity_flag_(infinity_flag), data_(data) {}
-
-  static constexpr double nan = 9007199254740990.0;  // (1.0 << 53) - 2
+  Number(double data) :
+    JSValue(JS_NUMBER), data_(data) {}
 
   static Number* NaN() {
-    static Number singleton(nan);
+    static Number singleton(nan(""));
+    return &singleton;
+  }
+
+  static Number* PositiveInfinity() {
+    static Number singleton(std::numeric_limits<double>::infinity());
+    return &singleton;
+  }
+
+  static Number* NegativeInfinity() {
+    static Number singleton(-std::numeric_limits<double>::infinity());
     return &singleton;
   }
 
   static Number* Zero() {
-    static Number singleton(0);
+    static Number singleton(0.0);
+    return &singleton;
+  }
+
+  static Number* NegativeZero() {
+    static Number singleton(-0.0);
     return &singleton;
   }
 
   static Number* One() {
-    static Number singleton(1);
+    static Number singleton(1.0);
     return &singleton;
   }
 
-  bool IsInfinity() { return infinity_flag_ != 0; }
-  bool IsPositiveInfinity() { return infinity_flag_ > 0; }
-  bool IsNegativeInfinity() { return infinity_flag_ < 0; }
-  bool IsNaN() { return data_ == nan; }
+  inline bool IsInfinity() { return isinf(data_); }
+  inline bool IsPositiveInfinity() { return data_ == std::numeric_limits<double>::infinity(); }
+  inline bool IsNegativeInfinity() { return data_ == -std::numeric_limits<double>::infinity(); }
+  inline bool IsNaN() { return isnan(data_); }
 
-  double data() { return data_; }
+  inline double data() { return data_; }
 
-  std::string ToString() override { return std::to_string(data_); }
+  inline std::string ToString() override { return std::to_string(data_); }
 
  private:
   double data_;
-  char infinity_flag_;
 };
 
 }  // namespace es

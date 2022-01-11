@@ -35,6 +35,15 @@ target_link_libraries(
 )
 
 add_executable(
+  test_same_value
+  test_same_value.cc
+)
+target_link_libraries(
+  test_same_value
+  gtest_main
+)
+
+add_executable(
   test_program
   test_program.cc
 )
@@ -48,4 +57,5 @@ gtest_discover_tests(test_lexer)
 gtest_discover_tests(test_parser)
 gtest_discover_tests(test_eval_expr)
 gtest_discover_tests(test_primitive_conversion)
+gtest_discover_tests(test_same_value)
 gtest_discover_tests(test_program)

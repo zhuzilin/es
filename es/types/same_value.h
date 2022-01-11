@@ -20,9 +20,12 @@ bool SameValue(JSValue* x, JSValue* y) {
       Number* num_y = static_cast<Number*>(y);
       if (num_x->IsNaN() && num_y->IsNaN())
         return true;
-      if (num_x->data() == num_y->data())
-        return true;
-      return false;
+      double dx = num_x->data();
+      double dy = num_y->data();
+      if (dx == dy && dx == 0.0) {
+        return signbit(dx) == signbit(dy);
+      }
+      return dx == dy;
     }
     case JSValue::JS_STRING: {
       String* str_x = static_cast<String*>(x);
