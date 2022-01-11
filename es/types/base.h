@@ -49,6 +49,8 @@ class JSValue {
   inline bool IsLexicalEnvironment() { return type_ == JS_LEX_ENV; }
   inline bool IsEnvironmentRecord() { return type_ == JS_ENV_REC; }
 
+  virtual std::string ToString() = 0;
+
   void CheckObjectCoercible(Error* e) {
     if (IsUndefined() || IsNull()) {
       e = Error::TypeError();
@@ -71,6 +73,8 @@ class Undefined : public JSValue {
     return &singleton;
   }
 
+  std::string ToString() override { return "Undefined"; }
+
  private:
   Undefined() : JSValue(JS_UNDEFINED) {}
 };
@@ -81,6 +85,7 @@ class Null : public JSValue {
     static Null singleton;
     return &singleton;
   }
+  std::string ToString() override { return "Null"; }
 
  private:
   Null() : JSValue(JS_NULL) {}
@@ -102,6 +107,8 @@ class Bool : public JSValue {
   }
 
   bool data() { return data_; }
+
+  std::string ToString() override { return data_ ? "true" : "false"; }
 
  private:
   Bool(bool data) : JSValue(JS_BOOL), data_(data) {}
@@ -149,6 +156,8 @@ class String : public JSValue {
     return &singleton;
   }
 
+  std::string ToString() override { return log::ToString(data_); }
+
  private:
   std::u16string data_;
 };
@@ -181,6 +190,8 @@ class Number : public JSValue {
   bool IsNaN() { return data_ == nan; }
 
   double data() { return data_; }
+
+  std::string ToString() override { return std::to_string(data_); }
 
  private:
   double data_;

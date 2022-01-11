@@ -271,6 +271,11 @@ class LHS : public AST {
   }
 
   AST* base() { return base_; }
+  size_t new_count() { return new_count_; }
+  std::vector<std::pair<size_t, PostfixType>> order() { return order_; }
+  std::vector<Arguments*> args_list() { return args_list_; }
+  std::vector<AST*> index_list() { return index_list_; }
+  std::vector<Token> prop_name_list() { return prop_name_list_; }
 
  private:
   AST* base_;
@@ -321,8 +326,6 @@ class ProgramOrFunctionBody : public AST {
   void AddFunctionDecl(AST* func) {
     assert(func->type() == AST_FUNC);
     func_decls_.emplace_back(static_cast<Function*>(func));
-    // TODO(zhuzilin) check if this is needed.
-    stmts_.emplace_back(func);
   }
   void AddStatement(AST* stmt) {
     stmts_.emplace_back(stmt);

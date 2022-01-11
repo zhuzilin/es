@@ -28,27 +28,27 @@ class PropertyDescriptor : public JSValue {
   }
 
   // TODO(zhuzilin) May be check the member variable is initialized?
-  inline bool HasValue() { return bitmask_ | VALUE; }
+  inline bool HasValue() { return bitmask_ & VALUE; }
   inline JSValue* Value() { return value_; }
   inline void SetValue(JSValue* value) { bitmask_ |= VALUE; value_ = value; }
 
-  inline bool HasWritable() { return bitmask_ | WRITABLE; }
+  inline bool HasWritable() { return bitmask_ & WRITABLE; }
   inline bool Writable() { return writable_; }
   inline void SetWritable(bool writable) { bitmask_ |= WRITABLE; writable_ = writable; }
 
-  inline bool HasGet() { return bitmask_ | GET; }
+  inline bool HasGet() { return bitmask_ & GET; }
   inline JSValue* Get() { return getter_; }
   inline void SetGet(JSValue* getter) { bitmask_ |= GET; getter_ = getter; }
 
-  inline bool HasSet() { return bitmask_ | SET; }
+  inline bool HasSet() { return bitmask_ & SET; }
   inline JSValue* Set() { return setter_; }
   inline void SetSet(JSValue* setter) { bitmask_ |= SET; setter_ = setter; }
 
-  inline bool HasEnumerable() { return bitmask_ | ENUMERABLE; }
+  inline bool HasEnumerable() { return bitmask_ & ENUMERABLE; }
   inline bool Enumerable() { return enumerable_; }
   inline void SetEnumerable(bool enumerable) { bitmask_ |= ENUMERABLE; enumerable_ = enumerable; }
 
-  inline bool HasConfigurable() { return bitmask_ | CONFIGURABLE; }
+  inline bool HasConfigurable() { return bitmask_ & CONFIGURABLE; }
   inline bool Configurable() { return configurable_; }
   inline void SetConfigurable(bool configurable) { bitmask_ |= CONFIGURABLE; configurable_ = configurable; }
 
@@ -72,7 +72,6 @@ class PropertyDescriptor : public JSValue {
 
   // Set the value to `this` if `other` has.
   inline void Set(PropertyDescriptor* other) {
-    std::cout << "old value: " << static_cast<Number*>(value_)->data() << std::endl;
     if (other->HasValue())
       SetValue(other->Value());
     if (other->HasWritable())
@@ -85,11 +84,21 @@ class PropertyDescriptor : public JSValue {
       SetConfigurable(other->Configurable());
     if (other->HasEnumerable())
       SetEnumerable(other->Enumerable());
-    std::cout << "new value: " << static_cast<Number*>(value_)->data() << std::endl;
   }
 
   char bitmask() { return bitmask_; }
   void SetBitMask(char bitmask) { bitmask_ = bitmask; }
+
+  std::string ToString() override { 
+    std::string res = "PropertyDescriptor{";
+    if (HasValue()) res += "v: " + value_->ToString() + ", ";
+    if (HasWritable()) res += "w: " + log::ToString(writable_) + ", ";
+    if (HasEnumerable()) res += "e: " + log::ToString(enumerable_) + ", ";
+    if (HasConfigurable()) res += "c: " + log::ToString(configurable_);
+
+    res += '}';
+    return res;
+  }
 
  private:
   enum Field {

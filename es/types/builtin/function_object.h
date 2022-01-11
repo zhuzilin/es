@@ -36,7 +36,9 @@ class FunctionObject : public JSObject {
   AST* Code() { return body_; }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments) override {
+    log::PrintSource("function Call");
     EnterFunctionCode(e, this, body_, this_arg, arguments, strict_);
+    log::PrintSource("after EnterFunctionCode");
 
     Completion comp;
     if (body_ != nullptr) {
@@ -54,6 +56,8 @@ class FunctionObject : public JSObject {
     }
     ExecutionContextStack::Global()->Pop();   // 3
   }
+
+  std::string ToString() override { return "Function"; }
 
  private:
   std::vector<std::u16string_view> formal_params_;

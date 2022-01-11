@@ -17,7 +17,7 @@ typedef std::vector<string> vec_string;
 typedef std::pair<string,string> pair_string;
 typedef std::vector<std::pair<string,string>> vec_pair_string;
 
-TEST(TestProgram, SimpleAssign) {
+TEST(TestProgram, SimpleAssign0) {
   {
     Error* e = nullptr;
     Parser parser(u"a = 1;a");
@@ -42,6 +42,48 @@ TEST(TestProgram, SimpleAssign1) {
     Reference* ref = static_cast<Reference*>(res.value);
     Number* num = static_cast<Number*>(GetValue(e, static_cast<Reference*>(res.value)));
     EXPECT_EQ(2, num->data());
+    EXPECT_EQ(nullptr, e);
+  }
+}
+
+TEST(TestProgram, Call0) {
+  {
+    Error* e = nullptr;
+    Parser parser(u"a = function(b){return b;}; a(3)");
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(JSValue::JS_NUMBER, res.value->type());
+    Number* num = static_cast<Number*>(res.value);
+    EXPECT_EQ(3, num->data());
+    EXPECT_EQ(nullptr, e);
+  }
+}
+
+TEST(TestProgram, Call1) {
+  {
+    Error* e = nullptr;
+    Parser parser(u"function a(b){return b;}; a(3)");
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(JSValue::JS_NUMBER, res.value->type());
+    Number* num = static_cast<Number*>(res.value);
+    EXPECT_EQ(3, num->data());
+    EXPECT_EQ(nullptr, e);
+  }
+}
+
+TEST(TestProgram, Call2) {
+  {
+    Error* e = nullptr;
+    Parser parser(u"a = 1; function b(){return a;}; b()");
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(JSValue::JS_NUMBER, res.value->type());
+    Number* num = static_cast<Number*>(res.value);
+    EXPECT_EQ(1, num->data());
     EXPECT_EQ(nullptr, e);
   }
 }

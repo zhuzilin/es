@@ -29,6 +29,8 @@ class Reference : public JSValue {
   }
   bool IsUnresolvableReference() { return base_->IsUndefined(); }
 
+  std::string ToString() override { return "Reference"; }
+
  private:
   JSValue* base_;
   std::u16string_view reference_name_;

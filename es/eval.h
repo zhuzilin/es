@@ -15,37 +15,41 @@ namespace es {
 
 Completion EvalProgram(Error* e, AST* ast);
 Completion EvalStatement(Error* e, AST* ast);
+Completion EvalReturnStatement(Error* e, AST* ast);
 Completion EvalExpressionStatement(Error* e, AST* ast);
+
 JSValue* EvalExpression(Error* e, AST* ast);
 Reference* EvalIdentifier(AST* ast);
 Number* EvalNumber(AST* ast);
 String* EvalString(AST* ast);
 JSValue* EvalBinaryExpression(Error* e, AST* ast);
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast);
+std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast);
+JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_list);
 
 Completion EvalProgram(Error* e, AST* ast) {
-  assert(ast->type() == AST::AST_PROGRAM);
+  assert(ast->type() == AST::AST_PROGRAM || ast->type() == AST::AST_FUNC_BODY);
   auto prog = static_cast<ProgramOrFunctionBody*>(ast);
-  auto elements = prog->statements();
-  Completion head_result, tail_result;
-  if (elements.size() == 0)
-    return Completion();
-  if (elements[0]->type() == AST::AST_FUNC) {
-    EvalFunction(elements[0]);
-    head_result = Completion(Completion::NORMAL, nullptr, nullptr);
-  } else {
-    head_result = EvalStatement(e, elements[0]);
+  auto statements = prog->statements();
+  // 12.9 considered syntactically incorrect if it contains
+  //      a return statement that is not within a FunctionBody.
+  if (ast->type() != AST::AST_FUNC_BODY) {
+    for (auto stmt : statements) {
+      if (stmt->type() == AST::AST_STMT_RETURN) {
+        e = Error::SyntaxError();
+        // TODO(zhuzilin) error object.
+        return Completion(Completion::THROW, nullptr, nullptr);
+      }
+    }
   }
-  for (size_t i = 1; i < prog->statements().size(); i++) {
+
+  Completion head_result, tail_result;
+  if (statements.size() == 0)
+    return Completion();
+  for (auto stmt : prog->statements()) {
     if (head_result.IsAbruptCompletion())
       break;
-    auto ast = elements[i];
-    if (ast->type() == AST::AST_FUNC) {
-      EvalFunction(ast);
-      tail_result = Completion(Completion::NORMAL, nullptr, nullptr);
-    } else {
-      tail_result = EvalStatement(e, ast);
-    }
+    tail_result = EvalStatement(e, stmt);
     head_result = Completion(
       tail_result.type,
       tail_result.value == nullptr? head_result.value : tail_result.value,
@@ -55,8 +59,23 @@ Completion EvalProgram(Error* e, AST* ast) {
   return head_result;
 }
 
+Completion EvalReturnStatement(Error* e, AST* ast) {
+  log::PrintSource("enter EvalReturnStatement");
+  assert(ast->type() == AST::AST_STMT_RETURN);
+  Return* return_stmt = static_cast<Return*>(ast);
+  if (return_stmt->expr() == nullptr) {
+    return Completion(Completion::RETURN, Undefined::Instance(), nullptr);
+  }
+  auto exp_ref = EvalExpression(e, return_stmt->expr());
+  return Completion(Completion::RETURN, GetValue(e, exp_ref), nullptr);
+}
+
 Completion EvalStatement(Error* e, AST* ast) {
   switch(ast->type()) {
+    case AST::AST_STMT_RETURN:
+      return EvalReturnStatement(e, ast);
+    case AST::AST_STMT_EMPTY:
+      return Completion();
     default:
       return EvalExpressionStatement(e, ast);
   }
@@ -92,12 +111,14 @@ JSValue* EvalExpression(Error* e, AST* ast) {
       val = EvalFunction(ast);
       break;
     default:
+      std::cout << ast->type() << " " << AST::AST_ILLEGAL << std::endl;
       assert(false);
   }
   return val;
 }
 
 Reference* EvalIdentifier(AST* ast) {
+  log::PrintSource("enter EvalIdentifier ", ast->source());
   assert(ast->type() == AST::AST_EXPR_IDENT);
   // 10.3.1 Identifier Resolution
   LexicalEnvironment* env = ExecutionContextStack::Global()->Top().lexical_env();
@@ -287,9 +308,77 @@ JSValue* EvalBinaryExpression(Error* e, AST* ast) {
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_LHS);
   LHS* lhs = static_cast<LHS*>(ast);
+  // TODO(zhuzilin) support new
   JSValue* base = EvalExpression(e, lhs->base());
-  // TODO(zhuzilin)
+  for (size_t i = 0; i < lhs->order().size(); i++) {
+    // Only support call for now;
+    auto pair = lhs->order()[i];
+    switch (pair.second) {
+      case LHS::PostfixType::CALL: {
+        auto args = lhs->args_list()[pair.first];
+        auto arg_list = EvalArgumentsList(e, args);
+        if (e != nullptr)
+          return nullptr;
+        base = EvalCallExpression(e, base, arg_list);
+        if (e != nullptr)
+          return nullptr;
+        break;
+      }
+        
+      default:
+        assert(false);
+        break;
+    }
+
+  }
   return base;
+}
+
+std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast) {
+  std::vector<JSValue*> arg_list;
+  for (AST* ast : ast->args()) {
+    JSValue* ref = EvalExpression(e, ast);
+    if (e != nullptr)
+      return {};
+    JSValue* arg = GetValue(e, ref);
+    if (e != nullptr)
+      return {};
+    arg_list.emplace_back(arg);
+  }
+  return arg_list;
+}
+
+// 11.2.3
+JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_list) {
+  log::PrintSource("enter EvalCallExpression");
+  JSValue* val = GetValue(e, ref);
+  if (e != nullptr)
+    return nullptr;
+  if (!val->IsObject()) {  // 4
+    e = Error::TypeError();
+    return nullptr;
+  }
+  auto obj = static_cast<JSObject*>(val);
+  if (!obj->IsCallable()) {  // 5
+    e = Error::TypeError();
+    return nullptr;
+  }
+  auto func = static_cast<FunctionObject*>(obj);
+  JSValue* this_value;
+  if (ref->IsReference()) {
+    Reference* r = static_cast<Reference*>(ref);
+    JSValue* base = r->GetBase();
+    if (r->IsPropertyReference()) {
+      this_value = base;
+    } else {
+      assert(base->IsEnvironmentRecord());
+      auto env_rec = static_cast<EnvironmentRecord*>(base);
+      this_value = env_rec->ImplicitThisValue();
+    }
+  } else {
+    this_value = Undefined::Instance();
+  }
+  return func->Call(e, this_value, arg_list);
 }
 
 }  // namespace es

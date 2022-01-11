@@ -25,6 +25,10 @@ std::string ToString(std::u16string_view str) {
   return result;
 }
 
+std::string ToString(bool b) {
+  return b ? "true" : "false";
+}
+
 }  // namespace test
 
 std::u16string StrCat(std::vector<std::u16string> vals) {

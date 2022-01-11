@@ -21,6 +21,8 @@ class EnvironmentRecord : public JSValue {
   virtual JSValue* GetBindingValue(Error* e, std::u16string_view N, bool S) = 0;
   virtual bool DeleteBinding(Error* e, std::u16string_view N) = 0;
   virtual JSValue* ImplicitThisValue() = 0;
+
+  virtual std::string ToString() override { return "EnvironmentRecord"; }
 };
 
 class DeclarativeEnvironmentRecord : public EnvironmentRecord {
@@ -36,6 +38,8 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   void CreateMutableBinding(Error* e, std::u16string_view N, bool D) override {
+    log::PrintSource("CreateMutableBinding ", N);
+    std::cout << "DeEnvRec: " << this << std::endl;
     assert(!HasBinding(N));
     Binding b;
     b.value = Undefined::Instance();
@@ -45,19 +49,24 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   void SetMutableBinding(Error* e, std::u16string_view N, JSValue* V, bool S) override {
+    log::PrintSource("SetMutableBinding ", N, "to " + V->ToString());
     assert(V->IsLanguageType());
     assert(HasBinding(N));
-    Binding b = bindings_[N];
-    if (b.is_mutable) {
-      b.value = V;
+    // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,
+    // the value stored in bindings_ won't change.
+    if (bindings_[N].is_mutable) {
+      bindings_[N].value = V;
     } else if (S) {
       e = Error::TypeError();
     }
+    std::cout << "DeEnvRec: " << this << " value: " << bindings_[N].value->ToString() << std::endl;
   }
 
   JSValue* GetBindingValue(Error* e, std::u16string_view N, bool S) override {
+    log::PrintSource("GetBindingValue ", N);
     assert(HasBinding(N));
     Binding b = bindings_[N];
+    std::cout << "DeEnvRec: " << this << " V: " << b.value->ToString() << std::endl;
     if (b.value->IsUndefined()) {
       if (S) {
         e = Error::ReferenceError();
@@ -71,8 +80,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
 
   bool DeleteBinding(Error* e, std::u16string_view N) override {
     if (!HasBinding(N)) return true;
-    Binding b = bindings_[N];
-    if (!b.can_delete) {
+    if (!bindings_[N].can_delete) {
       return false;
     }
     bindings_.erase(N);
@@ -111,14 +119,18 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
     return bindings_->HasProperty(N);
   }
 
+  // 10.2.1.2.2 CreateMutableBinding (N, D)
   void CreateMutableBinding(Error* e, std::u16string_view N, bool D) override {
+    log::PrintSource("CreateMutableBinding ", N, std::string(" D is ") + (D ? "true" : "false"));
     assert(!HasBinding(N));
     PropertyDescriptor* desc = new PropertyDescriptor();
     desc->SetDataDescriptor(Undefined::Instance(), true, true, D);
+    std::cout << "desc: " << desc->Enumerable() << std::endl;
     bindings_->DefineOwnProperty(e, N, desc, true);
   }
 
   void SetMutableBinding(Error* e, std::u16string_view N, JSValue* V, bool S) override {
+    log::PrintSource("SetMutableBinding ", N, " to " + V->ToString());
     assert(V->IsLanguageType());
     bindings_->Put(e, N, V, S);
   }

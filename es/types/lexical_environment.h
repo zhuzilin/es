@@ -40,6 +40,8 @@ class LexicalEnvironment : public JSValue {
   JSValue* outer() { return outer_; }
   EnvironmentRecord* env_rec() { return env_rec_; }
 
+  std::string ToString() override { return "LexicalEnvironment"; }
+
  private:
   JSValue* outer_;  // not owned
   EnvironmentRecord* env_rec_;

@@ -24,21 +24,23 @@ void DeclarationBindingInstantiation(
   Error* e, ExecutionContext context, AST* code, CodeType code_type, bool strict,
   FunctionObject* f = nullptr, std::vector<JSValue*> args = {}
 ) {
+  log::PrintSource("enter DeclarationBindingInstantiation");
   auto env = context.variable_env()->env_rec();  // 1
   bool configurable_bindings = false;
   if (code_type == CODE_EVAL) {
     configurable_bindings = true;  // 2
-  } else if (code_type == CODE_FUNC) {  // 4
+  }
+  if (code_type == CODE_FUNC) {  // 4
     assert(f != nullptr);
     auto names = f->FormalParameters();  // 4.a
     Function* func_ast = static_cast<Function*>(code);
     size_t arg_count = args.size();  // 4.b
     size_t n = 0;  // 4.c
-    for (auto arg_name : func_ast->params()) {  // 4.d
-      n++;  // 4.d.i
+    for (auto arg_name : names) {  // 4.d
+      log::PrintSource("preparing arg ", arg_name);
       JSValue* v = Undefined::Instance();
-      if (n < arg_count)  // 4.d.ii
-        v = args[n];
+      if (n < arg_count)  // 4.d.i & 4.d.ii
+        v = args[n++];
       bool arg_already_declared = env->HasBinding(arg_name);  // 4.d.iii
       if (!arg_already_declared) {  // 4.d.iv
         // NOTE(zhuzlin) I'm not sure if this should be false.
@@ -84,16 +86,16 @@ void DeclarationBindingInstantiation(
   bool arguments_already_declared = env->HasBinding(u"arguments");
   // 7
   if (code_type == CODE_FUNC && !arguments_already_declared) {
-    auto args_obj = CreateArgumentsObject();
-    if (strict) {  // 7.b
-      DeclarativeEnvironmentRecord* decl_env = static_cast<DeclarativeEnvironmentRecord*>(env);
-      decl_env->CreateImmutableBinding(u"arguments");
-      decl_env->InitializeImmutableBinding(u"arguments", args_obj);
-    } else {  // 7.c
-      // NOTE(zhuzlin) I'm not sure if this should be false.
-      env->CreateMutableBinding(e, u"arguments", false);
-      env->SetMutableBinding(e, u"arguments", args_obj, false);
-    }
+    // auto args_obj = CreateArgumentsObject();
+    // if (strict) {  // 7.b
+    //   DeclarativeEnvironmentRecord* decl_env = static_cast<DeclarativeEnvironmentRecord*>(env);
+    //   decl_env->CreateImmutableBinding(u"arguments");
+    //   decl_env->InitializeImmutableBinding(u"arguments", args_obj);
+    // } else {  // 7.c
+    //   // NOTE(zhuzlin) I'm not sure if this should be false.
+    //   env->CreateMutableBinding(e, u"arguments", false);
+    //   env->SetMutableBinding(e, u"arguments", args_obj, false);
+    // }
   }
   // 8
   // TODO(zhuzilin) initialize VariableDeclaration
