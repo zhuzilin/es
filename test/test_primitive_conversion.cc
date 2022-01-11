@@ -19,28 +19,28 @@ typedef std::vector<std::pair<string,string>> vec_pair_string;
 TEST(TestPrimitiveConversion, ToPrimitive) {
   JSValue* val;
   Error* e = nullptr;
-  val = ToPrimitive(Undefined::Instance(), u"", e);
+  val = ToPrimitive(e, Undefined::Instance(), u"");
   EXPECT_EQ(JSValue::JS_UNDEFINED, val->type());
 
-  val = ToPrimitive(Null::Instance(), u"", e);
+  val = ToPrimitive(e, Null::Instance(), u"");
   EXPECT_EQ(JSValue::JS_NULL, val->type());
 
   for (auto inner : {true, false}) {
-    val = ToPrimitive(Bool::Wrap(inner), u"", e);
+    val = ToPrimitive(e, Bool::Wrap(inner), u"");
     EXPECT_EQ(JSValue::JS_BOOL, val->type());
     auto outer = static_cast<Bool*>(val);
     EXPECT_EQ(inner, outer->data());
   }
 
   for (auto inner : {1.0, 2.2, 3.5}) {
-    val = ToPrimitive(new Number(inner), u"", e);
+    val = ToPrimitive(e, new Number(inner), u"");
     EXPECT_EQ(JSValue::JS_NUMBER, val->type());
     auto outer = static_cast<Number*>(val);
     EXPECT_EQ(inner, outer->data());
   }
 
   for (auto inner : {u"abc", u"\n", u"你好", u"😎"}) {
-    val = ToPrimitive(new String(inner), u"", e);
+    val = ToPrimitive(e, new String(inner), u"");
     EXPECT_EQ(JSValue::JS_STRING, val->type());
     auto outer = static_cast<String*>(val);
     EXPECT_EQ(inner, outer->data());
@@ -81,17 +81,17 @@ TEST(TestPrimitiveConversion, ToNumber) {
   Number* num;
   Error* e = nullptr;
   // Undefined
-  num = ToNumber(Undefined::Instance(), e);
+  num = ToNumber(e, Undefined::Instance());
   EXPECT_EQ(Number::nan, num->data());
 
   // Null
-  num = ToNumber(Null::Instance(), e);
+  num = ToNumber(e, Null::Instance());
   EXPECT_EQ(0, num->data());
 
   // Bool
-  num = ToNumber(Bool::True(), e);
+  num = ToNumber(e, Bool::True());
   EXPECT_EQ(1, num->data());
-  num = ToNumber(Bool::False(), e);
+  num = ToNumber(e, Bool::False());
   EXPECT_EQ(0, num->data());
 
   // String
@@ -102,7 +102,7 @@ TEST(TestPrimitiveConversion, ToNumber) {
       {u"\n0xAB ", 0xAB}
     };
     for (auto pair : vals) {
-      num = ToNumber(new String(pair.first), e);
+      num = ToNumber(e, new String(pair.first));
       EXPECT_EQ(pair.second, num->data());
     }
   }
@@ -112,7 +112,7 @@ TEST(TestPrimitiveConversion, ToNumber) {
       u"", u"+", u"+0xAB", u"0x", u"3e", u"\n+ 10",
     };
     for (auto val : vals) {
-      num = ToNumber(new String(val), e);
+      num = ToNumber(e, new String(val));
       EXPECT_EQ(Number::nan, num->data());
     }
   }
@@ -122,7 +122,7 @@ TEST(TestPrimitiveConversion, ToNumber) {
       u"  Infinity\n ", u"\t +Infinity", u"-Infinity",
     };
     for (auto val : vals) {
-      num = ToNumber(new String(val), e);
+      num = ToNumber(e, new String(val));
       EXPECT_EQ(true, num->IsInfinity());
     }
   }
@@ -137,15 +137,15 @@ TEST(TestPrimitiveConversion, ToInteger) {
       {4.2, 4}, {-4.2, -4},
     };
     for (auto pair : vals) {
-      num = ToInteger(new Number(pair.first), e);
+      num = ToInteger(e, new Number(pair.first));
       EXPECT_EQ(pair.second, num->data());
     }
   }
 
-  num = ToInteger(Number::NaN(), e);
+  num = ToInteger(e, Number::NaN());
   EXPECT_EQ(0, num->data());
 
-  num = ToInteger(new Number(0, 1), e);
+  num = ToInteger(e, new Number(0, 1));
   EXPECT_EQ(true, num->IsPositiveInfinity());
 }
 
@@ -157,18 +157,18 @@ TEST(TestPrimitiveConversion, ToInt32) {
       {4.2, 4}, {-4.2, -4}, {pow(2, 31) + 2, 2 - pow(2, 31)}, {pow(2, 33), 0}
     };
     for (auto pair : vals) {
-      num = ToInt32(new Number(pair.first), e);
+      num = ToInt32(e, new Number(pair.first));
       EXPECT_EQ(pair.second, num->data());
       // idempotent
-      num1 = ToInt32(num, e);
+      num1 = ToInt32(e, num);
       EXPECT_EQ(num->data(), num1->data());
     }
   }
 
-  num = ToInt32(Number::NaN(), e);
+  num = ToInt32(e, Number::NaN());
   EXPECT_EQ(0, num->data());
 
-  num = ToInt32(new Number(0, 1), e);
+  num = ToInt32(e, new Number(0, 1));
   EXPECT_EQ(0, num->data());
 }
 
@@ -180,17 +180,17 @@ TEST(TestPrimitiveConversion, ToUint32) {
       {4.2, 4}, {-4.2, -4 + pow(2, 32)}, {pow(2, 31) + 2, pow(2, 31) + 2}, {pow(2, 33), 0}
     };
     for (auto pair : vals) {
-      num = ToUint32(new Number(pair.first), e);
+      num = ToUint32(e, new Number(pair.first));
       EXPECT_EQ(pair.second, num->data());
       // idempotent
-      num1 = ToUint32(num, e);
+      num1 = ToUint32(e, num);
       EXPECT_EQ(num->data(), num1->data());
     }
   }
 
-  num = ToUint32(Number::NaN(), e);
+  num = ToUint32(e, Number::NaN());
   EXPECT_EQ(0, num->data());
 
-  num = ToUint32(new Number(0, 1), e);
+  num = ToUint32(e, new Number(0, 1));
   EXPECT_EQ(0, num->data());
 }

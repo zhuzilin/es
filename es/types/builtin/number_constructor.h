@@ -1,7 +1,7 @@
 #ifndef ES_TYPES_BUILTIN_NUMBER_CONSTRUCTOR
 #define ES_TYPES_BUILTIN_NUMBER_CONSTRUCTOR
 
-#include <es/types/number.h>
+#include <es/types/base.h>
 #include <es/types/builtin/function_proto.h>
 #include <es/types/builtin/number_object.h>
 #include <es/types/conversion.h>
@@ -14,7 +14,6 @@ class NumberConstructor : public JSObject {
   NumberConstructor() :
     JSObject(
       OBJ_OTHER,
-      new FunctionProto(),
       "Number",
       false,
       nullptr,
@@ -27,7 +26,7 @@ class NumberConstructor : public JSObject {
     return new NumberObject(arguments.size() == 0 ? Number::Zero(), ToNumber(arguments[0]));
   }
 
-  JSNumber* Call(this, std::vector<JSValue*> arguments) override {
+  JSNumber* Call(Error* e, this, std::vector<JSValue*> arguments) override {
     assert(arguments.size() == 1);
     return ToNumber(arguments[0]);
   }

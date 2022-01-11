@@ -7,7 +7,7 @@
 
 namespace es {
 
-JSValue* FromPropertyDescriptor(JSValue* value, Error* e) {
+JSValue* FromPropertyDescriptor(Error* e, JSValue* value) {
   if (value->IsUndefined()) {
     return Undefined::Instance();
   }
@@ -16,34 +16,34 @@ JSValue* FromPropertyDescriptor(JSValue* value, Error* e) {
   if (desc->IsDataDescriptor()) {
     PropertyDescriptor* value_desc = new PropertyDescriptor();
     value_desc->SetDataDescriptor(desc->Value(), true, true, true);
-    obj->DefineOwnProperty(u"value", value_desc, false, e);
+    obj->DefineOwnProperty(e, u"value", value_desc, false);
 
     PropertyDescriptor* writable_desc = new PropertyDescriptor();
     writable_desc->SetDataDescriptor(Bool::Wrap(desc->Writable()), true, true, true);
-    obj->DefineOwnProperty(u"writable", writable_desc, false, e);
+    obj->DefineOwnProperty(e, u"writable", writable_desc, false);
   } else {
     assert(desc->IsAccessorDescriptor());
     PropertyDescriptor* get_desc = new PropertyDescriptor();
     get_desc->SetDataDescriptor(desc->Get(), true, true, true);
-    obj->DefineOwnProperty(u"get", get_desc, false, e);
+    obj->DefineOwnProperty(e, u"get", get_desc, false);
 
     PropertyDescriptor* set_desc = new PropertyDescriptor();
     set_desc->SetDataDescriptor(desc->Set(), true, true, true);
-    obj->DefineOwnProperty(u"set", set_desc, false, e);
+    obj->DefineOwnProperty(e, u"set", set_desc, false);
   }
 
   PropertyDescriptor* enumerable_desc = new PropertyDescriptor();
   enumerable_desc->SetDataDescriptor(Bool::Wrap(desc->Enumerable()), true, true, true);
-  obj->DefineOwnProperty(u"get", enumerable_desc, false, e);
+  obj->DefineOwnProperty(e, u"get", enumerable_desc, false);
 
   PropertyDescriptor* configurable_desc = new PropertyDescriptor();
   configurable_desc->SetDataDescriptor(Bool::Wrap(desc->Configurable()), true, true, true);
-  obj->DefineOwnProperty(u"set", configurable_desc, false, e);
+  obj->DefineOwnProperty(e, u"set", configurable_desc, false);
 
   return obj;
 }
 
-JSValue* ToPropertyDescriptor(JSValue* obj, Error* e) {
+JSValue* ToPropertyDescriptor(Error* e, JSValue* obj) {
   if (!obj->IsObject()) {
     e = Error::TypeError();
     return;

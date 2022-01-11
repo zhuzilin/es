@@ -16,10 +16,10 @@ class EnvironmentRecord : public JSValue {
   EnvironmentRecord() : JSValue(JS_ENV_REC) {}
 
   virtual bool HasBinding(std::u16string_view N) = 0;
-  virtual void CreateMutableBinding(std::u16string_view N, bool D, Error* e) = 0;
-  virtual void SetMutableBinding(std::u16string_view N, JSValue* V, bool S, Error* e) = 0;
-  virtual JSValue* GetBindingValue(std::u16string_view N, bool S, Error* e) = 0;
-  virtual bool DeleteBinding(std::u16string_view N, Error* e) = 0;
+  virtual void CreateMutableBinding(Error* e, std::u16string_view N, bool D) = 0;
+  virtual void SetMutableBinding(Error* e, std::u16string_view N, JSValue* V, bool S) = 0;
+  virtual JSValue* GetBindingValue(Error* e, std::u16string_view N, bool S) = 0;
+  virtual bool DeleteBinding(Error* e, std::u16string_view N) = 0;
   virtual JSValue* ImplicitThisValue() = 0;
 };
 
@@ -35,7 +35,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     return bindings_.find(N) != bindings_.end();
   }
 
-  void CreateMutableBinding(std::u16string_view N, bool D, Error* e) override {
+  void CreateMutableBinding(Error* e, std::u16string_view N, bool D) override {
     assert(!HasBinding(N));
     Binding b;
     b.value = Undefined::Instance();
@@ -44,7 +44,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     bindings_[N] = b;
   }
 
-  void SetMutableBinding(std::u16string_view N, JSValue* V, bool S, Error* e) override {
+  void SetMutableBinding(Error* e, std::u16string_view N, JSValue* V, bool S) override {
     assert(V->IsLanguageType());
     assert(HasBinding(N));
     Binding b = bindings_[N];
@@ -55,7 +55,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     }
   }
 
-  JSValue* GetBindingValue(std::u16string_view N, bool S, Error* e) override {
+  JSValue* GetBindingValue(Error* e, std::u16string_view N, bool S) override {
     assert(HasBinding(N));
     Binding b = bindings_[N];
     if (b.value->IsUndefined()) {
@@ -69,7 +69,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     return b.value;
   }
 
-  bool DeleteBinding(std::u16string_view N, Error* e) override {
+  bool DeleteBinding(Error* e, std::u16string_view N) override {
     if (!HasBinding(N)) return true;
     Binding b = bindings_[N];
     if (!b.can_delete) {
@@ -93,7 +93,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   void InitializeImmutableBinding(std::u16string_view N, JSValue* V) {
-    assert(!HasBinding(N));
+    assert(HasBinding(N));
     Binding b = bindings_[N];
     assert(!b.is_mutable && b.value->IsUndefined());
     b.value = V;
@@ -111,19 +111,19 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
     return bindings_->HasProperty(N);
   }
 
-  void CreateMutableBinding(std::u16string_view N, bool D, Error* e) override {
+  void CreateMutableBinding(Error* e, std::u16string_view N, bool D) override {
     assert(!HasBinding(N));
     PropertyDescriptor* desc = new PropertyDescriptor();
     desc->SetDataDescriptor(Undefined::Instance(), true, true, D);
-    bindings_->DefineOwnProperty(N, desc, true, e);
+    bindings_->DefineOwnProperty(e, N, desc, true);
   }
 
-  void SetMutableBinding(std::u16string_view N, JSValue* V, bool S, Error* e) override {
+  void SetMutableBinding(Error* e, std::u16string_view N, JSValue* V, bool S) override {
     assert(V->IsLanguageType());
-    bindings_->Put(N, V, S, e);
+    bindings_->Put(e, N, V, S);
   }
 
-  JSValue* GetBindingValue(std::u16string_view N, bool S, Error* e) override {
+  JSValue* GetBindingValue(Error* e, std::u16string_view N, bool S) override {
     bool value = HasBinding(N);
     if (!value) {
       if (S) {
@@ -133,11 +133,11 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
         return Undefined::Instance();
       }
     }
-    return bindings_->Get(N);
+    return bindings_->Get(e, N);
   }
 
-  bool DeleteBinding(std::u16string_view N, Error* e) override {
-    return bindings_->Delete(N, false, e);
+  bool DeleteBinding(Error* e, std::u16string_view N) override {
+    return bindings_->Delete(e, N, false);
   }
 
   JSValue* ImplicitThisValue() override {

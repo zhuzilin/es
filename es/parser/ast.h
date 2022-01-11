@@ -282,26 +282,58 @@ class LHS : public AST {
   std::vector<Token> prop_name_list_;
 };
 
+class Function : public AST {
+ public:
+  Function(std::vector<std::u16string_view> params, AST* body, std::u16string_view source) :
+    Function(Token(Token::TK_NOT_FOUND, u""), params, body, source) {}
+
+  Function(Token name, std::vector<std::u16string_view> params, AST* body, std::u16string_view source) :
+    AST(AST_FUNC, source), name_(name), params_(params) {
+      assert(body->type() == AST::AST_FUNC_BODY);
+      body_ = body;
+    }
+
+  ~Function() override {
+    delete body_;
+  }
+
+  bool is_named() { return name_.type() != Token::TK_NOT_FOUND; }
+  std::u16string_view name() { return name_.source(); }
+  std::vector<std::u16string_view> params() { return params_; }
+  AST* body() { return body_; }
+
+ private:
+  Token name_;
+  std::vector<std::u16string_view> params_;
+  AST* body_;
+};
+
 class ProgramOrFunctionBody : public AST {
  public:
   ProgramOrFunctionBody(Type type) : AST(type) {}
   ~ProgramOrFunctionBody() override {
-    for (auto element : elements_)
-      delete element;
+    for (auto func_decl : func_decls_)
+      delete func_decl;
+    for (auto stmt : stmts_)
+      delete stmt;
   }
 
   void AddFunctionDecl(AST* func) {
     assert(func->type() == AST_FUNC);
-    elements_.emplace_back(func);
+    func_decls_.emplace_back(static_cast<Function*>(func));
+    // TODO(zhuzilin) check if this is needed.
+    stmts_.emplace_back(func);
   }
   void AddStatement(AST* stmt) {
-    elements_.emplace_back(stmt);
+    stmts_.emplace_back(stmt);
   }
 
-  std::vector<AST*> elements() { return elements_; }
+  std::vector<Function*> func_decls() { return func_decls_; }
+  std::vector<AST*> statements() { return stmts_; }
 
  private:
-  std::vector<AST*> elements_;
+  std::vector<Function*> func_decls_;
+  std::vector<AST*> stmts_;
 };
 
 class LabelledStmt : public AST {
@@ -478,32 +510,6 @@ class DoWhile : public AST {
  public:
   AST* cond_;
   AST* loop_block_;
-};
-
-class Function : public AST {
- public:
-  Function(std::vector<Token> params, AST* body, std::u16string_view source) :
-    Function(Token(Token::TK_NOT_FOUND, u""), params, body, source) {}
-
-  Function(Token name, std::vector<Token> params, AST* body, std::u16string_view source) :
-    AST(AST_FUNC, source), name_(name), params_(params) {
-      assert(body->type() == AST::AST_FUNC_BODY);
-      body_ = static_cast<ProgramOrFunctionBody*>(body);
-    }
-
-  ~Function() override {
-    delete body_;
-  }
-
-  bool is_named() { return name_.source() == u""; }
-  Token name() { return name_; }
-  std::vector<Token> params() { return params_; }
-  ProgramOrFunctionBody* body() { return body_; }
-
- private:
-  Token name_;
-  std::vector<Token> params_;
-  ProgramOrFunctionBody* body_;
 };
 
 class Switch : public AST {

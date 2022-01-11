@@ -11,7 +11,6 @@ class NumberObject : public JSObject {
   NumberObject(JSValue* primitive_value) :
     JSObject(
       OBJ_NUMBER,
-      new NumberProto(),
       u"Number",
       true,  // extensible
       primitive_value,

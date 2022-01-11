@@ -35,7 +35,7 @@ class Reference : public JSValue {
   bool strict_reference_;
 };
 
-JSValue* GetValue(JSValue* V, Error* e) {
+JSValue* GetValue(Error* e, JSValue* V) {
   log::PrintSource("GetValue");
   if (!V->IsReference()) {
     return V;
@@ -51,9 +51,9 @@ JSValue* GetValue(JSValue* V, Error* e) {
     if (!ref->HasPrimitiveBase()) {
       assert(base->IsObject());
       JSObject* obj = static_cast<JSObject*>(base);
-      return obj->Get(ref->GetReferencedName());
+      return obj->Get(e, ref->GetReferencedName());
     } else {
-      JSObject* O = ToObject(base, e);
+      JSObject* O = ToObject(e, base);
       if (e != nullptr)
         return nullptr;
       JSValue* tmp = O->GetProperty(ref->GetReferencedName());
@@ -69,11 +69,11 @@ JSValue* GetValue(JSValue* V, Error* e) {
   } else {
     assert(base->IsEnvironmentRecord());
     EnvironmentRecord* er = static_cast<EnvironmentRecord*>(base);
-    return er->GetBindingValue(ref->GetReferencedName(), ref->IsStrictReference(), e);
+    return er->GetBindingValue(e, ref->GetReferencedName(), ref->IsStrictReference());
   }
 }
 
-void PutValue(JSValue* V, JSValue* W, Error* e) {
+void PutValue(Error* e, JSValue* V, JSValue* W) {
   log::PrintSource("PutValue");
   if (!V->IsReference()) {
     e = Error::ReferenceError();
@@ -85,7 +85,7 @@ void PutValue(JSValue* V, JSValue* W, Error* e) {
       e = Error::ReferenceError();
       return;
     }
-    GlobalObject::Instance()->Put(ref->GetReferencedName(), W, false, e);
+    GlobalObject::Instance()->Put(e, ref->GetReferencedName(), W, false);
   } else if (ref->IsPropertyReference()) {
     // TODO(zhuzilin)
     if (!ref->HasPrimitiveBase()) {
@@ -97,7 +97,7 @@ void PutValue(JSValue* V, JSValue* W, Error* e) {
     JSValue* base = ref->GetBase();
     assert(base->IsEnvironmentRecord());
     EnvironmentRecord* er = static_cast<EnvironmentRecord*>(base);
-    er->SetMutableBinding(ref->GetReferencedName(), W, ref->IsStrictReference(), e);
+    er->SetMutableBinding(e, ref->GetReferencedName(), W, ref->IsStrictReference());
   }
 }
 

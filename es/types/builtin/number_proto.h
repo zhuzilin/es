@@ -11,7 +11,6 @@ class NumberProto : public JSObject {
   NumberProto() :
     JSObject(
       OBJ_OTHER,
-      new ObjectProto(),
       u"Number",
       true,  // extensible
       Number::Zero(),

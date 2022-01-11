@@ -6,7 +6,8 @@
 #include <gtest/gtest.h>
 
 #include <es/parser/parser.h>
-#include <es/evaluator.h>
+#include <es/enter_code.h>
+#include <es/eval.h>
 #include <es/helper.h>
 
 using namespace es;
@@ -21,10 +22,10 @@ TEST(TestProgram, SimpleAssign) {
     Error* e = nullptr;
     Parser parser(u"a = 1;a");
     AST* ast = parser.ParseProgram();
-    Evaluator eval = GetGlobalEvaluator();
-    Completion res = eval.EvalProgram(ast, e);
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
     EXPECT_EQ(JSValue::JS_REF, res.value->type());
-    Number* num = static_cast<Number*>(GetValue(static_cast<Reference*>(res.value), e));
+    Number* num = static_cast<Number*>(GetValue(e, static_cast<Reference*>(res.value)));
     EXPECT_EQ(1, num->data());
     EXPECT_EQ(nullptr, e);
   }
@@ -35,11 +36,11 @@ TEST(TestProgram, SimpleAssign1) {
     Error* e = nullptr;
     Parser parser(u"a = 1;a=2;a");
     AST* ast = parser.ParseProgram();
-    Evaluator eval = GetGlobalEvaluator();
-    Completion res = eval.EvalProgram(ast, e);
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
     EXPECT_EQ(JSValue::JS_REF, res.value->type());
     Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(static_cast<Reference*>(res.value), e));
+    Number* num = static_cast<Number*>(GetValue(e, static_cast<Reference*>(res.value)));
     EXPECT_EQ(2, num->data());
     EXPECT_EQ(nullptr, e);
   }

@@ -375,10 +375,10 @@ TEST(TestParser, Function) {
       EXPECT_EQ(AST::AST_FUNC, ast->type());
       EXPECT_EQ(source, ast->source());
       auto func = static_cast<Function*>(ast);
-      EXPECT_EQ(params[0], func->name().source());
+      EXPECT_EQ(params[0], func->name());
       EXPECT_EQ(params.size() - 2, func->params().size());
       for (size_t i = 0; i < func->params().size(); i++) {
-        EXPECT_EQ(params[i + 1], func->params()[i].source());
+        EXPECT_EQ(params[i + 1], func->params()[i]);
       }
       EXPECT_EQ(AST::AST_FUNC_BODY, func->body()->type());
       EXPECT_EQ(params[func->params().size() + 1], func->body()->source());

@@ -10,7 +10,6 @@ class ObjectProto : public JSObject {
   ObjectProto() :
     JSObject(
       OBJ_OTHER,
-      Null::Instance(),
       u"Object",
       true,  // extensible
       nullptr,

@@ -19,7 +19,7 @@ class GlobalObject : public JSObject {
       OBJ_GLOBAL,
       // 15.1 The values of the [[Prototype]] and [[Class]]
       // of the global object are implementation-dependent.
-      Null::Instance(), u"Global",
+      u"Global",
       // NOTE(zhuzilin) global object need to have [[Extensible]] as true,
       // otherwise we cannot define variable in global code, as global varaibles
       // are the property of global object.
@@ -30,7 +30,7 @@ class GlobalObject : public JSObject {
     ) {}
 
   // 15.1.2.1 eval(X)
-  JSValue* Eval(JSValue* val, Error* e) {
+  JSValue* Eval(Error* e, JSValue* val) {
     if (val->type() != JSValue::JS_STRING)
       return val;
     // TODO(zhuzilin) finish eval

@@ -37,6 +37,9 @@ class LexicalEnvironment : public JSValue {
     return new LexicalEnvironment(lex, env_rec);
   }
 
+  JSValue* outer() { return outer_; }
+  EnvironmentRecord* env_rec() { return env_rec_; }
+
  private:
   JSValue* outer_;  // not owned
   EnvironmentRecord* env_rec_;

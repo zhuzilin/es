@@ -75,7 +75,7 @@ error:
     assert(lexer_.Next().source() == u"function");
 
     Token name(Token::TK_NOT_FOUND, u"");
-    std::vector<Token> params;
+    std::vector<std::u16string_view> params;
     AST* tmp;
     AST* body;
     Function* func;
@@ -93,7 +93,7 @@ error:
     }
     token = lexer_.Next();
     if (token.type() == Token::TK_IDENT) {
-      params.emplace_back(token);
+      params.emplace_back(token.source());
       token = lexer_.Next();
     } else if (token.type() != Token::TK_RPAREN) {
       goto error;
@@ -106,7 +106,7 @@ error:
       if (token.type() != Token::TK_IDENT) {
         goto error;
       }
-      params.emplace_back(token);
+      params.emplace_back(token.source());
       token = lexer_.Next();
     }
     token = lexer_.Next();  // skip {
@@ -191,13 +191,13 @@ error:
           if (lexer_.Next().type() != Token::TK_LPAREN) {
             goto error;
           }
-          std::vector<Token> params;
+          std::vector<std::u16string_view> params;
           if (type == ObjectLiteral::Property::SET) {
             Token param = lexer_.Next();
             if (!param.IsIdentifier()) {
               goto error;
             }
-            params.emplace_back(param);
+            params.emplace_back(param.source());
           }
           if (lexer_.Next().type() != Token::TK_RPAREN) { // Skip )
             goto error;

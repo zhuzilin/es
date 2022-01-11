@@ -13,7 +13,6 @@ class ObjectConstructor : public JSObject {
   ObjectConstructor() :
     JSObject(
       ObjType obj_type,
-      new FunctionProto(),
       "Object",
       bool extensible,
       JSValue* primitive_value,
@@ -21,7 +20,7 @@ class ObjectConstructor : public JSObject {
       true,
     )
 
-  JSValue* GetPrototypeOf(JSValue* o, Error* e) {
+  JSValue* GetPrototypeOf(Error* e, JSValue* o) {
 
   }
 }
