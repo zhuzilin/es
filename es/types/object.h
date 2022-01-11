@@ -1,6 +1,7 @@
 #ifndef ES_OBJECT_H
 #define ES_OBJECT_H
 
+#include <functional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -13,6 +14,7 @@
 
 namespace es {
 
+typedef std::function<JSValue* (Error*, std::vector<JSValue*>)> inner_func;
 
 class JSObject : public JSValue {
  public:
@@ -39,11 +41,12 @@ class JSObject : public JSValue {
     bool extensible,
     JSValue* primitive_value,
     bool is_constructor,
-    bool is_callable
+    bool is_callable,
+    inner_func callable = nullptr
   ) : JSValue(JS_OBJECT), obj_type_(obj_type),
       prototype_(Null::Instance()), class_(klass), extensible_(extensible),
       primitive_value_(primitive_value), is_constructor_(is_constructor),
-      is_callable_(is_callable) {}
+      is_callable_(is_callable), callable_(callable) {}
 
   ObjType obj_type() { return obj_type_; }
 
@@ -79,13 +82,15 @@ class JSObject : public JSValue {
            obj_type_ == OBJ_NUMBER || obj_type_ == OBJ_STRING;
   }
   // [[Construct]]
-  virtual JSObject* Construct(std::vector<JSValue*> arguments) {
+  virtual JSObject* Construct(Error* e, std::vector<JSValue*> arguments) {
     assert(false);
   }
   bool IsConstructor() { return is_constructor_; }
   // [[Call]]
   virtual JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) {
-    assert(false);
+    assert(is_callable_ && callable_ != nullptr);
+    // TODO(zhuzilin) check if any callable need this_arg.
+    return callable_(e, arguments);
   }
   bool IsCallable() override { return is_callable_; }
   // [[HasInstance]]
@@ -93,13 +98,28 @@ class JSObject : public JSValue {
     assert(false);
   }
 
-  virtual std::string ToString() override { return "JSObject"; }
+  void AddValueProperty(
+    std::u16string_view name, JSValue* value, bool writable,
+    bool enumerable, bool configurable
+  ) {
+    PropertyDescriptor* desc = new PropertyDescriptor();
+    desc->SetDataDescriptor(value, writable, enumerable, configurable);
+  }
 
- protected:
-  std::unordered_map<std::u16string_view, PropertyDescriptor*> named_properties_;
+  void AddFuncProperty(
+    std::u16string_view name, inner_func callable, bool writable,
+    bool enumerable, bool configurable
+  ) {
+    JSObject* value = new JSObject(
+      OBJ_OTHER, u"InternalFunc", false, nullptr, false, true, callable);
+    AddValueProperty(name, value, writable, enumerable, configurable);
+  }
+
+  virtual std::string ToString() override { return log::ToString(class_); }
 
  private:  
   ObjType obj_type_;
+  std::unordered_map<std::u16string_view, PropertyDescriptor*> named_properties_;
 
   JSValue* prototype_;
   std::u16string_view class_;
@@ -109,6 +129,7 @@ class JSObject : public JSValue {
 
   bool is_constructor_;
   bool is_callable_;
+  inner_func callable_;
 };
 
 // 8.12.1 [[GetOwnProperty]] (P)

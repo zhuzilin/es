@@ -13,6 +13,31 @@ class GlobalObject : public JSObject {
     return &singleton;
   }
 
+  // 15.1.2.1 eval(X)
+  static JSValue* eval(Error* e, std::vector<JSValue*> vals) {
+    assert(false);
+  }
+
+  // 15.1.2.2 parseInt (string , radix)
+  static JSValue* parseInt(Error* e, std::vector<JSValue*> vals) {
+    assert(false);
+  }
+
+  // 15.1.2.3 parseFloat (string)
+  static JSValue* parseFloat(Error* e, std::vector<JSValue*> vals) {
+    assert(false);
+  }
+
+  // 15.1.2.4 isNaN (number)
+  static JSValue* isNaN(Error* e, std::vector<JSValue*> vals) {
+    assert(false);
+  }
+
+  // 15.1.2.5 isFinite (number)
+  static JSValue* isFinite(Error* e, std::vector<JSValue*> vals) {
+    assert(false);
+  }
+
  private:
   GlobalObject() :
     JSObject(
@@ -28,15 +53,6 @@ class GlobalObject : public JSObject {
       false,
       false
     ) {}
-
-  // 15.1.2.1 eval(X)
-  JSValue* Eval(Error* e, JSValue* val) {
-    if (val->type() != JSValue::JS_STRING)
-      return val;
-    // TODO(zhuzilin) finish eval
-    e = Error::SyntaxError();
-    return nullptr;
-  }
 };
 
 }  // namespace es

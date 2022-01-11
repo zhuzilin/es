@@ -18,6 +18,7 @@ typedef std::pair<string,string> pair_string;
 typedef std::vector<std::pair<string,string>> vec_pair_string;
 
 TEST(TestEvalExpr, Number) {
+  Init();
   Error* e = nullptr;
   {
     std::vector<std::pair<string, double>> sources = {
@@ -37,6 +38,7 @@ TEST(TestEvalExpr, Number) {
 }
 
 TEST(TestEvalExpr, String) {
+  Init();
   Error* e = nullptr;
   {
     vec_pair_string sources = {
@@ -57,6 +59,7 @@ TEST(TestEvalExpr, String) {
 }
 
 TEST(TestEvalExpr, Identifier) {
+  Init();
   Error* e = nullptr;
   {
     Parser parser(u"a");
@@ -68,6 +71,7 @@ TEST(TestEvalExpr, Identifier) {
 }
 
 TEST(TestEvalExpr, SimpleAssign) {
+  Init();
   Error* e = nullptr;
   {
     Parser parser(u"a = 1");
@@ -81,6 +85,7 @@ TEST(TestEvalExpr, SimpleAssign) {
 }
 
 TEST(TestEvalExpr, Function) {
+  Init();
   Error* e = nullptr;
   {
     Parser parser(u"function (b) { return b; }");

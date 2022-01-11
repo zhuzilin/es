@@ -3,16 +3,71 @@
 
 #include <es/parser/ast.h>
 #include <es/types/object.h>
+#include <es/types/builtin/object_object.h>
 #include <es/types/lexical_environment.h>
 #include <es/execution_context.h>
 #include <es/types/completion.h>
 
 namespace es {
 
-class FunctionObject;
+class FunctionConstructor : public JSObject {
+ public:
+  static FunctionConstructor* Instance() {
+    static FunctionConstructor singleton;
+    return &singleton;
+  }
+
+  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
+    return Construct(e, arguments);
+  }
+
+  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
+    return nullptr;
+  }
+
+ private:
+  FunctionConstructor() :
+    JSObject(
+      OBJ_OTHER, u"Function", false, nullptr, true, true
+    ) {}
+};
+
+class FunctionProto : public JSObject {
+ public:
+  static FunctionProto* Instance() {
+    static FunctionProto singleton;
+    return &singleton;
+  }
+
+  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
+    return Undefined::Instance();
+  }
+
+  static JSValue* toString(Error* e, std::vector<JSValue*> vals) {
+    assert(false);
+  }
+
+  static JSValue* apply(Error* e, std::vector<JSValue*> vals) {
+    assert(false);
+  }
+
+  static JSValue* call(Error* e, std::vector<JSValue*> vals) {
+    assert(false);
+  }
+
+  static JSValue* bind(Error* e, std::vector<JSValue*> vals) {
+    assert(false);
+  }
+
+ private:
+  FunctionProto() :
+    JSObject(
+      OBJ_OTHER, u"Function", true, nullptr, false, true
+    ) {}
+};
 
 void EnterFunctionCode(
-  Error* e, FunctionObject* f, ProgramOrFunctionBody* body,
+  Error* e, JSObject* f, ProgramOrFunctionBody* body,
   JSValue* this_arg, std::vector<JSValue*> args, bool strict
 );
 
@@ -22,13 +77,17 @@ class FunctionObject : public JSObject {
  public:
   FunctionObject(
     std::vector<std::u16string_view> names, AST* body,
-    LexicalEnvironment* scope, bool strict
-  ) : JSObject(
-      OBJ_FUNC, u"Function", true,
-      nullptr, true, true
-    ), formal_params_(names), scope_(scope), strict_(strict) {
+    LexicalEnvironment* scope, bool strict, bool from_bind = false
+  ) : JSObject(OBJ_FUNC, u"Function", true, nullptr, true, true),
+      formal_params_(names), scope_(scope), strict_(strict), from_bind_(from_bind) {
     assert(body->type() == AST::AST_FUNC_BODY);
     body_ = static_cast<ProgramOrFunctionBody*>(body);
+
+    AddValueProperty(u"length", new Number(names.size()), false, false, false);
+    if (!from_bind_) {
+      // 15.3.5.2 prototype
+      AddValueProperty(u"prototype", new Object(), true, false, false);
+    }
   }
 
   LexicalEnvironment* Scope() { return scope_; };
@@ -64,6 +123,7 @@ class FunctionObject : public JSObject {
   LexicalEnvironment* scope_;
   ProgramOrFunctionBody* body_;
   bool strict_;
+  bool from_bind_;
 };
 
 FunctionObject* InstantiateFunctionDeclaration(Function* func_ast) {

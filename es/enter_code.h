@@ -3,7 +3,9 @@
 
 #include <es/error.h>
 #include <es/types/object.h>
+#include <es/types/builtin/object_object.h>
 #include <es/types/builtin/function_object.h>
+#include <es/types/builtin/number_object.h>
 #include <es/execution_context.h>
 
 namespace es {
@@ -123,8 +125,11 @@ void EnterGlobalCode(Error* e, AST* ast) {
 
 // 10.4.3
 void EnterFunctionCode(
-  Error* e, FunctionObject* f, ProgramOrFunctionBody* body,
-  JSValue* this_arg, std::vector<JSValue*> args, bool strict) {
+  Error* e, JSObject* f, ProgramOrFunctionBody* body,
+  JSValue* this_arg, std::vector<JSValue*> args, bool strict
+) {
+  assert(f->obj_type() == JSObject::OBJ_FUNC);
+  FunctionObject* func = static_cast<FunctionObject*>(f);
   JSValue* this_binding;
   if (strict) {  // 1
     this_binding = this_arg;
@@ -132,11 +137,113 @@ void EnterFunctionCode(
     this_binding = (this_arg->IsUndefined() || this_arg->IsNull()) ?
       GlobalObject::Instance() : this_arg;
   }
-  LexicalEnvironment* local_env = LexicalEnvironment::NewDeclarativeEnvironment(f->Scope());
+  LexicalEnvironment* local_env = LexicalEnvironment::NewDeclarativeEnvironment(func->Scope());
   ExecutionContext context(local_env, local_env, this_binding);  // 8
   ExecutionContextStack::Global()->AddContext(context);
   // 9
-  DeclarationBindingInstantiation(e, context, body, CODE_FUNC, false, f, args);
+  DeclarationBindingInstantiation(e, context, body, CODE_FUNC, false, func, args);
+}
+
+void InitGlobalObject() {
+  auto global_obj = GlobalObject::Instance();
+  // 15.1.1 Value Properties of the Global Object
+  global_obj->AddValueProperty(u"NaN", Number::NaN(), false, false, false);
+  global_obj->AddValueProperty(u"Infinity", new Number(0, 1), false, false, false);
+  global_obj->AddValueProperty(u"undefined", Undefined::Instance(), false, false, false);
+  // 15.1.2 Function Properties of the Global Object
+  global_obj->AddFuncProperty(u"eval", GlobalObject::eval, true, false, true);
+  global_obj->AddFuncProperty(u"parseInt", GlobalObject::parseInt, true, false, true);
+  global_obj->AddFuncProperty(u"parseFloat", GlobalObject::parseFloat, true, false, true);
+  global_obj->AddFuncProperty(u"isNaN", GlobalObject::isNaN, true, false, true);
+  global_obj->AddFuncProperty(u"isFinite", GlobalObject::isFinite, true, false, true);
+  // 15.1.3 URI Handling Function Properties
+  // TODO(zhuzilin)
+  // 15.1.4 Constructor Properties of the Global Object
+  global_obj->AddValueProperty(u"Object", ObjectConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"Function", FunctionConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"Number", NumberConstructor::Instance(), true, false, true);
+}
+
+void InitObject() {
+  ObjectConstructor* constructor = ObjectConstructor::Instance();
+  constructor->SetPrototype(FunctionProto::Instance());
+  // 15.2.3 Properties of the Object Constructor
+  constructor->AddValueProperty(u"prototype", ObjectProto::Instance(), false, false, false);
+  // TODO(zhuzilin) check if the config is correct.
+  constructor->AddFuncProperty(u"getPrototypeOf", ObjectConstructor::getPrototypeOf, false, false, false);
+  constructor->AddFuncProperty(u"getOwnPropertyDescriptor", ObjectConstructor::getOwnPropertyDescriptor, false, false, false);
+  constructor->AddFuncProperty(u"getOwnPropertyNames", ObjectConstructor::getOwnPropertyNames, false, false, false);
+  constructor->AddFuncProperty(u"create", ObjectConstructor::create, false, false, false);
+  constructor->AddFuncProperty(u"defineProperty", ObjectConstructor::defineProperty, false, false, false);
+  constructor->AddFuncProperty(u"defineProperties", ObjectConstructor::defineProperties, false, false, false);
+  constructor->AddFuncProperty(u"seal", ObjectConstructor::seal, false, false, false);
+  constructor->AddFuncProperty(u"freeze", ObjectConstructor::freeze, false, false, false);
+  constructor->AddFuncProperty(u"preventExtensions", ObjectConstructor::preventExtensions, false, false, false);
+  constructor->AddFuncProperty(u"isSealed", ObjectConstructor::isSealed, false, false, false);
+  constructor->AddFuncProperty(u"isFrozen", ObjectConstructor::isFrozen, false, false, false);
+  constructor->AddFuncProperty(u"isExtensible", ObjectConstructor::isExtensible, false, false, false);
+  constructor->AddFuncProperty(u"keys", ObjectConstructor::keys, false, false, false);
+
+  ObjectProto* proto = ObjectProto::Instance();
+  // 15.2.4 Properties of the Object Prototype Object
+  proto->AddValueProperty(u"constructor", ObjectConstructor::Instance(), false, false, false);
+  proto->AddFuncProperty(u"toString", ObjectProto::toString, false, false, false);
+  proto->AddFuncProperty(u"toLocaleString", ObjectProto::toLocaleString, false, false, false);
+  proto->AddFuncProperty(u"valueOf", ObjectProto::valueOf, false, false, false);
+  proto->AddFuncProperty(u"hasOwnProperty", ObjectProto::hasOwnProperty, false, false, false);
+  proto->AddFuncProperty(u"isPrototypeOf", ObjectProto::isPrototypeOf, false, false, false);
+  proto->AddFuncProperty(u"propertyIsEnumerable", ObjectProto::propertyIsEnumerable, false, false, false);
+}
+
+void InitFunction() {
+  FunctionConstructor* constructor = FunctionConstructor::Instance();
+  constructor->SetPrototype(FunctionProto::Instance());
+  // 15.3.3 Properties of the Function Constructor
+  constructor->AddValueProperty(u"prototype", FunctionProto::Instance(), false, false, false);
+  constructor->AddValueProperty(u"length", Number::One(), false, false, false);
+
+  FunctionProto* proto = FunctionProto::Instance();
+  proto->SetPrototype(ObjectProto::Instance());
+  // 15.2.4 Properties of the Function Prototype Function
+  proto->AddValueProperty(u"constructor", FunctionConstructor::Instance(), false, false, false);
+  proto->AddFuncProperty(u"toString", FunctionProto::toString, false, false, false);
+  proto->AddFuncProperty(u"apply", FunctionProto::apply, false, false, false);
+  proto->AddFuncProperty(u"call", FunctionProto::call, false, false, false);
+  proto->AddFuncProperty(u"bind", FunctionProto::bind, false, false, false);
+}
+
+void InitNumber() {
+  NumberConstructor* constructor = NumberConstructor::Instance();
+  constructor->SetPrototype(FunctionProto::Instance());
+  // 15.3.3 Properties of the Number Constructor
+  constructor->AddValueProperty(u"prototype", NumberProto::Instance(), false, false, false);
+  constructor->AddValueProperty(u"length", Number::One(), false, false, false);
+  constructor->AddValueProperty(u"MAX_VALUE", new Number(1.7976931348623157e308), false, false, false);
+  constructor->AddValueProperty(u"MIN_VALUE", new Number(5e-324), false, false, false);
+  constructor->AddValueProperty(u"NaN", Number::NaN(), false, false, false);
+  constructor->AddValueProperty(u"NEGATIVE_INFINITY", new Number(0, 1), false, false, false);
+  constructor->AddValueProperty(u"POSITIVE_INFINITY", new Number(0, -1), false, false, false);
+
+  NumberProto* proto = NumberProto::Instance();
+  proto->SetPrototype(ObjectProto::Instance());
+  // 15.2.4 Properties of the Number Prototype Number
+  proto->AddValueProperty(u"constructor", NumberConstructor::Instance(), false, false, false);
+  proto->AddFuncProperty(u"toString", NumberProto::toString, false, false, false);
+  proto->AddFuncProperty(u"toLocaleString", NumberProto::toLocaleString, false, false, false);
+  proto->AddFuncProperty(u"valueOf", NumberProto::valueOf, false, false, false);
+  proto->AddFuncProperty(u"toFixed", NumberProto::toFixed, false, false, false);
+  proto->AddFuncProperty(u"toExponential", NumberProto::toExponential, false, false, false);
+  proto->AddFuncProperty(u"toPrecision", NumberProto::toPrecision, false, false, false);
+  proto->AddFuncProperty(u"toFixed", NumberProto::toFixed, false, false, false);
+  proto->AddFuncProperty(u"toFixed", NumberProto::toFixed, false, false, false);
+  proto->AddFuncProperty(u"toFixed", NumberProto::toFixed, false, false, false);
+}
+
+void Init() {
+  InitGlobalObject();
+  InitObject();
+  InitFunction();
+  InitNumber();
 }
 
 }  // namespace es

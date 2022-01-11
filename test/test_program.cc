@@ -18,6 +18,7 @@ typedef std::pair<string,string> pair_string;
 typedef std::vector<std::pair<string,string>> vec_pair_string;
 
 TEST(TestProgram, SimpleAssign0) {
+  Init();
   {
     Error* e = nullptr;
     Parser parser(u"a = 1;a");
@@ -32,6 +33,7 @@ TEST(TestProgram, SimpleAssign0) {
 }
 
 TEST(TestProgram, SimpleAssign1) {
+  Init();
   {
     Error* e = nullptr;
     Parser parser(u"a = 1;a=2;a");
@@ -47,6 +49,7 @@ TEST(TestProgram, SimpleAssign1) {
 }
 
 TEST(TestProgram, Call0) {
+  Init();
   {
     Error* e = nullptr;
     Parser parser(u"a = function(b){return b;}; a(3)");
@@ -61,6 +64,7 @@ TEST(TestProgram, Call0) {
 }
 
 TEST(TestProgram, Call1) {
+  Init();
   {
     Error* e = nullptr;
     Parser parser(u"function a(b){return b;}; a(3)");
@@ -75,6 +79,7 @@ TEST(TestProgram, Call1) {
 }
 
 TEST(TestProgram, Call2) {
+  Init();
   {
     Error* e = nullptr;
     Parser parser(u"a = 1; function b(){return a;}; b()");
