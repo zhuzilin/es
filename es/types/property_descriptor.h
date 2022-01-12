@@ -122,11 +122,11 @@ class PropertyDescriptor : public JSValue {
 
 class PropertyIdentifier : public JSValue {
  public:
-  PropertyIdentifier(std::u16string_view name, PropertyDescriptor* desciptor) :
+  PropertyIdentifier(std::u16string name, PropertyDescriptor* desciptor) :
     JSValue(JS_PROP_IDEN), name_(name), desciptor_(desciptor) {}
 
  private:
-  std::u16string_view name_;
+  std::u16string name_;
   PropertyDescriptor* desciptor_;
 };
 

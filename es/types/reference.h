@@ -13,13 +13,13 @@ class Reference : public JSValue {
  public:
   Reference(
     JSValue* base,
-    std::u16string_view reference_name,
+    std::u16string reference_name,
     bool strict_reference
   ) : JSValue(JS_REF), base_(base), reference_name_(reference_name),
       strict_reference_(strict_reference) {}
 
   JSValue* GetBase() { return base_; }
-  std::u16string_view GetReferencedName() { return reference_name_; }
+  std::u16string GetReferencedName() { return reference_name_; }
   bool IsStrictReference() { return strict_reference_; }
   bool HasPrimitiveBase() {
     return base_->IsBool() || base_->IsString() || base_->IsNumber();
@@ -33,7 +33,7 @@ class Reference : public JSValue {
 
  private:
   JSValue* base_;
-  std::u16string_view reference_name_;
+  std::u16string reference_name_;
   bool strict_reference_;
 };
 

@@ -10,7 +10,7 @@
 
 using namespace es;
 
-typedef std::u16string_view string;
+typedef std::u16string string;
 typedef std::vector<string> vec_string;
 typedef std::pair<string,string> pair_string;
 typedef std::vector<std::pair<string,string>> vec_pair_string;
@@ -163,7 +163,8 @@ TEST(TestParser, PrimaryExpression_Object) {
       {u"{}", 0}, {u"{a: 1,}", 1}, {u"{in: bed, b: 10 + 5}", 2},
       {u"{1: 1}", 1}, {u"{\"abc\": 1}", 1},
       {u"{get name() { return 10 },}", 1},
-      {u"{set name(a) { return 10 },}", 1}
+      {u"{set name(a) { return 10 },}", 1},
+      {u"{get name() { return 10 }, set name(a) { return 10 },}", 1}
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -371,7 +372,9 @@ TEST(TestParser, Function) {
       auto source = pair.first;
       auto params = pair.second;
       Parser parser(source);
+      log::PrintSource("source: ", source);
       AST* ast = parser.ParseFunction(false);
+      log::PrintSource("ast: ", ast->source());
       EXPECT_EQ(AST::AST_FUNC, ast->type());
       EXPECT_EQ(source, ast->source());
       auto func = static_cast<Function*>(ast);

@@ -13,7 +13,7 @@ namespace es {
 
 class Lexer {
  public:
-  Lexer(std::u16string_view source) :
+  Lexer(std::u16string source) :
     source_(source), pos_(0), end_(source.size()),
     token_(Token::Type::TK_NOT_FOUND, u"") {
     UpdateC();
@@ -702,7 +702,7 @@ error:
   Token ScanIdentifier() {
     assert(character::IsIdentifierStart(c_));
     size_t start = pos_;
-    std::u16string_view source;
+    std::u16string source;
     if (c_ == u'\\') {
       Advance();
       if (!SkipUnicodeEscapeSequence()) {
@@ -753,7 +753,7 @@ error:
   size_t pos_;
   size_t end_;
   Token token_;
-  std::u16string_view source_;
+  std::u16string source_;
 };
 
 }  // namespace es

@@ -60,7 +60,7 @@ Completion EvalProgram(Error* e, AST* ast) {
 }
 
 Completion EvalReturnStatement(Error* e, AST* ast) {
-  log::PrintSource("enter EvalReturnStatement");
+  log::PrintSource("enter EvalReturnStatement: ", ast->source());
   assert(ast->type() == AST::AST_STMT_RETURN);
   Return* return_stmt = static_cast<Return*>(ast);
   if (return_stmt->expr() == nullptr) {
@@ -100,6 +100,9 @@ JSValue* EvalExpression(Error* e, AST* ast) {
       break;
     case AST::AST_EXPR_NUMBER:
       val = EvalNumber(ast);
+      break;
+    case AST::AST_EXPR_STRING:
+      val = EvalString(ast);
       break;
     case AST::AST_EXPR_BINARY:
       val = EvalBinaryExpression(e, ast);
@@ -264,7 +267,7 @@ String* EvalString(AST* ast) {
         }
         size_t end = pos;
         auto substr = source.substr(start, end - start);
-        vals.emplace_back(std::u16string_view(substr.data(), substr.size()));
+        vals.emplace_back(std::u16string(substr.data(), substr.size()));
       }
     }
   }
@@ -315,8 +318,10 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
     auto pair = lhs->order()[i];
     switch (pair.second) {
       case LHS::PostfixType::CALL: {
+        log::PrintSource("LeftHandSide got Call");
         auto args = lhs->args_list()[pair.first];
         auto arg_list = EvalArgumentsList(e, args);
+        log::PrintSource("finish eval arg_list");
         if (e != nullptr)
           return nullptr;
         base = EvalCallExpression(e, base, arg_list);
@@ -324,7 +329,6 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
           return nullptr;
         break;
       }
-        
       default:
         assert(false);
         break;
@@ -335,6 +339,7 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
 }
 
 std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast) {
+  log::PrintSource("enter EvalArgumentsList");
   std::vector<JSValue*> arg_list;
   for (AST* ast : ast->args()) {
     JSValue* ref = EvalExpression(e, ast);
@@ -363,7 +368,6 @@ JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_li
     e = Error::TypeError();
     return nullptr;
   }
-  auto func = static_cast<FunctionObject*>(obj);
   JSValue* this_value;
   if (ref->IsReference()) {
     Reference* r = static_cast<Reference*>(ref);
@@ -378,7 +382,7 @@ JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_li
   } else {
     this_value = Undefined::Instance();
   }
-  return func->Call(e, this_value, arg_list);
+  return obj->Call(e, this_value, arg_list);
 }
 
 }  // namespace es

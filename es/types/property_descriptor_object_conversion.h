@@ -2,7 +2,7 @@
 #define ES_TYPES_PROPERTY_DESCRIPTOR_OBJECT_CONVERSION
 
 #include <es/types/property_descriptor.h>
-#include <es/types/object.h>
+#include <es/types/builtin/object_object.h>
 #include <es/error.h>
 
 namespace es {
@@ -12,7 +12,7 @@ JSValue* FromPropertyDescriptor(Error* e, JSValue* value) {
     return Undefined::Instance();
   }
   PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(value);
-  JSObject* obj = new JSObject(JSObject::OBJ_OBJECT);
+  JSObject* obj = new Object();
   if (desc->IsDataDescriptor()) {
     PropertyDescriptor* value_desc = new PropertyDescriptor();
     value_desc->SetDataDescriptor(desc->Value(), true, true, true);

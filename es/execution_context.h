@@ -35,6 +35,8 @@ class ExecutionContextStack {
 
   void AddContext(ExecutionContext context) {
     stack_.push(context);
+    if (stack_.size() == 1)
+      global_env_ = &context;
   }
 
   ExecutionContext Top() {
@@ -47,10 +49,13 @@ class ExecutionContextStack {
     return top;
   }
 
+  ExecutionContext* global_env() { return global_env_; }
+
  private:
   ExecutionContextStack() = default;
 
   std::stack<ExecutionContext> stack_;
+  ExecutionContext* global_env_;
 };
 
 }  // namespace es

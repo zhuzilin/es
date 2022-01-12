@@ -10,28 +10,6 @@
 
 namespace es {
 
-class FunctionConstructor : public JSObject {
- public:
-  static FunctionConstructor* Instance() {
-    static FunctionConstructor singleton;
-    return &singleton;
-  }
-
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
-    return Construct(e, arguments);
-  }
-
-  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
-    return nullptr;
-  }
-
- private:
-  FunctionConstructor() :
-    JSObject(
-      OBJ_OTHER, u"Function", false, nullptr, true, true
-    ) {}
-};
-
 class FunctionProto : public JSObject {
  public:
   static FunctionProto* Instance() {
@@ -76,7 +54,7 @@ Completion EvalProgram(Error* e, AST* ast);
 class FunctionObject : public JSObject {
  public:
   FunctionObject(
-    std::vector<std::u16string_view> names, AST* body,
+    std::vector<std::u16string> names, AST* body,
     LexicalEnvironment* scope, bool strict, bool from_bind = false
   ) : JSObject(OBJ_FUNC, u"Function", true, nullptr, true, true),
       formal_params_(names), scope_(scope), strict_(strict), from_bind_(from_bind) {
@@ -91,11 +69,11 @@ class FunctionObject : public JSObject {
   }
 
   LexicalEnvironment* Scope() { return scope_; };
-  std::vector<std::u16string_view> FormalParameters() { return formal_params_; };
+  std::vector<std::u16string> FormalParameters() { return formal_params_; };
   AST* Code() { return body_; }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments) override {
-    log::PrintSource("function Call");
+    log::PrintSource("enter FunctionObject::Call ", body_->source());
     EnterFunctionCode(e, this, body_, this_arg, arguments, strict_);
     log::PrintSource("after EnterFunctionCode");
 
@@ -119,16 +97,74 @@ class FunctionObject : public JSObject {
   std::string ToString() override { return "Function"; }
 
  private:
-  std::vector<std::u16string_view> formal_params_;
+  std::vector<std::u16string> formal_params_;
   LexicalEnvironment* scope_;
   ProgramOrFunctionBody* body_;
   bool strict_;
   bool from_bind_;
 };
 
+class FunctionConstructor : public JSObject {
+ public:
+  static FunctionConstructor* Instance() {
+    static FunctionConstructor singleton;
+    return &singleton;
+  }
+
+  // 15.3.1 The Function Constructor Called as a Function
+  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
+    return Construct(e, arguments);
+  }
+
+  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
+    log::PrintSource("enter FunctionConstructor::Construct");
+    size_t arg_count = arguments.size();
+    std::u16string P = u"";
+    std::u16string body = u"";
+    if (arg_count == 1) {
+      body = ::es::ToString(e, arguments[0]);
+    } else if (arg_count > 1) {
+      P += ::es::ToString(e, arguments[0]);
+      for (size_t i = 1; i < arg_count - 1; i++) {
+        P += u"," + ::es::ToString(e, arguments[i]);
+      }
+      body = ::es::ToString(e, arguments[arg_count - 1]);
+    }
+    std::vector<std::u16string> names;
+    AST* body_ast;
+    bool strict = false;
+    log::PrintSource("P: ", P);
+    if (P.size() > 0) {
+      Parser parser(P);
+      names = parser.ParseFormalParameterList();
+      if (names.size() == 0) {
+        e = Error::SyntaxError();
+        return nullptr;
+      }
+    }
+    log::PrintSource("body: ", body);
+    {
+      Parser parser(body);
+      body_ast = parser.ParseFunctionBody(Token::TK_EOS);
+      if (body_ast->IsIllegal()) {
+        e = Error::SyntaxError();
+        return nullptr;
+      }
+    }
+    LexicalEnvironment* scope = LexicalEnvironment::Global();
+    return new FunctionObject(names, body_ast, scope, strict, false);
+  }
+
+ private:
+  FunctionConstructor() :
+    JSObject(
+      OBJ_OTHER, u"Function", false, nullptr, true, true
+    ) {}
+};
+
 FunctionObject* InstantiateFunctionDeclaration(Function* func_ast) {
     assert(func_ast->is_named());
-    std::u16string_view identifier = func_ast->name();
+    std::u16string identifier = func_ast->name();
     auto func_env = LexicalEnvironment::NewDeclarativeEnvironment(  // 1
       ExecutionContextStack::Global()->Top().lexical_env()
     );

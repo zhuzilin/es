@@ -11,14 +11,14 @@
 namespace es {
 namespace log {
 
-void PrintSource(std::string comment, std::u16string_view str = u"", std::string postfix = "") {
+void PrintSource(std::string comment, std::u16string str = u"", std::string postfix = "") {
   std::cout << comment;
   for (const auto& c: str)
     std::cout << static_cast<char>(c);
   std::cout << postfix << std::endl;
 }
 
-std::string ToString(std::u16string_view str) {
+std::string ToString(std::u16string str) {
   std::string result(str.size(), ' ');
   for (size_t i = 0; i < str.size(); i++)
     result[i] = str[i];

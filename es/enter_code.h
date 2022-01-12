@@ -57,7 +57,7 @@ void DeclarationBindingInstantiation(
   // 5
   for (Function* func_decl : body->func_decls()) {
     assert(func_decl->is_named());
-    std::u16string_view fn = func_decl->name();
+    std::u16string fn = func_decl->name();
     FunctionObject* fo = InstantiateFunctionDeclaration(func_decl);
     bool func_already_declared = env->HasBinding(fn);
     if (!func_already_declared) {  // 5.d
@@ -113,9 +113,8 @@ void EnterGlobalCode(Error* e, AST* ast) {
     program = new ProgramOrFunctionBody(AST::AST_PROGRAM);
     program->AddStatement(ast);
   }
-  LexicalEnvironment* global_env = new LexicalEnvironment(
-    Null::Instance(), new ObjectEnvironmentRecord(GlobalObject::Instance()));
   // 1 10.4.1.1
+  LexicalEnvironment* global_env = LexicalEnvironment::Global();
   ExecutionContext context(global_env, global_env, GlobalObject::Instance());
   ExecutionContextStack::Global()->AddContext(context);
   // 2

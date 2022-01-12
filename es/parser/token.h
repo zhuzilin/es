@@ -102,7 +102,7 @@ class Token {
     TK_ILLEGAL,
   };
 
-  Token(Type type, std::u16string_view source) :
+  Token(Type type, std::u16string source) :
     type_(type), source_(source) {}
 
   inline bool IsAssignmentOperator() {
@@ -219,14 +219,14 @@ class Token {
   }
 
   Type type() { return type_; }
-  std::u16string_view source() { return source_; }
+  std::u16string source() { return source_; }
 
  private:
   Type type_;
-  std::u16string_view source_;
+  std::u16string source_;
 };
 
-const std::array<std::u16string_view, 26> kKeywords = {
+const std::array<std::u16string, 26> kKeywords = {
   u"break",    u"do",       u"instanceof", u"typeof",
   u"case",     u"else",     u"new",        u"var",
   u"catch",    u"finally",  u"return",     u"void",
@@ -236,12 +236,12 @@ const std::array<std::u16string_view, 26> kKeywords = {
   u"delete",   u"in",       u"try",
 };
 
-const std::array<std::u16string_view, 7> kFutureReservedWords = {
+const std::array<std::u16string, 7> kFutureReservedWords = {
   u"class", u"enum",   u"extends", u"super",
   u"const", u"export", u"import",
 };
 
-const std::array<std::u16string_view, 9> kStrictModeFutureReservedWords = {
+const std::array<std::u16string, 9> kStrictModeFutureReservedWords = {
   u"implements", u"let",    u"private",    u"public", u"yield"
   u"interface",  u"package", u"protected", u"static"
 };

@@ -15,7 +15,13 @@ class LexicalEnvironment : public JSValue {
     outer_ = outer;
   }
 
-  Reference* GetIdentifierReference(std::u16string_view name, bool strict) {
+  static LexicalEnvironment* Global() {
+    static LexicalEnvironment singleton(
+      Null::Instance(), new ObjectEnvironmentRecord(GlobalObject::Instance()));
+    return &singleton;
+  }
+
+  Reference* GetIdentifierReference(std::u16string name, bool strict) {
     bool exists = env_rec_->HasBinding(name);
     if (exists) {
       return new Reference(env_rec_, name, strict);

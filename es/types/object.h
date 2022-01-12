@@ -37,7 +37,7 @@ class JSObject : public JSValue {
 
   JSObject(
     ObjType obj_type,
-    std::u16string_view klass,
+    std::u16string klass,
     bool extensible,
     JSValue* primitive_value,
     bool is_constructor,
@@ -58,18 +58,18 @@ class JSObject : public JSValue {
     assert(proto->type() == JS_NULL || proto->type() == JS_OBJECT);
     prototype_ = proto;
   }
-  std::u16string_view Class() { return class_; };
+  std::u16string Class() { return class_; };
   bool Extensible() { return extensible_; };
 
-  JSValue* Get(Error* e, std::u16string_view P);
-  JSValue* GetOwnProperty(std::u16string_view P);
-  JSValue* GetProperty(std::u16string_view P);
-  void Put(Error* e, std::u16string_view P, JSValue* V, bool throw_flag);
-  bool CanPut(std::u16string_view P);
-  bool HasProperty(std::u16string_view P);
-  bool Delete(Error* e, std::u16string_view P, bool throw_flag);
-  JSValue* DefaultValue(Error* e, std::u16string_view hint);
-  bool DefineOwnProperty(Error* e, std::u16string_view P, PropertyDescriptor* desc, bool throw_flag);
+  JSValue* Get(Error* e, std::u16string P);
+  JSValue* GetOwnProperty(std::u16string P);
+  JSValue* GetProperty(std::u16string P);
+  void Put(Error* e, std::u16string P, JSValue* V, bool throw_flag);
+  bool CanPut(std::u16string P);
+  bool HasProperty(std::u16string P);
+  bool Delete(Error* e, std::u16string P, bool throw_flag);
+  JSValue* DefaultValue(Error* e, std::u16string hint);
+  bool DefineOwnProperty(Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag);
 
   // Internal Properties Only Defined for Some Objects
   // [[PrimitiveValue]]
@@ -99,15 +99,16 @@ class JSObject : public JSValue {
   }
 
   void AddValueProperty(
-    std::u16string_view name, JSValue* value, bool writable,
+    std::u16string name, JSValue* value, bool writable,
     bool enumerable, bool configurable
   ) {
     PropertyDescriptor* desc = new PropertyDescriptor();
     desc->SetDataDescriptor(value, writable, enumerable, configurable);
+    named_properties_[name] = desc;
   }
 
   void AddFuncProperty(
-    std::u16string_view name, inner_func callable, bool writable,
+    std::u16string name, inner_func callable, bool writable,
     bool enumerable, bool configurable
   ) {
     JSObject* value = new JSObject(
@@ -119,10 +120,10 @@ class JSObject : public JSValue {
 
  private:  
   ObjType obj_type_;
-  std::unordered_map<std::u16string_view, PropertyDescriptor*> named_properties_;
+  std::unordered_map<std::u16string, PropertyDescriptor*> named_properties_;
 
   JSValue* prototype_;
-  std::u16string_view class_;
+  std::u16string class_;
   bool extensible_;
 
   JSValue* primitive_value_;
@@ -133,7 +134,7 @@ class JSObject : public JSValue {
 };
 
 // 8.12.1 [[GetOwnProperty]] (P)
-JSValue* JSObject::GetOwnProperty(std::u16string_view P) {
+JSValue* JSObject::GetOwnProperty(std::u16string P) {
   // TODO(zhuzilin) String Object has a more elaborate impl 15.5.5.2.
   auto iter = named_properties_.find(P);
   if (iter == named_properties_.end()) {
@@ -146,7 +147,7 @@ JSValue* JSObject::GetOwnProperty(std::u16string_view P) {
   return iter->second;
 }
 
-JSValue* JSObject::GetProperty(std::u16string_view P) {
+JSValue* JSObject::GetProperty(std::u16string P) {
   JSValue* own_property = GetOwnProperty(P);
   if (!own_property->IsUndefined()) {
     return own_property;
@@ -160,7 +161,7 @@ JSValue* JSObject::GetProperty(std::u16string_view P) {
   return proto_obj->GetProperty(P);
 }
 
-JSValue* JSObject::Get(Error* e, std::u16string_view P) {
+JSValue* JSObject::Get(Error* e, std::u16string P) {
   JSValue* value = GetProperty(P);
   if (value->IsUndefined()) {
     return Undefined::Instance();
@@ -179,7 +180,7 @@ JSValue* JSObject::Get(Error* e, std::u16string_view P) {
   }
 }
 
-bool JSObject::CanPut(std::u16string_view P) {
+bool JSObject::CanPut(std::u16string P) {
   log::PrintSource("enter CanPut ", P);
   JSValue* value = GetOwnProperty(P);
   if (!value->IsUndefined()) {
@@ -209,7 +210,7 @@ bool JSObject::CanPut(std::u16string_view P) {
 }
 
 // 8.12.5 [[Put]] ( P, V, Throw )
-void JSObject::Put(Error* e, std::u16string_view P, JSValue* V, bool throw_flag) {
+void JSObject::Put(Error* e, std::u16string P, JSValue* V, bool throw_flag) {
   log::PrintSource("Put ", P, " " + V->ToString());
   if (!CanPut(P)) {  // 1
     if (throw_flag) {  // 1.a
@@ -245,12 +246,13 @@ void JSObject::Put(Error* e, std::u16string_view P, JSValue* V, bool throw_flag)
   DefineOwnProperty(e, P, new_desc, throw_flag);
 }
 
-bool JSObject::HasProperty(std::u16string_view P) {
+bool JSObject::HasProperty(std::u16string P) {
   JSValue* desc = GetOwnProperty(P);
+  log::PrintSource("HasProperty ", P, " " + desc->ToString());
   return !desc->IsUndefined();
 }
 
-bool JSObject::Delete(Error* e, std::u16string_view P, bool throw_flag) {
+bool JSObject::Delete(Error* e, std::u16string P, bool throw_flag) {
   JSValue* value = GetOwnProperty(P);
   if (value->IsUndefined()) {
     return true;
@@ -267,8 +269,8 @@ bool JSObject::Delete(Error* e, std::u16string_view P, bool throw_flag) {
   }
 }
 
-JSValue* JSObject::DefaultValue(Error* e, std::u16string_view hint) {
-  std::u16string_view first, second;
+JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
+  std::u16string first, second;
   if (hint == u"String" || hint == u"" && obj_type() == OBJ_DATE) {
     first = u"String";
     second = u"Number";
@@ -301,7 +303,7 @@ JSValue* JSObject::DefaultValue(Error* e, std::u16string_view hint) {
 
 // 8.12.9 [[DefineOwnProperty]] (P, Desc, Throw)
 bool JSObject::DefineOwnProperty(
-  Error* e, std::u16string_view P, PropertyDescriptor* desc, bool throw_flag
+  Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag
 ) {
   log::PrintSource("DefineOwnProperty: ", P);
   JSValue* current = GetOwnProperty(P);

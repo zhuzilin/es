@@ -12,7 +12,7 @@
 
 using namespace es;
 
-typedef std::u16string_view string;
+typedef std::u16string string;
 typedef std::vector<string> vec_string;
 typedef std::pair<string,string> pair_string;
 typedef std::vector<std::pair<string,string>> vec_pair_string;

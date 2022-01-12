@@ -68,19 +68,19 @@ class AST {
     AST_ILLEGAL,
   };
 
-  AST(Type type, std::u16string_view source = u"") : type_(type), source_(source) {}
+  AST(Type type, std::u16string source = u"") : type_(type), source_(source) {}
   virtual ~AST() {};
 
   Type type() { return type_; }
-  std::u16string_view source() { return source_; }
+  std::u16string source() { return source_; }
 
-  void SetSource(std::u16string_view source) { source_ = source; }
+  void SetSource(std::u16string source) { source_ = source; }
 
   bool IsIllegal() { return type_ == AST_ILLEGAL; }
 
  private:
   Type type_;
-  std::u16string_view source_;
+  std::u16string source_;
 };
 
 class ArrayLiteral : public AST {
@@ -137,12 +137,12 @@ class ObjectLiteral : public AST {
     properties_.emplace(p.key.source(), p);
   }
 
-  std::unordered_map<std::u16string_view, Property> properties() { return properties_; }
+  std::unordered_map<std::u16string, Property> properties() { return properties_; }
 
   size_t length() { return properties_.size(); }
 
  private:
-  std::unordered_map<std::u16string_view, Property> properties_;
+  std::unordered_map<std::u16string, Property> properties_;
 };
 
 class Binary : public AST {
@@ -289,10 +289,10 @@ class LHS : public AST {
 
 class Function : public AST {
  public:
-  Function(std::vector<std::u16string_view> params, AST* body, std::u16string_view source) :
+  Function(std::vector<std::u16string> params, AST* body, std::u16string source) :
     Function(Token(Token::TK_NOT_FOUND, u""), params, body, source) {}
 
-  Function(Token name, std::vector<std::u16string_view> params, AST* body, std::u16string_view source) :
+  Function(Token name, std::vector<std::u16string> params, AST* body, std::u16string source) :
     AST(AST_FUNC, source), name_(name), params_(params) {
       assert(body->type() == AST::AST_FUNC_BODY);
       body_ = body;
@@ -303,13 +303,13 @@ class Function : public AST {
   }
 
   bool is_named() { return name_.type() != Token::TK_NOT_FOUND; }
-  std::u16string_view name() { return name_.source(); }
-  std::vector<std::u16string_view> params() { return params_; }
+  std::u16string name() { return name_.source(); }
+  std::vector<std::u16string> params() { return params_; }
   AST* body() { return body_; }
 
  private:
   Token name_;
-  std::vector<std::u16string_view> params_;
+  std::vector<std::u16string> params_;
   AST* body_;
 };
 
@@ -341,7 +341,7 @@ class ProgramOrFunctionBody : public AST {
 
 class LabelledStmt : public AST {
  public:
-  LabelledStmt(Token ident, AST* stmt, std::u16string_view source) :
+  LabelledStmt(Token ident, AST* stmt, std::u16string source) :
     AST(AST_STMT_LABEL, source), ident_(ident), stmt_(stmt) {}
   ~LabelledStmt() {
     delete stmt_;
@@ -354,10 +354,10 @@ class LabelledStmt : public AST {
 
 class ContinueOrBreak : public AST {
  public:
-  ContinueOrBreak(Type type, std::u16string_view source) :
+  ContinueOrBreak(Type type, std::u16string source) :
     ContinueOrBreak(type, Token(Token::TK_NOT_FOUND, u""), source) {}
 
-  ContinueOrBreak(Type type, Token ident, std::u16string_view source) :
+  ContinueOrBreak(Type type, Token ident, std::u16string source) :
     AST(type, source), ident_(ident) {}
 
   Token ident() { return ident_; }
@@ -368,7 +368,7 @@ class ContinueOrBreak : public AST {
 
 class Return : public AST {
  public:
-  Return(AST* expr, std::u16string_view source) :
+  Return(AST* expr, std::u16string source) :
     AST(AST_STMT_RETURN, source), expr_(expr) {}
   ~Return() {
     if (expr_ != nullptr)
@@ -383,7 +383,7 @@ class Return : public AST {
 
 class Throw : public AST {
  public:
-  Throw(AST* expr, std::u16string_view source) :
+  Throw(AST* expr, std::u16string source) :
     AST(AST_STMT_THROW, source), expr_(expr) {}
   ~Throw() {
     if (expr_ != nullptr)
@@ -398,7 +398,7 @@ class Throw : public AST {
 
 class VarDecl : public AST {
  public:
-  VarDecl(Token ident, AST* init, std::u16string_view source) :
+  VarDecl(Token ident, AST* init, std::u16string source) :
     AST(AST_STMT_VAR_DECL, source), ident_(ident), init_(init) {}
   ~VarDecl() { delete init_; }
 
@@ -442,13 +442,13 @@ class Block : public AST {
 
 class Try : public AST {
  public:
-  Try(AST* try_block, Token catch_ident, AST* catch_block, std::u16string_view source) :
+  Try(AST* try_block, Token catch_ident, AST* catch_block, std::u16string source) :
     Try(try_block, catch_ident, catch_block, nullptr, source) {}
 
-  Try(AST* try_block, AST* finally_block, std::u16string_view source) :
+  Try(AST* try_block, AST* finally_block, std::u16string source) :
     Try(try_block, Token(Token::TK_NOT_FOUND, u""), nullptr, finally_block, source) {}
 
-  Try(AST* try_block, Token catch_ident, AST* catch_block, AST* finally_block, std::u16string_view source)
+  Try(AST* try_block, Token catch_ident, AST* catch_block, AST* finally_block, std::u16string source)
     : AST(AST_STMT_TRY, source), try_block_(try_block), catch_ident_(catch_ident),
       catch_block_(catch_block), finally_block_(finally_block) {}
 
@@ -469,10 +469,10 @@ class Try : public AST {
 
 class If : public AST {
  public:
-  If(AST* cond, AST* if_block, std::u16string_view source) :
+  If(AST* cond, AST* if_block, std::u16string source) :
     If(cond, if_block, nullptr, source) {}
 
-  If(AST* cond, AST* if_block, AST* else_block, std::u16string_view source) :
+  If(AST* cond, AST* if_block, AST* else_block, std::u16string source) :
     AST(AST_STMT_IF, source), cond_(cond), if_block_(if_block), else_block_(else_block) {}
   ~If() {
     delete cond_;
@@ -489,7 +489,7 @@ class If : public AST {
 
 class WhileOrWith : public AST {
  public:
-  WhileOrWith(Type type, AST* expr, AST* stmt, std::u16string_view source) :
+  WhileOrWith(Type type, AST* expr, AST* stmt, std::u16string source) :
     AST(type, source), expr_(expr), stmt_(stmt) {}
   ~WhileOrWith() {
     delete expr_;
@@ -503,7 +503,7 @@ class WhileOrWith : public AST {
 
 class DoWhile : public AST {
  public:
-  DoWhile(AST* cond, AST* loop_block, std::u16string_view source) :
+  DoWhile(AST* cond, AST* loop_block, std::u16string source) :
     AST(AST_STMT_DO_WHILE, source), cond_(cond), loop_block_(loop_block) {}
   ~DoWhile() {
     delete cond_;
@@ -566,7 +566,7 @@ class Switch : public AST {
 
 class For : public AST {
  public:
-  For(std::vector<AST*> expr0s, AST* expr1, AST* expr2, AST* stmt, std::u16string_view source) :
+  For(std::vector<AST*> expr0s, AST* expr1, AST* expr2, AST* stmt, std::u16string source) :
     AST(AST_STMT_FOR, source), expr0s_(expr0s), expr1_(expr1), expr2_(expr2), stmt_(stmt) {}
 
  private:
@@ -579,7 +579,7 @@ class For : public AST {
 
 class ForIn : public AST {
  public:
-  ForIn(AST* expr0, AST* expr1, AST* stmt, std::u16string_view source) :
+  ForIn(AST* expr0, AST* expr1, AST* stmt, std::u16string source) :
     AST(AST_STMT_FOR_IN, source), expr0_(expr0), expr1_(expr1), stmt_(stmt) {}
 
  private:

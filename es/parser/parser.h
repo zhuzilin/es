@@ -13,7 +13,7 @@ namespace es {
 
 class Parser {
  public:
-  Parser(std::u16string_view source) : source_(source), lexer_(source) {}
+  Parser(std::u16string source) : source_(source), lexer_(source) {}
 
   AST* ParsePrimaryExpression() {
     Token token(Token::TK_NOT_FOUND, u"");
@@ -70,12 +70,33 @@ error:
     return new AST(AST::AST_ILLEGAL, token.source());
   }
 
+  std::vector<std::u16string> ParseFormalParameterList() {
+    assert(lexer_.NextAndRewind().IsIdentifier());
+    std::vector<std::u16string> params;
+    params.emplace_back(lexer_.Next().source());
+    Token token = lexer_.NextAndRewind();
+    // NOTE(zhuzilin) the EOS is for new Function("a,b,c", "")
+    while (token.type() != Token::TK_RPAREN && token.type() != Token::TK_EOS) {
+      if (token.type() != Token::TK_COMMA) {
+        return {};
+      }
+      lexer_.Next();  // skip ,
+      token = lexer_.Next();
+      if (token.type() != Token::TK_IDENT) {
+        return {};
+      }
+      params.emplace_back(token.source());
+      token = lexer_.NextAndRewind();
+    }
+    return params;
+  }
+
   AST* ParseFunction(bool must_be_named) {
     START_POS;
     assert(lexer_.Next().source() == u"function");
 
     Token name(Token::TK_NOT_FOUND, u"");
-    std::vector<std::u16string_view> params;
+    std::vector<std::u16string> params;
     AST* tmp;
     AST* body;
     Function* func;
@@ -91,23 +112,12 @@ error:
     if (token.type() != Token::TK_LPAREN) {
       goto error;
     }
-    token = lexer_.Next();
+    token = lexer_.NextAndRewind();
     if (token.type() == Token::TK_IDENT) {
-      params.emplace_back(token.source());
-      token = lexer_.Next();
-    } else if (token.type() != Token::TK_RPAREN) {
-      goto error;
+      params = ParseFormalParameterList();
     }
-    while (token.type() != Token::TK_RPAREN) {
-      if (token.type() != Token::TK_COMMA) {
-        goto error;
-      }
-      token = lexer_.Next();
-      if (token.type() != Token::TK_IDENT) {
-        goto error;
-      }
-      params.emplace_back(token.source());
-      token = lexer_.Next();
+    if (lexer_.Next().type() != Token::TK_RPAREN) {  // skip )
+      goto error;
     }
     token = lexer_.Next();  // skip {
     if (token.type() != Token::TK_LBRACE) {
@@ -191,7 +201,7 @@ error:
           if (lexer_.Next().type() != Token::TK_LPAREN) {
             goto error;
           }
-          std::vector<std::u16string_view> params;
+          std::vector<std::u16string> params;
           if (type == ObjectLiteral::Property::SET) {
             Token param = lexer_.Next();
             if (!param.IsIdentifier()) {
@@ -761,7 +771,7 @@ error:
     return ParseWhileOrWithStatement(u"with", AST::AST_STMT_WITH);
   }
 
-  AST* ParseWhileOrWithStatement(std::u16string_view keyword, AST::Type type) {
+  AST* ParseWhileOrWithStatement(std::u16string keyword, AST::Type type) {
     START_POS;
     assert(lexer_.Next().source() == keyword);
     AST* expr;
@@ -952,7 +962,7 @@ error:
     return ParseContinueOrBreakStatement(u"break", AST::AST_STMT_BREAK);
   }
 
-  AST* ParseContinueOrBreakStatement(std::u16string_view keyword, AST::Type type) {
+  AST* ParseContinueOrBreakStatement(std::u16string keyword, AST::Type type) {
     START_POS;
     assert(lexer_.Next().source() == keyword);
     if (!lexer_.TrySkipSemiColon()) {
@@ -1157,7 +1167,7 @@ error:
   }
 
  private:
-  std::u16string_view source_;
+  std::u16string source_;
   Lexer lexer_;
 };
 

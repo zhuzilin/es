@@ -12,7 +12,7 @@
 
 using namespace es;
 
-typedef std::u16string_view string;
+typedef std::u16string string;
 typedef std::vector<string> vec_string;
 typedef std::pair<string,string> pair_string;
 typedef std::vector<std::pair<string,string>> vec_pair_string;
@@ -90,5 +90,35 @@ TEST(TestProgram, Call2) {
     Number* num = static_cast<Number*>(res.value);
     EXPECT_EQ(1, num->data());
     EXPECT_EQ(nullptr, e);
+  }
+}
+
+TEST(TestProgram, Call3) {
+  Init();
+  {
+    Error* e = nullptr;
+    Parser parser(u"function c(){return function() { return 10};}; c()()");
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(JSValue::JS_NUMBER, res.value->type());
+    Number* num = static_cast<Number*>(res.value);
+    EXPECT_EQ(10, num->data());
+    EXPECT_EQ(nullptr, e);
+  }
+}
+
+TEST(TestProgram, CallFunctionContructor) {
+  Init();
+  {
+    Error* e = nullptr;
+    Parser parser(u"a = Function('return 5'); a()");
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(nullptr, e);
+    EXPECT_EQ(JSValue::JS_NUMBER, res.value->type());
+    Number* num = static_cast<Number*>(res.value);
+    EXPECT_EQ(5, num->data());
   }
 }

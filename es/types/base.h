@@ -121,7 +121,7 @@ class Bool : public JSValue {
 class String : public JSValue {
  public:
   String(std::u16string data) : JSValue(JS_STRING), data_(data) {}
-  std::u16string_view data() { return data_; }
+  std::u16string data() { return data_; }
 
   static String* Undefined() {
     static String singleton(u"undefined");

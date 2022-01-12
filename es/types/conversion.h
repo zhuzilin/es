@@ -10,7 +10,7 @@
 
 namespace es {
 
-JSValue* ToPrimitive(Error* e, JSValue* input, std::u16string_view preferred_type) {
+JSValue* ToPrimitive(Error* e, JSValue* input, std::u16string preferred_type) {
   assert(input->IsLanguageType());
   if (input->IsPrimitive()) {
     return input;
@@ -19,33 +19,33 @@ JSValue* ToPrimitive(Error* e, JSValue* input, std::u16string_view preferred_typ
   return obj->DefaultValue(e, preferred_type);
 }
 
-Bool* ToBoolean(JSValue* input) {
+bool ToBoolean(JSValue* input) {
   assert(input->IsLanguageType());
   switch (input->type()) {
     case JSValue::JS_UNDEFINED:
     case JSValue::JS_NULL:
-      return Bool::False();
+      return false;
     case JSValue::JS_BOOL:
-      return Bool::False();
+      return static_cast<Bool*>(input)->data();
     case JSValue::JS_NUMBER: {
       Number* num = static_cast<Number*>(input);
       if (num->data() == 0.0 || num->data() == -0.0 || num->IsNaN()) {
-        return Bool::False();
+        return false;
       }
-      return Bool::True();
+      return true;
     }
     case JSValue::JS_STRING: {
       String* str = static_cast<String*>(input);
-      return Bool::Wrap(str->data() != u"");
+      return str->data() != u"";
     } 
     case JSValue::JS_OBJECT:
-      return Bool::True();
+      return true;
     default:
       assert(false);
   }
 }
 
-Number* StringToNumber(String* str) {
+double StringToNumber(String* str) {
   auto source = str->data();
   size_t start = 0;
   size_t end = source.size();
@@ -81,14 +81,14 @@ Number* StringToNumber(String* str) {
       val = val * 16 + character::Digit(c);
       start++;
     }
-    return new Number(val);
+    return val;
   }
 
   if (start == end)
     goto error;
 
   if (source.substr(start, end - start) == u"Infinity") {
-    return positive ? Number::PositiveInfinity() : Number::NegativeInfinity();
+    return positive ? Number::PositiveInfinity()->data() : Number::NegativeInfinity()->data();
   }
 
   while (start < end) {
@@ -99,7 +99,7 @@ Number* StringToNumber(String* str) {
     start++;
   }
   if (start == end)
-    return new Number(positive ? val : -val);
+    return positive ? val : -val;
   
   if (source[start] == u'.') {
     start++;
@@ -114,7 +114,7 @@ Number* StringToNumber(String* str) {
       start++;
     }
     if (start == end)
-      return new Number(positive ? val : -val);
+      return positive ? val : -val;
   }
 
   if (source[start] == u'e' || source[start] == u'E') {
@@ -142,24 +142,24 @@ Number* StringToNumber(String* str) {
     }
     if (start == end) {
       val = val * pow(10, exp);
-      return new Number(positive ? val : -val);
+      return positive ? val : -val;
     }
   }
 error:
-  return Number::NaN();
+  return nan("");
 }
 
-Number* ToNumber(Error* e, JSValue* input) {
+double ToNumber(Error* e, JSValue* input) {
   assert(input->IsLanguageType());
   switch (input->type()) {
     case JSValue::JS_UNDEFINED:
-      return Number::NaN();
+      return nan("");
     case JSValue::JS_NULL:
-      return Number::Zero();
+      return 0.0;
     case JSValue::JS_BOOL:
-      return new Number(static_cast<Bool*>(input)->data() ? 1 : 0);
+      return static_cast<Bool*>(input)->data() ? 1.0 : 0.0;
     case JSValue::JS_NUMBER:
-      return static_cast<Number*>(input);
+      return static_cast<Number*>(input)->data();
     case JSValue::JS_STRING:
       return StringToNumber(static_cast<String*>(input));
     // case JSValue::JS_OBJECT:
@@ -170,84 +170,83 @@ Number* ToNumber(Error* e, JSValue* input) {
   }
 }
 
-Number* ToInteger(Error* e, JSValue* input) {
-  Number* num = ToNumber(e, input);
+double ToInteger(Error* e, JSValue* input) {
+  double num = ToNumber(e, input);
   if (e != nullptr)
-    return nullptr;
-  if (num->IsNaN()) {
-    return Number::Zero();
+    return 0.0;
+  if (isnan(num)) {
+    return 0.0;
   }
-  if (num->IsInfinity() || num->data() == 0) {
+  if (isinf(num) || num == 0) {
     return num;
   }
-  double data = num->data();
-  return new Number(data > 0 ? floor(abs(data)) : -(floor(abs(-data))));
+  return num > 0 ? floor(abs(num)) : -(floor(abs(-num)));
 }
 
-Number* ToInt32(Error* e, JSValue* input) {
-  Number* num = ToNumber(e, input);
+double ToInt32(Error* e, JSValue* input) {
+  double num = ToNumber(e, input);
   if (e != nullptr)
-    return nullptr;
-  if (num->IsNaN() || num->IsInfinity() || num->data() == 0) {
-    return Number::Zero();
+    return 0;
+  if (isnan(num) || isinf(num) || num == 0) {
+    return 0.0;
   }
-  double pos_int = ToInteger(e, num)->data();
+  double pos_int = num > 0 ? floor(abs(num)) : -(floor(abs(-num)));
   double int32_bit = fmod(pos_int, pow(2, 32));
   if (int32_bit < 0)
     int32_bit += pow(2, 32);
 
   if (int32_bit > pow(2, 31)) {
-    return new Number(int32_bit - pow(2, 32));
+    return int32_bit - pow(2, 32);
   } else {
-    return new Number(int32_bit);
+    return int32_bit;
   }
 }
 
-Number* ToUint(Error* e, JSValue* input, char bits) {
-  Number* num = ToNumber(e, input);
+double ToUint(Error* e, JSValue* input, char bits) {
+  double num = ToNumber(e, input);
   if (e != nullptr)
-    return nullptr;
-  if (num->IsNaN() || num->IsInfinity() || num->data() == 0) {
-    return Number::Zero();
+    return 0;
+  if (isnan(num) || isinf(num) || num == 0) {
+    return 0.0;
   }
-  double pos_int = ToInteger(e, num)->data();
+  double pos_int = num > 0 ? floor(abs(num)) : -(floor(abs(-num)));
   double int_bit = fmod(pos_int, pow(2, bits));
   if (int_bit < 0)
     int_bit += pow(2, bits);
-  return new Number(int_bit);
+  return int_bit;
 }
 
-Number* ToUint32(Error* e, JSValue* input) {
+double ToUint32(Error* e, JSValue* input) {
   return ToUint(e, input, 32);
 }
 
-Number* ToUint16(Error* e, JSValue* input) {
+double ToUint16(Error* e, JSValue* input) {
   return ToUint(e, input, 16);
 }
 
-String* NumberToString(Number* num) {
+std::u16string NumberToString(Number* num) {
   if (num->IsNaN())
-    return String::NaN();
+    return String::NaN()->data();
   if (num->IsInfinity())
-    return String::Infinity();
+    return String::Infinity()->data();
   if (num->data() == 0)
-    return String::Zero();
+    return String::Zero()->data();
   assert(false);
 }
 
-String* ToString(Error* e, JSValue* input) {
+std::u16string ToString(Error* e, JSValue* input) {
   assert(input->IsLanguageType());
   switch (input->type()) {
     case JSValue::JS_UNDEFINED:
-      return String::Undefined();
+      return String::Undefined()->data();
     case JSValue::JS_NULL:
-      return String::Null();
+      return String::Null()->data();
     case JSValue::JS_BOOL:
-      return static_cast<Bool*>(input)->data() ? String::True() : String::False();
+      return static_cast<Bool*>(input)->data() ? u"true" : u"false";
     case JSValue::JS_NUMBER:
       return NumberToString(static_cast<Number*>(input));
     case JSValue::JS_STRING:
-      return static_cast<String*>(input);
+      return static_cast<String*>(input)->data();
     // case JSValue::JS_OBJECT:
     //   JSValue* prim_value = ToPrimitive(e, input, u"String");
     //   return ToString(e, prim_value);
