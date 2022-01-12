@@ -634,7 +634,7 @@ error:
     AST* init;
     assert(ident.IsIdentifier());
     if (lexer_.Next().type() != Token::TK_ASSIGN) {
-      goto error;
+      return new VarDecl(ident, SOURCE_PARSED);
     }
     init = ParseAssignmentExpression(no_in);
     if (init->IsIllegal())

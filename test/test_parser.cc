@@ -605,7 +605,7 @@ TEST(TestParser, VariableDeclaration) {
 TEST(TestParser, Statement_Variable) {
   {
     vec_pair_string sources = {
-      {u"var a = b, c = 1 + 5", u"var a = b, c = 1 + 5"},
+      {u"var a = b, c = 1 + 5", u"var a = b, c = 1 + 5"}, {u"var xyz", u"var xyz"}
     };
     for (auto pair : sources) {
       auto source = pair.first;

@@ -409,6 +409,9 @@ class Throw : public AST {
 
 class VarDecl : public AST {
  public:
+  VarDecl(Token ident, std::u16string source) :
+    VarDecl(ident, nullptr, source) {}
+
   VarDecl(Token ident, AST* init, std::u16string source) :
     AST(AST_STMT_VAR_DECL, source), ident_(ident), init_(init) {}
   ~VarDecl() { delete init_; }
