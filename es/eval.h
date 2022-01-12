@@ -15,6 +15,8 @@ namespace es {
 
 Completion EvalProgram(Error* e, AST* ast);
 Completion EvalStatement(Error* e, AST* ast);
+Completion EvalBlockStatement(Error* e, AST* ast);
+Completion EvalIfStatement(Error* e, AST* ast);
 Completion EvalReturnStatement(Error* e, AST* ast);
 Completion EvalExpressionStatement(Error* e, AST* ast);
 
@@ -72,6 +74,56 @@ Completion EvalProgram(Error* e, AST* ast) {
   return head_result;
 }
 
+Completion EvalStatement(Error* e, AST* ast) {
+  switch(ast->type()) {
+    case AST::AST_STMT_BLOCK:
+      return EvalBlockStatement(e, ast);
+    case AST::AST_STMT_IF:
+      return EvalIfStatement(e, ast);
+    case AST::AST_STMT_RETURN:
+      return EvalReturnStatement(e, ast);
+    case AST::AST_STMT_EMPTY:
+      return Completion();
+    default:
+      return EvalExpressionStatement(e, ast);
+  }
+}
+
+Completion EvalBlockStatement(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_STMT_BLOCK);
+  Block* block = static_cast<Block*>(ast);
+  Completion sl;
+  for (auto stmt : block->statements()) {
+    Completion s = EvalStatement(e, stmt);
+    if (e != nullptr) {
+      // TODO(zhuzilin) error object
+      return Completion(Completion::THROW, nullptr, nullptr);
+    }
+    sl = Completion(s.type, s.value == nullptr ? sl.value : s.value, s.target);
+    if (sl.IsAbruptCompletion())
+      return sl;
+  }
+  return sl;
+}
+
+Completion EvalIfStatement(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_STMT_IF);
+  If* if_stmt = static_cast<If*>(ast);
+  JSValue* expr_ref = EvalExpression(e, if_stmt->cond());
+  if (e != nullptr)
+    return Completion(Completion::THROW, nullptr, nullptr);
+  JSValue* exp = GetValue(e, expr_ref);
+  if (e != nullptr)
+    return Completion(Completion::THROW, nullptr, nullptr);
+
+  if (ToBoolean(exp)) {
+    return EvalStatement(e, if_stmt->if_block());
+  } else if (if_stmt->else_block() != nullptr){
+    return EvalStatement(e, if_stmt->else_block());
+  }
+  return Completion(Completion::NORMAL, nullptr, nullptr);
+}
+
 Completion EvalReturnStatement(Error* e, AST* ast) {
   log::PrintSource("enter EvalReturnStatement: ", ast->source());
   assert(ast->type() == AST::AST_STMT_RETURN);
@@ -81,17 +133,6 @@ Completion EvalReturnStatement(Error* e, AST* ast) {
   }
   auto exp_ref = EvalExpression(e, return_stmt->expr());
   return Completion(Completion::RETURN, GetValue(e, exp_ref), nullptr);
-}
-
-Completion EvalStatement(Error* e, AST* ast) {
-  switch(ast->type()) {
-    case AST::AST_STMT_RETURN:
-      return EvalReturnStatement(e, ast);
-    case AST::AST_STMT_EMPTY:
-      return Completion();
-    default:
-      return EvalExpressionStatement(e, ast);
-  }
 }
 
 Completion EvalExpressionStatement(Error* e, AST* ast) {
@@ -122,7 +163,7 @@ JSValue* EvalExpression(Error* e, AST* ast) {
       val = EvalLeftHandSideExpression(e, ast);
       break;
     case AST::AST_FUNC:
-      val = EvalFunction(ast);
+      val = EvalFunction(e, ast);
       break;
     default:
       std::cout << ast->type() << " " << AST::AST_ILLEGAL << std::endl;
@@ -170,8 +211,8 @@ Reference* EvalIdentifier(AST* ast) {
   assert(ast->type() == AST::AST_EXPR_IDENT);
   // 10.3.1 Identifier Resolution
   LexicalEnvironment* env = ExecutionContextStack::Global()->TopLexicalEnv();
-  // TODO(zhuzilin) strict mode code
-  return env->GetIdentifierReference(ast->source(), false);
+  bool strict = ExecutionContextStack::Global()->Top().strict();
+  return env->GetIdentifierReference(ast->source(), strict);
 }
 
 Number* EvalNumber(std::u16string source) {
@@ -348,6 +389,7 @@ std::u16string EvalPropertyName(Error* e, Token token) {
 Object* EvalObject(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_OBJ);
   ObjectLiteral* obj_ast = static_cast<ObjectLiteral*>(ast);
+  bool strict = ExecutionContextStack::Global()->Top().strict();
   Object* obj = new Object();
   // PropertyName : AssignmentExpression
   for (auto property : obj_ast->properties()) {
@@ -364,9 +406,18 @@ Object* EvalObject(Error* e, AST* ast) {
       default: {
         assert(property.value->type() == AST::AST_FUNC);
         Function* func_ast = static_cast<Function*>(property.value);
+        bool strict_func = static_cast<ProgramOrFunctionBody*>(func_ast->body())->strict();
+        if (strict || strict_func) {
+          for (auto name : func_ast->params()) {
+            if (name == u"eval" || name == u"arguments") {
+              e = Error::SyntaxError();
+              return nullptr;
+            }
+          }
+        }
         FunctionObject* closure = new FunctionObject(
           func_ast->params(), func_ast->body(),
-          ExecutionContextStack::Global()->TopLexicalEnv(), false
+          ExecutionContextStack::Global()->TopLexicalEnv()
         );
         if (property.type == ObjectLiteral::Property::GET) {
           desc->SetGet(closure);
@@ -381,18 +432,21 @@ Object* EvalObject(Error* e, AST* ast) {
     auto previous = obj->GetOwnProperty(prop_name);  // 3
     if (!previous->IsUndefined()) {  // 4
       PropertyDescriptor* previous_desc = static_cast<PropertyDescriptor*>(previous);
-      // TODO(zhuzilin) strict code
-      if (previous_desc->IsDataDescriptor() && desc->IsAccessorDescriptor() ||  // 4.a
-          previous_desc->IsAccessorDescriptor() && desc->IsDataDescriptor()) {  // 4.b
+      if (strict &&
+          previous_desc->IsDataDescriptor() && desc->IsDataDescriptor()) {  // 4.a
         e = Error::SyntaxError();
         return nullptr;
       }
-      if (previous_desc->IsAccessorDescriptor() && desc->IsAccessorDescriptor() &&  // 4.c
+      if (previous_desc->IsDataDescriptor() && desc->IsAccessorDescriptor() ||  // 4.b
+          previous_desc->IsAccessorDescriptor() && desc->IsDataDescriptor()) {  // 4.c
+        e = Error::SyntaxError();
+        return nullptr;
+      }
+      if (previous_desc->IsAccessorDescriptor() && desc->IsAccessorDescriptor() &&  // 4.d
           (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet())) {
         e = Error::SyntaxError();
         return nullptr;
       }
-      std::cout << "exit" << std::endl;
     }
     obj->DefineOwnProperty(e, prop_name, desc, false);
   }
@@ -721,7 +775,7 @@ JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, std::u16string identif
   base_value->CheckObjectCoercible(e);
   if (e != nullptr)
     return nullptr;
-  bool strict = false;
+  bool strict = ExecutionContextStack::Global()->Top().strict();
   return new Reference(base_value, identifier_name, strict);
 }
 

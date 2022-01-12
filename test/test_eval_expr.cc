@@ -38,7 +38,7 @@ TEST(TestEvalExpr, Number) {
 TEST(TestEvalExpr, Arithmetic) {
   Init();
   Error* e = nullptr;
-  EnterGlobalCode(e, new ProgramOrFunctionBody(AST::AST_PROGRAM));
+  EnterGlobalCode(e, new ProgramOrFunctionBody(AST::AST_PROGRAM, false));
   {
     std::vector<std::pair<string, double>> sources = {
       {u"2 * 3", 6}, {u"-2 * 6", -12},
@@ -170,7 +170,7 @@ TEST(TestEvalExpr, Function) {
     Parser parser(u"function (b) { return b; }");
     AST* ast = parser.ParseFunction(false);
     EnterGlobalCode(e, ast);
-    JSValue* val = EvalFunction(ast);
+    JSValue* val = EvalFunction(e, ast);
     EXPECT_EQ(JSValue::JS_OBJECT, val->type());
     FunctionObject* func = static_cast<FunctionObject*>(val);
     EXPECT_EQ(1, func->FormalParameters().size());
@@ -179,7 +179,7 @@ TEST(TestEvalExpr, Function) {
   {
     Parser parser(u"function a(b) { return b; }");
     AST* ast = parser.ParseFunction(false);
-    JSValue* val = EvalFunction(ast);
+    JSValue* val = EvalFunction(e, ast);
     EXPECT_EQ(JSValue::JS_OBJECT, val->type());
     FunctionObject* func = static_cast<FunctionObject*>(val);
     EXPECT_EQ(1, func->FormalParameters().size());

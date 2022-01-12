@@ -324,7 +324,7 @@ class Function : public AST {
 
 class ProgramOrFunctionBody : public AST {
  public:
-  ProgramOrFunctionBody(Type type) : AST(type) {}
+  ProgramOrFunctionBody(Type type, bool strict) : AST(type), strict_(strict) {}
   ~ProgramOrFunctionBody() override {
     for (auto func_decl : func_decls_)
       delete func_decl;
@@ -340,10 +340,12 @@ class ProgramOrFunctionBody : public AST {
     stmts_.emplace_back(stmt);
   }
 
+  bool strict() { return strict_; }
   std::vector<Function*> func_decls() { return func_decls_; }
   std::vector<AST*> statements() { return stmts_; }
 
  private:
+  bool strict_;
   std::vector<Function*> func_decls_;
   std::vector<AST*> stmts_;
 };
@@ -445,6 +447,8 @@ class Block : public AST {
     stmts_.emplace_back(stmt);
   }
 
+  std::vector<AST*> statements() { return stmts_; }
+
  public:
   std::vector<AST*> stmts_;
 };
@@ -489,6 +493,10 @@ class If : public AST {
     if (else_block_ != nullptr)
       delete else_block_;
   }
+
+  AST* cond() { return cond_; }
+  AST* if_block() { return if_block_; }
+  AST* else_block() { return else_block_; }
 
  public:
   AST* cond_;

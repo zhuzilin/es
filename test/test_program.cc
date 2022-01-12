@@ -192,11 +192,11 @@ TEST(TestProgram, New) {
   {
     Error* e = nullptr;
     Parser parser(
-      u"a = new new function() {"
-      u"  this.a = 12345;"
-      u"  return function () {this.b=23456}"
-      u"};"
-      u"a.b"
+      u"a = new new function() {\n"
+      u"  this.a = 12345;\n"
+      u"  return function () {this.b=23456}\n"
+      u"}\n"
+      u"a.b\n"
     );
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
@@ -206,5 +206,27 @@ TEST(TestProgram, New) {
     Reference* ref = static_cast<Reference*>(res.value);
     Number* num = static_cast<Number*>(GetValue(e, ref));
     EXPECT_EQ(23456, num->data());
+  }
+}
+
+TEST(TestProgram, If) {
+  Init();
+  {
+    Error* e = nullptr;
+    Parser parser(
+      u"a = 1\n"
+      u"if (false)\n"
+      u"  a = 4\n"
+      u"else {a = 2}\n"
+      u"a"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(nullptr, e);
+    EXPECT_EQ(JSValue::JS_REF, res.value->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(2, num->data());
   }
 }

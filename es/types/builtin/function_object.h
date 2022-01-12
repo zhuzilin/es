@@ -55,22 +55,30 @@ class FunctionObject : public JSObject {
  public:
   FunctionObject(
     std::vector<std::u16string> names, AST* body,
-    LexicalEnvironment* scope, bool strict, bool from_bind = false
+    LexicalEnvironment* scope, bool from_bind = false
   ) : JSObject(OBJ_FUNC, u"Function", true, nullptr, true, true),
-      formal_params_(names), scope_(scope), strict_(strict), from_bind_(from_bind) {
+      formal_params_(names), scope_(scope), from_bind_(from_bind) {
     assert(body->type() == AST::AST_FUNC_BODY);
     body_ = static_cast<ProgramOrFunctionBody*>(body);
-
+    strict_ = body_->strict() || ExecutionContextStack::Global()->Top().strict();
+    // 13.2 Creating Function Objects
+    SetPrototype(FunctionProto::Instance());
     AddValueProperty(u"length", new Number(names.size()), false, false, false);
+    JSValue* proto = new Object();
     if (!from_bind_) {
       // 15.3.5.2 prototype
-      AddValueProperty(u"prototype", new Object(), true, false, false);
+      AddValueProperty(u"prototype", proto, true, false, false);
+    }
+    AddValueProperty(u"constructor", proto, true, false, true);
+    if (strict_) {
+      // TODO(zhuzilin) thrower
     }
   }
 
   LexicalEnvironment* Scope() { return scope_; };
   std::vector<std::u16string> FormalParameters() { return formal_params_; };
   AST* Code() { return body_; }
+  bool strict() { return strict_; }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments) override {
     log::PrintSource("enter FunctionObject::Call ", body_->source());
@@ -109,6 +117,44 @@ class FunctionObject : public JSObject {
     return obj;  // 10
   }
 
+  // 15.3.5.3 [[HasInstance]] (V)
+  bool HasInstance(Error* e, JSValue* V) {
+    if (!V->IsObject())
+      return false;
+    JSValue* O = Get(e, u"prototype");
+    if (e != nullptr) return false;
+    if (!O->IsObject()) {
+      e = Error::TypeError();
+      return false;
+    }
+    while (!V->IsNull()) {
+      if (V == O)
+        return true;
+      V = static_cast<JSObject*>(V)->Get(e, u"prototype");
+      if (e != nullptr) return false;
+    }
+    return false;
+  }
+
+  // 15.3.5.4 [[Get]] (P)
+  JSValue* Get(Error* e, std::u16string P) override {
+    JSValue* v = JSObject::Get(e, P);
+    if (e != nullptr) return nullptr;
+    if (P == u"caller") {  // 2
+      if (v->IsObject()) {
+        JSObject* v_obj = static_cast<JSObject*>(v);
+        if (v_obj->IsFunction()) {
+          FunctionObject* v_func = static_cast<FunctionObject*>(v);
+          if (v_func->strict()) {
+            e = Error::TypeError();
+            return nullptr;
+          }
+        }
+      }
+    }
+    return v;
+  }
+
   std::string ToString() override { return "Function"; }
 
  private:
@@ -131,6 +177,7 @@ class FunctionConstructor : public JSObject {
     return Construct(e, arguments);
   }
 
+  // 15.3.2.1 new Function (p1, p2, … , pn, body)
   JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
     log::PrintSource("enter FunctionConstructor::Construct");
     size_t arg_count = arguments.size();
@@ -147,7 +194,6 @@ class FunctionConstructor : public JSObject {
     }
     std::vector<std::u16string> names;
     AST* body_ast;
-    bool strict = false;
     if (P.size() > 0) {
       Parser parser(P);
       names = parser.ParseFormalParameterList();
@@ -165,7 +211,21 @@ class FunctionConstructor : public JSObject {
       }
     }
     LexicalEnvironment* scope = LexicalEnvironment::Global();
-    return new FunctionObject(names, body_ast, scope, strict, false);
+    bool strict = static_cast<ProgramOrFunctionBody*>(body_ast)->strict();
+    if (strict) {
+      // 13.1
+      if (HaveDuplicate(names)) {
+        e = Error::SyntaxError();
+        return nullptr;
+      }
+      for (auto name : names) {
+        if (name == u"eval" || name == u"arguments") {
+          e = Error::SyntaxError();
+          return nullptr;
+        }
+      }
+    }
+    return new FunctionObject(names, body_ast, scope);
   }
 
  private:
@@ -175,7 +235,7 @@ class FunctionConstructor : public JSObject {
     ) {}
 };
 
-FunctionObject* InstantiateFunctionDeclaration(Function* func_ast) {
+FunctionObject* InstantiateFunctionDeclaration(Error* e, Function* func_ast) {
     assert(func_ast->is_named());
     std::u16string identifier = func_ast->name();
     auto func_env = LexicalEnvironment::NewDeclarativeEnvironment(  // 1
@@ -183,23 +243,56 @@ FunctionObject* InstantiateFunctionDeclaration(Function* func_ast) {
     );
     auto env_rec = static_cast<DeclarativeEnvironmentRecord*>(func_env->env_rec());  // 2
     env_rec->CreateImmutableBinding(identifier);  // 3
+    auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
+    bool strict = body->strict() || ExecutionContextStack::Global()->Top().strict();
+    if (strict) {
+      // 13.1
+      if (HaveDuplicate(func_ast->params())) {
+        e = Error::SyntaxError();
+        return nullptr;
+      }
+      for (auto name : func_ast->params()) {
+        if (name == u"eval" || name == u"arguments") {
+          e = Error::SyntaxError();
+          return nullptr;
+        }
+      }
+      if (func_ast->name() == u"eval" || func_ast->name() == u"arguments") {
+        e = Error::SyntaxError();
+        return nullptr;
+      }
+    }
     FunctionObject* closure = new FunctionObject(
-      func_ast->params(), func_ast->body(), func_env, false);  // 4
+      func_ast->params(), func_ast->body(), func_env);  // 4
     env_rec->InitializeImmutableBinding(identifier, closure);  // 5
     return closure;  // 6
 }
 
-JSValue* EvalFunction(AST* ast) {
+JSValue* EvalFunction(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_FUNC);
   Function* func_ast = static_cast<Function*>(ast);
 
-  // TODO(zhuzilin) strict.
   if (func_ast->is_named()) {
-    return InstantiateFunctionDeclaration(func_ast);
+    return InstantiateFunctionDeclaration(e, func_ast);
   } else {
+    auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
+    bool strict = body->strict() || ExecutionContextStack::Global()->Top().strict();
+    if (strict) {
+      // 13.1
+      if (HaveDuplicate(func_ast->params())) {
+        e = Error::SyntaxError();
+        return nullptr;
+      }
+      for (auto name : func_ast->params()) {
+        if (name == u"eval" || name == u"arguments") {
+          e = Error::SyntaxError();
+          return nullptr;
+        }
+      }
+    }
     return new FunctionObject(
       func_ast->params(), func_ast->body(),
-      ExecutionContextStack::Global()->TopLexicalEnv(), false
+      ExecutionContextStack::Global()->TopLexicalEnv()
     );
   }
 }

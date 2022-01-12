@@ -14,17 +14,21 @@ class ExecutionContext {
   ExecutionContext(
     LexicalEnvironment* variable_env,
     LexicalEnvironment* lexical_env,
-    JSValue* this_binding)
-    : variable_env_(variable_env), lexical_env_(lexical_env), this_binding_(this_binding) {}
+    JSValue* this_binding,
+    bool strict
+  ) : variable_env_(variable_env), lexical_env_(lexical_env),
+      this_binding_(this_binding), strict_(strict) {}
 
   LexicalEnvironment* variable_env() { return variable_env_; }
   LexicalEnvironment* lexical_env() { return lexical_env_; }
   JSValue* this_binding() { return this_binding_; }
+  bool strict() { return strict_; }
 
  private:
   LexicalEnvironment* variable_env_;
   LexicalEnvironment* lexical_env_;
   JSValue* this_binding_;
+  bool strict_;
 };
 
 class ExecutionContextStack {

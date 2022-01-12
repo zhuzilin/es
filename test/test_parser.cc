@@ -372,9 +372,7 @@ TEST(TestParser, Function) {
       auto source = pair.first;
       auto params = pair.second;
       Parser parser(source);
-      log::PrintSource("source: ", source);
       AST* ast = parser.ParseFunction(false);
-      log::PrintSource("ast: ", ast->source());
       EXPECT_EQ(AST::AST_FUNC, ast->type());
       EXPECT_EQ(source, ast->source());
       auto func = static_cast<Function*>(ast);

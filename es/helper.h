@@ -45,6 +45,16 @@ std::u16string StrCat(std::vector<std::u16string> vals) {
   return res;
 }
 
+bool HaveDuplicate(std::vector<std::u16string> vals) {
+  for (size_t i = 0; i < vals.size(); i++) {
+    for (size_t j = 0; j < vals.size(); j++) {
+      if (i != j && vals[i] == vals[j])
+        return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace es
 
 

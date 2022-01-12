@@ -23,15 +23,17 @@ JSObject* CreateArgumentsObject() {
 
 // 10.5
 void DeclarationBindingInstantiation(
-  Error* e, ExecutionContext context, AST* code, CodeType code_type, bool strict,
+  Error* e, ExecutionContext context, AST* code, CodeType code_type,
   FunctionObject* f = nullptr, std::vector<JSValue*> args = {}
 ) {
   log::PrintSource("enter DeclarationBindingInstantiation");
   auto env = context.variable_env()->env_rec();  // 1
   bool configurable_bindings = false;
+  ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
   if (code_type == CODE_EVAL) {
     configurable_bindings = true;  // 2
   }
+  bool strict = body->strict();  // 3
   if (code_type == CODE_FUNC) {  // 4
     assert(f != nullptr);
     auto names = f->FormalParameters();  // 4.a
@@ -53,17 +55,16 @@ void DeclarationBindingInstantiation(
       env->SetMutableBinding(e, arg_name, v, strict);  // 4.d.v
     }
   }
-  ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
   // 5
   for (Function* func_decl : body->func_decls()) {
     assert(func_decl->is_named());
     std::u16string fn = func_decl->name();
-    FunctionObject* fo = InstantiateFunctionDeclaration(func_decl);
+    FunctionObject* fo = InstantiateFunctionDeclaration(e, func_decl);
+    if (e != nullptr) return;
     bool func_already_declared = env->HasBinding(fn);
     if (!func_already_declared) {  // 5.d
       env->CreateMutableBinding(e, fn, configurable_bindings);
-      if (e != nullptr)
-        return;
+      if (e != nullptr) return;
     } else {  // 5.e
       auto go = GlobalObject::Instance();
       auto existing_prop = go->GetProperty(fn);
@@ -110,16 +111,16 @@ void EnterGlobalCode(Error* e, AST* ast) {
     program = static_cast<ProgramOrFunctionBody*>(ast);
   } else {
     // TODO(zhuzilin) This is for test. Add test label like #ifdefine TEST
-    program = new ProgramOrFunctionBody(AST::AST_PROGRAM);
+    program = new ProgramOrFunctionBody(AST::AST_PROGRAM, false);
     program->AddStatement(ast);
   }
   // 1 10.4.1.1
   LexicalEnvironment* global_env = LexicalEnvironment::Global();
-  ExecutionContext context(global_env, global_env, GlobalObject::Instance());
+  ExecutionContext context(global_env, global_env, GlobalObject::Instance(), program->strict());
   ExecutionContextStack::Global()->AddContext(context);
   // 2
   // TODO(zhuzilin) strict
-  DeclarationBindingInstantiation(e, context, program, CODE_GLOBAL, false);
+  DeclarationBindingInstantiation(e, context, program, CODE_GLOBAL);
 }
 
 // 10.4.3
@@ -137,10 +138,10 @@ void EnterFunctionCode(
       GlobalObject::Instance() : this_arg;
   }
   LexicalEnvironment* local_env = LexicalEnvironment::NewDeclarativeEnvironment(func->Scope());
-  ExecutionContext context(local_env, local_env, this_binding);  // 8
+  ExecutionContext context(local_env, local_env, this_binding, body->strict());  // 8
   ExecutionContextStack::Global()->AddContext(context);
   // 9
-  DeclarationBindingInstantiation(e, context, body, CODE_FUNC, false, func, args);
+  DeclarationBindingInstantiation(e, context, body, CODE_FUNC, func, args);
 }
 
 void InitGlobalObject() {

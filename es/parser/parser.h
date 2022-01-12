@@ -500,21 +500,29 @@ error:
   }
 
   AST* ParseProgram() {
-    Token token = lexer_.NextAndRewind();
-    // 14.1
-    if (token.source() == u"\"use strict\"" || token.source() == u"'use strict'") {
-      lexer_.Next();
-      // TODO(zhuzilin) Use Strict Directive.
-    }
     return ParseProgramOrFunctionBody(Token::TK_EOS, AST::AST_PROGRAM);
   }
 
   AST* ParseProgramOrFunctionBody(Token::Type ending_token_type, AST::Type program_or_function) {
     START_POS;
-    ProgramOrFunctionBody* prog = new ProgramOrFunctionBody(program_or_function);
+    // 14.1
+    bool strict = false;
+    size_t old_pos = lexer_.Pos();
+    Token old_token = lexer_.Last();
+    Token token = lexer_.NextAndRewind();
+    if (token.source() == u"\"use strict\"" || token.source() == u"'use strict'") {
+      lexer_.Next();
+      if (lexer_.Next().IsSemiColon()) {
+        strict = true;
+      } else {
+        lexer_.Rewind(old_pos, old_token);
+      }
+    }
+
+    ProgramOrFunctionBody* prog = new ProgramOrFunctionBody(program_or_function, strict);
     AST* element;
 
-    Token token = lexer_.NextAndRewind();
+    token = lexer_.NextAndRewind();
     while (token.type() != ending_token_type) {
       if (token.source() == u"function") {
         element = ParseFunction(true);

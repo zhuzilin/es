@@ -62,7 +62,7 @@ class JSObject : public JSValue {
   std::u16string Class() { return class_; };
   bool Extensible() { return extensible_; };
 
-  JSValue* Get(Error* e, std::u16string P);
+  virtual JSValue* Get(Error* e, std::u16string P);
   JSValue* GetOwnProperty(std::u16string P);
   JSValue* GetProperty(std::u16string P);
   void Put(Error* e, std::u16string P, JSValue* V, bool throw_flag);
@@ -105,7 +105,8 @@ class JSObject : public JSValue {
   ) {
     PropertyDescriptor* desc = new PropertyDescriptor();
     desc->SetDataDescriptor(value, writable, enumerable, configurable);
-    named_properties_[name] = desc;
+    // This should just like named_properties_[name] = desc
+    DefineOwnProperty(nullptr, name, desc, false);
   }
 
   void AddFuncProperty(
