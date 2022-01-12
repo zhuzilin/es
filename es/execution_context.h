@@ -19,6 +19,7 @@ class ExecutionContext {
 
   LexicalEnvironment* variable_env() { return variable_env_; }
   LexicalEnvironment* lexical_env() { return lexical_env_; }
+  JSValue* this_binding() { return this_binding_; }
 
  private:
   LexicalEnvironment* variable_env_;
@@ -41,6 +42,10 @@ class ExecutionContextStack {
 
   ExecutionContext Top() {
     return stack_.top();
+  }
+
+  LexicalEnvironment* TopLexicalEnv() {
+    return Top().lexical_env();
   }
 
   ExecutionContext Pop() {

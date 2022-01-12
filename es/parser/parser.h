@@ -29,6 +29,7 @@ class Parser {
     switch (token.type()) {
       case Token::TK_KEYWORD:
         if (token.source() == u"this") {
+          lexer_.Next();
           return new AST(AST::AST_EXPR_THIS, token.source());
         }
         goto error;
@@ -60,7 +61,7 @@ class Parser {
           delete value;
           goto error;
         }
-        return value;
+        return new Paren(value, value->source());
       }
       default:
         goto error;

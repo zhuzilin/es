@@ -49,7 +49,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   void SetMutableBinding(Error* e, std::u16string N, JSValue* V, bool S) override {
-    log::PrintSource("SetMutableBinding ", N, "to " + V->ToString());
+    log::PrintSource("SetMutableBinding ", N, " to " + V->ToString());
     assert(V->IsLanguageType());
     assert(HasBinding(N));
     // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,

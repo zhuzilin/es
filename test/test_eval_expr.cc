@@ -106,3 +106,17 @@ TEST(TestEvalExpr, Function) {
     EXPECT_EQ(1, func->FormalParameters().size());
   }
 }
+
+TEST(TestEvalExpr, Object) {
+  Init();
+  Error* e = nullptr;
+  {
+    Parser parser(u"{a: 1, \"b\": 123, a: \"c\"}");
+    AST* ast = parser.ParseObjectLiteral();
+    EnterGlobalCode(e, ast);
+    JSValue* val = EvalObject(e, ast);
+    EXPECT_EQ(JSValue::JS_OBJECT, val->type());
+    Object* obj = static_cast<Object*>(val);
+    EXPECT_EQ(2, obj->named_properties().size());
+  }
+}

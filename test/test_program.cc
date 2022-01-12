@@ -42,7 +42,7 @@ TEST(TestProgram, SimpleAssign1) {
     Completion res = EvalProgram(e, ast);
     EXPECT_EQ(JSValue::JS_REF, res.value->type());
     Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, static_cast<Reference*>(res.value)));
+    Number* num = static_cast<Number*>(GetValue(e, ref));
     EXPECT_EQ(2, num->data());
     EXPECT_EQ(nullptr, e);
   }
@@ -119,6 +119,70 @@ TEST(TestProgram, CallFunctionContructor) {
     EXPECT_EQ(nullptr, e);
     EXPECT_EQ(JSValue::JS_NUMBER, res.value->type());
     Number* num = static_cast<Number*>(res.value);
+    EXPECT_EQ(5, num->data());
+  }
+}
+
+TEST(TestProgram, Object0) {
+  Init();
+  {
+    Error* e = nullptr;
+    Parser parser(u"a = {a: 1}; a.a");
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(nullptr, e);
+    EXPECT_EQ(JSValue::JS_REF, res.value->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(1, num->data());
+  }
+}
+
+TEST(TestProgram, Object1) {
+  Init();
+  {
+    Error* e = nullptr;
+    Parser parser(u"a = {a: {0: 10}}; a.a[0]");
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(nullptr, e);
+    EXPECT_EQ(JSValue::JS_REF, res.value->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(10, num->data());
+  }
+}
+
+TEST(TestProgram, Object2) {
+  Init();
+  {
+    Error* e = nullptr;
+    Parser parser(u"a = {a: 136}; a.a = 5; a.a");
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(nullptr, e);
+    EXPECT_EQ(JSValue::JS_REF, res.value->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(5, num->data());
+  }
+}
+
+TEST(TestProgram, Object3) {
+  Init();
+  {
+    Error* e = nullptr;
+    Parser parser(u"a = {get b() {return this.c}, set b(x) {this.c = x}}; a.b = 5; a.b");
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(nullptr, e);
+    EXPECT_EQ(JSValue::JS_REF, res.value->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
     EXPECT_EQ(5, num->data());
   }
 }

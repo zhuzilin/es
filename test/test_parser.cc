@@ -164,7 +164,7 @@ TEST(TestParser, PrimaryExpression_Object) {
       {u"{1: 1}", 1}, {u"{\"abc\": 1}", 1},
       {u"{get name() { return 10 },}", 1},
       {u"{set name(a) { return 10 },}", 1},
-      {u"{get name() { return 10 }, set name(a) { return 10 },}", 1}
+      {u"{get name() { return 10 }, set name(a) { return 10 },}", 2}
     };
     for (auto pair : sources) {
       auto source = pair.first;
@@ -206,7 +206,7 @@ TEST(TestParser, PrimaryExpression_Parentheses) {
       Parser parser(source);
       AST* ast = parser.ParsePrimaryExpression();
       // NOTE(zhuzilin) If expr has only one element, then just return the element.
-      // EXPECT_EQ(AST::AST_EXPR, ast->type());
+      EXPECT_EQ(AST::AST_EXPR_PAREN, ast->type());
       EXPECT_EQ(pair.second, ast->source());
     }
   }
@@ -518,7 +518,7 @@ TEST(TestParser, Statement_Return) {
     vec_pair_string sources = {
       {u"return ;", u"return ;"}, {u"return a+6 ", u"return a+6"},
       {u"return 1,\n2 ;", u"return 1,\n2 ;"}, {u"return \n a ;", u"return"},
-      {u"return a }", u"return a"}, {u"return }", u"return"},
+      {u"return this.b }", u"return this.b"}, {u"return }", u"return"},
     };
     for (auto pair : sources) {
       auto source = pair.first;

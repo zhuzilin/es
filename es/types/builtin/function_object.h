@@ -133,7 +133,6 @@ class FunctionConstructor : public JSObject {
     std::vector<std::u16string> names;
     AST* body_ast;
     bool strict = false;
-    log::PrintSource("P: ", P);
     if (P.size() > 0) {
       Parser parser(P);
       names = parser.ParseFormalParameterList();
@@ -142,7 +141,6 @@ class FunctionConstructor : public JSObject {
         return nullptr;
       }
     }
-    log::PrintSource("body: ", body);
     {
       Parser parser(body);
       body_ast = parser.ParseFunctionBody(Token::TK_EOS);
@@ -166,7 +164,7 @@ FunctionObject* InstantiateFunctionDeclaration(Function* func_ast) {
     assert(func_ast->is_named());
     std::u16string identifier = func_ast->name();
     auto func_env = LexicalEnvironment::NewDeclarativeEnvironment(  // 1
-      ExecutionContextStack::Global()->Top().lexical_env()
+      ExecutionContextStack::Global()->TopLexicalEnv()
     );
     auto env_rec = static_cast<DeclarativeEnvironmentRecord*>(func_env->env_rec());  // 2
     env_rec->CreateImmutableBinding(identifier);  // 3
@@ -186,7 +184,7 @@ JSValue* EvalFunction(AST* ast) {
   } else {
     return new FunctionObject(
       func_ast->params(), func_ast->body(),
-      ExecutionContextStack::Global()->Top().lexical_env(), false
+      ExecutionContextStack::Global()->TopLexicalEnv(), false
     );
   }
 }

@@ -38,6 +38,8 @@ class GlobalObject : public JSObject {
     assert(false);
   }
 
+  inline std::string ToString() override { return "GlobalObject"; }
+
  private:
   GlobalObject() :
     JSObject(

@@ -112,8 +112,8 @@ class ObjectLiteral : public AST {
   ObjectLiteral() : AST(AST_EXPR_OBJ) {}
 
   ~ObjectLiteral() override {
-    for (auto pair : properties_) {
-      delete pair.second.value;
+    for (auto property : properties_) {
+      delete property.value;
     }
   }
 
@@ -132,17 +132,26 @@ class ObjectLiteral : public AST {
   };
 
   void AddProperty(Property p) {
-    // When having same key, will keep the last one.
-    // but {1.0: 1, 1.00: 2} will have 2 key-val pair.
-    properties_.emplace(p.key.source(), p);
+    properties_.emplace_back(p);
   }
 
-  std::unordered_map<std::u16string, Property> properties() { return properties_; }
+  std::vector<Property> properties() { return properties_; }
 
   size_t length() { return properties_.size(); }
 
  private:
-  std::unordered_map<std::u16string, Property> properties_;
+  std::vector<Property> properties_;
+};
+
+class Paren : public AST {
+ public:
+  Paren(AST* expr, std::u16string source) :
+    AST(AST_EXPR_PAREN, source), expr_(expr) {}
+
+  AST* expr() { return expr_; }
+
+ private:
+  AST* expr_;
 };
 
 class Binary : public AST {
@@ -267,7 +276,7 @@ class LHS : public AST {
 
   void AddProp(Token prop_name) {
     order_.emplace_back(std::make_pair(prop_name_list_.size(), PROP));
-    prop_name_list_.emplace_back(prop_name);
+    prop_name_list_.emplace_back(prop_name.source());
   }
 
   AST* base() { return base_; }
@@ -275,7 +284,7 @@ class LHS : public AST {
   std::vector<std::pair<size_t, PostfixType>> order() { return order_; }
   std::vector<Arguments*> args_list() { return args_list_; }
   std::vector<AST*> index_list() { return index_list_; }
-  std::vector<Token> prop_name_list() { return prop_name_list_; }
+  std::vector<std::u16string> prop_name_list() { return prop_name_list_; }
 
  private:
   AST* base_;
@@ -284,7 +293,7 @@ class LHS : public AST {
   std::vector<std::pair<size_t, PostfixType>> order_;
   std::vector<Arguments*> args_list_;
   std::vector<AST*> index_list_;
-  std::vector<Token> prop_name_list_;
+  std::vector<std::u16string> prop_name_list_;
 };
 
 class Function : public AST {

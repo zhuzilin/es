@@ -49,6 +49,7 @@ class JSObject : public JSValue {
       is_callable_(is_callable), callable_(callable) {}
 
   ObjType obj_type() { return obj_type_; }
+  std::unordered_map<std::u16string, PropertyDescriptor*> named_properties() { return named_properties_; }
 
   bool IsFunction() { return obj_type_ == OBJ_FUNC; }
 
@@ -135,6 +136,7 @@ class JSObject : public JSValue {
 
 // 8.12.1 [[GetOwnProperty]] (P)
 JSValue* JSObject::GetOwnProperty(std::u16string P) {
+  log::PrintSource("enter GetOwnProperty ", P, " of " + this->ToString());
   // TODO(zhuzilin) String Object has a more elaborate impl 15.5.5.2.
   auto iter = named_properties_.find(P);
   if (iter == named_properties_.end()) {
@@ -308,21 +310,19 @@ bool JSObject::DefineOwnProperty(
   log::PrintSource("DefineOwnProperty: ", P);
   JSValue* current = GetOwnProperty(P);
   PropertyDescriptor* current_desc;
-  if (current->IsUndefined()) { 
+  if (current->IsUndefined()) {
+    std::cout << current->ToString() << " extensible_: " << extensible_ << std::endl;
     if(!extensible_)  // 3
       goto reject;
      // 4.
-    log::PrintSource("DefineOwnProperty: ", P, " has no desc and extensible" +
-                     (desc->HasValue() ? ", so set to " + desc->Value()->ToString() : ""));
-    std::cout << "save value to: " << desc->ToString() << std::endl;
+    log::PrintSource("DefineOwnProperty: ", P, " has no desc and extensible, set to " + desc->ToString());
     named_properties_[P] = desc;
     return true;
   }
+  log::PrintSource("DefineOwnProperty: ", P, " defined");
   if (desc->bitmask() == 0) {  // 5
     return true;
   }
-
-  log::PrintSource("DefineOwnProperty: ", P, " defined");
   current_desc = static_cast<PropertyDescriptor*>(current);
   std::cout << ", current: " << current_desc->Enumerable() << std::endl;
   if ((desc->bitmask() & current_desc->bitmask()) == desc->bitmask()) {

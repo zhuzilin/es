@@ -16,11 +16,11 @@ class PropertyDescriptor : public JSValue {
       writable_(false), enumerable_(false), configurable_(false) {}
 
   inline bool IsAccessorDescriptor() {
-    return bitmask_ & (GET | SET);
+    return (bitmask_ & GET) && (bitmask_ & SET);
   }
 
   inline bool IsDataDescriptor() {
-    return bitmask_ & (VALUE | WRITABLE);
+    return (bitmask_ & VALUE) && (bitmask_ & WRITABLE);
   }
 
   inline bool IsGenericDescriptor() {
@@ -102,12 +102,12 @@ class PropertyDescriptor : public JSValue {
 
  private:
   enum Field {
-    VALUE        = 1,
-    WRITABLE     = 1 << 2,
-    GET          = 1 << 3,
-    SET          = 1 << 4,
-    ENUMERABLE   = 1 << 5,
-    CONFIGURABLE = 1 << 6,
+    VALUE        = 1 << 0,
+    WRITABLE     = 1 << 1,
+    GET          = 1 << 2,
+    SET          = 1 << 3,
+    ENUMERABLE   = 1 << 4,
+    CONFIGURABLE = 1 << 5,
   };
 
   char bitmask_;

@@ -48,13 +48,13 @@ JSValue* GetValue(Error* e, JSValue* V) {
     return nullptr;
   }
   JSValue* base = ref->GetBase();
-  if (ref->IsPropertyReference()) {
+  if (ref->IsPropertyReference()) {  // 4
     // 4.a & 4.b
     if (!ref->HasPrimitiveBase()) {
       assert(base->IsObject());
       JSObject* obj = static_cast<JSObject*>(base);
       return obj->Get(e, ref->GetReferencedName());
-    } else {
+    } else {  // special [[Get]]
       JSObject* O = ToObject(e, base);
       if (e != nullptr)
         return nullptr;
@@ -65,7 +65,13 @@ JSValue* GetValue(Error* e, JSValue* V) {
       if (desc->IsDataDescriptor()) {
         return desc->Value();
       } else {
-        // TODO(zhuzilin)
+        assert(desc->IsAccessorDescriptor());
+        JSValue* getter = desc->Get();
+        if (getter->IsUndefined()) {
+          return Undefined::Instance();
+        }
+        JSObject* getter_obj = static_cast<JSObject*>(getter);
+        return getter_obj->Call(e, base, {});
       }
     }
   } else {
@@ -82,21 +88,52 @@ void PutValue(Error* e, JSValue* V, JSValue* W) {
     return;
   }
   Reference* ref = static_cast<Reference*>(V);
-  if (ref->IsUnresolvableReference()) {
-    if (ref->IsStrictReference()) {
+  JSValue* base = ref->GetBase();
+  if (ref->IsUnresolvableReference()) {  // 3
+    if (ref->IsStrictReference()) {  // 3.a
       e = Error::ReferenceError();
       return;
     }
-    GlobalObject::Instance()->Put(e, ref->GetReferencedName(), W, false);
+    GlobalObject::Instance()->Put(e, ref->GetReferencedName(), W, false);  // 3.b
   } else if (ref->IsPropertyReference()) {
-    // TODO(zhuzilin)
+    bool throw_flag = ref->IsStrictReference();
+    std::u16string P = ref->GetReferencedName();
     if (!ref->HasPrimitiveBase()) {
-      
-    } else {
-
+      assert(base->IsObject());
+      JSObject* base_obj = static_cast<JSObject*>(base);
+      base_obj->Put(e, P, W, throw_flag);
+    } else {  // special [[Put]]
+      JSObject* O = ToObject(e, base);
+      if (!O->CanPut(P)) {  // 2
+        if (throw_flag)
+          e = Error::TypeError();
+        return;
+      }
+      JSValue* tmp = O->GetOwnProperty(P);  // 3
+      if(!tmp->IsUndefined()) {
+        PropertyDescriptor* own_desc = static_cast<PropertyDescriptor*>(tmp);
+        if (own_desc->IsDataDescriptor()) {  // 4
+          if (throw_flag)
+            e = Error::TypeError();
+          return;
+        }
+      }
+      tmp = O->GetProperty(P);
+      if (!tmp->IsUndefined()) {
+        PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(tmp);
+        if (desc->IsAccessorDescriptor()) {  // 4
+          JSValue* setter = desc->Set();
+          assert(!setter->IsUndefined());
+          JSObject* setter_obj = static_cast<JSObject*>(setter);
+          setter_obj->Call(e, base, {W});
+        } else {  // 7
+          if (throw_flag)
+            e = Error::TypeError();
+          return;
+        }
+      }
     }
   } else {
-    JSValue* base = ref->GetBase();
     assert(base->IsEnvironmentRecord());
     EnvironmentRecord* er = static_cast<EnvironmentRecord*>(base);
     er->SetMutableBinding(e, ref->GetReferencedName(), W, ref->IsStrictReference());
