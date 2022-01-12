@@ -18,7 +18,6 @@ typedef std::pair<string,string> pair_string;
 typedef std::vector<std::pair<string,string>> vec_pair_string;
 
 TEST(TestEvalExpr, Number) {
-  Init();
   Error* e = nullptr;
   {
     std::vector<std::pair<string, double>> sources = {
@@ -30,15 +29,96 @@ TEST(TestEvalExpr, Number) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParsePrimaryExpression();
-      EnterGlobalCode(e, ast);
       Number* num = EvalNumber(ast);
       EXPECT_EQ(pair.second, num->data());
     }
   }
 }
 
-TEST(TestEvalExpr, String) {
+TEST(TestEvalExpr, Arithmetic) {
   Init();
+  Error* e = nullptr;
+  EnterGlobalCode(e, new ProgramOrFunctionBody(AST::AST_PROGRAM));
+  {
+    std::vector<std::pair<string, double>> sources = {
+      {u"2 * 3", 6}, {u"-2 * 6", -12},
+      {u"1 / 2", 0.5}, {u"-9 / 3", -3},
+      {u"-4 % 3", -1}, {u"4 % 3", 1},
+      {u"1 + 2", 3}, {u"0 + -5", -5},
+      {u"1 - 2", -1}, {u"0 - -5", 5}
+    };
+
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
+      JSValue* val = EvalBinaryExpression(e, ast);
+      EXPECT_EQ(JSValue::JS_NUMBER, val->type());
+      Number* num = static_cast<Number*>(val);
+      EXPECT_EQ(pair.second, num->data());
+    }
+  }
+
+  {
+    vec_string sources = {
+      u"NaN * 3", u"3 * NaN", u"NaN * NaN", u"Infinity * 0",
+      u"NaN / 3", u"3 / NaN", u"NaN / NaN", u"Infinity / Infinity", u"0 / 0",
+      u"NaN % 3", u"3 % NaN", u"NaN % NaN", u"Infinity % 3", u"1 % 0",
+      u"NaN + 3", u"3 + NaN", u"NaN + NaN", u"Infinity + -Infinity",
+      u"NaN - 3", u"3 - NaN", u"NaN - NaN", u"Infinity - Infinity",
+    };
+
+    for (auto source : sources) {
+      Parser parser(source);
+      AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
+      JSValue* val = EvalBinaryExpression(e, ast);
+      EXPECT_EQ(JSValue::JS_NUMBER, val->type());
+      Number* num = static_cast<Number*>(val);
+      EXPECT_EQ(true, isnan(num->data()));
+    }
+  }
+
+  {
+    std::vector<std::pair<string, double>> sources = {
+      {u"Infinity * Infinity", 0}, {u"Infinity * -Infinity", 1},
+      {u"3 * Infinity", 0}, {u"-5 * Infinity", 1},
+      {u"Infinity / 3", 0}, {u"-Infinity / 5", 1}, {u"1 / -0", 1},
+      {u"Infinity + Infinity", 0},
+      {u"Infinity - - Infinity", 0}
+    };
+
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
+      JSValue* val = EvalBinaryExpression(e, ast);
+      EXPECT_EQ(JSValue::JS_NUMBER, val->type());
+      Number* num = static_cast<Number*>(val);
+      EXPECT_EQ(true, isinf(num->data()));
+      EXPECT_EQ(pair.second, signbit(num->data()));
+    }
+  }
+
+  {
+    std::vector<std::pair<string, double>> sources = {
+      {u"-0 + -0", 1}, {u"-0 + 0", 0}, {u"0 + 0", 0}, {u"-1 + 1", 0},
+      {u"-0 - 0", 1}, {u"-0 - -0", 0}, {u"0 - -0", 0}, {u"-1 - -1", 0},
+    };
+
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
+      JSValue* val = EvalBinaryExpression(e, ast);
+      EXPECT_EQ(JSValue::JS_NUMBER, val->type());
+      Number* num = static_cast<Number*>(val);
+      EXPECT_EQ(0, num->data());
+      EXPECT_EQ(pair.second, signbit(num->data()));
+    }
+  }
+}
+
+TEST(TestEvalExpr, String) {
   Error* e = nullptr;
   {
     vec_pair_string sources = {
@@ -51,7 +131,6 @@ TEST(TestEvalExpr, String) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParsePrimaryExpression();
-      EnterGlobalCode(e, ast);
       String* str = EvalString(ast);
       EXPECT_EQ(pair.second, str->data());
     }
@@ -108,7 +187,6 @@ TEST(TestEvalExpr, Function) {
 }
 
 TEST(TestEvalExpr, Object) {
-  Init();
   Error* e = nullptr;
   {
     Parser parser(u"{a: 1, \"b\": 123, a: \"c\"}");

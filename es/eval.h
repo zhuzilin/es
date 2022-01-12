@@ -26,9 +26,12 @@ String* EvalString(AST* ast);
 Object* EvalObject(Error* e, AST* ast);
 JSValue* EvalAssignmentExpression(Error* e, AST* ast);
 
+JSValue* EvalUnaryOperator(Error* e, AST* ast);
+
 JSValue* EvalBinaryExpression(Error* e, AST* ast);
 JSValue* EvalSimpleAssignment(Error* e, AST* lhs, AST* rhs);
-
+JSValue* EvalArithmeticOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
+JSValue* EvalAddOperator(Error* e, AST* lhs, AST* rhs);
 
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast);
 std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast);
@@ -108,6 +111,9 @@ JSValue* EvalExpression(Error* e, AST* ast) {
     case AST::AST_EXPR_OBJ:
     case AST::AST_EXPR_PAREN:
       val = EvalPrimaryExpression(e, ast);
+      break;
+    case AST::AST_EXPR_UNARY:
+      val = EvalUnaryOperator(e, ast);
       break;
     case AST::AST_EXPR_BINARY:
       val = EvalBinaryExpression(e, ast);
@@ -397,26 +403,125 @@ JSValue* EvalAssignmentExpression(Error* e, AST* ast) {
   return EvalExpression(e, ast);
 }
 
+JSValue* EvalUnaryOperator(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_EXPR_UNARY);
+  Unary* u = static_cast<Unary*>(ast);
+
+  JSValue* expr = EvalExpression(e, u->node());
+  if (e != nullptr) return nullptr;
+  std::u16string op = u->op().source();
+  if (op == u"++" || op == u"--") {  // a++, ++a, a--, --a
+    if (expr->IsReference()) {
+      Reference* ref = static_cast<Reference*>(expr);
+      if (ref->IsStrictReference() && ref->GetBase()->IsEnvironmentRecord() &&
+          (ref->GetReferencedName() == u"eval" || ref->GetReferencedName() == u"arguments")) {
+        e = Error::SyntaxError();
+        return nullptr;
+      }
+    }
+    JSValue* val = GetValue(e, expr);
+    if (e != nullptr) return nullptr;
+    double num = ToNumber(e, val);
+    if (e != nullptr) return nullptr;
+    if (op == u"++") {
+      PutValue(e, expr, new Number(num++));
+    } else {
+      PutValue(e, expr, new Number(num--));
+    }
+  } else if (op == u"delete") {  // 11.4.1 The delete Operator
+    if (!expr->IsReference())  // 2
+      return Bool::True();
+    Reference* ref = static_cast<Reference*>(expr);
+    if (ref->IsUnresolvableReference()) {  // 3
+      if (ref->IsStrictReference()) {
+        e = Error::SyntaxError();
+        return Bool::False();
+      }
+      return Bool::True();
+    }
+    if (ref->IsPropertyReference()) {  // 4
+      JSObject* obj = ToObject(e, ref->GetBase());
+      if (e != nullptr) return nullptr;
+      return Bool::Wrap(obj->Delete(e, ref->GetReferencedName(), ref->IsStrictReference()));
+    } else {
+      if (ref->IsStrictReference()) {
+        e = Error::SyntaxError();
+        return Bool::False();
+      }
+      EnvironmentRecord* bindings = static_cast<EnvironmentRecord*>(ref->GetBase());
+      return Bool::Wrap(bindings->DeleteBinding(e, ref->GetReferencedName()));
+    }
+  } else if (op == u"typeof") {
+    if (expr->IsReference()) {
+      Reference* ref = static_cast<Reference*>(expr);
+      if (ref->IsUnresolvableReference())
+        return String::Undefined();
+    }
+    JSValue* val = GetValue(e, expr);
+    if (e != nullptr) return nullptr;
+    switch (val->type()) {
+      case JSValue::JS_UNDEFINED:
+        return String::Undefined();
+      case JSValue::JS_NULL:
+        return new String(u"Object");
+      case JSValue::JS_NUMBER:
+        return new String(u"Number");
+      case JSValue::JS_STRING:
+        return new String(u"String");
+      default:
+        if (val->IsCallable())
+          return new String(u"function");
+        return new String(u"object");
+    }
+  } else {  // +, -, ~, !, void
+    JSValue* val = GetValue(e, expr);
+    if (e != nullptr) return nullptr;
+
+    if (op == u"+") {
+      double num = ToNumber(e, val);
+      if (e != nullptr) return nullptr;
+      return new Number(num);
+    } else if (op == u"-") {
+      double num = ToNumber(e, val);
+      if (e != nullptr) return nullptr;
+      if (isnan(num))
+        return Number::NaN();
+      return new Number(-num);
+    } else if (op == u"~") {
+      int32_t num = ToInt32(e, val);
+      if (e != nullptr) return nullptr;
+      return new Number(~num);
+    } else if (op == u"!") {
+      bool b = ToBoolean(val);
+      return Bool::Wrap(!b);
+    } else if (op == u"void") {
+      return Undefined::Instance();
+    }
+  }
+  assert(false);
+}
+
 JSValue* EvalBinaryExpression(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_BINARY);
   Binary* b = static_cast<Binary*>(ast);
-  if (b->op().source() == u"=") {
+  std::u16string op = b->op().source();
+  if (op == u"=") {
     return EvalSimpleAssignment(e, b->lhs(), b->rhs());
-
+  } else if (op == u"*" || op == u"/" || op == u"%" || op == u"-") {
+    return EvalArithmeticOperator(e, op, b->lhs(), b->rhs());
+  } else if (op == u"+") {
+    return EvalAddOperator(e, b->lhs(), b->rhs());
   }
   assert(false);
 }
 
 JSValue* EvalSimpleAssignment(Error* e, AST* lhs, AST* rhs) {
   JSValue* lref = EvalLeftHandSideExpression(e, lhs);
-  if (e != nullptr)
-    return nullptr;
+  if (e != nullptr) return nullptr;
   JSValue* rref = EvalExpression(e, rhs);
-  if (e != nullptr)
-    return nullptr;
+  if (e != nullptr) return nullptr;
   JSValue* rval = GetValue(e, rref);
-  if (e != nullptr)
-    return nullptr;
+  if (e != nullptr) return nullptr;
   if (lref->type() == JSValue::JS_REF) {
     Reference* ref = static_cast<Reference*>(lref);
     if (ref->IsStrictReference() && ref->GetBase()->type() == JSValue::JS_ENV_REC &&
@@ -429,6 +534,59 @@ JSValue* EvalSimpleAssignment(Error* e, AST* lhs, AST* rhs) {
   if (e != nullptr)
     return nullptr;
   return rval;
+}
+
+JSValue* EvalArithmeticOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
+  JSValue* lref = EvalExpression(e, lhs);
+  if (e != nullptr) return nullptr;
+  JSValue* lval = GetValue(e, lref);
+  if (e != nullptr) return nullptr;
+  JSValue* rref = EvalExpression(e, rhs);
+  if (e != nullptr) return nullptr;
+  JSValue* rval = GetValue(e, rref);
+  if (e != nullptr) return nullptr;
+  double lnum = ToNumber(e, lval);
+  if (e != nullptr) return nullptr;
+  double rnum = ToNumber(e, rval);
+  if (e != nullptr) return nullptr;
+  switch (op[0]) {
+    case u'*':
+      return new Number(lnum * rnum);
+    case u'/':
+      return new Number(lnum / rnum);
+    case u'%':
+      return new Number(fmod(lnum, rnum));
+    case u'-':
+      return new Number(lnum - rnum);
+    default:
+      assert(false);
+  }
+}
+
+JSValue* EvalAddOperator(Error* e, AST* lhs, AST* rhs) {
+  JSValue* lref = EvalExpression(e, lhs);
+  if (e != nullptr) return nullptr;
+  JSValue* lval = GetValue(e, lref);
+  if (e != nullptr) return nullptr;
+  JSValue* rref = EvalExpression(e, rhs);
+  if (e != nullptr) return nullptr;
+  JSValue* rval = GetValue(e, rref);
+  if (e != nullptr) return nullptr;
+  JSValue* lprim = ToPrimitive(e, lval, u"");
+  if (e != nullptr) return nullptr;
+  JSValue* rprim = ToPrimitive(e, rval, u"");
+  if (e != nullptr) return nullptr;
+  // TODO(zhuzilin) Add test when StringObject is added.
+  if (lprim->IsString() && rprim->IsString()) {
+    return new String(ToString(e, lprim) + ToString(e, rprim));
+  }
+
+  double lnum = ToNumber(e, lprim);
+  if (e != nullptr) return nullptr;
+  double rnum = ToNumber(e, rprim);
+  if (e != nullptr) return nullptr;
+
+  return new Number(lnum + rnum);
 }
 
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {

@@ -38,7 +38,6 @@ class Reference : public JSValue {
 };
 
 JSValue* GetValue(Error* e, JSValue* V) {
-  log::PrintSource("GetValue");
   if (!V->IsReference()) {
     return V;
   }
@@ -82,7 +81,6 @@ JSValue* GetValue(Error* e, JSValue* V) {
 }
 
 void PutValue(Error* e, JSValue* V, JSValue* W) {
-  log::PrintSource("PutValue");
   if (!V->IsReference()) {
     e = Error::ReferenceError();
     return;
