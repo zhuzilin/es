@@ -64,6 +64,13 @@ class JSValue {
     return false;
   }
 
+  virtual bool IsConstructor() {
+    // JSObject need to implement its own IsConstructor
+    assert(!IsObject());
+    return false;
+  }
+
+
  private:
   Type type_;
 };

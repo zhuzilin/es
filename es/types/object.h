@@ -86,7 +86,7 @@ class JSObject : public JSValue {
   virtual JSObject* Construct(Error* e, std::vector<JSValue*> arguments) {
     assert(false);
   }
-  bool IsConstructor() { return is_constructor_; }
+  bool IsConstructor() override { return is_constructor_; }
   // [[Call]]
   virtual JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) {
     assert(is_callable_ && callable_ != nullptr);

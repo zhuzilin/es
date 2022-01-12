@@ -75,7 +75,6 @@ class FunctionObject : public JSObject {
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments) override {
     log::PrintSource("enter FunctionObject::Call ", body_->source());
     EnterFunctionCode(e, this, body_, this_arg, arguments, strict_);
-    log::PrintSource("after EnterFunctionCode");
 
     Completion comp;
     if (body_ != nullptr) {
@@ -92,6 +91,22 @@ class FunctionObject : public JSObject {
         return Undefined::Instance();
     }
     ExecutionContextStack::Global()->Pop();   // 3
+  }
+
+  // 13.2.2 [[Construct]]
+  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
+    log::PrintSource("enter FunctionObject::Construct");
+    JSObject* obj = new JSObject(OBJ_OTHER, u"Object", true, nullptr, false, false);
+    JSValue* proto = Get(e, u"prototype");
+    if (proto->IsObject()) {  // 6
+      obj->SetPrototype(proto);
+    } else {  // 7
+      obj->SetPrototype(ObjectProto::Instance());
+    }
+    JSValue* result = Call(e, obj, arguments);  // 8
+    if (result->IsObject())  // 9
+      return static_cast<JSObject*>(result);
+    return obj;  // 10
   }
 
   std::string ToString() override { return "Function"; }

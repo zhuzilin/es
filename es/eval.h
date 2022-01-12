@@ -426,9 +426,24 @@ JSValue* EvalBinaryExpression(Error* e, AST* ast) {
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_LHS);
   LHS* lhs = static_cast<LHS*>(ast);
-  // TODO(zhuzilin) support new
+
+  size_t new_count = lhs->new_count();
+  size_t base_offset = lhs->order().size();
+  if (base_offset > 0) {
+    for (size_t i = 0; i < new_count; i++) {
+      auto pair = lhs->order()[base_offset - 1];
+      if (pair.second == LHS::PostfixType::CALL) {
+        base_offset--;
+        if (base_offset == 0)
+          break;
+      } else {
+        break;
+      }
+    }
+  }
+
   JSValue* base = EvalExpression(e, lhs->base());
-  for (size_t i = 0; i < lhs->order().size(); i++) {
+  for (size_t i = 0; i < base_offset; i++) {
     if (base == nullptr)
       return base;
     auto pair = lhs->order()[i];
@@ -459,6 +474,29 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
     }
 
   }
+  // NewExpression
+  for (size_t i = 0; i < new_count; i++) {
+    base = GetValue(e, base);
+    if (e != nullptr)
+      return nullptr;
+    if (!base->IsConstructor()) {
+      e = Error::TypeError();
+      return nullptr;
+    }
+    JSObject* constructor = static_cast<JSObject*>(base);
+    std::vector<JSValue*> arg_list;
+    if (base_offset < lhs->order().size()) {
+      auto pair = lhs->order()[base_offset];
+      assert(pair.second == LHS::PostfixType::CALL);
+      auto args = lhs->args_list()[pair.first];
+      arg_list = EvalArgumentsList(e, args);
+      base_offset++;
+    }
+    base = constructor->Construct(e, {});
+    if (e != nullptr)
+      return nullptr;
+  }
+
   return base;
 }
 

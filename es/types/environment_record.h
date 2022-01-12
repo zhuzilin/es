@@ -38,8 +38,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   void CreateMutableBinding(Error* e, std::u16string N, bool D) override {
-    log::PrintSource("CreateMutableBinding ", N);
-    std::cout << "DeEnvRec: " << this << std::endl;
+    log::PrintSource("enter CreateMutableBinding ", N);
     assert(!HasBinding(N));
     Binding b;
     b.value = Undefined::Instance();
@@ -49,7 +48,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   void SetMutableBinding(Error* e, std::u16string N, JSValue* V, bool S) override {
-    log::PrintSource("SetMutableBinding ", N, " to " + V->ToString());
+    log::PrintSource("enter SetMutableBinding ", N, " to " + V->ToString());
     assert(V->IsLanguageType());
     assert(HasBinding(N));
     // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,
@@ -59,14 +58,12 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     } else if (S) {
       e = Error::TypeError();
     }
-    std::cout << "DeEnvRec: " << this << " value: " << bindings_[N].value->ToString() << std::endl;
   }
 
   JSValue* GetBindingValue(Error* e, std::u16string N, bool S) override {
     log::PrintSource("GetBindingValue ", N);
     assert(HasBinding(N));
     Binding b = bindings_[N];
-    std::cout << "DeEnvRec: " << this << " V: " << b.value->ToString() << std::endl;
     if (b.value->IsUndefined()) {
       if (S) {
         e = Error::ReferenceError();
@@ -116,13 +113,12 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
   ObjectEnvironmentRecord(JSObject* obj) : bindings_(obj), provide_this_(false) {}
 
   bool HasBinding(std::u16string N) override {
-    log::PrintSource("HasBinding ", N);
     return bindings_->HasProperty(N);
   }
 
   // 10.2.1.2.2 CreateMutableBinding (N, D)
   void CreateMutableBinding(Error* e, std::u16string N, bool D) override {
-    log::PrintSource("CreateMutableBinding ", N, std::string(" D is ") + (D ? "true" : "false"));
+    log::PrintSource("enter CreateMutableBinding ", N, std::string(" D is ") + (D ? "true" : "false"));
     assert(!HasBinding(N));
     PropertyDescriptor* desc = new PropertyDescriptor();
     desc->SetDataDescriptor(Undefined::Instance(), true, true, D);
@@ -131,14 +127,14 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
   }
 
   void SetMutableBinding(Error* e, std::u16string N, JSValue* V, bool S) override {
-    log::PrintSource("SetMutableBinding ", N, " to " + V->ToString());
+    log::PrintSource("enter SetMutableBinding ", N, " to " + V->ToString());
     assert(V->IsLanguageType());
     bindings_->Put(e, N, V, S);
   }
 
   JSValue* GetBindingValue(Error* e, std::u16string N, bool S) override {
     bool value = HasBinding(N);
-    log::PrintSource("GetBindingValue ", N, std::string(" HasBinding: ") + (value ? "true" : "false"));
+    log::PrintSource("enter GetBindingValue ", N, std::string(" HasBinding: ") + (value ? "true" : "false"));
     if (!value) {
       if (S) {
         e = Error::ReferenceError();
