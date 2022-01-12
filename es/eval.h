@@ -25,7 +25,11 @@ Number* EvalNumber(AST* ast);
 String* EvalString(AST* ast);
 Object* EvalObject(Error* e, AST* ast);
 JSValue* EvalAssignmentExpression(Error* e, AST* ast);
+
 JSValue* EvalBinaryExpression(Error* e, AST* ast);
+JSValue* EvalSimpleAssignment(Error* e, AST* lhs, AST* rhs);
+
+
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast);
 std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast);
 JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_list);
@@ -348,7 +352,6 @@ Object* EvalObject(Error* e, AST* ast) {
       case ObjectLiteral::Property::NORMAL: {
         JSValue* expr_value = EvalAssignmentExpression(e, property.value);
         JSValue* prop_value = GetValue(e, expr_value);
-        std::cout << "PROP_VALUE: " << prop_value->ToString() << std::endl;
         desc->SetDataDescriptor(prop_value, true, true, true);
         break;
       }
@@ -370,9 +373,8 @@ Object* EvalObject(Error* e, AST* ast) {
       }
     }
     auto previous = obj->GetOwnProperty(prop_name);  // 3
-    std::cout << "PREVIOUS: " << previous->ToString() << std::endl;
     if (!previous->IsUndefined()) {  // 4
-      PropertyDescriptor* previous_desc = static_cast<PropertyDescriptor*>(previous_desc);
+      PropertyDescriptor* previous_desc = static_cast<PropertyDescriptor*>(previous);
       // TODO(zhuzilin) strict code
       if (previous_desc->IsDataDescriptor() && desc->IsAccessorDescriptor() ||  // 4.a
           previous_desc->IsAccessorDescriptor() && desc->IsDataDescriptor()) {  // 4.b
@@ -384,6 +386,7 @@ Object* EvalObject(Error* e, AST* ast) {
         e = Error::SyntaxError();
         return nullptr;
       }
+      std::cout << "exit" << std::endl;
     }
     obj->DefineOwnProperty(e, prop_name, desc, false);
   }
@@ -398,29 +401,34 @@ JSValue* EvalBinaryExpression(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_BINARY);
   Binary* b = static_cast<Binary*>(ast);
   if (b->op().source() == u"=") {
-    JSValue* lref = EvalLeftHandSideExpression(e, b->lhs());
-    if (e != nullptr)
-      return nullptr;
-    JSValue* rref = EvalExpression(e, b->rhs());
-    if (e != nullptr)
-      return nullptr;
-    JSValue* rval = GetValue(e, rref);
-    if (e != nullptr)
-      return nullptr;
-    if (lref->type() == JSValue::JS_REF) {
-      Reference* ref = static_cast<Reference*>(lref);
-      if (ref->IsStrictReference() && ref->GetBase()->type() == JSValue::JS_ENV_REC &&
-          (ref->GetReferencedName() == u"eval" || ref->GetReferencedName() == u"arguments")) {
-        e = Error::SyntaxError();
-        return nullptr;
-      }
-    }
-    PutValue(e, lref, rval);
-    if (e != nullptr)
-      return nullptr;
-    return rval;
+    return EvalSimpleAssignment(e, b->lhs(), b->rhs());
+
   }
   assert(false);
+}
+
+JSValue* EvalSimpleAssignment(Error* e, AST* lhs, AST* rhs) {
+  JSValue* lref = EvalLeftHandSideExpression(e, lhs);
+  if (e != nullptr)
+    return nullptr;
+  JSValue* rref = EvalExpression(e, rhs);
+  if (e != nullptr)
+    return nullptr;
+  JSValue* rval = GetValue(e, rref);
+  if (e != nullptr)
+    return nullptr;
+  if (lref->type() == JSValue::JS_REF) {
+    Reference* ref = static_cast<Reference*>(lref);
+    if (ref->IsStrictReference() && ref->GetBase()->type() == JSValue::JS_ENV_REC &&
+        (ref->GetReferencedName() == u"eval" || ref->GetReferencedName() == u"arguments")) {
+      e = Error::SyntaxError();
+      return nullptr;
+    }
+  }
+  PutValue(e, lref, rval);
+  if (e != nullptr)
+    return nullptr;
+  return rval;
 }
 
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
