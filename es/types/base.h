@@ -55,7 +55,7 @@ class JSValue {
 
   void CheckObjectCoercible(Error* e) {
     if (IsUndefined() || IsNull()) {
-      e = Error::TypeError();
+      *e = *Error::TypeError();
     }
   }
   virtual bool IsCallable() {

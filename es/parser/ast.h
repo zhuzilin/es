@@ -416,6 +416,9 @@ class VarDecl : public AST {
     AST(AST_STMT_VAR_DECL, source), ident_(ident), init_(init) {}
   ~VarDecl() { delete init_; }
 
+  std::u16string ident() { return ident_.source(); }
+  AST* init() { return init_; }
+
  private:
   Token ident_;
   AST* init_;
@@ -433,6 +436,8 @@ class VarStmt : public AST {
     assert(decl->type() == AST_STMT_VAR_DECL);
     decls_.emplace_back(static_cast<VarDecl*>(decl));
   }
+
+  std::vector<VarDecl*> decls() { return decls_; }
 
  public:
   std::vector<VarDecl*> decls_;
@@ -589,6 +594,11 @@ class For : public AST {
   For(std::vector<AST*> expr0s, AST* expr1, AST* expr2, AST* stmt, std::u16string source) :
     AST(AST_STMT_FOR, source), expr0s_(expr0s), expr1_(expr1), expr2_(expr2), stmt_(stmt) {}
 
+  std::vector<AST*> expr0s() { return expr0s_; }
+  AST* expr1() { return expr1_; }
+  AST* expr2() { return expr2_; }
+  AST* statement() { return stmt_; }
+
  private:
   std::vector<AST*> expr0s_;
   AST* expr1_;
@@ -601,6 +611,10 @@ class ForIn : public AST {
  public:
   ForIn(AST* expr0, AST* expr1, AST* stmt, std::u16string source) :
     AST(AST_STMT_FOR_IN, source), expr0_(expr0), expr1_(expr1), stmt_(stmt) {}
+
+  AST* expr0() { return expr0_; }
+  AST* expr1() { return expr1_; }
+  AST* statement() { return stmt_; }
 
  private:
   AST* expr0_;

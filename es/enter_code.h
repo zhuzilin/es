@@ -21,7 +21,7 @@ JSObject* CreateArgumentsObject() {
   return nullptr;
 }
 
-// 10.5
+// 10.5 Declaration Binding Instantiation
 void DeclarationBindingInstantiation(
   Error* e, ExecutionContext context, AST* code, CodeType code_type,
   FunctionObject* f = nullptr, std::vector<JSValue*> args = {}
@@ -41,7 +41,7 @@ void DeclarationBindingInstantiation(
     size_t arg_count = args.size();  // 4.b
     size_t n = 0;  // 4.c
     for (auto arg_name : names) {  // 4.d
-      log::PrintSource("preparing arg ", arg_name);
+      log::PrintSource("Preparing arg ", arg_name);
       JSValue* v = Undefined::Instance();
       if (n < arg_count)  // 4.d.i & 4.d.ii
         v = args[n++];
@@ -49,7 +49,7 @@ void DeclarationBindingInstantiation(
       if (!arg_already_declared) {  // 4.d.iv
         // NOTE(zhuzlin) I'm not sure if this should be false.
         env->CreateMutableBinding(e, arg_name, false);
-        if (e != nullptr)
+        if (!e->IsOk())
           return;
       }
       env->SetMutableBinding(e, arg_name, v, strict);  // 4.d.v
@@ -60,11 +60,11 @@ void DeclarationBindingInstantiation(
     assert(func_decl->is_named());
     std::u16string fn = func_decl->name();
     FunctionObject* fo = InstantiateFunctionDeclaration(e, func_decl);
-    if (e != nullptr) return;
+    if (!e->IsOk()) return;
     bool func_already_declared = env->HasBinding(fn);
     if (!func_already_declared) {  // 5.d
       env->CreateMutableBinding(e, fn, configurable_bindings);
-      if (e != nullptr) return;
+      if (!e->IsOk()) return;
     } else {  // 5.e
       auto go = GlobalObject::Instance();
       auto existing_prop = go->GetProperty(fn);
@@ -78,7 +78,7 @@ void DeclarationBindingInstantiation(
         if (existing_prop_desc->IsAccessorDescriptor() ||
             !(existing_prop_desc->HasConfigurable() && existing_prop_desc->Configurable() &&
               existing_prop_desc->HasEnumerable() && existing_prop_desc->Enumerable())) {
-          e = Error::TypeError();
+          *e = *Error::TypeError();
           return;
         }
       }
@@ -101,7 +101,49 @@ void DeclarationBindingInstantiation(
     // }
   }
   // 8
-  // TODO(zhuzilin) initialize VariableDeclaration
+  for (auto stmt : body->statements()) {
+    if (stmt->type() == AST::AST_STMT_VAR) {
+      VarStmt* var_stmt = static_cast<VarStmt*>(stmt);
+      for (VarDecl* d : var_stmt->decls()) {
+        std::u16string dn = d->ident();
+        bool var_already_declared = env->HasBinding(dn);
+        if (!var_already_declared) {
+          env->CreateMutableBinding(e, dn, configurable_bindings);
+          if (!e->IsOk()) return;
+          env->SetMutableBinding(e, dn, Undefined::Instance(), strict);
+          if (!e->IsOk()) return;
+        }
+      }
+    } else if (stmt->type() == AST::AST_STMT_FOR) {
+      For* for_stmt = static_cast<For*>(stmt);
+      if (for_stmt->expr0s().size() > 0 && for_stmt->expr0s()[0]->type() == AST::AST_STMT_VAR_DECL) {
+        for (AST* ast : for_stmt->expr0s()) {
+          VarDecl* d = static_cast<VarDecl*>(ast);
+          std::u16string dn = d->ident();
+          bool var_already_declared = env->HasBinding(dn);
+          if (!var_already_declared) {
+            env->CreateMutableBinding(e, dn, configurable_bindings);
+            if (!e->IsOk()) return;
+            env->SetMutableBinding(e, dn, Undefined::Instance(), strict);
+            if (!e->IsOk()) return;
+          }
+        }
+      }
+    } else if (stmt->type() == AST::AST_STMT_FOR_IN) {
+      ForIn* for_in_stmt = static_cast<ForIn*>(stmt);
+      if (for_in_stmt->expr0()->type() == AST::AST_STMT_VAR_DECL) {
+        VarDecl* d = static_cast<VarDecl*>(for_in_stmt->expr0());
+        std::u16string dn = d->ident();
+        bool var_already_declared = env->HasBinding(dn);
+        if (!var_already_declared) {
+          env->CreateMutableBinding(e, dn, configurable_bindings);
+          if (!e->IsOk()) return;
+          env->SetMutableBinding(e, dn, Undefined::Instance(), strict);
+          if (!e->IsOk()) return;
+        }
+      }
+    }
+  }
 }
 
 // 10.4.1
@@ -119,7 +161,6 @@ void EnterGlobalCode(Error* e, AST* ast) {
   ExecutionContext context(global_env, global_env, GlobalObject::Instance(), program->strict());
   ExecutionContextStack::Global()->AddContext(context);
   // 2
-  // TODO(zhuzilin) strict
   DeclarationBindingInstantiation(e, context, program, CODE_GLOBAL);
 }
 
@@ -234,9 +275,6 @@ void InitNumber() {
   proto->AddFuncProperty(u"toFixed", NumberProto::toFixed, false, false, false);
   proto->AddFuncProperty(u"toExponential", NumberProto::toExponential, false, false, false);
   proto->AddFuncProperty(u"toPrecision", NumberProto::toPrecision, false, false, false);
-  proto->AddFuncProperty(u"toFixed", NumberProto::toFixed, false, false, false);
-  proto->AddFuncProperty(u"toFixed", NumberProto::toFixed, false, false, false);
-  proto->AddFuncProperty(u"toFixed", NumberProto::toFixed, false, false, false);
 }
 
 void Init() {

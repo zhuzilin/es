@@ -633,9 +633,10 @@ error:
     Token ident = lexer_.Next();
     AST* init;
     assert(ident.IsIdentifier());
-    if (lexer_.Next().type() != Token::TK_ASSIGN) {
+    if (lexer_.NextAndRewind().type() != Token::TK_ASSIGN) {
       return new VarDecl(ident, SOURCE_PARSED);
     }
+    lexer_.Next();  // skip =
     init = ParseAssignmentExpression(no_in);
     if (init->IsIllegal())
       return init;
@@ -660,6 +661,7 @@ error:
       delete var_stmt;
       return decl;
     }
+    var_stmt->AddDecl(decl);
     token = lexer_.NextAndRewind();
     while (token.type() == Token::TK_COMMA) {
       lexer_.Next();  // skip ,
@@ -671,12 +673,10 @@ error:
       var_stmt->AddDecl(decl);
       token = lexer_.NextAndRewind();
     }
-
     if (!lexer_.TrySkipSemiColon()) {
       lexer_.Next();
       goto error;
     }
-      
 
     var_stmt->SetSource(SOURCE_PARSED);
     return var_stmt;

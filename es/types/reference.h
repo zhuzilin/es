@@ -43,7 +43,7 @@ JSValue* GetValue(Error* e, JSValue* V) {
   }
   Reference* ref = static_cast<Reference*>(V);
   if (ref->IsUnresolvableReference()) {
-    e = Error::ReferenceError();
+    *e = *Error::ReferenceError();
     return nullptr;
   }
   JSValue* base = ref->GetBase();
@@ -55,7 +55,7 @@ JSValue* GetValue(Error* e, JSValue* V) {
       return obj->Get(e, ref->GetReferencedName());
     } else {  // special [[Get]]
       JSObject* O = ToObject(e, base);
-      if (e != nullptr)
+      if (!e->IsOk())
         return nullptr;
       JSValue* tmp = O->GetProperty(ref->GetReferencedName());
       if (tmp->IsUndefined())
@@ -82,14 +82,14 @@ JSValue* GetValue(Error* e, JSValue* V) {
 
 void PutValue(Error* e, JSValue* V, JSValue* W) {
   if (!V->IsReference()) {
-    e = Error::ReferenceError();
+    *e = *Error::ReferenceError();
     return;
   }
   Reference* ref = static_cast<Reference*>(V);
   JSValue* base = ref->GetBase();
   if (ref->IsUnresolvableReference()) {  // 3
     if (ref->IsStrictReference()) {  // 3.a
-      e = Error::ReferenceError();
+      *e = *Error::ReferenceError();
       return;
     }
     GlobalObject::Instance()->Put(e, ref->GetReferencedName(), W, false);  // 3.b
@@ -104,7 +104,7 @@ void PutValue(Error* e, JSValue* V, JSValue* W) {
       JSObject* O = ToObject(e, base);
       if (!O->CanPut(P)) {  // 2
         if (throw_flag)
-          e = Error::TypeError();
+          *e = *Error::TypeError();
         return;
       }
       JSValue* tmp = O->GetOwnProperty(P);  // 3
@@ -112,7 +112,7 @@ void PutValue(Error* e, JSValue* V, JSValue* W) {
         PropertyDescriptor* own_desc = static_cast<PropertyDescriptor*>(tmp);
         if (own_desc->IsDataDescriptor()) {  // 4
           if (throw_flag)
-            e = Error::TypeError();
+            *e = *Error::TypeError();
           return;
         }
       }
@@ -126,7 +126,7 @@ void PutValue(Error* e, JSValue* V, JSValue* W) {
           setter_obj->Call(e, base, {W});
         } else {  // 7
           if (throw_flag)
-            e = Error::TypeError();
+            *e = *Error::TypeError();
           return;
         }
       }

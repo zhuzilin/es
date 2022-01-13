@@ -217,7 +217,7 @@ void JSObject::Put(Error* e, std::u16string P, JSValue* V, bool throw_flag) {
   log::PrintSource("Put ", P, " " + V->ToString());
   if (!CanPut(P)) {  // 1
     if (throw_flag) {  // 1.a
-      e = Error::TypeError();
+      *e = *Error::TypeError();
     }
     return;  // 1.b
   }
@@ -266,7 +266,7 @@ bool JSObject::Delete(Error* e, std::u16string P, bool throw_flag) {
     return true;
   } else {
     if (throw_flag) {
-      e = Error::TypeError();
+      *e = *Error::TypeError();
     }
     return false;
   }
@@ -300,7 +300,7 @@ JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
       return val;
     }
   }
-  e = Error::TypeError();
+  *e = *Error::TypeError();
   return nullptr;
 }
 
@@ -312,7 +312,6 @@ bool JSObject::DefineOwnProperty(
   JSValue* current = GetOwnProperty(P);
   PropertyDescriptor* current_desc;
   if (current->IsUndefined()) {
-    std::cout << current->ToString() << " extensible_: " << extensible_ << std::endl;
     if(!extensible_)  // 3
       goto reject;
      // 4.
@@ -325,7 +324,6 @@ bool JSObject::DefineOwnProperty(
     return true;
   }
   current_desc = static_cast<PropertyDescriptor*>(current);
-  std::cout << ", current: " << current_desc->Enumerable() << std::endl;
   if ((desc->bitmask() & current_desc->bitmask()) == desc->bitmask()) {
     bool same = true;
     if (desc->HasValue())
@@ -343,14 +341,17 @@ bool JSObject::DefineOwnProperty(
     if (same) return true;  // 6
   }
   log::PrintSource("DefineOwnProperty: ", P, " not same");
-  std::cout << "desc: " << desc->ToString() << ",\ncurrent: " << current_desc->ToString() << std::endl;
+  std::cout << "desc: " << desc->ToString() << ", current: " << current_desc->ToString() << std::endl;
   if (!current_desc->Configurable()) { // 7
-    log::PrintSource("DefineOwnProperty: ", P, " not configurable");
-    if (desc->Configurable()) goto reject;  // 7.1
-    log::PrintSource("DefineOwnProperty after 7.1");
-    if (desc->HasEnumerable() && (desc->Enumerable() != current_desc->Enumerable())) goto reject;  // 7.b
+    if (desc->Configurable()) {  // 7.a
+      log::PrintSource("DefineOwnProperty: ", P, " not configurable, while new value configurable");
+      goto reject;
+    }
+    if (desc->HasEnumerable() && (desc->Enumerable() != current_desc->Enumerable())) {  // 7.b
+      log::PrintSource("DefineOwnProperty: ", P, " enumerable value differ");
+      goto reject;
+    }
   }
-  log::PrintSource("DefineOwnProperty after 7");
   // 8.
   if (!desc->IsGenericDescriptor()) {
     if (current_desc->IsDataDescriptor() != desc->IsDataDescriptor()) {  // 9.
@@ -392,7 +393,7 @@ bool JSObject::DefineOwnProperty(
 reject:
   log::PrintSource("DefineOwnProperty reject");
   if (throw_flag) {
-    e = Error::TypeError();
+    *e = *Error::TypeError();
   }
   return false;
 }

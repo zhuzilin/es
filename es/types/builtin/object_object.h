@@ -92,7 +92,7 @@ class ObjectConstructor : public JSObject {
   // 15.2.3.2 Object.getPrototypeOf ( O )
   static JSValue* getPrototypeOf(Error* e, std::vector<JSValue*> vals) {
     if (vals.size() < 1 || !vals[0]->IsObject()) {
-      e = Error::TypeError();
+      *e = *Error::TypeError();
       return nullptr;
     }
     return static_cast<JSObject*>(vals[0])->Prototype();
@@ -150,7 +150,7 @@ class ObjectConstructor : public JSObject {
  private:
   ObjectConstructor() :
     JSObject(
-      OBJ_OTHER, u"Object", false, nullptr, true, true
+      OBJ_OTHER, u"Object", true, nullptr, true, true
     ) {}
 };
 

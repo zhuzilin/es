@@ -146,8 +146,6 @@ inline double Digit(char16_t c) {
     case u'f':
       return 15;
     default:
-      std::u16string s(1, c);
-      log::PrintSource("[", s, "]");
       assert(false);
   }
 }

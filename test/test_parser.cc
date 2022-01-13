@@ -586,20 +586,6 @@ TEST(TestParser, VariableDeclaration) {
       EXPECT_EQ(pair.second, ast->source());
     }
   }
-
-  // Illegal
-  {
-    vec_pair_string sources = {
-      {u"a b", u"a b"},
-    };
-    for (auto pair : sources) {
-      auto source = pair.first;
-      Parser parser(source);
-      AST* ast = parser.ParseVariableDeclaration(false);;
-      EXPECT_EQ(AST::AST_ILLEGAL, ast->type());
-      EXPECT_EQ(pair.second, ast->source());
-    }
-  }
 }
 
 TEST(TestParser, Statement_Variable) {

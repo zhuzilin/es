@@ -1,12 +1,15 @@
 #ifndef ES_ERROR_H
 #define ES_ERROR_H
 
+#include <string>
+
 namespace es {
 
 class Error {
  public:
   enum Type {
-    E_EVAL = 0,
+    E_OK = 0,
+    E_EVAL,
     E_RANGE,
     E_REFERENCE,
     E_SYNTAX,
@@ -14,6 +17,11 @@ class Error {
     E_URI,
     E_NATIVE,
   };
+
+  static Error* Ok() {
+    static Error e(E_OK);
+    return &e;
+  }
 
   static Error* EvalError() {
     static Error e(E_EVAL);
@@ -51,6 +59,10 @@ class Error {
   }
 
   Type type() { return type_; }
+
+  bool IsOk() { return type_ == E_OK; }
+
+  std::string ToString() { return Ok() ? "ok" : "error"; }
 
  private:
   Error(Type t) : type_(t) {}

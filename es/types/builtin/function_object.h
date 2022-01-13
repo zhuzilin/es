@@ -39,9 +39,7 @@ class FunctionProto : public JSObject {
 
  private:
   FunctionProto() :
-    JSObject(
-      OBJ_OTHER, u"Function", true, nullptr, false, true
-    ) {}
+    JSObject(OBJ_OTHER, u"Function", true, nullptr, false, true) {}
 };
 
 void EnterFunctionCode(
@@ -122,16 +120,16 @@ class FunctionObject : public JSObject {
     if (!V->IsObject())
       return false;
     JSValue* O = Get(e, u"prototype");
-    if (e != nullptr) return false;
+    if (!e->IsOk()) return false;
     if (!O->IsObject()) {
-      e = Error::TypeError();
+      *e = *Error::TypeError();
       return false;
     }
     while (!V->IsNull()) {
       if (V == O)
         return true;
       V = static_cast<JSObject*>(V)->Get(e, u"prototype");
-      if (e != nullptr) return false;
+      if (!e->IsOk()) return false;
     }
     return false;
   }
@@ -139,14 +137,14 @@ class FunctionObject : public JSObject {
   // 15.3.5.4 [[Get]] (P)
   JSValue* Get(Error* e, std::u16string P) override {
     JSValue* v = JSObject::Get(e, P);
-    if (e != nullptr) return nullptr;
+    if (!e->IsOk()) return nullptr;
     if (P == u"caller") {  // 2
       if (v->IsObject()) {
         JSObject* v_obj = static_cast<JSObject*>(v);
         if (v_obj->IsFunction()) {
           FunctionObject* v_func = static_cast<FunctionObject*>(v);
           if (v_func->strict()) {
-            e = Error::TypeError();
+            *e = *Error::TypeError();
             return nullptr;
           }
         }
@@ -198,7 +196,7 @@ class FunctionConstructor : public JSObject {
       Parser parser(P);
       names = parser.ParseFormalParameterList();
       if (names.size() == 0) {
-        e = Error::SyntaxError();
+        *e = *Error::SyntaxError();
         return nullptr;
       }
     }
@@ -206,7 +204,7 @@ class FunctionConstructor : public JSObject {
       Parser parser(body);
       body_ast = parser.ParseFunctionBody(Token::TK_EOS);
       if (body_ast->IsIllegal()) {
-        e = Error::SyntaxError();
+        *e = *Error::SyntaxError();
         return nullptr;
       }
     }
@@ -215,12 +213,12 @@ class FunctionConstructor : public JSObject {
     if (strict) {
       // 13.1
       if (HaveDuplicate(names)) {
-        e = Error::SyntaxError();
+        *e = *Error::SyntaxError();
         return nullptr;
       }
       for (auto name : names) {
         if (name == u"eval" || name == u"arguments") {
-          e = Error::SyntaxError();
+          *e = *Error::SyntaxError();
           return nullptr;
         }
       }
@@ -230,9 +228,7 @@ class FunctionConstructor : public JSObject {
 
  private:
   FunctionConstructor() :
-    JSObject(
-      OBJ_OTHER, u"Function", false, nullptr, true, true
-    ) {}
+    JSObject(OBJ_OTHER, u"Function", true, nullptr, true, true) {}
 };
 
 FunctionObject* InstantiateFunctionDeclaration(Error* e, Function* func_ast) {
@@ -248,17 +244,17 @@ FunctionObject* InstantiateFunctionDeclaration(Error* e, Function* func_ast) {
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
-        e = Error::SyntaxError();
+        *e = *Error::SyntaxError();
         return nullptr;
       }
       for (auto name : func_ast->params()) {
         if (name == u"eval" || name == u"arguments") {
-          e = Error::SyntaxError();
+          *e = *Error::SyntaxError();
           return nullptr;
         }
       }
       if (func_ast->name() == u"eval" || func_ast->name() == u"arguments") {
-        e = Error::SyntaxError();
+        *e = *Error::SyntaxError();
         return nullptr;
       }
     }
@@ -280,12 +276,12 @@ JSValue* EvalFunction(Error* e, AST* ast) {
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
-        e = Error::SyntaxError();
+        *e = *Error::SyntaxError();
         return nullptr;
       }
       for (auto name : func_ast->params()) {
         if (name == u"eval" || name == u"arguments") {
-          e = Error::SyntaxError();
+          *e = *Error::SyntaxError();
           return nullptr;
         }
       }

@@ -23,7 +23,7 @@ class NumberConstructor : public JSObject {
  private:
    NumberConstructor() :
     JSObject(
-      OBJ_OTHER, u"Number", false, nullptr, true, true
+      OBJ_OTHER, u"Number", true, nullptr, true, true
     ) {}
 };
 

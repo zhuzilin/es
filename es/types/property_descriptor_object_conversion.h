@@ -45,7 +45,7 @@ JSValue* FromPropertyDescriptor(Error* e, JSValue* value) {
 
 JSValue* ToPropertyDescriptor(Error* e, JSValue* obj) {
   if (!obj->IsObject()) {
-    e = Error::TypeError();
+    *e = *Error::TypeError();
     return;
   }
   PropertyDescriptor* desc = new PropertyDescriptor();

@@ -56,7 +56,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     if (bindings_[N].is_mutable) {
       bindings_[N].value = V;
     } else if (S) {
-      e = Error::TypeError();
+      *e = *Error::TypeError();
     }
   }
 
@@ -66,7 +66,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     Binding b = bindings_[N];
     if (b.value->IsUndefined()) {
       if (S) {
-        e = Error::ReferenceError();
+        *e = *Error::ReferenceError();
         return nullptr;
       } else {
         return Undefined::Instance();
@@ -122,7 +122,6 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
     assert(!HasBinding(N));
     PropertyDescriptor* desc = new PropertyDescriptor();
     desc->SetDataDescriptor(Undefined::Instance(), true, true, D);
-    std::cout << "desc: " << desc->Enumerable() << std::endl;
     bindings_->DefineOwnProperty(e, N, desc, true);
   }
 
@@ -137,7 +136,7 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
     log::PrintSource("enter GetBindingValue ", N, std::string(" HasBinding: ") + (value ? "true" : "false"));
     if (!value) {
       if (S) {
-        e = Error::ReferenceError();
+        *e = *Error::ReferenceError();
         return nullptr;
       } else {
         return Undefined::Instance();

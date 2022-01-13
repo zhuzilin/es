@@ -172,7 +172,7 @@ double ToNumber(Error* e, JSValue* input) {
 
 double ToInteger(Error* e, JSValue* input) {
   double num = ToNumber(e, input);
-  if (e != nullptr)
+  if (!e->IsOk())
     return 0.0;
   if (isnan(num)) {
     return 0.0;
@@ -185,7 +185,7 @@ double ToInteger(Error* e, JSValue* input) {
 
 double ToInt32(Error* e, JSValue* input) {
   double num = ToNumber(e, input);
-  if (e != nullptr)
+  if (!e->IsOk())
     return 0;
   if (isnan(num) || isinf(num) || num == 0) {
     return 0.0;
@@ -204,7 +204,7 @@ double ToInt32(Error* e, JSValue* input) {
 
 double ToUint(Error* e, JSValue* input, char bits) {
   double num = ToNumber(e, input);
-  if (e != nullptr)
+  if (!e->IsOk())
     return 0;
   if (isnan(num) || isinf(num) || num == 0) {
     return 0.0;
@@ -260,7 +260,7 @@ JSObject* ToObject(Error* e, JSValue* input) {
   switch (input->type()) {
     case JSValue::JS_UNDEFINED:
     case JSValue::JS_NULL:
-      e = Error::TypeError();
+      *e = *Error::TypeError();
       return nullptr;
     case JSValue::JS_BOOL:
       assert(false);

@@ -18,7 +18,7 @@ typedef std::pair<string,string> pair_string;
 typedef std::vector<std::pair<string,string>> vec_pair_string;
 
 TEST(TestEvalExpr, Number) {
-  Error* e = nullptr;
+  Error* e = Error::Ok();
   {
     std::vector<std::pair<string, double>> sources = {
       {u"0", 0}, {u"101", 101}, {u"0.01", 0.01}, {u"12.05", 12.05},
@@ -37,7 +37,7 @@ TEST(TestEvalExpr, Number) {
 
 TEST(TestEvalExpr, Arithmetic) {
   Init();
-  Error* e = nullptr;
+  Error* e = Error::Ok();
   EnterGlobalCode(e, new ProgramOrFunctionBody(AST::AST_PROGRAM, false));
   {
     std::vector<std::pair<string, double>> sources = {
@@ -119,7 +119,7 @@ TEST(TestEvalExpr, Arithmetic) {
 }
 
 TEST(TestEvalExpr, String) {
-  Error* e = nullptr;
+  Error* e = Error::Ok();
   {
     vec_pair_string sources = {
       {u"''", u""}, {u"\"\"", u""}, {u"'abc'", u"abc"},
@@ -139,7 +139,7 @@ TEST(TestEvalExpr, String) {
 
 TEST(TestEvalExpr, Identifier) {
   Init();
-  Error* e = nullptr;
+  Error* e = Error::Ok();
   {
     Parser parser(u"a");
     AST* ast = parser.ParsePrimaryExpression();
@@ -151,7 +151,7 @@ TEST(TestEvalExpr, Identifier) {
 
 TEST(TestEvalExpr, SimpleAssign) {
   Init();
-  Error* e = nullptr;
+  Error* e = Error::Ok();
   {
     Parser parser(u"a = 1");
     AST* ast = parser.ParseAssignmentExpression(false);
@@ -165,7 +165,7 @@ TEST(TestEvalExpr, SimpleAssign) {
 
 TEST(TestEvalExpr, Function) {
   Init();
-  Error* e = nullptr;
+  Error* e = Error::Ok();
   {
     Parser parser(u"function (b) { return b; }");
     AST* ast = parser.ParseFunction(false);
@@ -187,7 +187,7 @@ TEST(TestEvalExpr, Function) {
 }
 
 TEST(TestEvalExpr, Object) {
-  Error* e = nullptr;
+  Error* e = Error::Ok();
   {
     Parser parser(u"{a: 1, \"b\": 123, a: \"c\"}");
     AST* ast = parser.ParseObjectLiteral();
