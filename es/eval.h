@@ -29,6 +29,7 @@ Completion EvalWhileStatement(Error* e, AST* ast);
 Completion EvalContinueStatement(Error* e, AST* ast);
 Completion EvalBreakStatement(Error* e, AST* ast);
 Completion EvalReturnStatement(Error* e, AST* ast);
+Completion EvalSwitchStatement(Error* e, AST* ast);
 Completion EvalThrowStatement(Error* e, AST* ast);
 Completion EvalExpressionStatement(Error* e, AST* ast);
 
@@ -458,6 +459,44 @@ Completion EvalReturnStatement(Error* e, AST* ast) {
   }
   auto exp_ref = EvalExpression(e, return_stmt->expr());
   return Completion(Completion::RETURN, GetValue(e, exp_ref), u"");
+}
+
+JSValue* EvalCaseClause(Error* e, Switch::CaseClause C) {
+  // TODO(zhuzilin)
+}
+
+Completion EvalCaseBlock(Error* e, std::vector<Switch::CaseClause> A, JSValue* input) {
+  JSValue* V = nullptr;
+  bool searching = true;
+  for (auto C : A) {
+    if (!searching)
+      break;
+    JSValue* clause_selector = EvalCaseClause(e, C);
+    bool b = StrictEqual(e, input, clause_selector);
+    if (!e->IsOk())
+      return Completion(Completion::THROW, new ErrorObject(e), u"");
+    if (b) {
+      searching = false;
+      // TODO(zhuzilin)
+    }
+  }
+  return Completion(Completion::NORMAL, V, u"");
+}
+
+// 12.11 The switch Statement
+Completion EvalSwitchStatement(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_STMT_SWITCH);
+  Switch* switch_stmt = static_cast<Switch*>(ast);
+  JSValue* expr_ref = EvalExpression(e, switch_stmt->expr());
+  if (!e->IsOk())
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  Completion R = EvalCaseBlock(e, switch_stmt->case_clauses(), expr_ref);
+  if (!e->IsOk())
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  bool has_label = ExecutionContextStack::TopContext()->HasLabel(R.target);
+  if (R.type == Completion::BREAK && has_label)
+    return Completion(Completion::NORMAL, R.value, u"");
+  return R;
 }
 
 // 12.13 The throw Statement

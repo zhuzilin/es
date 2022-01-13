@@ -21,6 +21,44 @@ JSObject* CreateArgumentsObject() {
   return nullptr;
 }
 
+void FindAllVarDecl(std::vector<AST*> stmts, std::vector<VarDecl*>& decls) {
+  for (auto stmt : stmts) {
+    switch (stmt->type()) {
+      case AST::AST_STMT_VAR: {
+        VarStmt* var_stmt = static_cast<VarStmt*>(stmt);
+        for (auto d : var_stmt->decls()) {
+          decls.emplace_back(d);
+        }
+        break;
+      }
+      case AST::AST_STMT_FOR: {
+        For* for_stmt = static_cast<For*>(stmt);
+        if (for_stmt->expr0s().size() > 0 && for_stmt->expr0s()[0]->type() == AST::AST_STMT_VAR_DECL) {
+          for (AST* ast : for_stmt->expr0s()) {
+            VarDecl* d = static_cast<VarDecl*>(ast);
+            decls.emplace_back(d);
+          }
+        }
+        std::cout << "after for statement" << decls.size() << std::endl;
+        FindAllVarDecl({for_stmt->statement()}, decls);
+        break;
+      }
+      case AST::AST_STMT_FOR_IN: {
+        ForIn* for_in_stmt = static_cast<ForIn*>(stmt);
+        if (for_in_stmt->expr0()->type() == AST::AST_STMT_VAR_DECL) {
+            VarDecl* d = static_cast<VarDecl*>(for_in_stmt->expr0());
+            decls.emplace_back(d);
+        }
+        std::cout << "after for in statement" << decls.size() << std::endl;
+        break;
+      }
+      // TODO(zhuzilin) fill the other statements.
+      default:
+        break;
+    }
+  }
+}
+
 // 10.5 Declaration Binding Instantiation
 void DeclarationBindingInstantiation(
   Error* e, ExecutionContext* context, AST* code, CodeType code_type,
@@ -101,47 +139,18 @@ void DeclarationBindingInstantiation(
   }
   // 8
   // TODO(zhuzilin) Fix the nested var statement.
-  for (auto stmt : body->statements()) {
-    if (stmt->type() == AST::AST_STMT_VAR) {
-      VarStmt* var_stmt = static_cast<VarStmt*>(stmt);
-      for (VarDecl* d : var_stmt->decls()) {
-        std::u16string dn = d->ident();
-        bool var_already_declared = env->HasBinding(dn);
-        if (!var_already_declared) {
-          env->CreateMutableBinding(e, dn, configurable_bindings);
-          if (!e->IsOk()) return;
-          env->SetMutableBinding(e, dn, Undefined::Instance(), strict);
-          if (!e->IsOk()) return;
-        }
-      }
-    } else if (stmt->type() == AST::AST_STMT_FOR) {
-      For* for_stmt = static_cast<For*>(stmt);
-      if (for_stmt->expr0s().size() > 0 && for_stmt->expr0s()[0]->type() == AST::AST_STMT_VAR_DECL) {
-        for (AST* ast : for_stmt->expr0s()) {
-          VarDecl* d = static_cast<VarDecl*>(ast);
-          std::u16string dn = d->ident();
-          bool var_already_declared = env->HasBinding(dn);
-          if (!var_already_declared) {
-            env->CreateMutableBinding(e, dn, configurable_bindings);
-            if (!e->IsOk()) return;
-            env->SetMutableBinding(e, dn, Undefined::Instance(), strict);
-            if (!e->IsOk()) return;
-          }
-        }
-      }
-    } else if (stmt->type() == AST::AST_STMT_FOR_IN) {
-      ForIn* for_in_stmt = static_cast<ForIn*>(stmt);
-      if (for_in_stmt->expr0()->type() == AST::AST_STMT_VAR_DECL) {
-        VarDecl* d = static_cast<VarDecl*>(for_in_stmt->expr0());
-        std::u16string dn = d->ident();
-        bool var_already_declared = env->HasBinding(dn);
-        if (!var_already_declared) {
-          env->CreateMutableBinding(e, dn, configurable_bindings);
-          if (!e->IsOk()) return;
-          env->SetMutableBinding(e, dn, Undefined::Instance(), strict);
-          if (!e->IsOk()) return;
-        }
-      }
+  std::vector<VarDecl*> decls;
+  FindAllVarDecl(body->statements(), decls);
+  std::cout << "size: " << decls.size() << std::endl;
+  for (VarDecl* d : decls) {
+    log::PrintSource("source: ", d->ident());
+    std::u16string dn = d->ident();
+    bool var_already_declared = env->HasBinding(dn);
+    if (!var_already_declared) {
+      env->CreateMutableBinding(e, dn, configurable_bindings);
+      if (!e->IsOk()) return;
+      env->SetMutableBinding(e, dn, Undefined::Instance(), strict);
+      if (!e->IsOk()) return;
     }
   }
 }

@@ -588,6 +588,7 @@ class Switch : public AST {
     case_clauses_.emplace_back(c);
   }
 
+  AST* expr() { return expr_; }
   std::vector<CaseClause> case_clauses() { return case_clauses_; }
 
  private:
