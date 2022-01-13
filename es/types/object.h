@@ -95,7 +95,7 @@ class JSObject : public JSValue {
   }
   bool IsCallable() override { return is_callable_; }
   // [[HasInstance]]
-  virtual bool HasInstance(JSValue* value) {
+  virtual bool HasInstance(Error* e, JSValue* value) {
     assert(false);
   }
 

@@ -9,6 +9,7 @@
 #include <es/types/reference.h>
 #include <es/types/builtin/function_object.h>
 #include <es/types/builtin/error_object.h>
+#include <es/types/compare.h>
 #include <es/execution_context.h>
 #include <es/helper.h>
 
@@ -38,6 +39,11 @@ JSValue* EvalBinaryExpression(Error* e, AST* ast);
 JSValue* EvalSimpleAssignment(Error* e, AST* lhs, AST* rhs);
 JSValue* EvalArithmeticOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
 JSValue* EvalAddOperator(Error* e, AST* lhs, AST* rhs);
+JSValue* EvalBitwiseShiftOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
+JSValue* EvalRelationalOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
+JSValue* EvalEqualityOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
+JSValue* EvalBitwiseOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
+JSValue* EvalLogicalOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
 
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast);
 std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast);
@@ -597,6 +603,17 @@ JSValue* EvalBinaryExpression(Error* e, AST* ast) {
     return EvalArithmeticOperator(e, op, b->lhs(), b->rhs());
   } else if (op == u"+") {
     return EvalAddOperator(e, b->lhs(), b->rhs());
+  } else if (op == u"<<" || op == u">>" || op == u">>>") {
+    return EvalBitwiseShiftOperator(e, op, b->lhs(), b->rhs());
+  } else if (op == u"<" || op == u">" || op == u"<=" || op == u">=" ||
+             op == u"instanceof" || op == u"in") {
+    return EvalRelationalOperator(e, op, b->lhs(), b->rhs());
+  } else if (op == u"==" || op == u"!=" || op == u"===" || op == u"!==") {
+    return EvalEqualityOperator(e, op, b->lhs(), b->rhs());
+  } else if (op == u"&" || op == u"^" || op == u"|") {
+    return EvalBitwiseOperator(e, op, b->lhs(), b->rhs());
+  } else if (op == u"&&" || op == u"||") {
+    return EvalLogicalOperator(e, op, b->lhs(), b->rhs());
   }
   assert(false);
 }
@@ -629,6 +646,7 @@ JSValue* EvalSimpleAssignment(Error* e, AST* lhs, AST* rhs) {
   return rval;
 }
 
+// 11.5 Multiplicative Operators
 JSValue* EvalArithmeticOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
   JSValue* lref = EvalExpression(e, lhs);
   if (!e->IsOk()) return nullptr;
@@ -656,6 +674,7 @@ JSValue* EvalArithmeticOperator(Error* e, std::u16string op, AST* lhs, AST* rhs)
   }
 }
 
+// 11.6 Additive Operators
 JSValue* EvalAddOperator(Error* e, AST* lhs, AST* rhs) {
   JSValue* lref = EvalExpression(e, lhs);
   if (!e->IsOk()) return nullptr;
@@ -680,6 +699,146 @@ JSValue* EvalAddOperator(Error* e, AST* lhs, AST* rhs) {
   if (!e->IsOk()) return nullptr;
 
   return new Number(lnum + rnum);
+}
+
+// 11.7 Bitwise Shift Operators
+JSValue* EvalBitwiseShiftOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
+  JSValue* lref = EvalExpression(e, lhs);
+  if (!e->IsOk()) return nullptr;
+  JSValue* lval = GetValue(e, lref);
+  if (!e->IsOk()) return nullptr;
+  JSValue* rref = EvalExpression(e, rhs);
+  if (!e->IsOk()) return nullptr;
+  JSValue* rval = GetValue(e, rref);
+  int32_t lnum = ToInt32(e, lval);
+  if (!e->IsOk()) return nullptr;
+  uint32_t rnum = ToUint32(e, rval);
+  if (!e->IsOk()) return nullptr;
+  uint32_t shift_count = rnum & 0x1F;
+  if (op == u"<<") {
+    return new Number(lnum << shift_count);
+  } else if (op == u">>") {
+    return new Number(lnum << shift_count);
+  } else if (op == u">>>") {
+    uint32_t lnum = ToUint32(e, lval);
+    return new Number(lnum >> rnum);
+  }
+  assert(false);
+}
+
+// 11.8 Relational Operators
+JSValue* EvalRelationalOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
+  JSValue* lref = EvalExpression(e, lhs);
+  if (!e->IsOk()) return nullptr;
+  JSValue* lval = GetValue(e, lref);
+  if (!e->IsOk()) return nullptr;
+  JSValue* rref = EvalExpression(e, rhs);
+  if (!e->IsOk()) return nullptr;
+  JSValue* rval = GetValue(e, rref);
+  if (!e->IsOk()) return nullptr;
+  if (op == u"<") {
+    JSValue* r = LessThan(e, lval, rval);
+    if (!e->IsOk()) return nullptr;
+    return r->IsUndefined() ? Bool::False() : r;
+  } else if (op == u">") {
+    JSValue* r = LessThan(e, rval, lval);
+    if (!e->IsOk()) return nullptr;
+    return r->IsUndefined() ? Bool::False() : r;
+  } else if (op == u"<=") {
+    JSValue* r = LessThan(e, rval, lval);
+    if (!e->IsOk()) return nullptr;
+    if (r->IsUndefined())
+      return Bool::True();
+    return Bool::Wrap(static_cast<Bool*>(r)->data());
+  } else if (op == u">=") {
+    JSValue* r = LessThan(e, lval, rval);
+    if (!e->IsOk()) return nullptr;
+    if (r->IsUndefined())
+      return Bool::True();
+    return Bool::Wrap(static_cast<Bool*>(r)->data());
+  } else if (op == u"instanceof") {
+    if (!rval->IsObject()) {
+      *e = *Error::TypeError();
+      return nullptr;
+    }
+    JSObject* obj = static_cast<JSObject*>(rval);
+    if (!obj->IsFunction()) {  // only FunctionObject has [[HasInstance]]
+      *e = *Error::TypeError();
+      return nullptr;
+    }
+    return Bool::Wrap(obj->HasInstance(e, lval));
+  } else if (op == u"in") {
+    if (!rval->IsObject()) {
+      *e = *Error::TypeError();
+      return nullptr;
+    }
+    JSObject* obj = static_cast<JSObject*>(rval);
+    return Bool::Wrap(obj->HasProperty(ToString(e, lval)));
+  }
+  assert(false);
+}
+
+// 11.9 Equality Operators
+JSValue* EvalEqualityOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
+  JSValue* lref = EvalExpression(e, lhs);
+  if (!e->IsOk()) return nullptr;
+  JSValue* lval = GetValue(e, lref);
+  if (!e->IsOk()) return nullptr;
+  JSValue* rref = EvalExpression(e, rhs);
+  if (!e->IsOk()) return nullptr;
+  JSValue* rval = GetValue(e, rref);
+  if (!e->IsOk()) return nullptr;
+  if (op == u"==") {
+    return Bool::Wrap(Equal(e, lval, rval));
+  } else if (op == u"!=") {
+    return Bool::Wrap(!Equal(e, lval, rval));
+  } else if (op == u"===") {
+    return Bool::Wrap(StrictEqual(e, lval, rval));
+  } else if (op == u"!==") {
+    return Bool::Wrap(!StrictEqual(e, lval, rval));
+  }
+  assert(false);
+}
+
+// 11.10 Binary Bitwise Operators
+JSValue* EvalBitwiseOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
+  JSValue* lref = EvalExpression(e, lhs);
+  if (!e->IsOk()) return nullptr;
+  JSValue* lval = GetValue(e, lref);
+  if (!e->IsOk()) return nullptr;
+  JSValue* rref = EvalExpression(e, rhs);
+  if (!e->IsOk()) return nullptr;
+  JSValue* rval = GetValue(e, rref);
+  if (!e->IsOk()) return nullptr;
+  int32_t lnum = ToInt32(e, lval);
+  if (!e->IsOk()) return nullptr;
+  int32_t rnum = ToInt32(e, rval);
+  if (!e->IsOk()) return nullptr;
+  switch (op[0]) {
+    case u'&':
+      return new Number(lnum & rnum);
+    case u'^':
+      return new Number(lnum ^ rnum);
+    case u'|':
+      return new Number(lnum | rnum);
+    default:
+      assert(false);
+  }
+}
+
+// 11.11 Binary Logical Operators
+JSValue* EvalLogicalOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
+  JSValue* lref = EvalExpression(e, lhs);
+  if (!e->IsOk()) return nullptr;
+  JSValue* lval = GetValue(e, lref);
+  if (!e->IsOk()) return nullptr;
+  if (op == u"&&" && !ToBoolean(lval) || op == u"||" && ToBoolean(lval))
+    return lval;
+  JSValue* rref = EvalExpression(e, rhs);
+  if (!e->IsOk()) return nullptr;
+  JSValue* rval = GetValue(e, rref);
+  if (!e->IsOk()) return nullptr;
+  return rval;
 }
 
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {

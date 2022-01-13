@@ -14,8 +14,6 @@ bool SameValue(JSValue* x, JSValue* y) {
     case JSValue::JS_NULL:
       return true;
     case JSValue::JS_NUMBER: {
-      // TODO(zhuzilin) +0 and -0 should be different,
-      // figure out how to represent them.
       Number* num_x = static_cast<Number*>(x);
       Number* num_y = static_cast<Number*>(y);
       if (num_x->IsNaN() && num_y->IsNaN())

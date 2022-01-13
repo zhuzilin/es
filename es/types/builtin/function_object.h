@@ -116,7 +116,7 @@ class FunctionObject : public JSObject {
   }
 
   // 15.3.5.3 [[HasInstance]] (V)
-  bool HasInstance(Error* e, JSValue* V) {
+  bool HasInstance(Error* e, JSValue* V) override {
     if (!V->IsObject())
       return false;
     JSValue* O = Get(e, u"prototype");
