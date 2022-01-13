@@ -41,7 +41,6 @@ void DeclarationBindingInstantiation(
     size_t arg_count = args.size();  // 4.b
     size_t n = 0;  // 4.c
     for (auto arg_name : names) {  // 4.d
-      log::PrintSource("Preparing arg ", arg_name);
       JSValue* v = Undefined::Instance();
       if (n < arg_count)  // 4.d.i & 4.d.ii
         v = args[n++];
@@ -163,6 +162,7 @@ void EnterGlobalCode(Error* e, AST* ast) {
   ExecutionContextStack::Global()->AddContext(context);
   // 2
   DeclarationBindingInstantiation(e, context, program, CODE_GLOBAL);
+  log::PrintSource("exit DeclarationBindingInstantiation");
 }
 
 // 10.4.3
