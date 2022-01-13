@@ -301,8 +301,8 @@ TEST(TestParser, Expression_TripleCondition) {
       EXPECT_EQ(source, ast->source());
       auto cond = static_cast<TripleCondition*>(ast);
       EXPECT_EQ(vec[1], cond->cond()->source());
-      EXPECT_EQ(vec[2], cond->lhs()->source());
-      EXPECT_EQ(vec[3], cond->rhs()->source());
+      EXPECT_EQ(vec[2], cond->true_expr()->source());
+      EXPECT_EQ(vec[3], cond->false_expr()->source());
     }
   }
 

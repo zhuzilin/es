@@ -18,16 +18,16 @@ struct Completion {
     THROW,
   };
 
-  Completion() : Completion(NORMAL, nullptr, nullptr) {}
+  Completion() : Completion(NORMAL, nullptr, u"") {}
 
-  Completion(Type type, JSValue* value, JSValue* target) :
+  Completion(Type type, JSValue* value, std::u16string target) :
     type(type), value(value), target(target) {}
 
   bool IsAbruptCompletion() { return type != NORMAL; }
 
   Type type;
   JSValue* value;
-  JSValue* target;
+  std::u16string target;
 };
 
 }  // namespace es

@@ -196,6 +196,7 @@ class Lexer {
             case u'=':  // +=
               Advance();
               token = Token(Token::Type::TK_ADD_ASSIGN, source_.substr(start, 2));
+              break;
             default:  // +
               token = Token(Token::Type::TK_ADD, source_.substr(start, 1));
           }

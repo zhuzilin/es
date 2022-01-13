@@ -81,6 +81,7 @@ JSValue* GetValue(Error* e, JSValue* V) {
 }
 
 void PutValue(Error* e, JSValue* V, JSValue* W) {
+  std::cout << "PutValue V: " << V->ToString() << ", W: " << W->ToString() << std::endl;
   if (!V->IsReference()) {
     *e = *Error::ReferenceError();
     return;

@@ -23,11 +23,11 @@ JSObject* CreateArgumentsObject() {
 
 // 10.5 Declaration Binding Instantiation
 void DeclarationBindingInstantiation(
-  Error* e, ExecutionContext context, AST* code, CodeType code_type,
+  Error* e, ExecutionContext* context, AST* code, CodeType code_type,
   FunctionObject* f = nullptr, std::vector<JSValue*> args = {}
 ) {
   log::PrintSource("enter DeclarationBindingInstantiation");
-  auto env = context.variable_env()->env_rec();  // 1
+  auto env = context->variable_env()->env_rec();  // 1
   bool configurable_bindings = false;
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
   if (code_type == CODE_EVAL) {
@@ -101,6 +101,7 @@ void DeclarationBindingInstantiation(
     // }
   }
   // 8
+  // TODO(zhuzilin) Fix the nested var statement.
   for (auto stmt : body->statements()) {
     if (stmt->type() == AST::AST_STMT_VAR) {
       VarStmt* var_stmt = static_cast<VarStmt*>(stmt);
@@ -158,7 +159,7 @@ void EnterGlobalCode(Error* e, AST* ast) {
   }
   // 1 10.4.1.1
   LexicalEnvironment* global_env = LexicalEnvironment::Global();
-  ExecutionContext context(global_env, global_env, GlobalObject::Instance(), program->strict());
+  ExecutionContext* context = new ExecutionContext(global_env, global_env, GlobalObject::Instance(), program->strict());
   ExecutionContextStack::Global()->AddContext(context);
   // 2
   DeclarationBindingInstantiation(e, context, program, CODE_GLOBAL);
@@ -179,7 +180,7 @@ void EnterFunctionCode(
       GlobalObject::Instance() : this_arg;
   }
   LexicalEnvironment* local_env = LexicalEnvironment::NewDeclarativeEnvironment(func->Scope());
-  ExecutionContext context(local_env, local_env, this_binding, body->strict());  // 8
+  ExecutionContext* context = new ExecutionContext(local_env, local_env, this_binding, body->strict());  // 8
   ExecutionContextStack::Global()->AddContext(context);
   // 9
   DeclarationBindingInstantiation(e, context, body, CODE_FUNC, func, args);
@@ -203,6 +204,8 @@ void InitGlobalObject() {
   global_obj->AddValueProperty(u"Object", ObjectConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Function", FunctionConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Number", NumberConstructor::Instance(), true, false, true);
+
+  global_obj->AddFuncProperty(u"log", logger, true, false, true);
 }
 
 void InitObject() {

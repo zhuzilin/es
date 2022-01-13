@@ -166,7 +166,7 @@ class Binary : public AST {
 
   AST* lhs() { return lhs_; }
   AST* rhs() { return rhs_; }
-  Token op() { return op_; }
+  std::u16string op() { return op_.source(); }
 
  private:
   AST* lhs_;
@@ -195,23 +195,23 @@ class Unary : public AST {
 
 class TripleCondition : public AST {
  public:
-  TripleCondition(AST* cond, AST* lhs, AST* rhs) :
-    AST(AST_EXPR_TRIPLE), cond_(cond), lhs_(lhs), rhs_(rhs) {}
+  TripleCondition(AST* cond, AST* true_expr, AST* false_expr) :
+    AST(AST_EXPR_TRIPLE), cond_(cond), true_expr_(true_expr), false_expr_(false_expr) {}
 
   ~TripleCondition() override {
     delete cond_;
-    delete lhs_;
-    delete rhs_;
+    delete true_expr_;
+    delete false_expr_;
   }
 
   AST* cond() { return cond_; }
-  AST* lhs() { return lhs_; }
-  AST* rhs() { return rhs_; }
+  AST* true_expr() { return true_expr_; }
+  AST* false_expr() { return false_expr_; }
 
  private:
   AST* cond_;
-  AST* lhs_;
-  AST* rhs_;
+  AST* true_expr_;
+  AST* false_expr_;
 };
 
 class Expression : public AST {
@@ -371,7 +371,7 @@ class ContinueOrBreak : public AST {
   ContinueOrBreak(Type type, Token ident, std::u16string source) :
     AST(type, source), ident_(ident) {}
 
-  Token ident() { return ident_; }
+  std::u16string ident() { return ident_.source(); }
 
  private:
   Token ident_;
@@ -521,6 +521,9 @@ class WhileOrWith : public AST {
     delete stmt_;
   }
 
+  AST* expr() { return expr_; }
+  AST* stmt() { return stmt_; }
+
  public:
   AST* expr_;
   AST* stmt_;
@@ -528,16 +531,19 @@ class WhileOrWith : public AST {
 
 class DoWhile : public AST {
  public:
-  DoWhile(AST* cond, AST* loop_block, std::u16string source) :
-    AST(AST_STMT_DO_WHILE, source), cond_(cond), loop_block_(loop_block) {}
+  DoWhile(AST* expr, AST* stmt, std::u16string source) :
+    AST(AST_STMT_DO_WHILE, source), expr_(expr), stmt_(stmt) {}
   ~DoWhile() {
-    delete cond_;
-    delete loop_block_;
+    delete expr_;
+    delete stmt_;
   }
 
+  AST* expr() { return expr_; }
+  AST* stmt() { return stmt_; }
+
  public:
-  AST* cond_;
-  AST* loop_block_;
+  AST* expr_;
+  AST* stmt_;
 };
 
 class Switch : public AST {

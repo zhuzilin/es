@@ -133,7 +133,6 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
 
   JSValue* GetBindingValue(Error* e, std::u16string N, bool S) override {
     bool value = HasBinding(N);
-    log::PrintSource("enter GetBindingValue ", N, std::string(" HasBinding: ") + (value ? "true" : "false"));
     if (!value) {
       if (S) {
         *e = *Error::ReferenceError();

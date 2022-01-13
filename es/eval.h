@@ -19,10 +19,13 @@ Completion EvalProgram(Error* e, AST* ast);
 
 Completion EvalStatement(Error* e, AST* ast);
 Completion EvalBlockStatement(Error* e, AST* ast);
-Completion EvalIfStatement(Error* e, AST* ast);
-Completion EvalReturnStatement(Error* e, AST* ast);
 Completion EvalVarStatement(Error* e, AST* ast);
-
+Completion EvalIfStatement(Error* e, AST* ast);
+Completion EvalDoWhileStatement(Error* e, AST* ast);
+Completion EvalWhileStatement(Error* e, AST* ast);
+Completion EvalContinueStatement(Error* e, AST* ast);
+Completion EvalBreakStatement(Error* e, AST* ast);
+Completion EvalReturnStatement(Error* e, AST* ast);
 Completion EvalExpressionStatement(Error* e, AST* ast);
 
 JSValue* EvalExpression(Error* e, AST* ast);
@@ -31,25 +34,27 @@ Reference* EvalIdentifier(AST* ast);
 Number* EvalNumber(AST* ast);
 String* EvalString(AST* ast);
 Object* EvalObject(Error* e, AST* ast);
-JSValue* EvalAssignmentExpression(Error* e, AST* ast);
-
 JSValue* EvalUnaryOperator(Error* e, AST* ast);
-
 JSValue* EvalBinaryExpression(Error* e, AST* ast);
-JSValue* EvalSimpleAssignment(Error* e, AST* lhs, AST* rhs);
-JSValue* EvalArithmeticOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
-JSValue* EvalAddOperator(Error* e, AST* lhs, AST* rhs);
-JSValue* EvalBitwiseShiftOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
-JSValue* EvalRelationalOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
-JSValue* EvalEqualityOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
-JSValue* EvalBitwiseOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
+JSValue* EvalBinaryExpression(Error* e, std::u16string op, AST* lval, AST* rval);
+JSValue* EvalBinaryExpression(Error* e, std::u16string op, JSValue* lval, JSValue* rval);
+JSValue* EvalArithmeticOperator(Error* e, std::u16string op, JSValue* lval, JSValue* rval);
+JSValue* EvalAddOperator(Error* e, JSValue* lval, JSValue* rval);
+JSValue* EvalBitwiseShiftOperator(Error* e, std::u16string op, JSValue* lval, JSValue* rval);
+JSValue* EvalRelationalOperator(Error* e, std::u16string op, JSValue* lval, JSValue* rval);
+JSValue* EvalEqualityOperator(Error* e, std::u16string op, JSValue* lval, JSValue* rval);
+JSValue* EvalBitwiseOperator(Error* e, std::u16string op, JSValue* lval, JSValue* rval);
 JSValue* EvalLogicalOperator(Error* e, std::u16string op, AST* lhs, AST* rhs);
-
+JSValue* EvalSimpleAssignment(Error* e, JSValue* lref, JSValue* rval);
+JSValue* EvalCompoundAssignment(Error* e, std::u16string op, JSValue* lref, JSValue* rval);
+JSValue* EvalTripleConditionExpression(Error* e, AST* ast);
+JSValue* EvalAssignmentExpression(Error* e, AST* ast);
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast);
 std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast);
 JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_list);
 JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, std::u16string identifier_name);
 JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, AST* expr);
+JSValue* EvalExpressionList(Error* e, AST* ast);
 
 Reference* IdentifierResolution(std::u16string name);
 
@@ -63,20 +68,20 @@ Completion EvalProgram(Error* e, AST* ast) {
     for (auto stmt : statements) {
       if (stmt->type() == AST::AST_STMT_RETURN) {
         *e = *Error::SyntaxError();
-        return Completion(Completion::THROW, new ErrorObject(e), nullptr);
+        return Completion(Completion::THROW, new ErrorObject(e), u"");
       }
     }
   }
 
   Completion head_result, tail_result;
   if (statements.size() == 0)
-    return Completion();
+    return Completion(Completion::NORMAL, nullptr, u"");
   for (auto stmt : prog->statements()) {
     if (head_result.IsAbruptCompletion())
       break;
     tail_result = EvalStatement(e, stmt);
     if (!e->IsOk())
-      return Completion(Completion::THROW, new ErrorObject(e), nullptr);
+      return Completion(Completion::THROW, new ErrorObject(e), u"");
     head_result = Completion(
       tail_result.type,
       tail_result.value == nullptr? head_result.value : tail_result.value,
@@ -90,14 +95,22 @@ Completion EvalStatement(Error* e, AST* ast) {
   switch(ast->type()) {
     case AST::AST_STMT_BLOCK:
       return EvalBlockStatement(e, ast);
-    case AST::AST_STMT_IF:
-      return EvalIfStatement(e, ast);
-    case AST::AST_STMT_RETURN:
-      return EvalReturnStatement(e, ast);
     case AST::AST_STMT_VAR:
       return EvalVarStatement(e, ast);
     case AST::AST_STMT_EMPTY:
-      return Completion();
+      return Completion(Completion::NORMAL, nullptr, u"");
+    case AST::AST_STMT_IF:
+      return EvalIfStatement(e, ast);
+    case AST::AST_STMT_DO_WHILE:
+      return EvalDoWhileStatement(e, ast);
+    case AST::AST_STMT_CONTINUE:
+      return EvalContinueStatement(e, ast);
+    case AST::AST_STMT_BREAK:
+      return EvalBreakStatement(e, ast);
+    case AST::AST_STMT_WHILE:
+      return EvalWhileStatement(e, ast);
+    case AST::AST_STMT_RETURN:
+      return EvalReturnStatement(e, ast);
     default:
       return EvalExpressionStatement(e, ast);
   }
@@ -110,8 +123,7 @@ Completion EvalBlockStatement(Error* e, AST* ast) {
   for (auto stmt : block->statements()) {
     Completion s = EvalStatement(e, stmt);
     if (!e->IsOk()) {
-      // TODO(zhuzilin) error object
-      return Completion(Completion::THROW, nullptr, nullptr);
+      return Completion(Completion::THROW, new ErrorObject(e), u"");
     }
     sl = Completion(s.type, s.value == nullptr ? sl.value : s.value, s.target);
     if (sl.IsAbruptCompletion())
@@ -120,37 +132,7 @@ Completion EvalBlockStatement(Error* e, AST* ast) {
   return sl;
 }
 
-Completion EvalIfStatement(Error* e, AST* ast) {
-  assert(ast->type() == AST::AST_STMT_IF);
-  If* if_stmt = static_cast<If*>(ast);
-  JSValue* expr_ref = EvalExpression(e, if_stmt->cond());
-  if (!e->IsOk())
-    return Completion(Completion::THROW, nullptr, nullptr);
-  JSValue* exp = GetValue(e, expr_ref);
-  if (!e->IsOk())
-    return Completion(Completion::THROW, nullptr, nullptr);
-
-  if (ToBoolean(exp)) {
-    return EvalStatement(e, if_stmt->if_block());
-  } else if (if_stmt->else_block() != nullptr){
-    return EvalStatement(e, if_stmt->else_block());
-  }
-  return Completion(Completion::NORMAL, nullptr, nullptr);
-}
-
-Completion EvalReturnStatement(Error* e, AST* ast) {
-  log::PrintSource("enter EvalReturnStatement: ", ast->source());
-  assert(ast->type() == AST::AST_STMT_RETURN);
-  Return* return_stmt = static_cast<Return*>(ast);
-  if (return_stmt->expr() == nullptr) {
-    return Completion(Completion::RETURN, Undefined::Instance(), nullptr);
-  }
-  auto exp_ref = EvalExpression(e, return_stmt->expr());
-  return Completion(Completion::RETURN, GetValue(e, exp_ref), nullptr);
-}
-
 Completion EvalVarStatement(Error* e, AST* ast) {
-  log::PrintSource("enter EvalVarStatement: ", ast->source());
   assert(ast->type() == AST::AST_STMT_VAR);
   VarStmt* var_stmt = static_cast<VarStmt*>(ast);
   for (VarDecl* decl : var_stmt->decls()) {
@@ -164,17 +146,150 @@ Completion EvalVarStatement(Error* e, AST* ast) {
     PutValue(e, lhs, value);
     if (!e->IsOk()) goto error;
   }
-  return Completion(Completion::NORMAL, nullptr, nullptr);
+  return Completion(Completion::NORMAL, nullptr, u"");
 error:
-  return Completion(Completion::THROW, new ErrorObject(e), nullptr);
+  return Completion(Completion::THROW, new ErrorObject(e), u"");
+}
+
+Completion EvalIfStatement(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_STMT_IF);
+  If* if_stmt = static_cast<If*>(ast);
+  JSValue* expr_ref = EvalExpression(e, if_stmt->cond());
+  if (!e->IsOk())
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  JSValue* exp = GetValue(e, expr_ref);
+  if (!e->IsOk())
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+
+  if (ToBoolean(exp)) {
+    return EvalStatement(e, if_stmt->if_block());
+  } else if (if_stmt->else_block() != nullptr){
+    return EvalStatement(e, if_stmt->else_block());
+  }
+  return Completion(Completion::NORMAL, nullptr, u"");
+}
+
+// 12.6.1 The do-while Statement
+Completion EvalDoWhileStatement(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_STMT_DO_WHILE);
+  ExecutionContextStack::TopContext()->EnterIteration();
+  DoWhile* loop_stmt = static_cast<DoWhile*>(ast);
+  JSValue* V = nullptr;
+  JSValue* expr_ref;
+  JSValue* val;
+  Completion stmt;
+  bool has_label;
+  while (true) {
+    stmt = EvalStatement(e, loop_stmt->stmt());
+    if (!e->IsOk()) goto error;
+    if (stmt.value != nullptr)  // 3.b
+      V = stmt.value;
+    has_label = ExecutionContextStack::TopContext()->HasLabel(stmt.target);
+    if (stmt.type != Completion::CONTINUE || !has_label) {
+      if (stmt.type == Completion::BREAK && has_label) {
+        ExecutionContextStack::TopContext()->ExitIteration();
+        return Completion(Completion::NORMAL, V, u"");
+      }
+      if (stmt.IsAbruptCompletion()) {
+        ExecutionContextStack::TopContext()->ExitIteration();
+        return stmt;
+      }
+    }
+
+    expr_ref = EvalExpression(e, loop_stmt->expr());
+    if (!e->IsOk()) goto error;
+    val = GetValue(e, expr_ref);
+    if (!e->IsOk()) goto error;
+    if (!ToBoolean(val))
+      break;
+  }
+  ExecutionContextStack::TopContext()->ExitIteration();
+  return Completion(Completion::NORMAL, V, u"");
+error:
+  ExecutionContextStack::TopContext()->ExitIteration();
+  return Completion(Completion::THROW, new ErrorObject(e), u"");
+}
+
+// 12.6.2 The while Statement
+Completion EvalWhileStatement(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_STMT_WHILE);
+  ExecutionContextStack::TopContext()->EnterIteration();
+  WhileOrWith* loop_stmt = static_cast<WhileOrWith*>(ast);
+  JSValue* V = nullptr;
+  JSValue* expr_ref;
+  JSValue* val;
+  Completion stmt;
+  bool has_label;
+  while (true) {
+    expr_ref = EvalExpression(e, loop_stmt->expr());
+    if (!e->IsOk()) goto error;
+    val = GetValue(e, expr_ref);
+    if (!e->IsOk()) goto error;
+    if (!ToBoolean(val))
+      break;
+
+    stmt = EvalStatement(e, loop_stmt->stmt());
+    if (!e->IsOk()) goto error;
+    if (stmt.value != nullptr)  // 3.b
+      V = stmt.value;
+    has_label = ExecutionContextStack::TopContext()->HasLabel(stmt.target);
+    if (stmt.type != Completion::CONTINUE || !has_label) {
+      if (stmt.type == Completion::BREAK && has_label) {
+        ExecutionContextStack::TopContext()->ExitIteration();
+        return Completion(Completion::NORMAL, V, u"");
+      }
+      if (stmt.IsAbruptCompletion()) {
+        ExecutionContextStack::TopContext()->ExitIteration();
+        return stmt;
+      }
+    }
+  }
+  ExecutionContextStack::TopContext()->ExitIteration();
+  return Completion(Completion::NORMAL, V, u"");
+error:
+  ExecutionContextStack::TopContext()->ExitIteration();
+  return Completion(Completion::THROW, new ErrorObject(e), u"");
+}
+
+Completion EvalContinueStatement(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_STMT_CONTINUE);
+  // TODO(zhuzilin) fix label
+  if (!ExecutionContextStack::TopContext()->InIteration()) {
+    e = Error::SyntaxError();
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  }
+  ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
+  return Completion(Completion::CONTINUE, nullptr, stmt->ident());
+}
+
+Completion EvalBreakStatement(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_STMT_BREAK);
+  // TODO(zhuzilin) fix label
+  if (!ExecutionContextStack::TopContext()->InIteration()) {
+    e = Error::SyntaxError();
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  }
+  ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
+  return Completion(Completion::BREAK, nullptr, stmt->ident());
+}
+
+Completion EvalReturnStatement(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_STMT_RETURN);
+  Return* return_stmt = static_cast<Return*>(ast);
+  if (return_stmt->expr() == nullptr) {
+    return Completion(Completion::RETURN, Undefined::Instance(), u"");
+  }
+  auto exp_ref = EvalExpression(e, return_stmt->expr());
+  return Completion(Completion::RETURN, GetValue(e, exp_ref), u"");
 }
 
 Completion EvalExpressionStatement(Error* e, AST* ast) {
   JSValue* val = EvalExpression(e, ast);
-  return Completion(Completion::NORMAL, val, nullptr);
+  return Completion(Completion::NORMAL, val, u"");
 }
 
 JSValue* EvalExpression(Error* e, AST* ast) {
+  assert(ast->type() <= AST::AST_EXPR || ast->type() == AST::AST_FUNC);
   JSValue* val;
   switch (ast->type()) {
     case AST::AST_EXPR_THIS:
@@ -193,9 +308,14 @@ JSValue* EvalExpression(Error* e, AST* ast) {
     case AST::AST_EXPR_BINARY:
       val = EvalBinaryExpression(e, ast);
       break;
+    case AST::AST_EXPR_TRIPLE:
+      val = EvalTripleConditionExpression(e, ast);
+      break;
     case AST::AST_EXPR_LHS:
       val = EvalLeftHandSideExpression(e, ast);
       break;
+    case AST::AST_EXPR:
+      val = EvalExpressionList(e, ast);
     case AST::AST_FUNC:
       val = EvalFunction(e, ast);
       break;
@@ -210,7 +330,7 @@ JSValue* EvalPrimaryExpression(Error* e, AST* ast) {
   JSValue* val;
   switch (ast->type()) {
     case AST::AST_EXPR_THIS:
-      val = ExecutionContextStack::Global()->Top().this_binding();
+      val = ExecutionContextStack::TopContext()->this_binding();
       break;
     case AST::AST_EXPR_IDENT:
       val = EvalIdentifier(ast);
@@ -241,10 +361,9 @@ JSValue* EvalPrimaryExpression(Error* e, AST* ast) {
 }
 
 Reference* IdentifierResolution(std::u16string name) {
-  log::PrintSource("enter IdentifierResolution ", name);
   // 10.3.1 Identifier Resolution
-  LexicalEnvironment* env = ExecutionContextStack::Global()->TopLexicalEnv();
-  bool strict = ExecutionContextStack::Global()->Top().strict();
+  LexicalEnvironment* env = ExecutionContextStack::TopLexicalEnv();
+  bool strict = ExecutionContextStack::TopContext()->strict();
   return env->GetIdentifierReference(name, strict);
 }
 
@@ -427,12 +546,11 @@ std::u16string EvalPropertyName(Error* e, Token token) {
 Object* EvalObject(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_OBJ);
   ObjectLiteral* obj_ast = static_cast<ObjectLiteral*>(ast);
-  bool strict = ExecutionContextStack::Global()->Top().strict();
+  bool strict = ExecutionContextStack::TopContext()->strict();
   Object* obj = new Object();
   // PropertyName : AssignmentExpression
   for (auto property : obj_ast->properties()) {
     std::u16string prop_name = EvalPropertyName(e, property.key);
-    log::PrintSource("EvalObject: adding property ", prop_name);
     PropertyDescriptor* desc = new PropertyDescriptor();
     switch (property.type) {
       case ObjectLiteral::Property::NORMAL: {
@@ -455,7 +573,7 @@ Object* EvalObject(Error* e, AST* ast) {
         }
         FunctionObject* closure = new FunctionObject(
           func_ast->params(), func_ast->body(),
-          ExecutionContextStack::Global()->TopLexicalEnv()
+          ExecutionContextStack::TopLexicalEnv()
         );
         if (property.type == ObjectLiteral::Property::GET) {
           desc->SetGet(closure);
@@ -502,6 +620,7 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
   JSValue* expr = EvalExpression(e, u->node());
   if (!e->IsOk()) return nullptr;
   std::u16string op = u->op().source();
+
   if (op == u"++" || op == u"--") {  // a++, ++a, a--, --a
     if (expr->IsReference()) {
       Reference* ref = static_cast<Reference*>(expr);
@@ -511,14 +630,22 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
         return nullptr;
       }
     }
-    JSValue* val = GetValue(e, expr);
+    JSValue* old_val = GetValue(e, expr);
     if (!e->IsOk()) return nullptr;
-    double num = ToNumber(e, val);
+    double num = ToNumber(e, old_val);
     if (!e->IsOk()) return nullptr;
+    JSValue* new_value;
     if (op == u"++") {
-      PutValue(e, expr, new Number(num++));
+      new_value = new Number(num++);
     } else {
-      PutValue(e, expr, new Number(num--));
+      new_value = new Number(num--);
+    }
+    PutValue(e, expr, new_value);
+    if (!e->IsOk()) return nullptr;
+    if (u->prefix()) {
+      return new_value;
+    } else {
+      return old_val;
     }
   } else if (op == u"delete") {  // 11.4.1 The delete Operator
     if (!expr->IsReference())  // 2
@@ -596,58 +723,32 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
 JSValue* EvalBinaryExpression(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_BINARY);
   Binary* b = static_cast<Binary*>(ast);
-  std::u16string op = b->op().source();
-  if (op == u"=") {
-    return EvalSimpleAssignment(e, b->lhs(), b->rhs());
-  } else if (op == u"*" || op == u"/" || op == u"%" || op == u"-") {
-    return EvalArithmeticOperator(e, op, b->lhs(), b->rhs());
-  } else if (op == u"+") {
-    return EvalAddOperator(e, b->lhs(), b->rhs());
-  } else if (op == u"<<" || op == u">>" || op == u">>>") {
-    return EvalBitwiseShiftOperator(e, op, b->lhs(), b->rhs());
-  } else if (op == u"<" || op == u">" || op == u"<=" || op == u">=" ||
-             op == u"instanceof" || op == u"in") {
-    return EvalRelationalOperator(e, op, b->lhs(), b->rhs());
-  } else if (op == u"==" || op == u"!=" || op == u"===" || op == u"!==") {
-    return EvalEqualityOperator(e, op, b->lhs(), b->rhs());
-  } else if (op == u"&" || op == u"^" || op == u"|") {
-    return EvalBitwiseOperator(e, op, b->lhs(), b->rhs());
-  } else if (op == u"&&" || op == u"||") {
-    return EvalLogicalOperator(e, op, b->lhs(), b->rhs());
-  }
-  assert(false);
+  return EvalBinaryExpression(e, b->op(), b->lhs(), b->rhs());
 }
 
-// 11.13.1 Simple Assignment ( = )
-JSValue* EvalSimpleAssignment(Error* e, AST* lhs, AST* rhs) {
-  JSValue* lref = EvalLeftHandSideExpression(e, lhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rref = EvalExpression(e, rhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rval = GetValue(e, rref);
-  if (!e->IsOk()) return nullptr;
-  if (lref->type() == JSValue::JS_REF) {
-    Reference* ref = static_cast<Reference*>(lref);
-    // NOTE in 11.13.1.
-    // TODO(zhuzilin) not sure how to implement the type error part of the note.
-    if (ref->IsStrictReference() && ref->IsUnresolvableReference()) {
-      *e = *Error::ReferenceError();
-      return nullptr;
-    }
-    if (ref->IsStrictReference() && ref->GetBase()->type() == JSValue::JS_ENV_REC &&
-        (ref->GetReferencedName() == u"eval" || ref->GetReferencedName() == u"arguments")) {
-      *e = *Error::SyntaxError();
-      return nullptr;
+JSValue* EvalBinaryExpression(Error* e, std::u16string op, AST* lhs, AST* rhs) {
+  // && and || are different, as there are not &&= and ||=
+  if (op == u"&&" || op == u"||") {
+    return EvalLogicalOperator(e, op, lhs, rhs);
+  }
+  if (op == u"=" || op == u"*=" || op == u"/=" || op == u"%=" ||
+      op == u"+=" || op == u"-=" || op == u"<<=" || op == u">>=" ||
+      op == u">>>=" || op == u"&=" || op == u"^=" || op == u"|=") {
+    JSValue* lref = EvalLeftHandSideExpression(e, lhs);
+    if (!e->IsOk()) return nullptr;
+    // TODO(zhuzilin) The compound assignment should do lval = GetValue(lref)
+    // here. Check if changing the order will have any influence.
+    JSValue* rref = EvalExpression(e, rhs);
+    if (!e->IsOk()) return nullptr;
+    JSValue* rval = GetValue(e, rref);
+    if (!e->IsOk()) return nullptr;
+    if (op == u"=") {
+      return EvalSimpleAssignment(e, lref, rval);
+    } else {
+      return EvalCompoundAssignment(e, op, lref, rval);
     }
   }
-  PutValue(e, lref, rval);
-  if (!e->IsOk())
-    return nullptr;
-  return rval;
-}
 
-// 11.5 Multiplicative Operators
-JSValue* EvalArithmeticOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
   JSValue* lref = EvalExpression(e, lhs);
   if (!e->IsOk()) return nullptr;
   JSValue* lval = GetValue(e, lref);
@@ -656,6 +757,29 @@ JSValue* EvalArithmeticOperator(Error* e, std::u16string op, AST* lhs, AST* rhs)
   if (!e->IsOk()) return nullptr;
   JSValue* rval = GetValue(e, rref);
   if (!e->IsOk()) return nullptr;
+  return EvalBinaryExpression(e, op, lval, rval);
+}
+
+JSValue* EvalBinaryExpression(Error* e, std::u16string op, JSValue* lval, JSValue* rval) {
+  if (op == u"*" || op == u"/" || op == u"%" || op == u"-") {
+    return EvalArithmeticOperator(e, op, lval, rval);
+  } else if (op == u"+") {
+    return EvalAddOperator(e, lval, rval);
+  } else if (op == u"<<" || op == u">>" || op == u">>>") {
+    return EvalBitwiseShiftOperator(e, op, lval, rval);
+  } else if (op == u"<" || op == u">" || op == u"<=" || op == u">=" ||
+             op == u"instanceof" || op == u"in") {
+    return EvalRelationalOperator(e, op, lval, rval);
+  } else if (op == u"==" || op == u"!=" || op == u"===" || op == u"!==") {
+    return EvalEqualityOperator(e, op, lval, rval);
+  } else if (op == u"&" || op == u"^" || op == u"|") {
+    return EvalBitwiseOperator(e, op, lval, rval);
+  }
+  assert(false);
+}
+
+// 11.5 Multiplicative Operators
+JSValue* EvalArithmeticOperator(Error* e, std::u16string op, JSValue* lval, JSValue* rval) {
   double lnum = ToNumber(e, lval);
   if (!e->IsOk()) return nullptr;
   double rnum = ToNumber(e, rval);
@@ -675,15 +799,7 @@ JSValue* EvalArithmeticOperator(Error* e, std::u16string op, AST* lhs, AST* rhs)
 }
 
 // 11.6 Additive Operators
-JSValue* EvalAddOperator(Error* e, AST* lhs, AST* rhs) {
-  JSValue* lref = EvalExpression(e, lhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* lval = GetValue(e, lref);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rref = EvalExpression(e, rhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rval = GetValue(e, rref);
-  if (!e->IsOk()) return nullptr;
+JSValue* EvalAddOperator(Error* e, JSValue* lval, JSValue* rval) {
   JSValue* lprim = ToPrimitive(e, lval, u"");
   if (!e->IsOk()) return nullptr;
   JSValue* rprim = ToPrimitive(e, rval, u"");
@@ -697,19 +813,11 @@ JSValue* EvalAddOperator(Error* e, AST* lhs, AST* rhs) {
   if (!e->IsOk()) return nullptr;
   double rnum = ToNumber(e, rprim);
   if (!e->IsOk()) return nullptr;
-
   return new Number(lnum + rnum);
 }
 
 // 11.7 Bitwise Shift Operators
-JSValue* EvalBitwiseShiftOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
-  JSValue* lref = EvalExpression(e, lhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* lval = GetValue(e, lref);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rref = EvalExpression(e, rhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rval = GetValue(e, rref);
+JSValue* EvalBitwiseShiftOperator(Error* e, std::u16string op, JSValue* lval, JSValue* rval) {
   int32_t lnum = ToInt32(e, lval);
   if (!e->IsOk()) return nullptr;
   uint32_t rnum = ToUint32(e, rval);
@@ -727,15 +835,7 @@ JSValue* EvalBitwiseShiftOperator(Error* e, std::u16string op, AST* lhs, AST* rh
 }
 
 // 11.8 Relational Operators
-JSValue* EvalRelationalOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
-  JSValue* lref = EvalExpression(e, lhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* lval = GetValue(e, lref);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rref = EvalExpression(e, rhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rval = GetValue(e, rref);
-  if (!e->IsOk()) return nullptr;
+JSValue* EvalRelationalOperator(Error* e, std::u16string op, JSValue* lval, JSValue* rval) {
   if (op == u"<") {
     JSValue* r = LessThan(e, lval, rval);
     if (!e->IsOk()) return nullptr;
@@ -779,15 +879,7 @@ JSValue* EvalRelationalOperator(Error* e, std::u16string op, AST* lhs, AST* rhs)
 }
 
 // 11.9 Equality Operators
-JSValue* EvalEqualityOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
-  JSValue* lref = EvalExpression(e, lhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* lval = GetValue(e, lref);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rref = EvalExpression(e, rhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rval = GetValue(e, rref);
-  if (!e->IsOk()) return nullptr;
+JSValue* EvalEqualityOperator(Error* e, std::u16string op, JSValue* lval, JSValue* rval) {
   if (op == u"==") {
     return Bool::Wrap(Equal(e, lval, rval));
   } else if (op == u"!=") {
@@ -801,15 +893,7 @@ JSValue* EvalEqualityOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
 }
 
 // 11.10 Binary Bitwise Operators
-JSValue* EvalBitwiseOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
-  JSValue* lref = EvalExpression(e, lhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* lval = GetValue(e, lref);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rref = EvalExpression(e, rhs);
-  if (!e->IsOk()) return nullptr;
-  JSValue* rval = GetValue(e, rref);
-  if (!e->IsOk()) return nullptr;
+JSValue* EvalBitwiseOperator(Error* e, std::u16string op, JSValue* lval, JSValue* rval) {
   int32_t lnum = ToInt32(e, lval);
   if (!e->IsOk()) return nullptr;
   int32_t rnum = ToInt32(e, rval);
@@ -839,6 +923,57 @@ JSValue* EvalLogicalOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
   JSValue* rval = GetValue(e, rref);
   if (!e->IsOk()) return nullptr;
   return rval;
+}
+
+// 11.13.1 Simple Assignment ( = )
+JSValue* EvalSimpleAssignment(Error* e, JSValue* lref, JSValue* rval) {
+  if (lref->type() == JSValue::JS_REF) {
+    Reference* ref = static_cast<Reference*>(lref);
+    // NOTE in 11.13.1.
+    // TODO(zhuzilin) not sure how to implement the type error part of the note.
+    if (ref->IsStrictReference() && ref->IsUnresolvableReference()) {
+      *e = *Error::ReferenceError();
+      return nullptr;
+    }
+    if (ref->IsStrictReference() && ref->GetBase()->type() == JSValue::JS_ENV_REC &&
+        (ref->GetReferencedName() == u"eval" || ref->GetReferencedName() == u"arguments")) {
+      *e = *Error::SyntaxError();
+      return nullptr;
+    }
+  }
+  PutValue(e, lref, rval);
+  if (!e->IsOk())
+    return nullptr;
+  return rval;
+}
+
+// 11.13.2 Compound Assignment ( op= )
+JSValue* EvalCompoundAssignment(Error* e, std::u16string op, JSValue* lref, JSValue* rval) {
+  std::u16string calc_op = op.substr(0, op.size() - 1);
+  JSValue* lval = GetValue(e, lref);
+  if (!e->IsOk()) return nullptr;
+  JSValue* r = EvalBinaryExpression(e, calc_op, lval, rval);
+  if (!e->IsOk()) return nullptr;
+  return EvalSimpleAssignment(e, lref, r);
+}
+
+// 11.12 Conditional Operator ( ? : )
+JSValue* EvalTripleConditionExpression(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_EXPR_TRIPLE);
+  TripleCondition* t = static_cast<TripleCondition*>(ast);
+  JSValue* lref = EvalExpression(e, t->cond());
+  if (!e->IsOk()) return nullptr;
+  JSValue* lval = GetValue(e, lref);
+  if (!e->IsOk()) return nullptr;
+  if (ToBoolean(lval)) {
+    JSValue* true_ref = EvalAssignmentExpression(e, t->true_expr());
+    if (!e->IsOk()) return nullptr;
+    return GetValue(e, true_ref);
+  } else {
+    JSValue* false_ref = EvalAssignmentExpression(e, t->false_expr());
+    if (!e->IsOk()) return nullptr;
+    return GetValue(e, false_ref);
+  }
 }
 
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
@@ -919,7 +1054,6 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
 }
 
 std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast) {
-  log::PrintSource("enter EvalArgumentsList");
   std::vector<JSValue*> arg_list;
   for (AST* ast : ast->args()) {
     JSValue* ref = EvalExpression(e, ast);
@@ -935,7 +1069,6 @@ std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast) {
 
 // 11.2.3
 JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_list) {
-  log::PrintSource("enter EvalCallExpression");
   JSValue* val = GetValue(e, ref);
   if (!e->IsOk())
     return nullptr;
@@ -973,7 +1106,7 @@ JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, std::u16string identif
   base_value->CheckObjectCoercible(e);
   if (!e->IsOk())
     return nullptr;
-  bool strict = ExecutionContextStack::Global()->Top().strict();
+  bool strict = ExecutionContextStack::TopContext()->strict();
   return new Reference(base_value, identifier_name, strict);
 }
 
@@ -988,6 +1121,20 @@ JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, AST* expr) {
   if (!e->IsOk())
     return nullptr;
   return EvalIndexExpression(e, base_ref, property_name_str);
+}
+
+JSValue* EvalExpressionList(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_EXPR);
+  Expression* exprs = static_cast<Expression*>(ast);
+  assert(exprs->elements().size() > 0);
+  JSValue* val;
+  for (AST* expr : exprs->elements()) {
+    JSValue* ref = EvalAssignmentExpression(e, expr);
+    if (!e->IsOk()) return nullptr;
+    val = GetValue(e, ref);
+    if (!e->IsOk()) return nullptr;
+  }
+  return val;
 }
 
 }  // namespace es

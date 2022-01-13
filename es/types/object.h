@@ -137,7 +137,6 @@ class JSObject : public JSValue {
 
 // 8.12.1 [[GetOwnProperty]] (P)
 JSValue* JSObject::GetOwnProperty(std::u16string P) {
-  log::PrintSource("enter GetOwnProperty ", P, " of " + this->ToString());
   // TODO(zhuzilin) String Object has a more elaborate impl 15.5.5.2.
   auto iter = named_properties_.find(P);
   if (iter == named_properties_.end()) {
@@ -184,7 +183,6 @@ JSValue* JSObject::Get(Error* e, std::u16string P) {
 }
 
 bool JSObject::CanPut(std::u16string P) {
-  log::PrintSource("enter CanPut ", P);
   JSValue* value = GetOwnProperty(P);
   if (!value->IsUndefined()) {
     PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(value);
@@ -251,7 +249,6 @@ void JSObject::Put(Error* e, std::u16string P, JSValue* V, bool throw_flag) {
 
 bool JSObject::HasProperty(std::u16string P) {
   JSValue* desc = GetOwnProperty(P);
-  log::PrintSource("HasProperty ", P, " " + desc->ToString());
   return !desc->IsUndefined();
 }
 
@@ -340,7 +337,6 @@ bool JSObject::DefineOwnProperty(
       same = same && (desc->Enumerable() == current_desc->Enumerable());
     if (same) return true;  // 6
   }
-  log::PrintSource("DefineOwnProperty: ", P, " not same");
   std::cout << "desc: " << desc->ToString() << ", current: " << current_desc->ToString() << std::endl;
   if (!current_desc->Configurable()) { // 7
     if (desc->Configurable()) {  // 7.a

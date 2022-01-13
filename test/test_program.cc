@@ -48,6 +48,22 @@ TEST(TestProgram, SimpleAssign1) {
   }
 }
 
+TEST(TestProgram, CompoundAssign0) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(u"a = 1; a+=1; a");
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(JSValue::JS_REF, res.value->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(2, num->data());
+    EXPECT_EQ(true, e->IsOk());
+  }
+}
+
 TEST(TestProgram, Call0) {
   Init();
   {
@@ -279,5 +295,143 @@ TEST(TestProgram, Var0) {
     Reference* ref = static_cast<Reference*>(res.value);
     Number* num = static_cast<Number*>(GetValue(e, ref));
     EXPECT_EQ(147, num->data());
+  }
+}
+
+TEST(TestProgram, While0) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"'use strict';\n"
+      u"var a = 1, n = 5\n"
+      u"while (a < n) {\n"
+      u" a *= 2\n"
+      u"}\n"
+      u"a"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(8, num->data());
+  }
+}
+
+TEST(TestProgram, While1) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"'use strict';\n"
+      u"var a = 1, n = 5\n"
+      u"while (a < n) {\n"
+      u" if (a % 2 == 0) break\n"
+      u" a *= 2\n"
+      u"}\n"
+      u"a"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(2, num->data());
+  }
+}
+
+TEST(TestProgram, While2) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"'use strict';\n"
+      u"var a = 0, n = 4, sum = 0\n"
+      u"while (a < n) {\n"
+      u" a += 1\n"
+      u" if (a == 2) continue\n"
+      u" sum += a\n"
+      u"}\n"
+      u"sum"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(8, num->data());
+  }
+}
+
+TEST(TestProgram, DoWhile0) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"'use strict';\n"
+      u"var a = 10, n = 5\n"
+      u"do {\n"
+      u" a *= 2\n"
+      u"} while (a < n)\n"
+      u"a"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(20, num->data());
+  }
+}
+
+TEST(TestProgram, DoWhile1) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"'use strict';\n"
+      u"var a = 1, n = 5\n"
+      u"do {\n"
+      u" if (a % 2 == 0) break\n"
+      u" a *= 2\n"
+      u"} while (a < n);\n"
+      u"a"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(2, num->data());
+  }
+}
+
+TEST(TestProgram, DoWhile2) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"'use strict';\n"
+      u"var a = 0, n = 4, sum = 0\n"
+      u"do {"
+      u" a += 1\n"
+      u" if (a == 2) continue\n"
+      u" sum += a\n"
+      u"} while (a < n)\n"
+      u"sum"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(8, num->data());
   }
 }
