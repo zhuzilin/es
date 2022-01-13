@@ -111,6 +111,8 @@ Completion EvalStatement(Error* e, AST* ast) {
       return EvalWhileStatement(e, ast);
     case AST::AST_STMT_RETURN:
       return EvalReturnStatement(e, ast);
+    case AST::AST_STMT_DEBUG:
+      return Completion(Completion::NORMAL, nullptr, u"");
     default:
       return EvalExpressionStatement(e, ast);
   }
