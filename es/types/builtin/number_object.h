@@ -5,37 +5,11 @@
 
 namespace es {
 
-class NumberConstructor : public JSObject {
- public:
-  static  NumberConstructor* Instance() {
-    static  NumberConstructor singleton;
-    return &singleton;
-  }
-
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
-    return Construct(e, arguments);
-  }
-
-  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
-    return nullptr;
-  }
-
- private:
-   NumberConstructor() :
-    JSObject(
-      OBJ_OTHER, u"Number", true, nullptr, true, true
-    ) {}
-};
-
 class NumberProto : public JSObject {
  public:
   static  NumberProto* Instance() {
     static  NumberProto singleton;
     return &singleton;
-  }
-
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
-    return Undefined::Instance();
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -65,7 +39,7 @@ class NumberProto : public JSObject {
  private:
    NumberProto() :
     JSObject(
-      OBJ_OTHER, u"Number", true, Number::Zero(), false, true
+      OBJ_OTHER, u"Number", true, Number::Zero(), false, false
     ) {}
 };
 
@@ -82,6 +56,28 @@ class NumberObject : public JSObject {
     ) {
     SetPrototype(NumberProto::Instance());
   }
+};
+
+class NumberConstructor : public JSObject {
+ public:
+  static  NumberConstructor* Instance() {
+    static  NumberConstructor singleton;
+    return &singleton;
+  }
+
+  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
+    return Construct(e, arguments);
+  }
+
+  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
+    return nullptr;
+  }
+
+ private:
+   NumberConstructor() :
+    JSObject(
+      OBJ_OTHER, u"Number", true, nullptr, true, true
+    ) {}
 };
 
 }  // namespace es

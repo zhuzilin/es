@@ -130,6 +130,11 @@ class String : public JSValue {
   String(std::u16string data) : JSValue(JS_STRING), data_(data) {}
   std::u16string data() { return data_; }
 
+  static String* Empty() {
+    static String singleton(u"");
+    return &singleton;
+  }
+
   static String* Undefined() {
     static String singleton(u"undefined");
     return &singleton;

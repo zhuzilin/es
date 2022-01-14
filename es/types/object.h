@@ -61,9 +61,10 @@ class JSObject : public JSValue {
   }
   std::u16string Class() { return class_; };
   bool Extensible() { return extensible_; };
+  void SetExtensible(bool extensible) { extensible_ = extensible; }
 
   virtual JSValue* Get(Error* e, std::u16string P);
-  JSValue* GetOwnProperty(std::u16string P);
+  virtual JSValue* GetOwnProperty(std::u16string P);
   JSValue* GetProperty(std::u16string P);
   void Put(Error* e, std::u16string P, JSValue* V, bool throw_flag);
   bool CanPut(std::u16string P);

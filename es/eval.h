@@ -804,7 +804,7 @@ String* EvalString(std::u16string source) {
     }
   }
   if (vals.size() == 0) {
-    return new String(u"");
+    return String::Empty();
   } else if (vals.size() == 1) {
     return new String(vals[0]);
   }

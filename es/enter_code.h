@@ -8,6 +8,7 @@
 #include <es/types/builtin/number_object.h>
 #include <es/types/builtin/error_object.h>
 #include <es/types/builtin/bool_object.h>
+#include <es/types/builtin/string_object.h>
 #include <es/execution_context.h>
 
 namespace es {
@@ -228,6 +229,7 @@ void InitGlobalObject() {
   global_obj->AddValueProperty(u"Number", NumberConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Error", ErrorConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Boolean", BoolConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"String", StringConstructor::Instance(), true, false, true);
 
   global_obj->AddFuncProperty(u"log", logger, true, false, true);
 }
@@ -307,31 +309,64 @@ void InitNumber() {
 void InitError() {
   ErrorConstructor* constructor = ErrorConstructor::Instance();
   constructor->SetPrototype(FunctionProto::Instance());
-  // 15.3.3 Properties of the Function Constructor
+  // 15.11.3 Properties of the Error Constructor
   constructor->AddValueProperty(u"prototype", ErrorProto::Instance(), false, false, false);
   constructor->AddValueProperty(u"length", Number::One(), false, false, false);
 
   ErrorProto* proto = ErrorProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
-  // 15.2.4 Properties of the Function Prototype Function
+  // 15.11.4 Properties of the Error Prototype Object
   proto->AddValueProperty(u"constructor", ErrorConstructor::Instance(), false, false, false);
   proto->AddValueProperty(u"name", new String(u"Error"), false, false, false);
-  proto->AddValueProperty(u"message", new String(u""), true, false, false);
+  proto->AddValueProperty(u"message", String::Empty(), true, false, false);
   proto->AddFuncProperty(u"call", ErrorProto::toString, false, false, false);
 }
 
 void InitBool() {
   BoolConstructor* constructor = BoolConstructor::Instance();
   constructor->SetPrototype(FunctionProto::Instance());
-  // 15.3.3 Properties of the Bool Constructor
+  // 15.6.3 Properties of the Boolean Constructor
   constructor->AddValueProperty(u"prototype", BoolProto::Instance(), false, false, false);
 
   BoolProto* proto = BoolProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
-  // 15.2.4 Properties of the Bool Prototype Bool
+  // 15.6.4 Properties of the Boolean Prototype Object
   proto->AddValueProperty(u"constructor", BoolConstructor::Instance(), false, false, false);
   proto->AddFuncProperty(u"toString", BoolProto::toString, false, false, false);
   proto->AddFuncProperty(u"valueOf", BoolProto::valueOf, false, false, false);
+}
+
+void InitString() {
+  StringConstructor* constructor = StringConstructor::Instance();
+  constructor->SetPrototype(FunctionProto::Instance());
+  // 15.3.3 Properties of the String Constructor
+  constructor->AddValueProperty(u"prototype", StringProto::Instance(), false, false, false);
+  constructor->AddValueProperty(u"length", Number::One(), false, false, false);
+  constructor->AddFuncProperty(u"fromCharCode", StringConstructor::fromCharCode, false, false, false);
+
+  StringProto* proto = StringProto::Instance();
+  proto->SetPrototype(ObjectProto::Instance());
+  // 15.2.4 Properties of the String Prototype String
+  proto->AddValueProperty(u"constructor", StringConstructor::Instance(), false, false, false);
+  proto->AddFuncProperty(u"toString", StringProto::toString, false, false, false);
+  proto->AddFuncProperty(u"valueOf", StringProto::valueOf, false, false, false);
+  proto->AddFuncProperty(u"charAt", StringProto::charAt, false, false, false);
+  proto->AddFuncProperty(u"charCodeAt", StringProto::charCodeAt, false, false, false);
+  proto->AddFuncProperty(u"concat", StringProto::concat, false, false, false);
+  proto->AddFuncProperty(u"valueOf", StringProto::indexOf, false, false, false);
+  proto->AddFuncProperty(u"charAt", StringProto::lastIndexOf, false, false, false);
+  proto->AddFuncProperty(u"charCodeAt", StringProto::localeCompare, false, false, false);
+  proto->AddFuncProperty(u"concat", StringProto::match, false, false, false);
+  proto->AddFuncProperty(u"charAt", StringProto::replace, false, false, false);
+  proto->AddFuncProperty(u"charCodeAt", StringProto::search, false, false, false);
+  proto->AddFuncProperty(u"concat", StringProto::slice, false, false, false);
+  proto->AddFuncProperty(u"charAt", StringProto::split, false, false, false);
+  proto->AddFuncProperty(u"charCodeAt", StringProto::substring, false, false, false);
+  proto->AddFuncProperty(u"concat", StringProto::toLowerCase, false, false, false);
+  proto->AddFuncProperty(u"concat", StringProto::toLocaleLowerCase, false, false, false);
+  proto->AddFuncProperty(u"concat", StringProto::toUpperCase, false, false, false);
+  proto->AddFuncProperty(u"concat", StringProto::toLocaleUpperCase, false, false, false);
+  proto->AddFuncProperty(u"concat", StringProto::trim, false, false, false);
 }
 
 void Init() {
@@ -341,6 +376,7 @@ void Init() {
   InitNumber();
   InitError();
   InitBool();
+  InitString();
 }
 
 }  // namespace es

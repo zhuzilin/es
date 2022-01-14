@@ -7,6 +7,7 @@
 #include <es/types/object.h>
 #include <es/types/builtin/number_object.h>
 #include <es/types/builtin/bool_object.h>
+#include <es/types/builtin/string_object.h>
 #include <es/error.h>
 
 namespace es {
@@ -270,7 +271,7 @@ JSObject* ToObject(Error* e, JSValue* input) {
     case JSValue::JS_NUMBER:
       return new NumberObject(input);
     case JSValue::JS_STRING:
-      assert(false);
+      return new StringObject(input);
     case JSValue::JS_OBJECT:
       return static_cast<JSObject*>(input);
     default:

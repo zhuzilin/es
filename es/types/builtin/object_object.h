@@ -128,7 +128,12 @@ class ObjectConstructor : public JSObject {
   }
 
   static JSValue* preventExtensions(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    if (vals.size() == 0 || !vals[0]->IsObject()) {
+      *e = *Error::TypeError(u"Input of Object.preventExtensions is not Object.");
+    }
+    JSObject* obj = static_cast<JSObject*>(vals[0]);
+    obj->SetExtensible(false);
+    return obj;
   }
 
   static JSValue* isSealed(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
