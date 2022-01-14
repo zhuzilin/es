@@ -38,34 +38,34 @@ class NumberProto : public JSObject {
     return Undefined::Instance();
   }
 
-  static JSValue* toString(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* toLocaleString(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* toLocaleString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* valueOf(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* toFixed(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* toFixed(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* toExponential(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* toExponential(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* toPrecision(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* toPrecision(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
  private:
    NumberProto() :
     JSObject(
-      OBJ_OTHER, u"Number", true, nullptr, false, true
+      OBJ_OTHER, u"Number", true, Number::Zero(), false, true
     ) {}
 };
 

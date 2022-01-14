@@ -14,27 +14,27 @@ class GlobalObject : public JSObject {
   }
 
   // 15.1.2.1 eval(X)
-  static JSValue* eval(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* eval(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
   // 15.1.2.2 parseInt (string , radix)
-  static JSValue* parseInt(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* parseInt(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
   // 15.1.2.3 parseFloat (string)
-  static JSValue* parseFloat(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* parseFloat(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
   // 15.1.2.4 isNaN (number)
-  static JSValue* isNaN(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* isNaN(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
   // 15.1.2.5 isFinite (number)
-  static JSValue* isFinite(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* isFinite(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
@@ -57,7 +57,7 @@ class GlobalObject : public JSObject {
     ) {}
 };
 
-JSValue* logger(Error* e, std::vector<JSValue*> vals) {
+JSValue* logger(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
   std::cout << "[LOG] ";
   for (auto val : vals) {
     std::cout << val->ToString() << " ";

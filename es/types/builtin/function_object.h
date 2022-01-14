@@ -21,19 +21,19 @@ class FunctionProto : public JSObject {
     return Undefined::Instance();
   }
 
-  static JSValue* toString(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* apply(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* apply(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* call(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* call(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* bind(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* bind(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
@@ -92,10 +92,12 @@ class FunctionObject : public JSObject {
     switch (comp.type) {
       case Completion::RETURN:
         return comp.value;
-      case Completion::THROW:
-        // TODO(zhuzilin) prevent nested ErrorObject.
-        *e = *Error::NativeError(comp.value);
+      case Completion::THROW: {
+        std::u16string message = ::es::ToString(e, comp.value);
+        if (!e->IsOk()) return nullptr;
+        *e = *Error::NativeError(message);
         return nullptr;
+      }
       default:
         assert(comp.type == Completion::NORMAL);
         return Undefined::Instance();

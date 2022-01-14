@@ -609,7 +609,6 @@ JSValue* EvalExpression(Error* e, AST* ast) {
       assert(false);
   }
   if (!e->IsOk()) return nullptr;
-  log::PrintSource("expression ", ast->source(), ": " + val->ToString());
   return val;
 }
 
@@ -644,6 +643,7 @@ JSValue* EvalPrimaryExpression(Error* e, AST* ast) {
       std::cout << ast->type() << " " << AST::AST_ILLEGAL << std::endl;
       assert(false);
   }
+  log::PrintSource("expression ", ast->source(), ": " + val->ToString());
   return val;
 }
 

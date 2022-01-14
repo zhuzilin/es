@@ -7,6 +7,7 @@
 #include <es/types/builtin/function_object.h>
 #include <es/types/builtin/number_object.h>
 #include <es/types/builtin/error_object.h>
+#include <es/types/builtin/bool_object.h>
 #include <es/execution_context.h>
 
 namespace es {
@@ -225,6 +226,8 @@ void InitGlobalObject() {
   global_obj->AddValueProperty(u"Object", ObjectConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Function", FunctionConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Number", NumberConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"Error", ErrorConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"Boolean", BoolConstructor::Instance(), true, false, true);
 
   global_obj->AddFuncProperty(u"log", logger, true, false, true);
 }
@@ -313,7 +316,22 @@ void InitError() {
   // 15.2.4 Properties of the Function Prototype Function
   proto->AddValueProperty(u"constructor", ErrorConstructor::Instance(), false, false, false);
   proto->AddValueProperty(u"name", new String(u"Error"), false, false, false);
+  proto->AddValueProperty(u"message", new String(u""), true, false, false);
   proto->AddFuncProperty(u"call", ErrorProto::toString, false, false, false);
+}
+
+void InitBool() {
+  BoolConstructor* constructor = BoolConstructor::Instance();
+  constructor->SetPrototype(FunctionProto::Instance());
+  // 15.3.3 Properties of the Bool Constructor
+  constructor->AddValueProperty(u"prototype", BoolProto::Instance(), false, false, false);
+
+  BoolProto* proto = BoolProto::Instance();
+  proto->SetPrototype(ObjectProto::Instance());
+  // 15.2.4 Properties of the Bool Prototype Bool
+  proto->AddValueProperty(u"constructor", BoolConstructor::Instance(), false, false, false);
+  proto->AddFuncProperty(u"toString", BoolProto::toString, false, false, false);
+  proto->AddFuncProperty(u"valueOf", BoolProto::valueOf, false, false, false);
 }
 
 void Init() {
@@ -322,6 +340,7 @@ void Init() {
   InitFunction();
   InitNumber();
   InitError();
+  InitBool();
 }
 
 }  // namespace es

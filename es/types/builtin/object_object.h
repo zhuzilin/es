@@ -13,27 +13,27 @@ class ObjectProto : public JSObject {
     return &singleton;
   }
 
-  static JSValue* toString(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* toLocaleString(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* toLocaleString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* valueOf(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* hasOwnProperty(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* hasOwnProperty(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* isPrototypeOf(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* isPrototypeOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* propertyIsEnumerable(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* propertyIsEnumerable(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
@@ -90,7 +90,7 @@ class ObjectConstructor : public JSObject {
   }
 
   // 15.2.3.2 Object.getPrototypeOf ( O )
-  static JSValue* getPrototypeOf(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* getPrototypeOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     if (vals.size() < 1 || !vals[0]->IsObject()) {
       *e = *Error::TypeError();
       return nullptr;
@@ -99,51 +99,56 @@ class ObjectConstructor : public JSObject {
   }
 
   // 15.2.3.3 Object.getOwnPropertyDescriptor ( O, P )
-  static JSValue* getOwnPropertyDescriptor(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* getOwnPropertyDescriptor(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* getOwnPropertyNames(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* getOwnPropertyNames(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* create(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* create(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* defineProperty(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* defineProperty(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* defineProperties(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* defineProperties(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* seal(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* seal(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* freeze(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* freeze(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* preventExtensions(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* preventExtensions(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* isSealed(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* isSealed(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* isFrozen(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* isFrozen(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* isExtensible(Error* e, std::vector<JSValue*> vals) {
-    assert(false);
+  static JSValue* isExtensible(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+    if (vals.size() < 1 || !vals[0]->IsObject()) {
+      *e = *Error::TypeError(u"Input of Object.isExtensible is not Object.");
+      return nullptr;
+    }
+    JSObject* obj = static_cast<JSObject*>(vals[0]);
+    return Bool::Wrap(obj->Extensible());
   }
 
-  static JSValue* keys(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* keys(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 

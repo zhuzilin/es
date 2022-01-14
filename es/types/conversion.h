@@ -6,6 +6,7 @@
 #include <es/types/base.h>
 #include <es/types/object.h>
 #include <es/types/builtin/number_object.h>
+#include <es/types/builtin/bool_object.h>
 #include <es/error.h>
 
 namespace es {
@@ -265,7 +266,7 @@ JSObject* ToObject(Error* e, JSValue* input) {
       *e = *Error::TypeError();
       return nullptr;
     case JSValue::JS_BOOL:
-      assert(false);
+      return new BoolObject(input);
     case JSValue::JS_NUMBER:
       return new NumberObject(input);
     case JSValue::JS_STRING:

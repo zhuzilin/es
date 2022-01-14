@@ -41,37 +41,34 @@ class Error {
     return new Error(E_SYNTAX);
   }
 
-  static Error* TypeError() {
-    return new Error(E_TYPE);
+  static Error* TypeError(std::u16string message = u"") {
+    return new Error(E_TYPE, message);
   }
 
   static Error* UriError() {
     return new Error(E_URI);
   }
 
-  static Error* NativeError(JSValue* val) {
-    return new Error(E_NATIVE, val);
+  static Error* NativeError(std::u16string message) {
+    return new Error(E_NATIVE, message);
   }
 
   Type type() { return type_; }
 
   bool IsOk() { return type_ == E_OK; }
-  bool IsNative() {
-    assert(val_ != nullptr);
-    return type_ == E_NATIVE;
-  }
 
-  JSValue* val() {
-    assert(val_ != nullptr);
-    return val_;
+  std::u16string message() {
+    return message_;
   }
 
   std::string ToString() { return Ok() ? "ok" : "error"; }
 
  private:
-  Error(Type t, JSValue* val = nullptr) : type_(t), val_(val) {}
+  Error(Type t, std::u16string message = u"") :
+    type_(t), message_(message) {}
+
   Type type_;
-  JSValue* val_;
+  std::u16string message_;
 };
 
 }  // namespace es

@@ -16,7 +16,7 @@ class ErrorProto : public JSObject {
     return Undefined::Instance();
   }
 
-  static JSValue* toString(Error* e, std::vector<JSValue*> vals) {
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
@@ -30,11 +30,12 @@ class ErrorObject : public JSObject {
   ErrorObject(Error* e) :
     JSObject(OBJ_ERROR, u"Error", true, nullptr, false, false), e_(e) {
     SetPrototype(ErrorProto::Instance());
+    AddValueProperty(u"message", new String(e->message()), true, false, false);
   }
 
   Error::Type ErrorType() { return e_->type(); }
 
-  std::string ToString() { return "error"; }
+  std::string ToString() { return "Error(" + log::ToString(e_->message()) + ")"; }
 
  private:
   Error* e_;
@@ -53,11 +54,11 @@ class ErrorConstructor : public JSObject {
 
   JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
     if (arguments.size() == 0 || arguments[0]->IsUndefined())
-      return new ErrorObject(Error::NativeError(Undefined::Instance()));
+      return new ErrorObject(Error::NativeError(::es::ToString(nullptr, Undefined::Instance())));
     std::u16string s = ::es::ToString(e, arguments[0]);
     if (!e->IsOk())
       return nullptr;
-    return new ErrorObject(Error::NativeError(new String(s)));
+    return new ErrorObject(Error::NativeError(s));
   }
 
  private:

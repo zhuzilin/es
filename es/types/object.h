@@ -14,7 +14,7 @@
 
 namespace es {
 
-typedef std::function<JSValue* (Error*, std::vector<JSValue*>)> inner_func;
+typedef std::function<JSValue* (Error*, JSValue*, std::vector<JSValue*>)> inner_func;
 
 class JSObject : public JSValue {
  public:
@@ -91,7 +91,7 @@ class JSObject : public JSValue {
   virtual JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) {
     assert(is_callable_ && callable_ != nullptr);
     // TODO(zhuzilin) check if any callable need this_arg.
-    return callable_(e, arguments);
+    return callable_(e, this, arguments);
   }
   bool IsCallable() override { return is_callable_; }
   // [[HasInstance]]
