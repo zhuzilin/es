@@ -5,26 +5,6 @@
 
 namespace es {
 
-class ErrorConstructor : public JSObject {
- public:
-  static  ErrorConstructor* Instance() {
-    static  ErrorConstructor singleton;
-    return &singleton;
-  }
-
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
-    return Construct(e, arguments);
-  }
-
-  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
-    return nullptr;
-  }
-
- private:
-   ErrorConstructor() :
-    JSObject(OBJ_OTHER, u"Error", true, nullptr, true, true) {}
-};
-
 class ErrorProto : public JSObject {
  public:
   static  ErrorProto* Instance() {
@@ -58,6 +38,31 @@ class ErrorObject : public JSObject {
 
  private:
   Error* e_;
+};
+
+class ErrorConstructor : public JSObject {
+ public:
+  static  ErrorConstructor* Instance() {
+    static  ErrorConstructor singleton;
+    return &singleton;
+  }
+
+  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
+    return Construct(e, arguments);
+  }
+
+  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
+    if (arguments.size() == 0 || arguments[0]->IsUndefined())
+      return new ErrorObject(Error::NativeError(Undefined::Instance()));
+    std::u16string s = ::es::ToString(e, arguments[0]);
+    if (!e->IsOk())
+      return nullptr;
+    return new ErrorObject(Error::NativeError(new String(s)));
+  }
+
+ private:
+   ErrorConstructor() :
+    JSObject(OBJ_OTHER, u"Error", true, nullptr, true, true) {}
 };
 
 }  // namespace es

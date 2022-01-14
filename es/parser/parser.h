@@ -187,16 +187,17 @@ error:
     Token token = lexer_.NextAndRewind();
     while (token.type() != Token::TK_RBRACE) {
       if (token.IsPropertyName()) {
-        if (token.source() == u"get" || token.source() == u"set") {
+        lexer_.Next();
+        if ((token.source() == u"get" || token.source() == u"set") &&
+            lexer_.NextAndRewind().IsPropertyName()) {
           START_POS;
           ObjectLiteral::Property::Type type;
           if (token.source() == u"get")
             type = ObjectLiteral::Property::GET;
           else
             type = ObjectLiteral::Property::SET;
-          lexer_.Next();  // skip type
           Token key = lexer_.Next();  // skip property name
-          if (!token.IsPropertyName()) {
+          if (!key.IsPropertyName()) {
             goto error;
           }
           if (lexer_.Next().type() != Token::TK_LPAREN) {
@@ -228,7 +229,6 @@ error:
           Function* value = new Function(params, body, SOURCE_PARSED);
           obj->AddProperty(ObjectLiteral::Property(key, value, type));
         } else {
-          lexer_.Next();
           if (lexer_.Next().type() != Token::TK_COLON)
             goto error;
           AST* value = ParseAssignmentExpression(false);

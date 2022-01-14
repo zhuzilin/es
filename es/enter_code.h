@@ -6,6 +6,7 @@
 #include <es/types/builtin/object_object.h>
 #include <es/types/builtin/function_object.h>
 #include <es/types/builtin/number_object.h>
+#include <es/types/builtin/error_object.h>
 #include <es/execution_context.h>
 
 namespace es {
@@ -300,11 +301,27 @@ void InitNumber() {
   proto->AddFuncProperty(u"toPrecision", NumberProto::toPrecision, false, false, false);
 }
 
+void InitError() {
+  ErrorConstructor* constructor = ErrorConstructor::Instance();
+  constructor->SetPrototype(FunctionProto::Instance());
+  // 15.3.3 Properties of the Function Constructor
+  constructor->AddValueProperty(u"prototype", ErrorProto::Instance(), false, false, false);
+  constructor->AddValueProperty(u"length", Number::One(), false, false, false);
+
+  ErrorProto* proto = ErrorProto::Instance();
+  proto->SetPrototype(ObjectProto::Instance());
+  // 15.2.4 Properties of the Function Prototype Function
+  proto->AddValueProperty(u"constructor", ErrorConstructor::Instance(), false, false, false);
+  proto->AddValueProperty(u"name", new String(u"Error"), false, false, false);
+  proto->AddFuncProperty(u"call", ErrorProto::toString, false, false, false);
+}
+
 void Init() {
   InitGlobalObject();
   InitObject();
   InitFunction();
   InitNumber();
+  InitError();
 }
 
 }  // namespace es

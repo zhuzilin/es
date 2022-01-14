@@ -164,7 +164,8 @@ TEST(TestParser, PrimaryExpression_Object) {
       {u"{1: 1}", 1}, {u"{\"abc\": 1}", 1},
       {u"{get name() { return 10 },}", 1},
       {u"{set name(a) { return 10 },}", 1},
-      {u"{get name() { return 10 }, set name(a) { return 10 },}", 2}
+      {u"{get name() { return 10 }, set name(a) { return 10 },}", 2},
+      {u"{get: function () { return 4; }, set: function(val) {this.z_val = val;}}", 2}
     };
     for (auto pair : sources) {
       auto source = pair.first;
