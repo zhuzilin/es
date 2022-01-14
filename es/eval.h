@@ -180,11 +180,10 @@ Completion EvalIfStatement(Error* e, AST* ast) {
   JSValue* expr_ref = EvalExpression(e, if_stmt->cond());
   if (!e->IsOk())
     return Completion(Completion::THROW, new ErrorObject(e), u"");
-  JSValue* exp = GetValue(e, expr_ref);
+  JSValue* expr = GetValue(e, expr_ref);
   if (!e->IsOk())
     return Completion(Completion::THROW, new ErrorObject(e), u"");
-
-  if (ToBoolean(exp)) {
+  if (ToBoolean(expr)) {
     return EvalStatement(e, if_stmt->if_block());
   } else if (if_stmt->else_block() != nullptr){
     return EvalStatement(e, if_stmt->else_block());
@@ -287,7 +286,6 @@ Completion EvalForStatement(Error* e, AST* ast) {
       EvalVarDecl(e, expr);
       if (!e->IsOk()) goto error;
     } else {
-      std::cout << expr->type() << std::endl;
       JSValue* expr_ref = EvalExpression(e, expr);
       if (!e->IsOk()) goto error;
       GetValue(e, expr_ref);
@@ -1078,13 +1076,13 @@ JSValue* EvalRelationalOperator(Error* e, std::u16string op, JSValue* lval, JSVa
     if (!e->IsOk()) return nullptr;
     if (r->IsUndefined())
       return Bool::True();
-    return Bool::Wrap(static_cast<Bool*>(r)->data());
+    return Bool::Wrap(!static_cast<Bool*>(r)->data());
   } else if (op == u">=") {
     JSValue* r = LessThan(e, lval, rval);
     if (!e->IsOk()) return nullptr;
     if (r->IsUndefined())
       return Bool::True();
-    return Bool::Wrap(static_cast<Bool*>(r)->data());
+    return Bool::Wrap(!static_cast<Bool*>(r)->data());
   } else if (op == u"instanceof") {
     if (!rval->IsObject()) {
       *e = *Error::TypeError();

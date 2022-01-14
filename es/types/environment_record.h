@@ -21,8 +21,6 @@ class EnvironmentRecord : public JSValue {
   virtual JSValue* GetBindingValue(Error* e, std::u16string N, bool S) = 0;
   virtual bool DeleteBinding(Error* e, std::u16string N) = 0;
   virtual JSValue* ImplicitThisValue() = 0;
-
-  virtual std::string ToString() override { return "EnvironmentRecord"; }
 };
 
 class DeclarativeEnvironmentRecord : public EnvironmentRecord {
@@ -34,11 +32,11 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   };
 
   bool HasBinding(std::u16string N) override {
-    return bindings_.find(N) != bindings_.end();
+    return bindings_.find(N)!= bindings_.end();
   }
 
   void CreateMutableBinding(Error* e, std::u16string N, bool D) override {
-    log::PrintSource("enter CreateMutableBinding ", N);
+    log::PrintSource("enter CreateMutableBinding ", N, " in " + this->ToString());
     assert(!HasBinding(N));
     Binding b;
     b.value = Undefined::Instance();
@@ -61,7 +59,6 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   JSValue* GetBindingValue(Error* e, std::u16string N, bool S) override {
-    log::PrintSource("GetBindingValue ", N);
     assert(HasBinding(N));
     Binding b = bindings_[N];
     if (b.value->IsUndefined()) {
@@ -69,9 +66,11 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
         *e = *Error::ReferenceError();
         return nullptr;
       } else {
+        log::PrintSource("GetBindingValue ", N, " undefined");
         return Undefined::Instance();
       }
     }
+    log::PrintSource("GetBindingValue ", N, " " + b.value->ToString());
     return b.value;
   }
 
@@ -89,6 +88,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   void CreateImmutableBinding(std::u16string N) {
+    log::PrintSource("enter CreateImmutableBinding ", N, " in " + this->ToString());
     assert(!HasBinding(N));
     Binding b;
     b.value = Undefined::Instance();
@@ -99,10 +99,11 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
 
   void InitializeImmutableBinding(std::u16string N, JSValue* V) {
     assert(HasBinding(N));
-    Binding b = bindings_[N];
-    assert(!b.is_mutable && b.value->IsUndefined());
-    b.value = V;
+    assert(!bindings_[N].is_mutable && bindings_[N].value->IsUndefined());
+    bindings_[N].value = V;
   }
+
+  virtual std::string ToString() override { return "DeclarativeEnvRec(" + log::ToString(this) + ")"; }
 
  private:
   std::unordered_map<std::u16string, Binding> bindings_;
@@ -118,7 +119,7 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
 
   // 10.2.1.2.2 CreateMutableBinding (N, D)
   void CreateMutableBinding(Error* e, std::u16string N, bool D) override {
-    log::PrintSource("enter CreateMutableBinding ", N, std::string(" D is ") + (D ? "true" : "false"));
+    log::PrintSource("enter CreateMutableBinding ", N, " in " + this->ToString());
     assert(!HasBinding(N));
     PropertyDescriptor* desc = new PropertyDescriptor();
     desc->SetDataDescriptor(Undefined::Instance(), true, true, D);
@@ -154,6 +155,8 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
     }
     return Undefined::Instance();
   }
+
+  virtual std::string ToString() override { return "ObjectEnvRec(" + log::ToString(this) + ")"; }
 
  private:
   JSObject *bindings_;

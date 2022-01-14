@@ -86,17 +86,19 @@ class FunctionObject : public JSObject {
     if (body_ != nullptr) {
       comp = EvalProgram(e, body_);
     }
+    ExecutionContextStack::Global()->Pop();   // 3
+
     switch (comp.type) {
       case Completion::RETURN:
         return comp.value;
       case Completion::THROW:
-        // TODO(zhuzilin) how to throw value?
-        assert(false);
+        // TODO(zhuzilin) prevent nested ErrorObject.
+        e = Error::NativeError(comp.value);
+        return nullptr;
       default:
         assert(comp.type == Completion::NORMAL);
         return Undefined::Instance();
     }
-    ExecutionContextStack::Global()->Pop();   // 3
   }
 
   // 13.2.2 [[Construct]]

@@ -29,7 +29,7 @@ class Reference : public JSValue {
   }
   bool IsUnresolvableReference() { return base_->IsUndefined(); }
 
-  std::string ToString() override { return "Reference"; }
+  std::string ToString() override { return "ref(" + log::ToString(reference_name_) + ")"; }
 
  private:
   JSValue* base_;
@@ -47,6 +47,7 @@ JSValue* GetValue(Error* e, JSValue* V) {
     return nullptr;
   }
   JSValue* base = ref->GetBase();
+  log::PrintSource("GetValue " + V->ToString() + " base " + base->ToString());
   if (ref->IsPropertyReference()) {  // 4
     // 4.a & 4.b
     if (!ref->HasPrimitiveBase()) {

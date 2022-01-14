@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <codecvt>
@@ -27,6 +28,12 @@ std::string ToString(std::u16string str) {
 
 std::string ToString(bool b) {
   return b ? "true" : "false";
+}
+
+std::string ToString(const void *ptr) {
+  std::stringstream ss;
+  ss << ptr;  
+  return ss.str();
 }
 
 }  // namespace test

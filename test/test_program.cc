@@ -521,3 +521,56 @@ TEST(TestProgram, ForIn1) {
     EXPECT_EQ(6, num->data());
   }
 }
+
+TEST(TestProgram, Fib0) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"'use strict';\n"
+      u"function fib(n) {\n"
+      u"  if (n <= 0)\n"
+      u"    return 0;\n"
+      u"  else if (n == 1)\n"
+      u"    return 1;\n"
+      u"  else\n"
+      u"    return fib(n - 1) + fib(n - 2);\n"
+      u"}\n"
+      u"fib(10)"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(55, num->data());
+  }
+}
+
+TEST(TestProgram, Fib1) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"'use strict';\n"
+      u"function fib(n) {\n"
+      u"  if (n <= 0) return 0;\n"
+      u"  var a = 0, b = 1;\n"
+      u"  for (var i = 2; i <= n; i++) {\n"
+      u"    var c = a + b\n"
+      u"    a = b; b = c;\n"
+      u"  }\n"
+      u"  return b;\n"
+      u"}\n"
+      u"fib(10)"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(e, ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(55, num->data());
+  }
+}

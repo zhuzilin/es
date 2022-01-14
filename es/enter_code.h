@@ -39,7 +39,6 @@ void FindAllVarDecl(std::vector<AST*> stmts, std::vector<VarDecl*>& decls) {
             decls.emplace_back(d);
           }
         }
-        std::cout << "after for statement" << decls.size() << std::endl;
         FindAllVarDecl({for_stmt->statement()}, decls);
         break;
       }
@@ -49,8 +48,12 @@ void FindAllVarDecl(std::vector<AST*> stmts, std::vector<VarDecl*>& decls) {
             VarDecl* d = static_cast<VarDecl*>(for_in_stmt->expr0());
             decls.emplace_back(d);
         }
-        std::cout << "after for in statement" << decls.size() << std::endl;
+        FindAllVarDecl({for_in_stmt->statement()}, decls);
         break;
+      }
+      case AST::AST_STMT_BLOCK: {
+        Block* block = static_cast<Block*>(stmt);
+        FindAllVarDecl(block->statements(), decls);
       }
       // TODO(zhuzilin) fill the other statements.
       default:
@@ -141,9 +144,7 @@ void DeclarationBindingInstantiation(
   // TODO(zhuzilin) Fix the nested var statement.
   std::vector<VarDecl*> decls;
   FindAllVarDecl(body->statements(), decls);
-  std::cout << "size: " << decls.size() << std::endl;
   for (VarDecl* d : decls) {
-    log::PrintSource("source: ", d->ident());
     std::u16string dn = d->ident();
     bool var_already_declared = env->HasBinding(dn);
     if (!var_already_declared) {
@@ -171,7 +172,6 @@ void EnterGlobalCode(Error* e, AST* ast) {
   ExecutionContextStack::Global()->AddContext(context);
   // 2
   DeclarationBindingInstantiation(e, context, program, CODE_GLOBAL);
-  log::PrintSource("exit DeclarationBindingInstantiation");
 }
 
 // 10.4.3

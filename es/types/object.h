@@ -305,7 +305,6 @@ JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
 bool JSObject::DefineOwnProperty(
   Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag
 ) {
-  log::PrintSource("DefineOwnProperty: ", P);
   JSValue* current = GetOwnProperty(P);
   PropertyDescriptor* current_desc;
   if (current->IsUndefined()) {
@@ -383,7 +382,6 @@ bool JSObject::DefineOwnProperty(
                     (desc->HasValue() ? " to " + desc->Value()->ToString() : ""));
   // 12.
   current_desc->Set(desc);
-
   // 13.
   return true;
 reject:

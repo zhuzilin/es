@@ -5,6 +5,8 @@
 
 namespace es {
 
+class JSValue;
+
 class Error {
  public:
   enum Type {
@@ -53,20 +55,29 @@ class Error {
     return &e;
   }
 
-  static Error* NativeError() {
-    static Error e(E_NATIVE);
-    return &e;
+  static Error* NativeError(JSValue* val) {
+    return new Error(E_NATIVE, val);
   }
 
   Type type() { return type_; }
 
   bool IsOk() { return type_ == E_OK; }
+  bool IsNative() {
+    assert(val_ != nullptr);
+    return type_ == E_NATIVE;
+  }
+
+  JSValue* val() {
+    assert(val_ != nullptr);
+    return val_;
+  }
 
   std::string ToString() { return Ok() ? "ok" : "error"; }
 
  private:
-  Error(Type t) : type_(t) {}
+  Error(Type t, JSValue* val = nullptr) : type_(t), val_(val) {}
   Type type_;
+  JSValue* val_;
 };
 
 }  // namespace es
