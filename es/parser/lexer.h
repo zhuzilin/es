@@ -341,7 +341,6 @@ class Lexer {
 
   inline Token Last() { return token_; }
   inline size_t Pos() { return pos_; }
-  inline char16_t Now() { return c_; }
 
   void Rewind(size_t pos, Token token) {
     pos_ = pos;
@@ -422,6 +421,13 @@ class Lexer {
 error:
     token_ = Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start));
     return token_;
+  }
+
+  // For regex
+  inline void Back() {
+    if (pos_ == 0) return;
+    pos_--;
+    UpdateC();
   }
 
  private:

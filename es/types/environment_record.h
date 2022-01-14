@@ -38,7 +38,6 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   void CreateMutableBinding(Error* e, std::u16string N, bool D) override {
     log::PrintSource("enter CreateMutableBinding ", N, " in " + this->ToString());
     assert(!HasBinding(N));
-    std::cout << "e->IsOk(): " << e->IsOk() << std::endl;
     Binding b;
     b.value = Undefined::Instance();
     b.can_delete = D;

@@ -16,16 +16,7 @@ class Parser {
   Parser(std::u16string source) : source_(source), lexer_(source) {}
 
   AST* ParsePrimaryExpression() {
-    Token token(Token::TK_NOT_FOUND, u"");
-    if (lexer_.Now() == u'/') {
-      token = lexer_.ScanRegexLiteral();
-      if (token.type() == Token::TK_REGEX) {
-        return new AST(AST::AST_EXPR_REGEX, token.source());
-      } else {
-        goto error;
-      }
-    }
-    token = lexer_.NextAndRewind();
+    Token token = lexer_.NextAndRewind();
     switch (token.type()) {
       case Token::TK_KEYWORD:
         if (token.source() == u"this") {
@@ -62,6 +53,17 @@ class Parser {
           goto error;
         }
         return new Paren(value, value->source());
+      }
+      case Token::TK_DIV: {  // /
+        lexer_.Next(); // skip /
+        lexer_.Back(); // back to /
+        token = lexer_.ScanRegexLiteral();
+        if (token.type() == Token::TK_REGEX) {
+          return new AST(AST::AST_EXPR_REGEX, token.source());
+        } else {
+          goto error;
+        }
+        break;
       }
       default:
         goto error;
