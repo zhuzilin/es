@@ -56,8 +56,7 @@ JSValue* GetValue(Error* e, JSValue* V) {
       return obj->Get(e, ref->GetReferencedName());
     } else {  // special [[Get]]
       JSObject* O = ToObject(e, base);
-      if (!e->IsOk())
-        return nullptr;
+      if (!e->IsOk()) return nullptr;
       JSValue* tmp = O->GetProperty(ref->GetReferencedName());
       if (tmp->IsUndefined())
         return Undefined::Instance();

@@ -47,7 +47,7 @@ void EnterFunctionCode(
   JSValue* this_arg, std::vector<JSValue*> args, bool strict
 );
 
-Completion EvalProgram(Error* e, AST* ast);
+Completion EvalProgram(AST* ast);
 
 class FunctionObject : public JSObject {
  public:
@@ -81,10 +81,11 @@ class FunctionObject : public JSObject {
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments) override {
     log::PrintSource("enter FunctionObject::Call ", body_->source());
     EnterFunctionCode(e, this, body_, this_arg, arguments, strict_);
+    if (!e->IsOk()) return nullptr;
 
     Completion comp;
     if (body_ != nullptr) {
-      comp = EvalProgram(e, body_);
+      comp = EvalProgram(body_);
     }
     ExecutionContextStack::Global()->Pop();   // 3
 
@@ -93,7 +94,7 @@ class FunctionObject : public JSObject {
         return comp.value;
       case Completion::THROW:
         // TODO(zhuzilin) prevent nested ErrorObject.
-        e = Error::NativeError(comp.value);
+        *e = *Error::NativeError(comp.value);
         return nullptr;
       default:
         assert(comp.type == Completion::NORMAL);
@@ -106,12 +107,14 @@ class FunctionObject : public JSObject {
     log::PrintSource("enter FunctionObject::Construct");
     JSObject* obj = new JSObject(OBJ_OTHER, u"Object", true, nullptr, false, false);
     JSValue* proto = Get(e, u"prototype");
+    if (!e->IsOk()) return nullptr;
     if (proto->IsObject()) {  // 6
       obj->SetPrototype(proto);
     } else {  // 7
       obj->SetPrototype(ObjectProto::Instance());
     }
     JSValue* result = Call(e, obj, arguments);  // 8
+    if (!e->IsOk()) return nullptr;
     if (result->IsObject())  // 9
       return static_cast<JSObject*>(result);
     return obj;  // 10
@@ -185,12 +188,16 @@ class FunctionConstructor : public JSObject {
     std::u16string body = u"";
     if (arg_count == 1) {
       body = ::es::ToString(e, arguments[0]);
+      if (!e->IsOk()) return nullptr;
     } else if (arg_count > 1) {
       P += ::es::ToString(e, arguments[0]);
+      if (!e->IsOk()) return nullptr;
       for (size_t i = 1; i < arg_count - 1; i++) {
         P += u"," + ::es::ToString(e, arguments[i]);
+        if (!e->IsOk()) return nullptr;
       }
       body = ::es::ToString(e, arguments[arg_count - 1]);
+      if (!e->IsOk()) return nullptr;
     }
     std::vector<std::u16string> names;
     AST* body_ast;

@@ -282,17 +282,21 @@ JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
   }
 
   JSValue* to_string = Get(e, first);
+  if (!e->IsOk()) return nullptr;
   if (to_string->IsCallable()) {
     JSObject* to_string_obj = static_cast<JSObject*>(to_string);
     JSValue* str = to_string_obj->Call(e, this);
+    if (!e->IsOk()) return nullptr;
     if (str->IsPrimitive()) {
       return str;
     }
   }
   JSValue* value_of = Get(e, second);
+  if (!e->IsOk()) return nullptr;
   if (value_of->IsCallable()) {
     JSObject* value_of_obj = static_cast<JSObject*>(value_of);
     JSValue* val = value_of_obj->Call(e, this);
+    if (!e->IsOk()) return nullptr;
     if (val->IsPrimitive()) {
       return val;
     }
@@ -305,6 +309,7 @@ JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
 bool JSObject::DefineOwnProperty(
   Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag
 ) {
+  log::PrintSource("enter DefineOwnProperty");
   JSValue* current = GetOwnProperty(P);
   PropertyDescriptor* current_desc;
   if (current->IsUndefined()) {

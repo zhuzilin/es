@@ -15,23 +15,24 @@
 
 namespace es {
 
-Completion EvalProgram(Error* e, AST* ast);
+Completion EvalProgram(AST* ast);
 
-Completion EvalStatement(Error* e, AST* ast);
-Completion EvalBlockStatement(Error* e, AST* ast);
+Completion EvalStatement(AST* ast);
+Completion EvalBlockStatement(AST* ast);
 std::u16string EvalVarDecl(Error* e, AST* ast);
-Completion EvalVarStatement(Error* e, AST* ast);
-Completion EvalIfStatement(Error* e, AST* ast);
-Completion EvalForStatement(Error* e, AST* ast);
-Completion EvalForInStatement(Error* e, AST* ast);
-Completion EvalDoWhileStatement(Error* e, AST* ast);
-Completion EvalWhileStatement(Error* e, AST* ast);
-Completion EvalContinueStatement(Error* e, AST* ast);
-Completion EvalBreakStatement(Error* e, AST* ast);
-Completion EvalReturnStatement(Error* e, AST* ast);
-Completion EvalSwitchStatement(Error* e, AST* ast);
-Completion EvalThrowStatement(Error* e, AST* ast);
-Completion EvalExpressionStatement(Error* e, AST* ast);
+Completion EvalVarStatement(AST* ast);
+Completion EvalIfStatement(AST* ast);
+Completion EvalForStatement(AST* ast);
+Completion EvalForInStatement(AST* ast);
+Completion EvalDoWhileStatement(AST* ast);
+Completion EvalWhileStatement(AST* ast);
+Completion EvalContinueStatement(AST* ast);
+Completion EvalBreakStatement(AST* ast);
+Completion EvalReturnStatement(AST* ast);
+Completion EvalSwitchStatement(AST* ast);
+Completion EvalThrowStatement(AST* ast);
+Completion EvalTryStatement(AST* ast);
+Completion EvalExpressionStatement(AST* ast);
 
 JSValue* EvalExpression(Error* e, AST* ast);
 JSValue* EvalPrimaryExpression(Error* e, AST* ast);
@@ -63,7 +64,7 @@ JSValue* EvalExpressionList(Error* e, AST* ast);
 
 Reference* IdentifierResolution(std::u16string name);
 
-Completion EvalProgram(Error* e, AST* ast) {
+Completion EvalProgram(AST* ast) {
   assert(ast->type() == AST::AST_PROGRAM || ast->type() == AST::AST_FUNC_BODY);
   auto prog = static_cast<ProgramOrFunctionBody*>(ast);
   auto statements = prog->statements();
@@ -72,21 +73,20 @@ Completion EvalProgram(Error* e, AST* ast) {
   if (ast->type() != AST::AST_FUNC_BODY) {
     for (auto stmt : statements) {
       if (stmt->type() == AST::AST_STMT_RETURN) {
-        *e = *Error::SyntaxError();
-        return Completion(Completion::THROW, new ErrorObject(e), u"");
+        return Completion(Completion::THROW, new ErrorObject(Error::Ok()), u"");
       }
     }
   }
 
-  Completion head_result, tail_result;
+  Completion head_result;
   if (statements.size() == 0)
     return Completion(Completion::NORMAL, nullptr, u"");
   for (auto stmt : prog->statements()) {
     if (head_result.IsAbruptCompletion())
       break;
-    tail_result = EvalStatement(e, stmt);
-    if (!e->IsOk())
-      return Completion(Completion::THROW, new ErrorObject(e), u"");
+    Completion tail_result = EvalStatement(stmt);
+    if (tail_result.IsThrow())
+      return tail_result;
     head_result = Completion(
       tail_result.type,
       tail_result.value == nullptr? head_result.value : tail_result.value,
@@ -96,48 +96,49 @@ Completion EvalProgram(Error* e, AST* ast) {
   return head_result;
 }
 
-Completion EvalStatement(Error* e, AST* ast) {
+Completion EvalStatement(AST* ast) {
   switch(ast->type()) {
     case AST::AST_STMT_BLOCK:
-      return EvalBlockStatement(e, ast);
+      return EvalBlockStatement(ast);
     case AST::AST_STMT_VAR:
-      return EvalVarStatement(e, ast);
+      return EvalVarStatement(ast);
     case AST::AST_STMT_EMPTY:
       return Completion(Completion::NORMAL, nullptr, u"");
     case AST::AST_STMT_IF:
-      return EvalIfStatement(e, ast);
+      return EvalIfStatement(ast);
     case AST::AST_STMT_DO_WHILE:
-      return EvalDoWhileStatement(e, ast);
+      return EvalDoWhileStatement(ast);
     case AST::AST_STMT_WHILE:
-      return EvalWhileStatement(e, ast);
+      return EvalWhileStatement(ast);
     case AST::AST_STMT_FOR:
-      return EvalForStatement(e, ast);
+      return EvalForStatement(ast);
     case AST::AST_STMT_FOR_IN:
-      return EvalForInStatement(e, ast);
+      return EvalForInStatement(ast);
     case AST::AST_STMT_CONTINUE:
-      return EvalContinueStatement(e, ast);
+      return EvalContinueStatement(ast);
     case AST::AST_STMT_BREAK:
-      return EvalBreakStatement(e, ast);
+      return EvalBreakStatement(ast);
     case AST::AST_STMT_RETURN:
-      return EvalReturnStatement(e, ast);
+      return EvalReturnStatement(ast);
     case AST::AST_STMT_THROW:
-      return EvalThrowStatement(e, ast);
+      return EvalThrowStatement(ast);
+    case AST::AST_STMT_TRY:
+      return EvalTryStatement(ast);
     case AST::AST_STMT_DEBUG:
       return Completion(Completion::NORMAL, nullptr, u"");
     default:
-      return EvalExpressionStatement(e, ast);
+      return EvalExpressionStatement(ast);
   }
 }
 
-Completion EvalBlockStatement(Error* e, AST* ast) {
+Completion EvalBlockStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_BLOCK);
   Block* block = static_cast<Block*>(ast);
   Completion sl;
   for (auto stmt : block->statements()) {
-    Completion s = EvalStatement(e, stmt);
-    if (!e->IsOk()) {
-      return Completion(Completion::THROW, new ErrorObject(e), u"");
-    }
+    Completion s = EvalStatement(stmt);
+    if (s.IsThrow())
+      return s;
     sl = Completion(s.type, s.value == nullptr ? sl.value : s.value, s.target);
     if (sl.IsAbruptCompletion())
       return sl;
@@ -160,8 +161,9 @@ std::u16string EvalVarDecl(Error* e, AST* ast) {
   return decl->ident();
 }
 
-Completion EvalVarStatement(Error* e, AST* ast) {
+Completion EvalVarStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_VAR);
+  Error* e = Error::Ok();
   VarStmt* var_stmt = static_cast<VarStmt*>(ast);
   for (VarDecl* decl : var_stmt->decls()) {
     if (decl->init() == nullptr)
@@ -174,8 +176,9 @@ error:
   return Completion(Completion::THROW, new ErrorObject(e), u"");
 }
 
-Completion EvalIfStatement(Error* e, AST* ast) {
+Completion EvalIfStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_IF);
+  Error* e = Error::Ok();
   If* if_stmt = static_cast<If*>(ast);
   JSValue* expr_ref = EvalExpression(e, if_stmt->cond());
   if (!e->IsOk())
@@ -184,16 +187,17 @@ Completion EvalIfStatement(Error* e, AST* ast) {
   if (!e->IsOk())
     return Completion(Completion::THROW, new ErrorObject(e), u"");
   if (ToBoolean(expr)) {
-    return EvalStatement(e, if_stmt->if_block());
+    return EvalStatement(if_stmt->if_block());
   } else if (if_stmt->else_block() != nullptr){
-    return EvalStatement(e, if_stmt->else_block());
+    return EvalStatement(if_stmt->else_block());
   }
   return Completion(Completion::NORMAL, nullptr, u"");
 }
 
 // 12.6.1 The do-while Statement
-Completion EvalDoWhileStatement(Error* e, AST* ast) {
+Completion EvalDoWhileStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_DO_WHILE);
+  Error* e = Error::Ok();
   ExecutionContextStack::TopContext()->EnterIteration();
   DoWhile* loop_stmt = static_cast<DoWhile*>(ast);
   JSValue* V = nullptr;
@@ -202,8 +206,7 @@ Completion EvalDoWhileStatement(Error* e, AST* ast) {
   Completion stmt;
   bool has_label;
   while (true) {
-    stmt = EvalStatement(e, loop_stmt->stmt());
-    if (!e->IsOk()) goto error;
+    stmt = EvalStatement(loop_stmt->stmt());
     if (stmt.value != nullptr)  // 3.b
       V = stmt.value;
     has_label = ExecutionContextStack::TopContext()->HasLabel(stmt.target);
@@ -233,8 +236,9 @@ error:
 }
 
 // 12.6.2 The while Statement
-Completion EvalWhileStatement(Error* e, AST* ast) {
+Completion EvalWhileStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_WHILE);
+  Error* e = Error::Ok();
   ExecutionContextStack::TopContext()->EnterIteration();
   WhileOrWith* loop_stmt = static_cast<WhileOrWith*>(ast);
   JSValue* V = nullptr;
@@ -250,8 +254,7 @@ Completion EvalWhileStatement(Error* e, AST* ast) {
     if (!ToBoolean(val))
       break;
 
-    stmt = EvalStatement(e, loop_stmt->stmt());
-    if (!e->IsOk()) goto error;
+    stmt = EvalStatement(loop_stmt->stmt());
     if (stmt.value != nullptr)  // 3.b
       V = stmt.value;
     has_label = ExecutionContextStack::TopContext()->HasLabel(stmt.target);
@@ -274,8 +277,9 @@ error:
 }
 
 // 12.6.3 The for Statement
-Completion EvalForStatement(Error* e, AST* ast) {
+Completion EvalForStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_FOR);
+  Error* e = Error::Ok();
   ExecutionContextStack::TopContext()->EnterIteration();
   For* for_stmt = static_cast<For*>(ast);
   JSValue* V = nullptr;
@@ -302,8 +306,7 @@ Completion EvalForStatement(Error* e, AST* ast) {
         break;
     }
 
-    stmt = EvalStatement(e, for_stmt->statement());
-    if (!e->IsOk()) goto error;
+    stmt = EvalStatement(for_stmt->statement());
     if (stmt.value != nullptr)  // 3.b
       V = stmt.value;
     has_label = ExecutionContextStack::TopContext()->HasLabel(stmt.target);
@@ -333,8 +336,9 @@ error:
 }
 
 // 12.6.4 The for-in Statement
-Completion EvalForInStatement(Error* e, AST* ast) {
+Completion EvalForInStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_FOR_IN);
+  Error* e = Error::Ok();
   ExecutionContextStack::TopContext()->EnterIteration();
   ForIn* for_in_stmt = static_cast<ForIn*>(ast);
   JSObject* obj;
@@ -366,8 +370,7 @@ Completion EvalForInStatement(Error* e, AST* ast) {
       PutValue(e, var_ref, P);
       if (!e->IsOk()) goto error;
 
-      stmt = EvalStatement(e, for_in_stmt->statement());
-      if (!e->IsOk()) goto error;
+      stmt = EvalStatement(for_in_stmt->statement());
       if (stmt.value != nullptr)
         V = stmt.value;
       has_label = ExecutionContextStack::TopContext()->HasLabel(stmt.target);
@@ -403,8 +406,7 @@ Completion EvalForInStatement(Error* e, AST* ast) {
       PutValue(e, lhs_ref, P);
       if (!e->IsOk()) goto error;
 
-      stmt = EvalStatement(e, for_in_stmt->statement());
-      if (!e->IsOk()) goto error;
+      stmt = EvalStatement(for_in_stmt->statement());
       if (stmt.value != nullptr)
         V = stmt.value;
       has_label = ExecutionContextStack::TopContext()->HasLabel(stmt.target);
@@ -427,30 +429,33 @@ error:
   return Completion(Completion::THROW, new ErrorObject(e), u"");
 }
 
-Completion EvalContinueStatement(Error* e, AST* ast) {
+Completion EvalContinueStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_CONTINUE);
+  Error* e = Error::Ok();
   // TODO(zhuzilin) fix label
   if (!ExecutionContextStack::TopContext()->InIteration()) {
-    e = Error::SyntaxError();
+    *e = *Error::SyntaxError();
     return Completion(Completion::THROW, new ErrorObject(e), u"");
   }
   ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
   return Completion(Completion::CONTINUE, nullptr, stmt->ident());
 }
 
-Completion EvalBreakStatement(Error* e, AST* ast) {
+Completion EvalBreakStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_BREAK);
+  Error* e = Error::Ok();
   // TODO(zhuzilin) fix label
   if (!ExecutionContextStack::TopContext()->InIteration()) {
-    e = Error::SyntaxError();
+    *e = *Error::SyntaxError();
     return Completion(Completion::THROW, new ErrorObject(e), u"");
   }
   ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
   return Completion(Completion::BREAK, nullptr, stmt->ident());
 }
 
-Completion EvalReturnStatement(Error* e, AST* ast) {
+Completion EvalReturnStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_RETURN);
+  Error* e = Error::Ok();
   Return* return_stmt = static_cast<Return*>(ast);
   if (return_stmt->expr() == nullptr) {
     return Completion(Completion::RETURN, Undefined::Instance(), u"");
@@ -461,9 +466,11 @@ Completion EvalReturnStatement(Error* e, AST* ast) {
 
 JSValue* EvalCaseClause(Error* e, Switch::CaseClause C) {
   // TODO(zhuzilin)
+  assert(false);
 }
 
-Completion EvalCaseBlock(Error* e, std::vector<Switch::CaseClause> A, JSValue* input) {
+Completion EvalCaseBlock(std::vector<Switch::CaseClause> A, JSValue* input) {
+  Error* e = Error::Ok();
   JSValue* V = nullptr;
   bool searching = true;
   for (auto C : A) {
@@ -482,15 +489,16 @@ Completion EvalCaseBlock(Error* e, std::vector<Switch::CaseClause> A, JSValue* i
 }
 
 // 12.11 The switch Statement
-Completion EvalSwitchStatement(Error* e, AST* ast) {
+Completion EvalSwitchStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_SWITCH);
+  Error* e = Error::Ok();
   Switch* switch_stmt = static_cast<Switch*>(ast);
   JSValue* expr_ref = EvalExpression(e, switch_stmt->expr());
   if (!e->IsOk())
     return Completion(Completion::THROW, new ErrorObject(e), u"");
-  Completion R = EvalCaseBlock(e, switch_stmt->case_clauses(), expr_ref);
-  if (!e->IsOk())
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  Completion R = EvalCaseBlock(switch_stmt->case_clauses(), expr_ref);
+  if (R.IsThrow())
+    return R;
   bool has_label = ExecutionContextStack::TopContext()->HasLabel(R.target);
   if (R.type == Completion::BREAK && has_label)
     return Completion(Completion::NORMAL, R.value, u"");
@@ -498,8 +506,9 @@ Completion EvalSwitchStatement(Error* e, AST* ast) {
 }
 
 // 12.13 The throw Statement
-Completion EvalThrowStatement(Error* e, AST* ast) {
+Completion EvalThrowStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_THROW);
+  Error* e = Error::Ok();
   Throw* throw_stmt = static_cast<Throw*>(ast);
   JSValue* exp_ref = EvalExpression(e, throw_stmt->expr());
   if (!e->Ok())
@@ -510,8 +519,58 @@ Completion EvalThrowStatement(Error* e, AST* ast) {
   return Completion(Completion::THROW, val, u"");
 }
 
-Completion EvalExpressionStatement(Error* e, AST* ast) {
+Completion EvalCatch(Try* try_stmt, Completion C) {
+  // NOTE(zhuzilin) Don't gc these two env, during this function.
+  Error* e = Error::Ok();
+  LexicalEnvironment* old_env = ExecutionContextStack::TopLexicalEnv();
+  LexicalEnvironment* catch_env = LexicalEnvironment::NewDeclarativeEnvironment(old_env);
+  catch_env->env_rec()->CreateMutableBinding(e, try_stmt->catch_ident(), false);  // 4
+  if (!e->IsOk()) {
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  }
+  // NOTE(zhuzilin) The spec say to send C instead of C.value.
+  // However, I think it should be send C.value...
+  catch_env->env_rec()->SetMutableBinding(e, try_stmt->catch_ident(), C.value, false);  // 5
+  if (!e->IsOk()) {
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  }
+  ExecutionContextStack::TopContext()->SetLexicalEnv(catch_env);
+  Completion B = EvalBlockStatement(try_stmt->catch_block());
+  ExecutionContextStack::TopContext()->SetLexicalEnv(old_env);
+  return B;
+}
+
+Completion EvalTryStatement(AST* ast) {
+  assert(ast->type() == AST::AST_STMT_TRY);
+  Error* e = Error::Ok();
+  Try* try_stmt = static_cast<Try*>(ast);
+  Completion B = EvalBlockStatement(try_stmt->try_block());
+  if (try_stmt->finally_block() == nullptr) {  // try Block Catch
+    if (B.type != Completion::THROW)
+      return B;
+    return EvalCatch(try_stmt, B);
+  } else if (try_stmt->catch_block() == nullptr) {  // try Block Finally
+    Completion F = EvalBlockStatement(try_stmt->finally_block());
+    if (F.type == Completion::NORMAL)
+      return B;
+    return F;
+  } else {  // try Block Catch Finally
+    Completion C = B;
+    if (B.type == Completion::THROW) {
+      C = EvalCatch(try_stmt, B);
+    }
+    Completion F = EvalBlockStatement(try_stmt->finally_block());
+    if (F.type == Completion::NORMAL)
+      return C;
+    return F;
+  }
+}
+
+Completion EvalExpressionStatement(AST* ast) {
+  Error* e = Error::Ok();
   JSValue* val = EvalExpression(e, ast);
+  if (!e->IsOk())
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
   return Completion(Completion::NORMAL, val, u"");
 }
 
@@ -550,6 +609,7 @@ JSValue* EvalExpression(Error* e, AST* ast) {
       assert(false);
   }
   if (!e->IsOk()) return nullptr;
+  log::PrintSource("expression ", ast->source(), ": " + val->ToString());
   return val;
 }
 
@@ -1013,6 +1073,7 @@ JSValue* EvalArithmeticOperator(Error* e, std::u16string op, JSValue* lval, JSVa
   if (!e->IsOk()) return nullptr;
   switch (op[0]) {
     case u'*':
+      std::cout << lval->ToString() << " * " << rval->ToString() << ": " << lnum * rnum << std::endl;
       return new Number(lnum * rnum);
     case u'/':
       return new Number(lnum / rnum);

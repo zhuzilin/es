@@ -17,28 +17,34 @@ JSValue* FromPropertyDescriptor(Error* e, JSValue* value) {
     PropertyDescriptor* value_desc = new PropertyDescriptor();
     value_desc->SetDataDescriptor(desc->Value(), true, true, true);
     obj->DefineOwnProperty(e, u"value", value_desc, false);
+    if (!e->IsOk()) return nullptr;
 
     PropertyDescriptor* writable_desc = new PropertyDescriptor();
     writable_desc->SetDataDescriptor(Bool::Wrap(desc->Writable()), true, true, true);
     obj->DefineOwnProperty(e, u"writable", writable_desc, false);
+    if (!e->IsOk()) return nullptr;
   } else {
     assert(desc->IsAccessorDescriptor());
     PropertyDescriptor* get_desc = new PropertyDescriptor();
     get_desc->SetDataDescriptor(desc->Get(), true, true, true);
     obj->DefineOwnProperty(e, u"get", get_desc, false);
+    if (!e->IsOk()) return nullptr;
 
     PropertyDescriptor* set_desc = new PropertyDescriptor();
     set_desc->SetDataDescriptor(desc->Set(), true, true, true);
     obj->DefineOwnProperty(e, u"set", set_desc, false);
+    if (!e->IsOk()) return nullptr;
   }
 
   PropertyDescriptor* enumerable_desc = new PropertyDescriptor();
   enumerable_desc->SetDataDescriptor(Bool::Wrap(desc->Enumerable()), true, true, true);
   obj->DefineOwnProperty(e, u"get", enumerable_desc, false);
+  if (!e->IsOk()) return nullptr;
 
   PropertyDescriptor* configurable_desc = new PropertyDescriptor();
   configurable_desc->SetDataDescriptor(Bool::Wrap(desc->Configurable()), true, true, true);
   obj->DefineOwnProperty(e, u"set", configurable_desc, false);
+  if (!e->IsOk()) return nullptr;
 
   return obj;
 }

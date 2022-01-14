@@ -481,6 +481,11 @@ class Try : public AST {
       delete finally_block_;
   }
 
+  AST* try_block() { return try_block_; }
+  std::u16string catch_ident() { return catch_ident_.source(); };
+  AST* catch_block() { return catch_block_; }
+  AST* finally_block() { return finally_block_; }
+
  public:
   AST* try_block_;
   Token catch_ident_;

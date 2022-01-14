@@ -162,9 +162,11 @@ double ToNumber(Error* e, JSValue* input) {
       return static_cast<Number*>(input)->data();
     case JSValue::JS_STRING:
       return StringToNumber(static_cast<String*>(input));
-    // case JSValue::JS_OBJECT:
-    //   JSValue* prim_value = ToPrimitive(e, input, u"Number");
-    //   return ToNumber(e, prim_value);
+    case JSValue::JS_OBJECT: {
+      JSValue* prim_value = ToPrimitive(e, input, u"Number");
+      if (!e->IsOk()) return 0.0;
+      return ToNumber(e, prim_value);
+    }
     default:
       assert(false);
   }
@@ -172,8 +174,7 @@ double ToNumber(Error* e, JSValue* input) {
 
 double ToInteger(Error* e, JSValue* input) {
   double num = ToNumber(e, input);
-  if (!e->IsOk())
-    return 0.0;
+  if (!e->IsOk()) return 0.0;
   if (isnan(num)) {
     return 0.0;
   }
@@ -204,8 +205,7 @@ double ToInt32(Error* e, JSValue* input) {
 
 double ToUint(Error* e, JSValue* input, char bits) {
   double num = ToNumber(e, input);
-  if (!e->IsOk())
-    return 0;
+  if (!e->IsOk()) return 0.0;
   if (isnan(num) || isinf(num) || num == 0) {
     return 0.0;
   }
@@ -247,9 +247,11 @@ std::u16string ToString(Error* e, JSValue* input) {
       return NumberToString(static_cast<Number*>(input));
     case JSValue::JS_STRING:
       return static_cast<String*>(input)->data();
-    // case JSValue::JS_OBJECT:
-    //   JSValue* prim_value = ToPrimitive(e, input, u"String");
-    //   return ToString(e, prim_value);
+    case JSValue::JS_OBJECT: {
+      JSValue* prim_value = ToPrimitive(e, input, u"String");
+      if (!e->IsOk()) return u"";
+      return ToString(e, prim_value);
+    }
     default:
       assert(false);
   }

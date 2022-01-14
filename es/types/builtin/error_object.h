@@ -48,9 +48,16 @@ class ErrorProto : public JSObject {
 class ErrorObject : public JSObject {
  public:
   ErrorObject(Error* e) :
-    JSObject(OBJ_ERROR, u"Error", true, nullptr, false, false) {
+    JSObject(OBJ_ERROR, u"Error", true, nullptr, false, false), e_(e) {
     SetPrototype(ErrorProto::Instance());
   }
+
+  Error::Type ErrorType() { return e_->type(); }
+
+  std::string ToString() { return "error"; }
+
+ private:
+  Error* e_;
 };
 
 }  // namespace es

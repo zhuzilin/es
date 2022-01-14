@@ -20,39 +20,33 @@ class Error {
     E_NATIVE,
   };
 
+  // TODO(zhuzilin) Fix memory leakage here.
   static Error* Ok() {
-    static Error e(E_OK);
-    return &e;
+    return new Error(E_OK);
   }
 
   static Error* EvalError() {
-    static Error e(E_EVAL);
-    return &e;
+    return new Error(E_EVAL);
   }
 
   static Error* RangeError() {
-    static Error e(E_RANGE);
-    return &e;
+    return new Error(E_RANGE);
   }
 
   static Error* ReferenceError() {
-    static Error e(E_REFERENCE);
-    return &e;
+    return new Error(E_REFERENCE);
   }
 
   static Error* SyntaxError() {
-    static Error e(E_SYNTAX);
-    return &e;
+    return new Error(E_SYNTAX);
   }
 
   static Error* TypeError() {
-    static Error e(E_TYPE);
-    return &e;
+    return new Error(E_TYPE);
   }
 
   static Error* UriError() {
-    static Error e(E_URI);
-    return &e;
+    return new Error(E_URI);
   }
 
   static Error* NativeError(JSValue* val) {

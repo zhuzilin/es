@@ -25,6 +25,8 @@ class ExecutionContext {
   JSValue* this_binding() { return this_binding_; }
   bool strict() { return strict_; }
 
+  void SetLexicalEnv(LexicalEnvironment* lexical_env) { lexical_env_ = lexical_env; }
+
   bool HasLabel(std::u16string label) {
     if (label == u"")
       return true;

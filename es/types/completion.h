@@ -24,6 +24,7 @@ struct Completion {
     type(type), value(value), target(target) {}
 
   bool IsAbruptCompletion() { return type != NORMAL; }
+  bool IsThrow() { return type == THROW; }
 
   Type type;
   JSValue* value;

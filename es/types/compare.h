@@ -24,7 +24,9 @@ JSValue* LessThan(Error* e, JSValue* x, JSValue* y, bool left_first = true) {
   }
   if (!px->IsString() && !py->IsString()) {  // 3
     double nx = ToNumber(e, px);
+    if (!e->IsOk()) return Undefined::Instance();
     double ny = ToNumber(e, py);
+    if (!e->IsOk()) return Undefined::Instance();
     if (isnan(nx) || isnan(ny))
       return Undefined::Instance();
     if (nx == ny)  // this includes +0 vs -0
@@ -40,7 +42,9 @@ JSValue* LessThan(Error* e, JSValue* x, JSValue* y, bool left_first = true) {
     return Bool::Wrap(nx < ny);
   } else {  // 4
     std::u16string sx = ToString(e, px);
+    if (!e->IsOk()) return Undefined::Instance();
     std::u16string sy = ToString(e, py);
+    if (!e->IsOk()) return Undefined::Instance();
     return Bool::Wrap(sx < sy);
   }
 }
@@ -72,20 +76,28 @@ bool Equal(Error* e, JSValue* x, JSValue* y) {
     return true;
   } else if (x->IsNumber() && y->IsString()) {  // 4
     double numy = ToNumber(e, y);
-    if (e != nullptr) return false;
+    if (!e->IsOk()) return false;
     return Equal(e, x, new Number(numy));
   } else if (x->IsString() && y->IsNumber()) {  // 5
     double numx = ToNumber(e, x);
-    if (e != nullptr) return false;
+    if (!e->IsOk()) return false;
     return Equal(e, new Number(numx), y);
   } else if (x->IsBool()) {  // 6
-    return Equal(e, new Number(ToNumber(e, x)), y);
+    double numx = ToNumber(e, x);
+    if (!e->IsOk()) return false;
+    return Equal(e, new Number(numx), y);
   } else if (y->IsBool()) {  // 7
-    return Equal(e, x, new Number(ToNumber(e, y)));
+    double numy = ToNumber(e, x);
+    if (!e->IsOk()) return false;
+    return Equal(e, x, new Number(numy));
   } else if (x->IsNumber() || x->IsString()) {  // 8
-    return Equal(e, x, ToPrimitive(e, y, u""));
+    JSValue* primy = ToPrimitive(e, y, u"");
+    if (!e->IsOk()) return false;
+    return Equal(e, x, primy);
   } else if (x->IsObject() && (y->IsNumber() || y->IsString())) {  // 9
-    return Equal(e, ToPrimitive(e, x, u""), y);
+    JSValue* primx = ToPrimitive(e, y, u"");
+    if (!e->IsOk()) return false;
+    return Equal(e, primx, y);
   }
   return false;
 }

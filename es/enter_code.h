@@ -54,6 +54,16 @@ void FindAllVarDecl(std::vector<AST*> stmts, std::vector<VarDecl*>& decls) {
       case AST::AST_STMT_BLOCK: {
         Block* block = static_cast<Block*>(stmt);
         FindAllVarDecl(block->statements(), decls);
+        break;
+      }
+      case AST::AST_STMT_TRY: {
+        Try* try_stmt = static_cast<Try*>(stmt);
+        FindAllVarDecl({try_stmt->try_block()}, decls);
+        if (try_stmt->catch_block() != nullptr)
+          FindAllVarDecl({try_stmt->catch_block()}, decls);
+        if (try_stmt->finally_block() != nullptr)
+          FindAllVarDecl({try_stmt->finally_block()}, decls);
+        break;
       }
       // TODO(zhuzilin) fill the other statements.
       default:
@@ -89,10 +99,10 @@ void DeclarationBindingInstantiation(
       if (!arg_already_declared) {  // 4.d.iv
         // NOTE(zhuzlin) I'm not sure if this should be false.
         env->CreateMutableBinding(e, arg_name, false);
-        if (!e->IsOk())
-          return;
+        if (!e->IsOk()) return;
       }
       env->SetMutableBinding(e, arg_name, v, strict);  // 4.d.v
+      if (!e->IsOk()) return;
     }
   }
   // 5
@@ -114,6 +124,7 @@ void DeclarationBindingInstantiation(
         auto new_desc = new PropertyDescriptor();
         new_desc->SetDataDescriptor(Undefined::Instance(), true, true, configurable_bindings);
         go->DefineOwnProperty(e, fn, new_desc, true);
+        if (!e->IsOk()) return;
       } else {  // 5.e.iv
         if (existing_prop_desc->IsAccessorDescriptor() ||
             !(existing_prop_desc->HasConfigurable() && existing_prop_desc->Configurable() &&
