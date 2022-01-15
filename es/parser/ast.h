@@ -156,8 +156,8 @@ class Paren : public AST {
 
 class Binary : public AST {
  public:
-  Binary(AST* lhs, AST* rhs, Token op) :
-    AST(AST_EXPR_BINARY), lhs_(lhs), rhs_(rhs), op_(op) {}
+  Binary(AST* lhs, AST* rhs, Token op, std::u16string source = u"") :
+    AST(AST_EXPR_BINARY, source), lhs_(lhs), rhs_(rhs), op_(op) {}
 
   ~Binary() override {
     delete lhs_;

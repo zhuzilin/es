@@ -23,7 +23,6 @@ class LexicalEnvironment : public JSValue {
 
   Reference* GetIdentifierReference(std::u16string name, bool strict) {
     bool exists = env_rec_->HasBinding(name);
-    log::PrintSource("GetIdentifierReference ", name, " exists: " + log::ToString(exists));
     if (exists) {
       return new Reference(env_rec_, name, strict);
     }

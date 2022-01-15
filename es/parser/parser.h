@@ -287,6 +287,8 @@ error:
   }
 
   AST* ParseAssignmentExpression(bool no_in) {
+    START_POS;
+
     AST* lhs = ParseConditionalExpression(no_in);
     if (lhs->IsIllegal())
       return lhs;
@@ -306,7 +308,7 @@ error:
       return rhs;
     }
 
-    return new Binary(lhs, rhs, op);
+    return new Binary(lhs, rhs, op, SOURCE_PARSED);
   }
 
   AST* ParseConditionalExpression(bool no_in) {

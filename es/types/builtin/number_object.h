@@ -5,6 +5,8 @@
 
 namespace es {
 
+double ToNumber(Error* e, JSValue* input);
+
 class NumberProto : public JSObject {
  public:
   static  NumberProto* Instance() {
@@ -65,12 +67,29 @@ class NumberConstructor : public JSObject {
     return &singleton;
   }
 
+  // 15.7.1.1 Number ( [ value ] )
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
-    return Construct(e, arguments);
+    Number* js_num;
+    if (arguments.size() == 0) {
+      js_num = Number::Zero();
+    } else {
+      double num = ToNumber(e, arguments[0]);
+      if (!e->IsOk()) return nullptr;
+      js_num = new Number(num);
+    }
+    return js_num;
   }
 
   JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
-    return nullptr;
+    Number* js_num;
+    if (arguments.size() == 0) {
+      js_num = Number::Zero();
+    } else {
+      double num = ToNumber(e, arguments[0]);
+      if (!e->IsOk()) return nullptr;
+      js_num = new Number(num);
+    }
+    return new NumberObject(js_num);
   }
 
  private:

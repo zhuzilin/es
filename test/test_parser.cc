@@ -578,7 +578,8 @@ TEST(TestParser, VariableDeclaration) {
   {
     vec_pair_string sources = {
       {u"a = b", u"a = b"}, {u"c123 = function() {}", u"c123 = function() {}"},
-      {u"a = /(b+)c/.exec(str)", u"a = /(b+)c/.exec(str)"}
+      {u"a = /(b+)c/.exec(str)", u"a = /(b+)c/.exec(str)"},
+      {u"r = -4 >>> 1", u"r = -4 >>> 1"}
     };
     for (auto pair : sources) {
       auto source = pair.first;

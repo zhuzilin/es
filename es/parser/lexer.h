@@ -128,6 +128,7 @@ class Lexer {
                     default:  // >>>
                       token = Token(Token::Type::TK_BIT_URSH, source_.substr(start, 3));
                   }
+                  break;
                 case u'=':  // >>=
                   token = Token(Token::Type::TK_BIT_RSH_ASSIGN, source_.substr(start, 3));
                   Advance();

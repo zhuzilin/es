@@ -640,7 +640,7 @@ JSValue* EvalPrimaryExpression(Error* e, AST* ast) {
       val = EvalExpression(e, static_cast<Paren*>(ast)->expr());
       break;
     default:
-      std::cout << ast->type() << " " << AST::AST_ILLEGAL << std::endl;
+      std::cout << "Not primary expression, type " << ast->type() << std::endl;
       assert(false);
   }
   return val;
@@ -819,6 +819,8 @@ String* EvalString(AST* ast) {
 std::u16string EvalPropertyName(Error* e, Token token) {
   switch (token.type()) {
     case Token::TK_IDENT:
+    case Token::TK_KEYWORD:
+    case Token::TK_FUTURE:
       return token.source();
     case Token::TK_NUMBER:
       return ToString(e, EvalNumber(token.source()));
@@ -968,11 +970,11 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
       case JSValue::JS_UNDEFINED:
         return String::Undefined();
       case JSValue::JS_NULL:
-        return new String(u"Object");
+        return new String(u"object");
       case JSValue::JS_NUMBER:
-        return new String(u"Number");
+        return new String(u"number");
       case JSValue::JS_STRING:
-        return new String(u"String");
+        return new String(u"string");
       default:
         if (val->IsCallable())
           return new String(u"function");
@@ -1072,7 +1074,6 @@ JSValue* EvalArithmeticOperator(Error* e, std::u16string op, JSValue* lval, JSVa
   if (!e->IsOk()) return nullptr;
   switch (op[0]) {
     case u'*':
-      std::cout << lval->ToString() << " * " << rval->ToString() << ": " << lnum * rnum << std::endl;
       return new Number(lnum * rnum);
     case u'/':
       return new Number(lnum / rnum);
@@ -1113,7 +1114,7 @@ JSValue* EvalBitwiseShiftOperator(Error* e, std::u16string op, JSValue* lval, JS
   if (op == u"<<") {
     return new Number(lnum << shift_count);
   } else if (op == u">>") {
-    return new Number(lnum << shift_count);
+    return new Number(lnum >> shift_count);
   } else if (op == u">>>") {
     uint32_t lnum = ToUint32(e, lval);
     return new Number(lnum >> rnum);
@@ -1332,7 +1333,7 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
       arg_list = EvalArgumentsList(e, args);
       base_offset++;
     }
-    base = constructor->Construct(e, {});
+    base = constructor->Construct(e, arg_list);
     if (!e->IsOk()) return nullptr;
   }
 
