@@ -19,9 +19,29 @@ enum CodeType {
   CODE_EVAL,
 };
 
-JSObject* CreateArgumentsObject() {
-  // TODO(zhuzilin)
-  return nullptr;
+JSObject* CreateArgumentsObject(
+  FunctionObject* func, std::vector<JSValue*>& args,
+  EnvironmentRecord* env, bool strict
+) {
+  std::vector<std::u16string> names = func->FormalParameters();
+  int len = args.size();
+  JSObject* obj = new JSObject(JSObject::OBJ_OTHER, u"Arguments", true, nullptr, false, false);
+  obj->SetPrototype(ObjectProto::Instance());
+  obj->AddValueProperty(u"length", new Number(len), true, false, true);
+  Object* map = new Object();
+  int indx = len - 1;
+  // TODO(zhuzilin) maps and custom methods
+  while (indx >= 0) {
+    JSValue* val = args[indx];
+    obj->AddValueProperty(ToString(nullptr, new Number(indx)), val, true, true, true);
+    indx--;
+  }
+  if (!strict) {
+    obj->AddValueProperty(u"callee", func, true, false, true);
+  } else {
+    // TODO(zhuzilin) thrower
+  }
+  return obj;
 }
 
 void FindAllVarDecl(std::vector<AST*> stmts, std::vector<VarDecl*>& decls) {
@@ -143,16 +163,16 @@ void DeclarationBindingInstantiation(
   bool arguments_already_declared = env->HasBinding(u"arguments");
   // 7
   if (code_type == CODE_FUNC && !arguments_already_declared) {
-    // auto args_obj = CreateArgumentsObject();
-    // if (strict) {  // 7.b
-    //   DeclarativeEnvironmentRecord* decl_env = static_cast<DeclarativeEnvironmentRecord*>(env);
-    //   decl_env->CreateImmutableBinding(u"arguments");
-    //   decl_env->InitializeImmutableBinding(u"arguments", args_obj);
-    // } else {  // 7.c
-    //   // NOTE(zhuzlin) I'm not sure if this should be false.
-    //   env->CreateMutableBinding(e, u"arguments", false);
-    //   env->SetMutableBinding(e, u"arguments", args_obj, false);
-    // }
+    auto args_obj = CreateArgumentsObject(f, args, env, strict);
+    if (strict) {  // 7.b
+      DeclarativeEnvironmentRecord* decl_env = static_cast<DeclarativeEnvironmentRecord*>(env);
+      decl_env->CreateImmutableBinding(u"arguments");
+      decl_env->InitializeImmutableBinding(u"arguments", args_obj);
+    } else {  // 7.c
+      // NOTE(zhuzlin) I'm not sure if this should be false.
+      env->CreateMutableBinding(e, u"arguments", false);
+      env->SetMutableBinding(e, u"arguments", args_obj, false);
+    }
   }
   // 8
   // TODO(zhuzilin) Fix the nested var statement.
@@ -231,7 +251,7 @@ void InitGlobalObject() {
   global_obj->AddValueProperty(u"Boolean", BoolConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"String", StringConstructor::Instance(), true, false, true);
 
-  global_obj->AddFuncProperty(u"log", logger, true, false, true);
+  global_obj->AddFuncProperty(u"console_log", logger, true, false, true);
 }
 
 void InitObject() {
@@ -353,20 +373,20 @@ void InitString() {
   proto->AddFuncProperty(u"charAt", StringProto::charAt, false, false, false);
   proto->AddFuncProperty(u"charCodeAt", StringProto::charCodeAt, false, false, false);
   proto->AddFuncProperty(u"concat", StringProto::concat, false, false, false);
-  proto->AddFuncProperty(u"valueOf", StringProto::indexOf, false, false, false);
-  proto->AddFuncProperty(u"charAt", StringProto::lastIndexOf, false, false, false);
-  proto->AddFuncProperty(u"charCodeAt", StringProto::localeCompare, false, false, false);
-  proto->AddFuncProperty(u"concat", StringProto::match, false, false, false);
-  proto->AddFuncProperty(u"charAt", StringProto::replace, false, false, false);
-  proto->AddFuncProperty(u"charCodeAt", StringProto::search, false, false, false);
-  proto->AddFuncProperty(u"concat", StringProto::slice, false, false, false);
-  proto->AddFuncProperty(u"charAt", StringProto::split, false, false, false);
-  proto->AddFuncProperty(u"charCodeAt", StringProto::substring, false, false, false);
-  proto->AddFuncProperty(u"concat", StringProto::toLowerCase, false, false, false);
-  proto->AddFuncProperty(u"concat", StringProto::toLocaleLowerCase, false, false, false);
-  proto->AddFuncProperty(u"concat", StringProto::toUpperCase, false, false, false);
-  proto->AddFuncProperty(u"concat", StringProto::toLocaleUpperCase, false, false, false);
-  proto->AddFuncProperty(u"concat", StringProto::trim, false, false, false);
+  proto->AddFuncProperty(u"indexOf", StringProto::indexOf, false, false, false);
+  proto->AddFuncProperty(u"lastIndexOf", StringProto::lastIndexOf, false, false, false);
+  proto->AddFuncProperty(u"localeCompare", StringProto::localeCompare, false, false, false);
+  proto->AddFuncProperty(u"match", StringProto::match, false, false, false);
+  proto->AddFuncProperty(u"replace", StringProto::replace, false, false, false);
+  proto->AddFuncProperty(u"search", StringProto::search, false, false, false);
+  proto->AddFuncProperty(u"slice", StringProto::slice, false, false, false);
+  proto->AddFuncProperty(u"split", StringProto::split, false, false, false);
+  proto->AddFuncProperty(u"substring", StringProto::substring, false, false, false);
+  proto->AddFuncProperty(u"toLowerCase", StringProto::toLowerCase, false, false, false);
+  proto->AddFuncProperty(u"toLocaleLowerCase", StringProto::toLocaleLowerCase, false, false, false);
+  proto->AddFuncProperty(u"toUpperCase", StringProto::toUpperCase, false, false, false);
+  proto->AddFuncProperty(u"toLocaleUpperCase", StringProto::toLocaleUpperCase, false, false, false);
+  proto->AddFuncProperty(u"trim", StringProto::trim, false, false, false);
 }
 
 void Init() {

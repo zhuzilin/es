@@ -4,6 +4,7 @@
 #include <es/parser/ast.h>
 #include <es/types/object.h>
 #include <es/types/builtin/object_object.h>
+#include <es/types/builtin/error_object.h>
 #include <es/types/lexical_environment.h>
 #include <es/execution_context.h>
 #include <es/types/completion.h>
@@ -83,23 +84,28 @@ class FunctionObject : public JSObject {
     EnterFunctionCode(e, this, body_, this_arg, arguments, strict_);
     if (!e->IsOk()) return nullptr;
 
-    Completion comp;
+    Completion result;
     if (body_ != nullptr) {
-      comp = EvalProgram(body_);
+      result = EvalProgram(body_);
     }
     ExecutionContextStack::Global()->Pop();   // 3
 
-    switch (comp.type) {
+    switch (result.type) {
       case Completion::RETURN:
-        return comp.value;
+        return result.value;
       case Completion::THROW: {
-        std::u16string message = ::es::ToString(e, comp.value);
-        if (!e->IsOk()) return nullptr;
+        std::u16string message = ::es::ToString(e, result.value);
+        if (result.value->IsObject()) {
+          JSObject* obj = static_cast<JSObject*>(result.value);
+          if (obj->obj_type() == JSObject::OBJ_ERROR) {
+            message = static_cast<ErrorObject*>(obj)->ErrorMessage();
+          }
+        }
         *e = *Error::NativeError(message);
         return nullptr;
       }
       default:
-        assert(comp.type == Completion::NORMAL);
+        assert(result.type == Completion::NORMAL);
         return Undefined::Instance();
     }
   }

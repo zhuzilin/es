@@ -310,14 +310,12 @@ JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
 bool JSObject::DefineOwnProperty(
   Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag
 ) {
-  log::PrintSource("enter DefineOwnProperty");
   JSValue* current = GetOwnProperty(P);
   PropertyDescriptor* current_desc;
   if (current->IsUndefined()) {
     if(!extensible_)  // 3
       goto reject;
      // 4.
-    log::PrintSource("DefineOwnProperty: ", P, " has no desc and extensible, set to " + desc->ToString());
     named_properties_[P] = desc;
     return true;
   }

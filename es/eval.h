@@ -73,7 +73,7 @@ Completion EvalProgram(AST* ast) {
   if (ast->type() != AST::AST_FUNC_BODY) {
     for (auto stmt : statements) {
       if (stmt->type() == AST::AST_STMT_RETURN) {
-        return Completion(Completion::THROW, new ErrorObject(Error::Ok()), u"");
+        return Completion(Completion::THROW, new ErrorObject(Error::SyntaxError()), u"");
       }
     }
   }
@@ -643,7 +643,6 @@ JSValue* EvalPrimaryExpression(Error* e, AST* ast) {
       std::cout << ast->type() << " " << AST::AST_ILLEGAL << std::endl;
       assert(false);
   }
-  log::PrintSource("expression ", ast->source(), ": " + val->ToString());
   return val;
 }
 
@@ -1093,7 +1092,7 @@ JSValue* EvalAddOperator(Error* e, JSValue* lval, JSValue* rval) {
   JSValue* rprim = ToPrimitive(e, rval, u"");
   if (!e->IsOk()) return nullptr;
   // TODO(zhuzilin) Add test when StringObject is added.
-  if (lprim->IsString() && rprim->IsString()) {
+  if (lprim->IsString() || rprim->IsString()) {
     return new String(ToString(e, lprim) + ToString(e, rprim));
   }
 
@@ -1284,6 +1283,7 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
   }
 
   JSValue* base = EvalExpression(e, lhs->base());
+  if (!e->IsOk()) return nullptr;
   for (size_t i = 0; i < base_offset; i++) {
     if (base == nullptr)
       return base;
@@ -1292,21 +1292,21 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
       case LHS::PostfixType::CALL: {
         auto args = lhs->args_list()[pair.first];
         auto arg_list = EvalArgumentsList(e, args);
-        if (!e->IsOk())
-          return nullptr;
+        if (!e->IsOk()) return nullptr;
         base = EvalCallExpression(e, base, arg_list);
-        if (!e->IsOk())
-          return nullptr;
+        if (!e->IsOk()) return nullptr;
         break;
       }
       case LHS::PostfixType::INDEX: {
         auto index = lhs->index_list()[pair.first];
         base = EvalIndexExpression(e, base, index);
+        if (!e->IsOk()) return nullptr;
         break;
       }
       case LHS::PostfixType::PROP: {
         auto prop = lhs->prop_name_list()[pair.first];
         base = EvalIndexExpression(e, base, prop);
+        if (!e->IsOk()) return nullptr;
         break;
       }
       default:
@@ -1318,8 +1318,7 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
   // NewExpression
   for (size_t i = 0; i < new_count; i++) {
     base = GetValue(e, base);
-    if (!e->IsOk())
-      return nullptr;
+    if (!e->IsOk()) return nullptr;
     if (!base->IsConstructor()) {
       *e = *Error::TypeError();
       return nullptr;
@@ -1334,8 +1333,7 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
       base_offset++;
     }
     base = constructor->Construct(e, {});
-    if (!e->IsOk())
-      return nullptr;
+    if (!e->IsOk()) return nullptr;
   }
 
   return base;

@@ -229,10 +229,37 @@ double ToUint16(Error* e, JSValue* input) {
 std::u16string NumberToString(Number* num) {
   if (num->IsNaN())
     return String::NaN()->data();
-  if (num->IsInfinity())
-    return String::Infinity()->data();
   if (num->data() == 0)
     return String::Zero()->data();
+  if (num->IsInfinity())
+    return String::Infinity()->data();
+  double m = num->data();
+  std::u16string sign = u"";
+  if (m < 0) {
+    m = -m;
+    sign = u"-";
+  }
+  int k = 0, n = 0;
+  double tmp;
+  while (modf(m, &tmp) != 0) {
+    k++;
+    m *= 10;
+  }
+  while (fmod(m, 10) == 0) {
+    n++;
+    m /= 10;
+  }
+  double s = m;
+  std::u16string res = u"";
+  if (k <= n && n <= 21) {
+    while (s > 0.5) {
+      res += u'0' + int(fmod(s, 10));
+      s /= 10;
+    }
+    res += std::u16string(n - k, u'0');
+    return sign + res;
+  }
+  // TODO(zhuzilin)
   assert(false);
 }
 

@@ -135,6 +135,22 @@ TEST(TestEvalExpr, String) {
       EXPECT_EQ(pair.second, str->data());
     }
   }
+
+  {
+    vec_pair_string sources = {
+      {u"'a' + 'b'", u"ab"},
+    };
+
+    for (auto pair : sources) {
+      auto source = pair.first;
+      Parser parser(source);
+      AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
+      JSValue* val = EvalBinaryExpression(e, ast);
+      EXPECT_EQ(JSValue::JS_STRING, val->type());
+      String* str = static_cast<String*>(val);
+      EXPECT_EQ(pair.second, str->data());
+    }
+  }
 }
 
 TEST(TestEvalExpr, Identifier) {
