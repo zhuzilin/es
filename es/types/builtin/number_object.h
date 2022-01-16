@@ -2,10 +2,12 @@
 #define ES_TYPES_BUILTIN_NUMBER_OBJECT
 
 #include <es/types/object.h>
+#include <es/execution_context.h>
 
 namespace es {
 
 double ToNumber(Error* e, JSValue* input);
+JSObject* ToObject(Error* e, JSValue* input);
 
 class NumberProto : public JSObject {
  public:
@@ -23,7 +25,17 @@ class NumberProto : public JSObject {
   }
 
   static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSValue* val = RuntimeContext::TopValue();
+    if (val->IsObject()) {
+      JSObject* obj = static_cast<JSObject*>(val);
+      if (obj->obj_type() == JSObject::OBJ_NUMBER) {
+        return obj->PrimitiveValue();
+      }
+    } else if (val->IsNumber()) {
+      return val;
+    }
+    *e = *Error::TypeError(u"Number.prototype.valueOf called with non-number");
+    return nullptr;
   }
 
   static JSValue* toFixed(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -92,11 +104,13 @@ class NumberConstructor : public JSObject {
     return new NumberObject(js_num);
   }
 
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+    return new String(u"function Number() { [native code] }");
+  }
+
  private:
    NumberConstructor() :
-    JSObject(
-      OBJ_OTHER, u"Number", true, nullptr, true, true
-    ) {}
+    JSObject(OBJ_OTHER, u"Number", true, nullptr, true, true) {}
 };
 
 }  // namespace es

@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <es/parser/parser.h>
-#include <es/helper.h>
+#include <es/utils/helper.h>
 
 using namespace es;
 

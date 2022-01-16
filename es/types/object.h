@@ -96,7 +96,8 @@ class JSObject : public JSValue {
   bool IsCallable() override { return is_callable_; }
   // [[HasInstance]]
   virtual bool HasInstance(Error* e, JSValue* value) {
-    assert(false);
+    *e = *Error::TypeError(u"Object has no [[HasIstance]] internal method");
+    return false;
   }
 
   void AddValueProperty(
@@ -119,16 +120,20 @@ class JSObject : public JSValue {
   }
 
   // This for for-in statement.
-  virtual std::vector<std::pair<std::u16string, PropertyDescriptor*>> AllProperties() {
+  virtual std::vector<std::pair<std::u16string, PropertyDescriptor*>> AllEnumerableProperties() {
     std::vector<std::pair<std::u16string, PropertyDescriptor*>> result;
-    for (auto iter : named_properties_) {
-      result.emplace_back(iter);
+    for (auto pair : named_properties_) {
+      if (!pair.second->HasEnumerable() || !pair.second->Enumerable())
+        continue;
+      result.emplace_back(pair);
     }
     if (!prototype_->IsNull()) {
       JSObject* proto = static_cast<JSObject*>(prototype_);
-      for (auto iter : proto->AllProperties()) {
-        if (named_properties_.find(iter.first) == named_properties_.end()) {
-          result.emplace_back(iter);
+      for (auto pair : proto->AllEnumerableProperties()) {
+        if (!pair.second->HasEnumerable() || !pair.second->Enumerable())
+          continue;
+        if (named_properties_.find(pair.first) == named_properties_.end()) {
+          result.emplace_back(pair);
         }
       }
     }
@@ -284,42 +289,6 @@ bool JSObject::Delete(Error* e, std::u16string P, bool throw_flag) {
     }
     return false;
   }
-}
-
-JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
-  std::u16string first, second;
-  if (hint == u"String" || hint == u"" && obj_type() == OBJ_DATE) {
-    first = u"String";
-    second = u"Number";
-  } else if (hint == u"Number" || hint == u"" && obj_type() != OBJ_DATE) {
-    first = u"Number";
-    second = u"String";
-  } else {
-    assert(false);
-  }
-
-  JSValue* to_string = Get(e, first);
-  if (!e->IsOk()) return nullptr;
-  if (to_string->IsCallable()) {
-    JSObject* to_string_obj = static_cast<JSObject*>(to_string);
-    JSValue* str = to_string_obj->Call(e, this);
-    if (!e->IsOk()) return nullptr;
-    if (str->IsPrimitive()) {
-      return str;
-    }
-  }
-  JSValue* value_of = Get(e, second);
-  if (!e->IsOk()) return nullptr;
-  if (value_of->IsCallable()) {
-    JSObject* value_of_obj = static_cast<JSObject*>(value_of);
-    JSValue* val = value_of_obj->Call(e, this);
-    if (!e->IsOk()) return nullptr;
-    if (val->IsPrimitive()) {
-      return val;
-    }
-  }
-  *e = *Error::TypeError();
-  return nullptr;
 }
 
 // 8.12.9 [[DefineOwnProperty]] (P, Desc, Throw)

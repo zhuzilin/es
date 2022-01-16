@@ -145,11 +145,13 @@ class StringConstructor : public JSObject {
     assert(false);
   }
 
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+    return new String(u"function String() { [native code] }");
+  }
+
  private:
    StringConstructor() :
-    JSObject(
-      OBJ_OTHER, u"String", true, nullptr, true, true
-    ) {}
+    JSObject(OBJ_OTHER, u"String", true, nullptr, true, true) {}
 };
 
 }  // namespace es

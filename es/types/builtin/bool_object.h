@@ -66,11 +66,13 @@ class BoolConstructor : public JSObject {
     return new BoolObject(Bool::Wrap(b));
   }
 
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+    return new String(u"function Bool() { [native code] }");
+  }
+
  private:
    BoolConstructor() :
-    JSObject(
-      OBJ_OTHER, u"Boolean", true, nullptr, true, true
-    ) {}
+    JSObject(OBJ_OTHER, u"Boolean", true, nullptr, true, true) {}
 };
 
 }  // namespace es

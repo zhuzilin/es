@@ -2,6 +2,7 @@
 #define ES_TYPES_BUILTIN_ARRAY_OBJECT
 
 #include <es/types/object.h>
+#include <es/types/builtin/object_object.h>
 #include <es/utils/helper.h>
 
 namespace es {
@@ -57,7 +58,6 @@ class ArrayProto : public JSObject {
     if (len == 0)
       return String::Empty();
     JSValue* element0 = O->Get(e, u"0");
-    std::cout << "element0: " << element0->ToString() << std::endl;
     if (!e->IsOk()) return nullptr;
     std::u16string R = u"";
     if (!element0->IsUndefined() && !element0->IsNull()) {
@@ -83,10 +83,8 @@ class ArrayProto : public JSObject {
   static JSValue* push(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     JSObject* O = ToObject(e, RuntimeContext::TopValue());
     assert(O->obj_type() == JSObject::OBJ_ARRAY);
-    std::cout << O->Get(e, u"length")->ToString() << std::endl;
     double n = ToNumber(e, O->Get(e, u"length"));
     for (JSValue* E : vals) {
-      std::cout << "E: " << E->ToString() << std::endl;
       O->Put(e, NumberToString(n), E, true);
       if (!e->IsOk()) return nullptr;
       n++;      
@@ -300,12 +298,30 @@ class ArrayConstructor : public JSObject {
     return Bool::Wrap(obj->Class() == u"Array");
   }
 
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+    return new String(u"function Array() { [native code] }");
+  }
+
  private:
    ArrayConstructor() :
-    JSObject(
-      OBJ_OTHER, u"Array", true, nullptr, true, true
-    ) {}
+    JSObject(OBJ_OTHER, u"Array", true, nullptr, true, true) {}
 };
+
+JSValue* ObjectConstructor::keys(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  if (vals.size() < 1 || !vals[0]->IsObject()) {
+    *e = *Error::TypeError(u"Object.keys called on non-object");
+    return nullptr;
+  }
+  JSObject* O = static_cast<JSObject*>(vals[0]);
+  auto properties = O->AllEnumerableProperties();
+  size_t n = properties.size();
+  ArrayObject* arr_obj = new ArrayObject(n);
+  for (size_t index = 0; index < n; index++) {
+    arr_obj->AddValueProperty(
+      NumberToString(index), new String(properties[index].first), true, true, true);
+  }
+  return arr_obj;
+}
 
 }  // namespace es
 

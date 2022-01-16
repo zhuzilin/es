@@ -2,10 +2,11 @@
 #define ES_TYPES_BUILTIN_OBJECT_OBJECT
 
 #include <es/types/object.h>
-#include <es/types/conversion.h>
+#include <es/execution_context.h>
 
 namespace es {
 
+std::u16string ToString(Error* e, JSValue* input);
 PropertyDescriptor* ToPropertyDescriptor(Error* e, JSValue* obj);
 
 class ObjectProto : public JSObject {
@@ -16,7 +17,13 @@ class ObjectProto : public JSObject {
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSValue* val = RuntimeContext::TopValue();
+    if (val->IsUndefined())
+      return new String(u"[object Undefined]");
+    if (val->IsNull())
+      return new String(u"[object Null]");
+    JSObject* obj = ToObject(e, val);
+    return new String(u"[object " + obj->Class() + u"]");
   }
 
   static JSValue* toLocaleString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -24,7 +31,11 @@ class ObjectProto : public JSObject {
   }
 
   static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSValue* val = RuntimeContext::TopValue();
+    JSObject* O = ToObject(e, val);
+    if (!e->IsOk()) return nullptr;
+    // TODO(zhuzilin) Host object
+    return O;
   }
 
   static JSValue* hasOwnProperty(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -110,7 +121,17 @@ class ObjectConstructor : public JSObject {
   }
 
   static JSValue* create(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    if (vals.size() < 1 || (!vals[0]->IsObject() && !vals[0]->IsNull())) {
+      *e = *Error::TypeError(u"Object.create called on non-object");
+      return nullptr;
+    }
+    Object* obj = new Object();
+    obj->SetPrototype(vals[0]);
+    if (vals.size() > 1 && !vals[1]->IsUndefined()) {
+      ObjectConstructor::defineProperties(e, this_arg, vals);
+      if (!e->IsOk()) return nullptr;
+    }
+    return obj;
   }
 
   static JSValue* defineProperty(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -170,9 +191,7 @@ class ObjectConstructor : public JSObject {
     return Bool::Wrap(obj->Extensible());
   }
 
-  static JSValue* keys(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
-  }
+  static JSValue* keys(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
   // ES6
   static JSValue* setPrototypeOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -193,11 +212,13 @@ class ObjectConstructor : public JSObject {
     return vals[0];
   }
 
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+    return new String(u"function Object() { [native code] }");
+  }
+
  private:
   ObjectConstructor() :
-    JSObject(
-      OBJ_OTHER, u"Object", true, nullptr, true, true
-    ) {}
+    JSObject(OBJ_OTHER, u"Object", true, nullptr, true, true) {}
 };
 
 }  // namespace es

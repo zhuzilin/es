@@ -62,6 +62,10 @@ class ErrorConstructor : public JSObject {
     return new ErrorObject(Error::NativeError(s));
   }
 
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+    return new String(u"function Error() { [native code] }");
+  }
+
  private:
    ErrorConstructor() :
     JSObject(OBJ_OTHER, u"Error", true, nullptr, true, true) {}

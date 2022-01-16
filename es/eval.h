@@ -364,10 +364,7 @@ Completion EvalForInStatement(AST* ast) {
     obj = ToObject(e, expr_val);
     if (!e->IsOk()) goto error;
 
-    for (auto pair : obj->AllProperties()) {
-      log::PrintSource("for-in AllProperties: ", pair.first);
-      if (!pair.second->HasEnumerable() || !pair.second->Enumerable())
-        continue;
+    for (auto pair : obj->AllEnumerableProperties()) {
       String* P = new String(pair.first);
       Reference* var_ref = IdentifierResolution(var_name);
       PutValue(e, var_ref, P);
@@ -400,9 +397,7 @@ Completion EvalForInStatement(AST* ast) {
       return Completion(Completion::NORMAL, nullptr, u"");
     }
     obj = ToObject(e, expr_val);
-    for (auto pair : obj->AllProperties()) {
-      if (!pair.second->HasEnumerable() || !pair.second->Enumerable())
-        continue;
+    for (auto pair : obj->AllEnumerableProperties()) {
       String* P = new String(pair.first);
       JSValue* lhs_ref = EvalExpression(e, for_in_stmt->expr0());
       if (!e->IsOk()) goto error;
@@ -1114,7 +1109,11 @@ JSValue* EvalAddOperator(Error* e, JSValue* lval, JSValue* rval) {
   if (!e->IsOk()) return nullptr;
   // TODO(zhuzilin) Add test when StringObject is added.
   if (lprim->IsString() || rprim->IsString()) {
-    return new String(ToString(e, lprim) + ToString(e, rprim));
+    std::u16string lstr = ToString(e, lprim);
+    if (!e->IsOk()) return nullptr;
+    std::u16string rstr = ToString(e, rprim);
+    if (!e->IsOk()) return nullptr;
+    return new String(lstr + rstr);
   }
 
   double lnum = ToNumber(e, lprim);

@@ -7,6 +7,8 @@
 
 namespace es {
 
+bool ToBoolean(JSValue* input);
+
 JSValue* FromPropertyDescriptor(Error* e, JSValue* value) {
   if (value->IsUndefined()) {
     return Undefined::Instance();

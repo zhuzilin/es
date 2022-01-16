@@ -11,6 +11,9 @@
 
 namespace es {
 
+double ToNumber(Error* e, JSValue* input);
+std::u16string NumberToString(double m);
+
 class FunctionProto : public JSObject {
  public:
   static FunctionProto* Instance() {
@@ -22,21 +25,67 @@ class FunctionProto : public JSObject {
     return Undefined::Instance();
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
-  }
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
+  // 15.3.4.3 Function.prototype.apply (thisArg, argArray)
   static JSValue* apply(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSValue* val = RuntimeContext::TopValue();
+    if (!val->IsObject()) {
+      *e = *Error::TypeError(u"Function.prototype.apply called on non-object");
+      return nullptr;
+    }
+    JSObject* func = static_cast<JSObject*>(val);
+    if (!func->IsCallable()) {
+      *e = *Error::TypeError(u"Function.prototype.apply called on non-callable");
+      return nullptr;
+    }
+    if (vals.size() == 0) {
+      return func->Call(e, Undefined::Instance(), {});
+    }
+    if (vals.size() < 2 || vals[1]->IsNull() || vals[1]->IsUndefined()) {  // 2
+      return func->Call(e, vals[0], {});
+    }
+    if (!vals[1]->IsObject()) {  // 3
+      *e = *Error::TypeError(u"Function.prototype.apply's argument is non-object");
+      return nullptr;
+    }
+    JSObject* arg_array = static_cast<JSObject*>(vals[1]);
+    JSValue* len = arg_array->Get(e, u"length");
+    if (!e->IsOk()) return nullptr;
+    size_t n = ToNumber(e, len);
+    std::vector<JSValue*> arg_list;  // 6
+    size_t index = 0;  // 7
+    while (index < n) {  // 8
+      std::u16string index_name = ::es::NumberToString(index);
+      if (!e->IsOk()) return nullptr;
+      JSValue* next_arg = arg_array->Get(e, index_name);
+      if (!e->IsOk()) return nullptr;
+      arg_list.emplace_back(next_arg);
+      index++;
+    }
+    return func->Call(e, vals[0], arg_list);
   }
 
   static JSValue* call(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSValue* val = RuntimeContext::TopValue();
+    if (!val->IsObject()) {
+      *e = *Error::TypeError(u"Function.prototype.call called on non-object");
+      return nullptr;
+    }
+    JSObject* func = static_cast<JSObject*>(val);
+    if (!func->IsCallable()) {
+      *e = *Error::TypeError(u"Function.prototype.call called on non-callable");
+      return nullptr;
+    }
+    if (vals.size()) {
+      JSValue* this_arg = vals[0];
+      return func->Call(e, this_arg, std::vector<JSValue*>(vals.begin() + 1, vals.end()));
+    } else {
+      return func->Call(e, Undefined::Instance(), {});
+    }
   }
 
-  static JSValue* bind(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
-  }
+  static JSValue* bind(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
  private:
   FunctionProto() :
@@ -53,33 +102,35 @@ Completion EvalProgram(AST* ast);
 class FunctionObject : public JSObject {
  public:
   FunctionObject(
-    std::vector<std::u16string> names, AST* body,
-    LexicalEnvironment* scope, bool from_bind = false
+    std::vector<std::u16string> names, AST* body, LexicalEnvironment* scope, bool from_bind_ = false
   ) : JSObject(OBJ_FUNC, u"Function", true, nullptr, true, true),
-      formal_params_(names), scope_(scope), from_bind_(from_bind) {
-    assert(body->type() == AST::AST_FUNC_BODY);
-    body_ = static_cast<ProgramOrFunctionBody*>(body);
-    strict_ = body_->strict() || RuntimeContext::TopContext()->strict();
+      formal_params_(names), scope_(scope), from_bind_(from_bind_) {
     // 13.2 Creating Function Objects
     SetPrototype(FunctionProto::Instance());
-    AddValueProperty(u"length", new Number(names.size()), false, false, false);
-    JSValue* proto = new Object();
-    if (!from_bind_) {
+    // Whether the function is made from bind.
+    if (body != nullptr) {
+      assert(body->type() == AST::AST_FUNC_BODY);
+      body_ = static_cast<ProgramOrFunctionBody*>(body);
+      strict_ = body_->strict() || RuntimeContext::TopContext()->strict();
+      AddValueProperty(u"length", new Number(names.size()), false, false, false);  // 14 & 15
+      JSObject* proto = new Object();  // 16
+      proto->AddValueProperty(u"constructor", this, true, false, true);
       // 15.3.5.2 prototype
       AddValueProperty(u"prototype", proto, true, false, false);
-    }
-    AddValueProperty(u"constructor", proto, true, false, true);
-    if (strict_) {
-      // TODO(zhuzilin) thrower
+      if (strict_) {
+        // TODO(zhuzilin) thrower
+      }
     }
   }
 
-  LexicalEnvironment* Scope() { return scope_; };
-  std::vector<std::u16string> FormalParameters() { return formal_params_; };
-  AST* Code() { return body_; }
-  bool strict() { return strict_; }
+  virtual LexicalEnvironment* Scope() { return scope_; };
+  virtual std::vector<std::u16string> FormalParameters() { return formal_params_; };
+  virtual AST* Code() { return body_; }
+  virtual bool strict() { return strict_; }
+  bool from_bind() { return from_bind_; }
 
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments) override {
+  // 13.2.1 [[Call]]
+  virtual JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments) override {
     log::PrintSource("enter FunctionObject::Call ", body_->source());
     EnterFunctionCode(e, this, body_, this_arg, arguments, strict_);
     if (!e->IsOk()) return nullptr;
@@ -111,7 +162,7 @@ class FunctionObject : public JSObject {
   }
 
   // 13.2.2 [[Construct]]
-  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
+  virtual JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
     log::PrintSource("enter FunctionObject::Construct");
     JSObject* obj = new JSObject(OBJ_OTHER, u"Object", true, nullptr, false, false);
     JSValue* proto = Get(e, u"prototype");
@@ -129,7 +180,7 @@ class FunctionObject : public JSObject {
   }
 
   // 15.3.5.3 [[HasInstance]] (V)
-  bool HasInstance(Error* e, JSValue* V) override {
+  virtual bool HasInstance(Error* e, JSValue* V) override {
     if (!V->IsObject())
       return false;
     JSValue* O = Get(e, u"prototype");
@@ -166,14 +217,72 @@ class FunctionObject : public JSObject {
     return v;
   }
 
-  std::string ToString() override { return "Function"; }
+  std::string ToString() override {
+    std::string result = "Function(";
+    if (formal_params_.size() > 0) {
+      result += log::ToString(formal_params_[0]);
+      for (size_t i = 1; i < formal_params_.size(); i++) {
+        result += "," + log::ToString(formal_params_[i]);
+      }
+    }
+    result += ")";
+    return result;
+  }
+
+ protected:
+  bool from_bind_;
 
  private:
   std::vector<std::u16string> formal_params_;
   LexicalEnvironment* scope_;
   ProgramOrFunctionBody* body_;
   bool strict_;
-  bool from_bind_;
+};
+
+class BindFunctionObject : public FunctionObject {
+ public:
+  BindFunctionObject(
+    JSObject* target_function, JSValue* bound_this, std::vector<JSValue*> bound_args
+  ) : FunctionObject({}, nullptr, nullptr, true),
+      target_function_(target_function), bound_this_(bound_this), bound_args_(bound_args) {}
+
+  LexicalEnvironment* Scope() override { assert(false); };
+  std::vector<std::u16string> FormalParameters() override { assert(false); };
+  AST* Code() override { assert(false); }
+  bool strict() override { assert(false); }
+
+  JSObject* TargetFunction() { return target_function_; }
+  JSValue* BoundThis() { return bound_this_; }
+  std::vector<JSValue*> BoundArgs() { return bound_args_; }
+
+  virtual JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> extra_args) override {
+    std::vector<JSValue*> args;
+    args.insert(args.end(), bound_args_.begin(), bound_args_.end());
+    args.insert(args.end(), extra_args.begin(), extra_args.end());
+    return target_function_->Call(e, bound_this_, args);
+  }
+
+  // 13.2.2 [[Construct]]
+  virtual JSObject* Construct(Error* e, std::vector<JSValue*> extra_args) override {
+    if (!target_function_->IsConstructor()) {
+      *e = *Error::TypeError(u"target function has no [[Construct]] internal method");
+      return nullptr;
+    }
+    std::vector<JSValue*> args;
+    args.insert(args.end(), bound_args_.begin(), bound_args_.end());
+    args.insert(args.end(), extra_args.begin(), extra_args.end());
+    return target_function_->Construct(e, args);
+  }
+
+  // 15.3.4.5.3 [[HasInstance]] (V)
+  virtual bool HasInstance(Error* e, JSValue* V) override {
+    return target_function_->HasInstance(e, V);
+  }
+
+ private:
+  JSObject* target_function_;
+  JSValue* bound_this_;
+  std::vector<JSValue*> bound_args_;
 };
 
 class FunctionConstructor : public JSObject {
@@ -243,10 +352,66 @@ class FunctionConstructor : public JSObject {
     return new FunctionObject(names, body_ast, scope);
   }
 
+  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+    return new String(u"function Function() { [native code] }");
+  }
+
  private:
   FunctionConstructor() :
     JSObject(OBJ_OTHER, u"Function", true, nullptr, true, true) {}
 };
+
+JSValue* FunctionProto::toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  JSValue* val = RuntimeContext::TopValue();
+  if (!val->IsObject()) {
+    *e = *Error::TypeError(u"Function.prototype.toString called on non-object");
+    return nullptr;
+  }
+  JSObject* obj = static_cast<JSObject*>(val);
+  if (obj->obj_type() != JSObject::OBJ_FUNC) {
+    *e = *Error::TypeError(u"Function.prototype.toString called on non-function");
+    return nullptr;
+  }
+  FunctionObject* func = static_cast<FunctionObject*>(obj);
+  std::u16string str = u"function (";
+  auto params = func->FormalParameters();
+  if (params.size() > 0) {
+    str += params[0];
+    for (size_t i = 1; i < params.size(); i++) {
+      str += u"," + params[i];
+    }
+  }
+  str += u")";
+  return new String(str);
+}
+
+// 15.3.4.5 Function.prototype.bind (thisArg [, arg1 [, arg2, …]])
+JSValue* FunctionProto::bind(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  JSValue* val = RuntimeContext::TopValue();
+  if (!val->IsCallable()) {
+    *e = *Error::TypeError(u"Function.prototype.call called on non-callable");
+    return nullptr;
+  }
+  JSObject* target = static_cast<JSObject*>(val);
+  JSValue* this_arg_for_F = Undefined::Instance();
+  if (vals.size() > 0)
+    this_arg_for_F = vals[0];
+  std::vector<JSValue*> A;
+  if (vals.size() > 1) {
+    A = std::vector<JSValue*>(vals.begin() + 1, vals.end());
+  }
+  BindFunctionObject* F = new BindFunctionObject(target, this_arg_for_F, A);
+  size_t len = 0;
+  if (target->Class() == u"Function") {
+    size_t L = ToNumber(e, target->Get(e, u"length"));
+    if (L - A.size() > 0)
+      len = L - A.size();
+  }
+  F->AddValueProperty(u"length", new Number(len), false, false, false);
+  // 19
+  // TODO(zhuzilin) thrower
+  return F;
+}
 
 FunctionObject* InstantiateFunctionDeclaration(Error* e, Function* func_ast) {
     assert(func_ast->is_named());

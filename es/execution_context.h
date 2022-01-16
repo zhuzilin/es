@@ -132,6 +132,45 @@ class ValueGuard {
   size_t count_;
 };
 
+JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
+  std::u16string first, second;
+  if (hint == u"String" || hint == u"" && obj_type() == OBJ_DATE) {
+    first = u"toString";
+    second = u"valueOf";
+  } else if (hint == u"Number" || hint == u"" && obj_type() != OBJ_DATE) {
+    first = u"valueOf";
+    second = u"toString";
+  } else {
+    assert(false);
+  }
+
+  ValueGuard guard;
+  guard.AddValue(this);
+
+  JSValue* to_string = Get(e, first);
+  if (!e->IsOk()) return nullptr;
+  if (to_string->IsCallable()) {
+    JSObject* to_string_obj = static_cast<JSObject*>(to_string);
+    JSValue* str = to_string_obj->Call(e, this);
+    if (!e->IsOk()) return nullptr;
+    if (str->IsPrimitive()) {
+      return str;
+    }
+  }
+  JSValue* value_of = Get(e, second);
+  if (!e->IsOk()) return nullptr;
+  if (value_of->IsCallable()) {
+    JSObject* value_of_obj = static_cast<JSObject*>(value_of);
+    JSValue* val = value_of_obj->Call(e, this);
+    if (!e->IsOk()) return nullptr;
+    if (val->IsPrimitive()) {
+      return val;
+    }
+  }
+  *e = *Error::TypeError(u"failed to get [[DefaultValue]]");
+  return nullptr;
+}
+
 }  // namespace es
 
 #endif  // ES_EXECUTION_CONTEXT_H

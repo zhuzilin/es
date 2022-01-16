@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <es/parser/lexer.h>
-#include <es/helper.h>
+#include <es/utils/helper.h>
 
 using namespace es;
 

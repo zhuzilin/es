@@ -8,7 +8,8 @@
 #include <es/parser/parser.h>
 #include <es/enter_code.h>
 #include <es/eval.h>
-#include <es/helper.h>
+#include <es/types/property_descriptor_object_conversion.h>
+#include <es/utils/helper.h>
 
 using namespace es;
 

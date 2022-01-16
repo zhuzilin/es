@@ -4,9 +4,10 @@
 #include <vector>
 
 #include <es/parser/parser.h>
+#include <es/types/property_descriptor_object_conversion.h>
 #include <es/enter_code.h>
 #include <es/eval.h>
-#include <es/helper.h>
+#include <es/utils/helper.h>
 
 // NOTE(zhuzilin) There are some copy and paste from stackoverflow...
 std::u16string ReadUTF8FileToUTF16String(std::string filename) {
@@ -48,10 +49,9 @@ int main(int argc, char* argv[]) {
   es::Completion res = es::EvalProgram(ast);
   switch (res.type) {
     case es::Completion::THROW:
-      std::cout << "(THROW, " << res.value->ToString() << ", )" << std::endl;
+      std::cout << "\033[1;31m" << "Uncaught Error: " << res.value->ToString() << "\033[0m\n" << std::endl;
       break;
     default:
-      std::cout << "(NORMAL, " << res.value->ToString() << ", )" << std::endl;
       break;
   } 
 }

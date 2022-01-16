@@ -9,7 +9,8 @@
 
 #include <es/parser/parser.h>
 #include <es/types/conversion.h>
-#include <es/helper.h>
+#include <es/types/property_descriptor_object_conversion.h>
+#include <es/utils/helper.h>
 
 using namespace es;
 

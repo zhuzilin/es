@@ -230,7 +230,6 @@ double ToUint16(Error* e, JSValue* input) {
 }
 
 std::u16string NumberToString(double m) {
-  std::cout << "enter NumberToString " << m << std::endl;
   if (m == 0)
     return String::Zero()->data();
   std::u16string sign = u"";

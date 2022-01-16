@@ -101,7 +101,6 @@ void DeclarationBindingInstantiation(
   Error* e, ExecutionContext* context, AST* code, CodeType code_type,
   FunctionObject* f = nullptr, std::vector<JSValue*> args = {}
 ) {
-  log::PrintSource("enter DeclarationBindingInstantiation");
   auto env = context->variable_env()->env_rec();  // 1
   bool configurable_bindings = false;
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
@@ -261,6 +260,7 @@ void InitObject() {
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.2.3 Properties of the Object Constructor
   constructor->AddValueProperty(u"prototype", ObjectProto::Instance(), false, false, false);
+  constructor->AddFuncProperty(u"toString", ObjectConstructor::toString, false, false, false);
   // TODO(zhuzilin) check if the config is correct.
   constructor->AddFuncProperty(u"getPrototypeOf", ObjectConstructor::getPrototypeOf, false, false, false);
   constructor->AddFuncProperty(u"getOwnPropertyDescriptor", ObjectConstructor::getOwnPropertyDescriptor, false, false, false);
@@ -295,6 +295,7 @@ void InitFunction() {
   // 15.3.3 Properties of the Function Constructor
   constructor->AddValueProperty(u"prototype", FunctionProto::Instance(), false, false, false);
   constructor->AddValueProperty(u"length", Number::One(), false, false, false);
+  constructor->AddFuncProperty(u"toString", FunctionConstructor::toString, false, false, false);
 
   FunctionProto* proto = FunctionProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
@@ -336,6 +337,7 @@ void InitError() {
   // 15.11.3 Properties of the Error Constructor
   constructor->AddValueProperty(u"prototype", ErrorProto::Instance(), false, false, false);
   constructor->AddValueProperty(u"length", Number::One(), false, false, false);
+  constructor->AddFuncProperty(u"toString", NumberConstructor::toString, false, false, false);
 
   ErrorProto* proto = ErrorProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
@@ -351,6 +353,7 @@ void InitBool() {
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.6.3 Properties of the Boolean Constructor
   constructor->AddValueProperty(u"prototype", BoolProto::Instance(), false, false, false);
+  constructor->AddFuncProperty(u"toString", BoolConstructor::toString, false, false, false);
 
   BoolProto* proto = BoolProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
@@ -367,6 +370,7 @@ void InitString() {
   constructor->AddValueProperty(u"prototype", StringProto::Instance(), false, false, false);
   constructor->AddValueProperty(u"length", Number::One(), true, false, false);
   constructor->AddFuncProperty(u"fromCharCode", StringConstructor::fromCharCode, false, false, false);
+  constructor->AddFuncProperty(u"toString", StringConstructor::toString, false, false, false);
 
   StringProto* proto = StringProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
@@ -400,6 +404,7 @@ void InitArray() {
   constructor->AddValueProperty(u"length", Number::One(), false, false, false);
   constructor->AddValueProperty(u"prototype", ArrayProto::Instance(), false, false, false);
   constructor->AddFuncProperty(u"isArray", ArrayConstructor::isArray, false, false, false);
+  constructor->AddFuncProperty(u"toString", ArrayConstructor::toString, false, false, false);
 
   ArrayProto* proto = ArrayProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());

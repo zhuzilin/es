@@ -4,10 +4,11 @@
 #include <es/types/base.h>
 #include <es/types/environment_record.h>
 #include <es/types/builtin/global_object.h>
-#include <es/types/conversion.h>
 #include <es/error.h>
 
 namespace es {
+
+JSObject* ToObject(Error* e, JSValue* input);
 
 class Reference : public JSValue {
  public:
@@ -47,7 +48,6 @@ JSValue* GetValue(Error* e, JSValue* V) {
     return nullptr;
   }
   JSValue* base = ref->GetBase();
-  log::PrintSource("GetValue " + V->ToString() + " base " + base->ToString());
   if (ref->IsPropertyReference()) {  // 4
     // 4.a & 4.b
     if (!ref->HasPrimitiveBase()) {
