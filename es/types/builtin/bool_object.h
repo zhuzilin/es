@@ -29,7 +29,7 @@ class BoolProto : public JSObject {
  private:
    BoolProto() :
     JSObject(
-      OBJ_OTHER, u"Boolean", true, Bool::False(), false, true
+      OBJ_BOOL, u"Boolean", true, Bool::False(), false, true
     ) {}
 };
 

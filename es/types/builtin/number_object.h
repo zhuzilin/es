@@ -41,7 +41,7 @@ class NumberProto : public JSObject {
  private:
    NumberProto() :
     JSObject(
-      OBJ_OTHER, u"Number", true, Number::Zero(), false, false
+      OBJ_NUMBER, u"Number", true, Number::Zero(), false, false
     ) {}
 };
 

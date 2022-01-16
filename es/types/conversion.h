@@ -47,8 +47,7 @@ bool ToBoolean(JSValue* input) {
   }
 }
 
-double StringToNumber(String* str) {
-  auto source = str->data();
+double StringToNumber(std::u16string source) {
   size_t start = 0;
   size_t end = source.size();
   bool positive = true;
@@ -151,6 +150,10 @@ error:
   return nan("");
 }
 
+double StringToNumber(String* str) {
+  return StringToNumber(str->data());
+}
+
 double ToNumber(Error* e, JSValue* input) {
   assert(input->IsLanguageType());
   switch (input->type()) {
@@ -226,14 +229,10 @@ double ToUint16(Error* e, JSValue* input) {
   return ToUint(e, input, 16);
 }
 
-std::u16string NumberToString(Number* num) {
-  if (num->IsNaN())
-    return String::NaN()->data();
-  if (num->data() == 0)
+std::u16string NumberToString(double m) {
+  std::cout << "enter NumberToString " << m << std::endl;
+  if (m == 0)
     return String::Zero()->data();
-  if (num->IsInfinity())
-    return String::Infinity()->data();
-  double m = num->data();
   std::u16string sign = u"";
   if (m < 0) {
     m = -m;
@@ -261,6 +260,14 @@ std::u16string NumberToString(Number* num) {
   }
   // TODO(zhuzilin)
   assert(false);
+}
+
+std::u16string NumberToString(Number* num) {
+  if (num->IsNaN())
+    return String::NaN()->data();
+  if (num->IsInfinity())
+    return String::Infinity()->data();
+  return NumberToString(num->data());
 }
 
 std::u16string ToString(Error* e, JSValue* input) {
@@ -291,7 +298,7 @@ JSObject* ToObject(Error* e, JSValue* input) {
   switch (input->type()) {
     case JSValue::JS_UNDEFINED:
     case JSValue::JS_NULL:
-      *e = *Error::TypeError();
+      *e = *Error::TypeError(u"Cannot convert undefined or null to object");
       return nullptr;
     case JSValue::JS_BOOL:
       return new BoolObject(input);

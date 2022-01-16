@@ -94,6 +94,7 @@ class ArrayLiteral : public AST {
   }
 
   size_t length() { return len_; }
+  std::vector<std::pair<size_t, AST*>> elements() { return elements_; }
 
   void AddElement(AST* element) {
     if (element != nullptr) {

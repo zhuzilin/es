@@ -9,6 +9,7 @@
 #include <es/types/builtin/error_object.h>
 #include <es/types/builtin/bool_object.h>
 #include <es/types/builtin/string_object.h>
+#include <es/types/builtin/array_object.h>
 #include <es/execution_context.h>
 
 namespace es {
@@ -203,7 +204,7 @@ void EnterGlobalCode(Error* e, AST* ast) {
   // 1 10.4.1.1
   LexicalEnvironment* global_env = LexicalEnvironment::Global();
   ExecutionContext* context = new ExecutionContext(global_env, global_env, GlobalObject::Instance(), program->strict());
-  ExecutionContextStack::Global()->AddContext(context);
+  RuntimeContext::Global()->AddContext(context);
   // 2
   DeclarationBindingInstantiation(e, context, program, CODE_GLOBAL);
 }
@@ -224,7 +225,7 @@ void EnterFunctionCode(
   }
   LexicalEnvironment* local_env = LexicalEnvironment::NewDeclarativeEnvironment(func->Scope());
   ExecutionContext* context = new ExecutionContext(local_env, local_env, this_binding, body->strict());  // 8
-  ExecutionContextStack::Global()->AddContext(context);
+  RuntimeContext::Global()->AddContext(context);
   // 9
   DeclarationBindingInstantiation(e, context, body, CODE_FUNC, func, args);
 }
@@ -250,6 +251,7 @@ void InitGlobalObject() {
   global_obj->AddValueProperty(u"Error", ErrorConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Boolean", BoolConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"String", StringConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"Array", ArrayConstructor::Instance(), true, false, true);
 
   global_obj->AddFuncProperty(u"console_log", logger, true, false, true);
 }
@@ -361,7 +363,7 @@ void InitString() {
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.3.3 Properties of the String Constructor
   constructor->AddValueProperty(u"prototype", StringProto::Instance(), false, false, false);
-  constructor->AddValueProperty(u"length", Number::One(), false, false, false);
+  constructor->AddValueProperty(u"length", Number::One(), true, false, false);
   constructor->AddFuncProperty(u"fromCharCode", StringConstructor::fromCharCode, false, false, false);
 
   StringProto* proto = StringProto::Instance();
@@ -389,6 +391,41 @@ void InitString() {
   proto->AddFuncProperty(u"trim", StringProto::trim, false, false, false);
 }
 
+void InitArray() {
+  ArrayConstructor* constructor = ArrayConstructor::Instance();
+  constructor->SetPrototype(FunctionProto::Instance());
+  // 15.6.3 Properties of the Arrayean Constructor
+  constructor->AddValueProperty(u"length", Number::One(), false, false, false);
+  constructor->AddValueProperty(u"prototype", ArrayProto::Instance(), false, false, false);
+  constructor->AddFuncProperty(u"isArray", ArrayConstructor::isArray, false, false, false);
+
+  ArrayProto* proto = ArrayProto::Instance();
+  proto->SetPrototype(ObjectProto::Instance());
+  // 15.6.4 Properties of the Arrayean Prototype Object
+  proto->AddValueProperty(u"length", Number::Zero(), false, false, false);
+  proto->AddValueProperty(u"constructor", ArrayConstructor::Instance(), false, false, false);
+  proto->AddFuncProperty(u"toString", ArrayProto::toString, false, false, false);
+  proto->AddFuncProperty(u"toLocaleString", ArrayProto::toLocaleString, false, false, false);
+  proto->AddFuncProperty(u"concat", ArrayProto::concat, false, false, false);
+  proto->AddFuncProperty(u"join", ArrayProto::join, false, false, false);
+  proto->AddFuncProperty(u"pop", ArrayProto::pop, false, false, false);
+  proto->AddFuncProperty(u"push", ArrayProto::push, false, false, false);
+  proto->AddFuncProperty(u"reverse", ArrayProto::reverse, false, false, false);
+  proto->AddFuncProperty(u"shift", ArrayProto::shift, false, false, false);
+  proto->AddFuncProperty(u"slice", ArrayProto::slice, false, false, false);
+  proto->AddFuncProperty(u"sort", ArrayProto::sort, false, false, false);
+  proto->AddFuncProperty(u"splice", ArrayProto::splice, false, false, false);
+  proto->AddFuncProperty(u"unshift", ArrayProto::unshift, false, false, false);
+  proto->AddFuncProperty(u"indexOf", ArrayProto::indexOf, false, false, false);
+  proto->AddFuncProperty(u"lastIndexOf", ArrayProto::lastIndexOf, false, false, false);
+  proto->AddFuncProperty(u"every", ArrayProto::every, false, false, false);
+  proto->AddFuncProperty(u"some", ArrayProto::some, false, false, false);
+  proto->AddFuncProperty(u"forEach", ArrayProto::forEach, false, false, false);
+  proto->AddFuncProperty(u"map", ArrayProto::map, false, false, false);
+  proto->AddFuncProperty(u"reduce", ArrayProto::reduce, false, false, false);
+  proto->AddFuncProperty(u"reduceRight", ArrayProto::reduceRight, false, false, false);
+}
+
 void Init() {
   InitGlobalObject();
   InitObject();
@@ -397,6 +434,7 @@ void Init() {
   InitError();
   InitBool();
   InitString();
+  InitArray();
 }
 
 }  // namespace es

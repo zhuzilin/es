@@ -29,8 +29,8 @@ class Error {
     return new Error(E_EVAL);
   }
 
-  static Error* RangeError() {
-    return new Error(E_RANGE);
+  static Error* RangeError(std::u16string message = u"") {
+    return new Error(E_RANGE, message);
   }
 
   static Error* ReferenceError() {

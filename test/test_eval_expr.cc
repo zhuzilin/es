@@ -214,3 +214,22 @@ TEST(TestEvalExpr, Object) {
     EXPECT_EQ(2, obj->named_properties().size());
   }
 }
+
+TEST(TestEvalExpr, Array) {
+  Error* e = Error::Ok();
+  EnterGlobalCode(e, new ProgramOrFunctionBody(AST::AST_PROGRAM, false));
+  {
+    std::vector<std::pair<std::u16string, size_t>> sources = {
+      {u"[, 1, 'abc', a,]", 4}, {u"[]", 0}
+    };
+    for (auto pair : sources) {
+      Parser parser(pair.first);
+      AST* ast = parser.ParseArrayLiteral();
+      JSValue* val = EvalArray(e, ast);
+      EXPECT_EQ(JSValue::JS_OBJECT, val->type());
+      ArrayObject* arr = static_cast<ArrayObject*>(val);
+      EXPECT_EQ(pair.second, static_cast<Number*>(arr->Get(e, u"length"))->data());
+    }
+    
+  }
+}

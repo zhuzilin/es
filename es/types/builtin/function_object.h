@@ -40,7 +40,7 @@ class FunctionProto : public JSObject {
 
  private:
   FunctionProto() :
-    JSObject(OBJ_OTHER, u"Function", true, nullptr, false, true) {}
+    JSObject(OBJ_FUNC, u"Function", true, nullptr, false, true) {}
 };
 
 void EnterFunctionCode(
@@ -59,7 +59,7 @@ class FunctionObject : public JSObject {
       formal_params_(names), scope_(scope), from_bind_(from_bind) {
     assert(body->type() == AST::AST_FUNC_BODY);
     body_ = static_cast<ProgramOrFunctionBody*>(body);
-    strict_ = body_->strict() || ExecutionContextStack::TopContext()->strict();
+    strict_ = body_->strict() || RuntimeContext::TopContext()->strict();
     // 13.2 Creating Function Objects
     SetPrototype(FunctionProto::Instance());
     AddValueProperty(u"length", new Number(names.size()), false, false, false);
@@ -88,7 +88,7 @@ class FunctionObject : public JSObject {
     if (body_ != nullptr) {
       result = EvalProgram(body_);
     }
-    ExecutionContextStack::Global()->Pop();   // 3
+    RuntimeContext::Global()->PopContext();   // 3
 
     switch (result.type) {
       case Completion::RETURN:
@@ -252,12 +252,12 @@ FunctionObject* InstantiateFunctionDeclaration(Error* e, Function* func_ast) {
     assert(func_ast->is_named());
     std::u16string identifier = func_ast->name();
     auto func_env = LexicalEnvironment::NewDeclarativeEnvironment(  // 1
-      ExecutionContextStack::TopLexicalEnv()
+      RuntimeContext::TopLexicalEnv()
     );
     auto env_rec = static_cast<DeclarativeEnvironmentRecord*>(func_env->env_rec());  // 2
     env_rec->CreateImmutableBinding(identifier);  // 3
     auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
-    bool strict = body->strict() || ExecutionContextStack::TopContext()->strict();
+    bool strict = body->strict() || RuntimeContext::TopContext()->strict();
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
@@ -289,7 +289,7 @@ JSValue* EvalFunction(Error* e, AST* ast) {
     return InstantiateFunctionDeclaration(e, func_ast);
   } else {
     auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
-    bool strict = body->strict() || ExecutionContextStack::TopContext()->strict();
+    bool strict = body->strict() || RuntimeContext::TopContext()->strict();
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
@@ -305,7 +305,7 @@ JSValue* EvalFunction(Error* e, AST* ast) {
     }
     return new FunctionObject(
       func_ast->params(), func_ast->body(),
-      ExecutionContextStack::TopLexicalEnv()
+      RuntimeContext::TopLexicalEnv()
     );
   }
 }

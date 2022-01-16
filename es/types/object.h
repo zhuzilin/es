@@ -32,6 +32,7 @@ class JSObject : public JSValue {
     OBJ_JSON,
     OBJ_ERROR,
 
+    OBJ_INNER_FUNC,
     OBJ_OTHER,
   };
 
@@ -71,7 +72,7 @@ class JSObject : public JSValue {
   bool HasProperty(std::u16string P);
   bool Delete(Error* e, std::u16string P, bool throw_flag);
   JSValue* DefaultValue(Error* e, std::u16string hint);
-  bool DefineOwnProperty(Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag);
+  virtual bool DefineOwnProperty(Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag);
 
   // Internal Properties Only Defined for Some Objects
   // [[PrimitiveValue]]
@@ -91,7 +92,6 @@ class JSObject : public JSValue {
   // [[Call]]
   virtual JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) {
     assert(is_callable_ && callable_ != nullptr);
-    // TODO(zhuzilin) check if any callable need this_arg.
     return callable_(e, this, arguments);
   }
   bool IsCallable() override { return is_callable_; }
@@ -115,7 +115,7 @@ class JSObject : public JSValue {
     bool enumerable, bool configurable
   ) {
     JSObject* value = new JSObject(
-      OBJ_OTHER, u"InternalFunc", false, nullptr, false, true, callable);
+      OBJ_INNER_FUNC, u"InternalFunc", false, nullptr, false, true, callable);
     AddValueProperty(name, value, writable, enumerable, configurable);
   }
 

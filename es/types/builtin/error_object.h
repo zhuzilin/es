@@ -22,7 +22,7 @@ class ErrorProto : public JSObject {
 
  private:
    ErrorProto() :
-    JSObject(OBJ_OTHER, u"Error", true, nullptr, false, true) {}
+    JSObject(OBJ_ERROR, u"Error", true, nullptr, false, true) {}
 };
 
 class ErrorObject : public JSObject {

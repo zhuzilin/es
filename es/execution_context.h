@@ -60,10 +60,10 @@ class ExecutionContext {
   size_t iteration_layers_;
 };
 
-class ExecutionContextStack {
+class RuntimeContext {
  public:
-  static ExecutionContextStack* Global() {
-    static ExecutionContextStack singleton;
+  static RuntimeContext* Global() {
+    static RuntimeContext singleton;
     return &singleton;
   }
 
@@ -74,26 +74,62 @@ class ExecutionContextStack {
   }
 
   static ExecutionContext* TopContext() {
-    return ExecutionContextStack::Global()->context_stack_.top();
+    return RuntimeContext::Global()->context_stack_.top();
   }
 
   static LexicalEnvironment* TopLexicalEnv() {
-    return ExecutionContextStack::TopContext()->lexical_env();
+    return RuntimeContext::TopContext()->lexical_env();
   }
 
-  void Pop() {
+  void PopContext() {
     ExecutionContext* top = context_stack_.top();
     context_stack_.pop();
     delete top;
   }
 
+  static JSValue* TopValue() {
+    return RuntimeContext::Global()->value_stack_.top();
+  }
+
+  void AddValue(JSValue* val) {
+    value_stack_.push(val);
+  }
+
+  void PopValue() {
+    value_stack_.pop();
+  }
+
   ExecutionContext* global_env() { return global_env_; }
 
  private:
-  ExecutionContextStack() = default;
+  RuntimeContext() {
+    value_stack_.push(Null::Instance());
+  }
 
   std::stack<ExecutionContext*> context_stack_;
   ExecutionContext* global_env_;
+  // This is to make sure builtin function like `array.push()`
+  // can visit `array`.
+  std::stack<JSValue*> value_stack_;
+};
+
+class ValueGuard {
+ public:
+  ValueGuard() : count_(0) {}
+  ~ValueGuard() {
+    while (count_ > 0) {
+      RuntimeContext::Global()->PopValue();
+      count_--;
+    }
+  }
+
+  void AddValue(JSValue* val) {
+    RuntimeContext::Global()->AddValue(val);
+    count_++;
+  }
+
+ private:
+  size_t count_;
 };
 
 }  // namespace es
