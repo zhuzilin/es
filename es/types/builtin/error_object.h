@@ -36,7 +36,7 @@ class ErrorObject : public JSObject {
   Error::Type ErrorType() { return e_->type(); }
   std::u16string ErrorMessage() { return e_->message(); }
 
-  std::string ToString() { return "Error(" + log::ToString(e_->message()) + ")"; }
+  std::string ToString() { return log::ToString(e_->message()); }
 
  private:
   Error* e_;

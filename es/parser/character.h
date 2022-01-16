@@ -2,7 +2,7 @@
 #define ES_CHARACTER_H
 
 #include <es/parser/unicode.h>
-#include <es/helper.h>
+#include <es/utils/helper.h>
 
 namespace es {
 namespace character {

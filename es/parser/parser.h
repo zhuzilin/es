@@ -4,7 +4,7 @@
 #include <es/parser/lexer.h>
 #include <es/parser/ast.h>
 
-#include <es/helper.h>
+#include <es/utils/helper.h>
 
 #define START_POS size_t start = lexer_.Pos()
 #define SOURCE_PARSED source_.substr(start, lexer_.Pos() - start)

@@ -5,7 +5,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <unordered_map>
+#include <map>
 
 #include <es/types/base.h>
 #include <es/types/same_value.h>
@@ -50,7 +50,6 @@ class JSObject : public JSValue {
       is_callable_(is_callable), callable_(callable) {}
 
   ObjType obj_type() { return obj_type_; }
-  std::unordered_map<std::u16string, PropertyDescriptor*> named_properties() { return named_properties_; }
 
   bool IsFunction() { return obj_type_ == OBJ_FUNC; }
 
@@ -119,11 +118,28 @@ class JSObject : public JSValue {
     AddValueProperty(name, value, writable, enumerable, configurable);
   }
 
+  // This for for-in statement.
+  virtual std::vector<std::pair<std::u16string, PropertyDescriptor*>> AllProperties() {
+    std::vector<std::pair<std::u16string, PropertyDescriptor*>> result;
+    for (auto iter : named_properties_) {
+      result.emplace_back(iter);
+    }
+    if (!prototype_->IsNull()) {
+      JSObject* proto = static_cast<JSObject*>(prototype_);
+      for (auto iter : proto->AllProperties()) {
+        if (named_properties_.find(iter.first) == named_properties_.end()) {
+          result.emplace_back(iter);
+        }
+      }
+    }
+    return result;
+  }
+
   virtual std::string ToString() override { return log::ToString(class_); }
 
  private:  
   ObjType obj_type_;
-  std::unordered_map<std::u16string, PropertyDescriptor*> named_properties_;
+  std::map<std::u16string, PropertyDescriptor*> named_properties_;
 
   JSValue* prototype_;
   std::u16string class_;

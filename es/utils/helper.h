@@ -1,5 +1,5 @@
-#ifndef ES_TEST_HELPER_H
-#define ES_TEST_HELPER_H
+#ifndef ES_UTILS_HELPER_H
+#define ES_UTILS_HELPER_H
 
 #include <string.h>
 
@@ -66,4 +66,4 @@ bool HaveDuplicate(std::vector<std::u16string> vals) {
 
 
 
-#endif  // ES_TEST_HELPER_H
+#endif  // ES_UTILS_HELPER_H

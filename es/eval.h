@@ -12,7 +12,7 @@
 #include <es/types/builtin/error_object.h>
 #include <es/types/compare.h>
 #include <es/execution_context.h>
-#include <es/helper.h>
+#include <es/utils/helper.h>
 
 namespace es {
 
@@ -364,7 +364,8 @@ Completion EvalForInStatement(AST* ast) {
     obj = ToObject(e, expr_val);
     if (!e->IsOk()) goto error;
 
-    for (auto pair : obj->named_properties()) {
+    for (auto pair : obj->AllProperties()) {
+      log::PrintSource("for-in AllProperties: ", pair.first);
       if (!pair.second->HasEnumerable() || !pair.second->Enumerable())
         continue;
       String* P = new String(pair.first);
@@ -399,7 +400,7 @@ Completion EvalForInStatement(AST* ast) {
       return Completion(Completion::NORMAL, nullptr, u"");
     }
     obj = ToObject(e, expr_val);
-    for (auto pair : obj->named_properties()) {
+    for (auto pair : obj->AllProperties()) {
       if (!pair.second->HasEnumerable() || !pair.second->Enumerable())
         continue;
       String* P = new String(pair.first);

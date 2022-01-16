@@ -49,13 +49,49 @@ JSValue* FromPropertyDescriptor(Error* e, JSValue* value) {
   return obj;
 }
 
-JSValue* ToPropertyDescriptor(Error* e, JSValue* obj) {
-  if (!obj->IsObject()) {
+PropertyDescriptor* ToPropertyDescriptor(Error* e, JSValue* val) {
+  if (!val->IsObject()) {
     *e = *Error::TypeError();
-    return;
+    return nullptr;
   }
+  JSObject* obj = static_cast<JSObject*>(val);
   PropertyDescriptor* desc = new PropertyDescriptor();
-  // TODO(zhuzilin)
+  if (obj->HasProperty(u"enumerable")) {
+    JSValue* value = obj->Get(e, u"enumerable");
+    desc->SetEnumerable(ToBoolean(value));
+  }
+  if (obj->HasProperty(u"configurable")) {
+    JSValue* value = obj->Get(e, u"configurable");
+    desc->SetConfigurable(ToBoolean(value));
+  }
+  if (obj->HasProperty(u"value")) {
+    JSValue* value = obj->Get(e, u"value");
+    desc->SetValue(value);
+  }
+  if (obj->HasProperty(u"writable")) {
+    JSValue* value = obj->Get(e, u"writable");
+    desc->SetWritable(ToBoolean(value));
+  }
+  if (obj->HasProperty(u"get")) {
+    JSValue* value = obj->Get(e, u"get");
+    if (!value->IsCallable() && !value->IsUndefined()) {
+      *e = *Error::TypeError(u"getter not callable.");
+    }
+    desc->SetGet(value);
+  }
+  if (obj->HasProperty(u"set")) {
+    JSValue* value = obj->Get(e, u"set");
+    if (!value->IsCallable() && !value->IsUndefined()) {
+      *e = *Error::TypeError(u"setter not callable.");
+    }
+    desc->SetSet(value);
+  }
+  if (desc->HasSet() || desc->HasGet()) {
+    if (desc->HasValue() || desc->HasWritable()) {
+      *e = *Error::TypeError(u"cannot have both get/set and value/writable");
+      return nullptr;
+    }
+  }
   return desc;
 }
 

@@ -2,7 +2,7 @@
 #define ES_TYPES_BUILTIN_ARRAY_OBJECT
 
 #include <es/types/object.h>
-#include <es/helper.h>
+#include <es/utils/helper.h>
 
 namespace es {
 
@@ -57,16 +57,17 @@ class ArrayProto : public JSObject {
     if (len == 0)
       return String::Empty();
     JSValue* element0 = O->Get(e, u"0");
+    std::cout << "element0: " << element0->ToString() << std::endl;
     if (!e->IsOk()) return nullptr;
     std::u16string R = u"";
-    if (element0->IsUndefined() || element0->IsNull()) {
+    if (!element0->IsUndefined() && !element0->IsNull()) {
       R = ::es::ToString(e, element0);
     }
-    for (size_t k = 1; k < len; k++) {
-      JSValue* element = O->Get(e, u"0");
+    for (double k = 1; k < len; k++) {
+      JSValue* element = O->Get(e, NumberToString(k));
       if (!e->IsOk()) return nullptr;
       std::u16string next = u"";
-      if (element->IsUndefined() || element->IsNull()) {
+      if (!element->IsUndefined() && !element->IsNull()) {
         next = ::es::ToString(e, element);
       }
       R += sep + next;
@@ -96,7 +97,7 @@ class ArrayProto : public JSObject {
     return num;
   }
 
-    static JSValue* reverse(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static JSValue* reverse(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
@@ -256,7 +257,6 @@ reject:
   }
 
   std::string ToString() override {
-    std::cout << this->obj_type() << " vs " << JSObject::OBJ_ARRAY << std::endl;
     size_t num = ToNumber(nullptr, Get(nullptr, u"length"));
     return "Array(" + std::to_string(num) + ")";
   }

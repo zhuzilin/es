@@ -6,6 +6,8 @@
 
 namespace es {
 
+PropertyDescriptor* ToPropertyDescriptor(Error* e, JSValue* obj);
+
 class ObjectProto : public JSObject {
  public:
   static ObjectProto* Instance() {
@@ -112,7 +114,21 @@ class ObjectConstructor : public JSObject {
   }
 
   static JSValue* defineProperty(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    if (vals.size() < 1 || !vals[0]->IsObject()) {
+      *e = *Error::TypeError(u"Object.defineProperty called on non-object");
+      return nullptr;
+    }
+    JSObject* O = static_cast<JSObject*>(vals[0]);
+    if (vals.size() < 2) {
+      *e = *Error::TypeError(u"Object.defineProperty need 3 arguments");
+      return nullptr;
+    }
+    std::u16string name = ::es::ToString(e, vals[1]);
+    if (!e->IsOk()) return nullptr;
+    PropertyDescriptor* desc = ToPropertyDescriptor(e, vals[2]);
+    if (!e->IsOk()) return nullptr;
+    O->DefineOwnProperty(e, name, desc, true);
+    return O;
   }
 
   static JSValue* defineProperties(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -129,7 +145,8 @@ class ObjectConstructor : public JSObject {
 
   static JSValue* preventExtensions(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     if (vals.size() == 0 || !vals[0]->IsObject()) {
-      *e = *Error::TypeError(u"Input of Object.preventExtensions is not Object.");
+      *e = *Error::TypeError(u"Object.preventExtensions called on non-object");
+      return nullptr;
     }
     JSObject* obj = static_cast<JSObject*>(vals[0]);
     obj->SetExtensible(false);
@@ -146,7 +163,7 @@ class ObjectConstructor : public JSObject {
 
   static JSValue* isExtensible(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     if (vals.size() < 1 || !vals[0]->IsObject()) {
-      *e = *Error::TypeError(u"Input of Object.isExtensible is not Object.");
+      *e = *Error::TypeError(u"Object.isExtensible called on non-object");
       return nullptr;
     }
     JSObject* obj = static_cast<JSObject*>(vals[0]);
@@ -155,6 +172,25 @@ class ObjectConstructor : public JSObject {
 
   static JSValue* keys(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
+  }
+
+  // ES6
+  static JSValue* setPrototypeOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+    if (vals.size() < 2) {
+      *e = *Error::TypeError(u"Object.preventExtensions need 2 arguments");
+      return nullptr; 
+    }
+    vals[0]->CheckObjectCoercible(e);
+    if (!e->IsOk()) return nullptr;
+    if (!(vals[1]->IsNull() || vals[1]->IsObject())) {
+      *e = *Error::TypeError(u"");
+      return nullptr;
+    }
+    if (!vals[0]->IsObject()) {
+      return vals[0];
+    }
+    static_cast<JSObject*>(vals[0])->SetPrototype(vals[1]);
+    return vals[0];
   }
 
  private:

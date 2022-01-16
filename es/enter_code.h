@@ -275,6 +275,8 @@ void InitObject() {
   constructor->AddFuncProperty(u"isFrozen", ObjectConstructor::isFrozen, false, false, false);
   constructor->AddFuncProperty(u"isExtensible", ObjectConstructor::isExtensible, false, false, false);
   constructor->AddFuncProperty(u"keys", ObjectConstructor::keys, false, false, false);
+  // ES6
+  constructor->AddFuncProperty(u"setPrototypeOf", ObjectConstructor::setPrototypeOf, false, false, false);
 
   ObjectProto* proto = ObjectProto::Instance();
   // 15.2.4 Properties of the Object Prototype Object

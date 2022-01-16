@@ -248,12 +248,14 @@ std::u16string NumberToString(double m) {
     n++;
     m /= 10;
   }
-  double s = m;
+  int s = m;
   std::u16string res = u"";
   if (k <= n && n <= 21) {
-    while (s > 0.5) {
+    while (s >= 0.5) {
       res += u'0' + int(fmod(s, 10));
       s /= 10;
+      modf(s, &tmp);
+      s = tmp;
     }
     res += std::u16string(n - k, u'0');
     return sign + res;
