@@ -1226,18 +1226,18 @@ JSValue* EvalRelationalOperator(Error* e, std::u16string op, JSValue* lval, JSVa
     return Bool::Wrap(!static_cast<Bool*>(r)->data());
   } else if (op == u"instanceof") {
     if (!rval->IsObject()) {
-      *e = *Error::TypeError();
+      *e = *Error::TypeError(u"instanceof called on non-object");
       return nullptr;
     }
     JSObject* obj = static_cast<JSObject*>(rval);
     if (!obj->IsFunction()) {  // only FunctionObject has [[HasInstance]]
-      *e = *Error::TypeError();
+      *e = *Error::TypeError(u"only FunctionObject has [[HasInstance]]");
       return nullptr;
     }
     return Bool::Wrap(obj->HasInstance(e, lval));
   } else if (op == u"in") {
     if (!rval->IsObject()) {
-      *e = *Error::TypeError();
+      *e = *Error::TypeError(u"in called on non-object");
       return nullptr;
     }
     JSObject* obj = static_cast<JSObject*>(rval);
@@ -1393,7 +1393,6 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
       }
       default:
         assert(false);
-        break;
     }
 
   }
@@ -1402,7 +1401,7 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
     base = GetValue(e, base);
     if (!e->IsOk()) return nullptr;
     if (!base->IsConstructor()) {
-      *e = *Error::TypeError();
+      *e = *Error::TypeError(u"base value is not a constructor");
       return nullptr;
     }
     JSObject* constructor = static_cast<JSObject*>(base);
@@ -1441,12 +1440,12 @@ JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_li
   if (!e->IsOk())
     return nullptr;
   if (!val->IsObject()) {  // 4
-    *e = *Error::TypeError();
+    *e = *Error::TypeError(u"is not a function");
     return nullptr;
   }
   auto obj = static_cast<JSObject*>(val);
   if (!obj->IsCallable()) {  // 5
-    *e = *Error::TypeError();
+    *e = *Error::TypeError(u"is not a function");
     return nullptr;
   }
   JSValue* this_value;

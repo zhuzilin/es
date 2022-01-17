@@ -197,3 +197,22 @@ TEST(TestPrimitiveConversion, ToUint32) {
   num = ToUint32(e, Number::PositiveInfinity());
   EXPECT_EQ(0, num);
 }
+
+TEST(TestPrimitiveConversion, ToString) {
+  string str;
+  Error* e = Error::Ok();
+  // String
+  {
+    // valid
+    std::vector<std::pair<double, string>> vals = {
+      {0, u"0"}, {-42, u"-42"}, {1200, u"1200"}, {1.230, u"1.23"},
+      // TODO(zhuzilin) deal with this...
+      // {0.0012, u"0.0011999999999999998"},
+      // {3e50, u"3e+50"}
+    };
+    for (auto pair : vals) {
+      str = ToString(e, new Number(pair.first));
+      EXPECT_EQ(pair.second, str);
+    }
+  }
+}

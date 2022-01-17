@@ -124,7 +124,6 @@ void DeclarationBindingInstantiation(
         env->CreateMutableBinding(e, arg_name, false);
         if (!e->IsOk()) return;
       }
-      log::PrintSource("set mutable: ", arg_name, " to " + v->ToString());
       env->SetMutableBinding(e, arg_name, v, strict);  // 4.d.v
       if (!e->IsOk()) return;
     }

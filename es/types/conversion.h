@@ -230,6 +230,7 @@ double ToUint16(Error* e, JSValue* input) {
 }
 
 std::u16string NumberToString(double m) {
+  // TODO(zhuzilin) Figure out how to solve the large number error.
   if (m == 0)
     return String::Zero()->data();
   std::u16string sign = u"";
@@ -237,30 +238,91 @@ std::u16string NumberToString(double m) {
     m = -m;
     sign = u"-";
   }
-  int k = 0, n = 0;
-  double tmp;
+  // the fraction digits, e.g. 1.23's frac_digit = 2, 4200's = -2
+  int frac_digit = 0;
+  // the total digits, e.g. 1.23's k = 3, 4200's k = 2
+  int k = 0;
+  // n - k = -frac_digit
+  int n = 0;
+  double tmp, tmp_m;
   while (modf(m, &tmp) != 0) {
-    k++;
+    frac_digit++;
     m *= 10;
   }
-  while (fmod(m, 10) == 0) {
-    n++;
+  while (fmod(m, 10) < 1e-6) {
+    frac_digit--;
     m /= 10;
   }
-  int s = m;
+  double s = m;
+  while (m > 0.5) {
+    k++;
+    m /= 10;
+    modf(m, &tmp);
+    m = tmp;
+  }
+  n = k - frac_digit;
   std::u16string res = u"";
   if (k <= n && n <= 21) {
-    while (s >= 0.5) {
+    while (s > 0.5) {
       res += u'0' + int(fmod(s, 10));
       s /= 10;
       modf(s, &tmp);
       s = tmp;
     }
+    reverse(res.begin(), res.end());
     res += std::u16string(n - k, u'0');
     return sign + res;
   }
-  // TODO(zhuzilin)
-  assert(false);
+  if (0 < n && n <= 21) {
+    for (size_t i = 0; i < k; i++) {
+      res += u'0' + int(fmod(s, 10));
+      if (i + 1 == k - n) {
+        res += u'.';
+      }
+      s /= 10;
+      modf(s, &tmp);
+      s = tmp;
+    }
+    reverse(res.begin(), res.end());
+    return sign + res;
+  }
+  if (-6 < n && n <= 0) {
+    for (size_t i = 0; i < k; i++) {
+      res += u'0' + int(fmod(s, 10));
+      s /= 10;
+      modf(s, &tmp);
+      s = tmp;
+    }
+    reverse(res.begin(), res.end());
+    res = u"0." + std::u16string(-n, u'0') + res;
+    return sign + res;
+  }
+  if (k == 1) {
+    res += u'0' + int(s);
+    res += u"e";
+    if (n - 1 > 0) {
+      res += u"+" + NumberToString(n - 1);
+    } else {
+      res += u"-" + NumberToString(1 - n);
+    }
+    return sign + res;
+  }
+  for (size_t i = 0; i < k; i++) {
+    res += u'0' + int(fmod(s, 10));
+    if (i + 1 == k - 1) {
+      res += u'.';
+    }
+    s /= 10;
+    modf(s, &tmp);
+    s = tmp;
+  }
+  res += u"e";
+  if (n - 1 > 0) {
+    res += u"+" + NumberToString(n - 1);
+  } else {
+    res += u"-" + NumberToString(1 - n);
+  }
+  return sign + res;
 }
 
 std::u16string NumberToString(Number* num) {
