@@ -131,7 +131,7 @@ function test_eq()
     assert("122" != 123);
     assert((new Number(1)) == 1);
     assert(2 == (new Number(2)));
-    // assert((new String("abc")) == "abc");
+    assert((new String("abc")) == "abc");
     assert({} != "abc");
 }
 
@@ -313,6 +313,6 @@ test_op2();
 test_delete();
 test_prototype();
 test_arguments();
-// test_object_literal();
-// test_regexp_skip();
-// test_function_expr_name();
+// test_object_literal();  // JSON
+// test_regexp_skip();  // regex
+// test_function_expr_name();  // eval

@@ -475,6 +475,17 @@ JSValue* EvalFunction(Error* e, AST* ast) {
   }
 }
 
+// TODO(zhuzilin) move this function to a better place
+void JSObject::AddFuncProperty(
+  std::u16string name, inner_func callable, bool writable,
+  bool enumerable, bool configurable
+) {
+  JSObject* value = new JSObject(
+    OBJ_INNER_FUNC, u"InternalFunc", false, nullptr, false, true, callable);
+  value->SetPrototype(FunctionProto::Instance());
+  AddValueProperty(name, value, writable, enumerable, configurable);
+}
+
 }  // namespace es
 
 #endif  // ES_TYPES_BUILTIN_FUNCTION_OBJECT

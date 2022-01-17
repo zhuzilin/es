@@ -113,11 +113,7 @@ class JSObject : public JSValue {
   void AddFuncProperty(
     std::u16string name, inner_func callable, bool writable,
     bool enumerable, bool configurable
-  ) {
-    JSObject* value = new JSObject(
-      OBJ_INNER_FUNC, u"InternalFunc", false, nullptr, false, true, callable);
-    AddValueProperty(name, value, writable, enumerable, configurable);
-  }
+  );
 
   // This for for-in statement.
   virtual std::vector<std::pair<std::u16string, PropertyDescriptor*>> AllEnumerableProperties() {

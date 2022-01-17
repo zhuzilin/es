@@ -36,7 +36,6 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   void CreateMutableBinding(Error* e, std::u16string N, bool D) override {
-    log::PrintSource("enter CreateMutableBinding ", N, " in " + this->ToString());
     assert(!HasBinding(N));
     Binding b;
     b.value = Undefined::Instance();
@@ -88,7 +87,6 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   void CreateImmutableBinding(std::u16string N) {
-    log::PrintSource("enter CreateImmutableBinding ", N, " in " + this->ToString());
     assert(!HasBinding(N));
     Binding b;
     b.value = Undefined::Instance();
@@ -119,7 +117,6 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
 
   // 10.2.1.2.2 CreateMutableBinding (N, D)
   void CreateMutableBinding(Error* e, std::u16string N, bool D) override {
-    log::PrintSource("enter CreateMutableBinding ", N, " in " + this->ToString());
     assert(!HasBinding(N));
     PropertyDescriptor* desc = new PropertyDescriptor();
     desc->SetDataDescriptor(Undefined::Instance(), true, true, D);
