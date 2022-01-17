@@ -30,18 +30,18 @@ class ExecutionContext {
   bool HasLabel(std::u16string label) {
     if (label == u"")
       return true;
-    return label_set_.find(label) != label_set_.end();
+    return label_stack_.size() && label_stack_.top() == label;
   }
 
   void AddLabel(std::u16string label) {
     assert(!HasLabel(label));
-    label_set_.insert(label);
+    label_stack_.push(label);
   }
 
   void RemoveLabel(std::u16string label) {
     if (label == u"") return;
     assert(HasLabel(label));
-    label_set_.erase(label);
+    label_stack_.pop();
   }
 
   void EnterIteration() { iteration_layers_++; }
@@ -56,7 +56,7 @@ class ExecutionContext {
   LexicalEnvironment* lexical_env_;
   JSValue* this_binding_;
   bool strict_;
-  std::set<std::u16string> label_set_;
+  std::stack<std::u16string> label_stack_;
   size_t iteration_layers_;
 };
 

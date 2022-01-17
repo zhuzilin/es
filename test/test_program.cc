@@ -622,6 +622,31 @@ TEST(TestProgram, Switch1) {
   }
 }
 
+TEST(TestProgram, Label0) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"var i, c = 0;\n"
+      u"L1: for(i = 0; i < 3; i++) {\n"
+      u"  c++;\n"
+      u"  while (1) {\n"
+      u"    c++\n"
+      u"    break L1;\n"
+      u"  }\n"
+      u"}\n"
+      u"c"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Completion res = EvalProgram(ast);
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(2, num->data());
+  }
+}
+
 TEST(TestProgram, Fib0) {
   Init();
   {

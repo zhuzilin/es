@@ -31,6 +31,7 @@ Completion EvalWhileStatement(AST* ast);
 Completion EvalContinueStatement(AST* ast);
 Completion EvalBreakStatement(AST* ast);
 Completion EvalReturnStatement(AST* ast);
+Completion EvalLabelledStatement(AST* ast);
 Completion EvalSwitchStatement(AST* ast);
 Completion EvalThrowStatement(AST* ast);
 Completion EvalTryStatement(AST* ast);
@@ -123,6 +124,10 @@ Completion EvalStatement(AST* ast) {
       return EvalBreakStatement(ast);
     case AST::AST_STMT_RETURN:
       return EvalReturnStatement(ast);
+    case AST::AST_STMT_WITH:
+      assert(false);
+    case AST::AST_STMT_LABEL:
+      return EvalLabelledStatement(ast);
     case AST::AST_STMT_SWITCH:
       return EvalSwitchStatement(ast);
     case AST::AST_STMT_THROW:
@@ -218,7 +223,7 @@ Completion EvalDoWhileStatement(AST* ast) {
     stmt = EvalStatement(loop_stmt->stmt());
     if (stmt.value != nullptr)  // 3.b
       V = stmt.value;
-    has_label = RuntimeContext::TopContext()->HasLabel(stmt.target);
+    has_label = stmt.target == ast->label() || stmt.target == u"";
     if (stmt.type != Completion::CONTINUE || !has_label) {
       if (stmt.type == Completion::BREAK && has_label) {
         RuntimeContext::TopContext()->ExitIteration();
@@ -266,7 +271,7 @@ Completion EvalWhileStatement(AST* ast) {
     stmt = EvalStatement(loop_stmt->stmt());
     if (stmt.value != nullptr)  // 3.b
       V = stmt.value;
-    has_label = RuntimeContext::TopContext()->HasLabel(stmt.target);
+    has_label = stmt.target == ast->label() || stmt.target == u"";
     if (stmt.type != Completion::CONTINUE || !has_label) {
       if (stmt.type == Completion::BREAK && has_label) {
         RuntimeContext::TopContext()->ExitIteration();
@@ -318,7 +323,7 @@ Completion EvalForStatement(AST* ast) {
     stmt = EvalStatement(for_stmt->statement());
     if (stmt.value != nullptr)  // 3.b
       V = stmt.value;
-    has_label = RuntimeContext::TopContext()->HasLabel(stmt.target);
+    has_label = stmt.target == ast->label() || stmt.target == u"";
     if (stmt.type != Completion::CONTINUE || !has_label) {
       if (stmt.type == Completion::BREAK && has_label) {
         RuntimeContext::TopContext()->ExitIteration();
@@ -380,7 +385,7 @@ Completion EvalForInStatement(AST* ast) {
       stmt = EvalStatement(for_in_stmt->statement());
       if (stmt.value != nullptr)
         V = stmt.value;
-      has_label = RuntimeContext::TopContext()->HasLabel(stmt.target);
+      has_label = stmt.target == ast->label() || stmt.target == u"";
       if (stmt.type != Completion::CONTINUE || !has_label) {
         if (stmt.type == Completion::BREAK && has_label) {
           RuntimeContext::TopContext()->ExitIteration();
@@ -414,7 +419,7 @@ Completion EvalForInStatement(AST* ast) {
       stmt = EvalStatement(for_in_stmt->statement());
       if (stmt.value != nullptr)
         V = stmt.value;
-      has_label = RuntimeContext::TopContext()->HasLabel(stmt.target);
+      has_label = stmt.target == ast->label() || stmt.target == u"";
       if (stmt.type != Completion::CONTINUE || !has_label) {
         if (stmt.type == Completion::BREAK && has_label) {
           RuntimeContext::TopContext()->ExitIteration();
@@ -437,7 +442,6 @@ error:
 Completion EvalContinueStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_CONTINUE);
   Error* e = Error::Ok();
-  // TODO(zhuzilin) fix label
   if (!RuntimeContext::TopContext()->InIteration()) {
     *e = *Error::SyntaxError();
     return Completion(Completion::THROW, new ErrorObject(e), u"");
@@ -449,7 +453,6 @@ Completion EvalContinueStatement(AST* ast) {
 Completion EvalBreakStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_BREAK);
   Error* e = Error::Ok();
-  // TODO(zhuzilin) fix label
   if (!RuntimeContext::TopContext()->InIteration()) {
     *e = *Error::SyntaxError();
     return Completion(Completion::THROW, new ErrorObject(e), u"");
@@ -467,6 +470,17 @@ Completion EvalReturnStatement(AST* ast) {
   }
   auto exp_ref = EvalExpression(e, return_stmt->expr());
   return Completion(Completion::RETURN, GetValue(e, exp_ref), u"");
+}
+
+Completion EvalLabelledStatement(AST* ast) {
+  assert(ast->type() == AST::AST_STMT_LABEL);
+  LabelledStmt* label_stmt = static_cast<LabelledStmt*>(ast);
+  label_stmt->statement()->SetLabel(label_stmt->label());
+  Completion R = EvalStatement(label_stmt->statement());
+  if (R.type == Completion::BREAK && R.target == label_stmt->label()) {
+    return Completion(Completion::NORMAL, R.value, u"");
+  }
+  return R;
 }
 
 JSValue* EvalCaseClause(Error* e, Switch::CaseClause C) {
@@ -544,7 +558,7 @@ Completion EvalSwitchStatement(AST* ast) {
   Completion R = EvalCaseBlock(switch_stmt, expr_ref);
   if (R.IsThrow())
     return R;
-  bool has_label = RuntimeContext::TopContext()->HasLabel(R.target);
+  bool has_label = ast->label() == R.target;
   if (R.type == Completion::BREAK && has_label)
     return Completion(Completion::NORMAL, R.value, u"");
   return R;
@@ -1154,7 +1168,7 @@ JSValue* EvalAddOperator(Error* e, JSValue* lval, JSValue* rval) {
   if (!e->IsOk()) return nullptr;
   JSValue* rprim = ToPrimitive(e, rval, u"");
   if (!e->IsOk()) return nullptr;
-  // TODO(zhuzilin) Add test when StringObject is added.
+
   if (lprim->IsString() || rprim->IsString()) {
     std::u16string lstr = ToString(e, lprim);
     if (!e->IsOk()) return nullptr;

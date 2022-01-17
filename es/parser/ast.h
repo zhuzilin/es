@@ -78,9 +78,13 @@ class AST {
 
   bool IsIllegal() { return type_ == AST_ILLEGAL; }
 
+  std::u16string label() { return label_; }
+  void SetLabel(std::u16string label) { label_ = label; }
+
  private:
   Type type_;
   std::u16string source_;
+  std::u16string label_;
 };
 
 class ArrayLiteral : public AST {
@@ -353,14 +357,17 @@ class ProgramOrFunctionBody : public AST {
 
 class LabelledStmt : public AST {
  public:
-  LabelledStmt(Token ident, AST* stmt, std::u16string source) :
-    AST(AST_STMT_LABEL, source), ident_(ident), stmt_(stmt) {}
+  LabelledStmt(Token label, AST* stmt, std::u16string source) :
+    AST(AST_STMT_LABEL, source), label_(label), stmt_(stmt) {}
   ~LabelledStmt() {
     delete stmt_;
   }
 
+  std::u16string label() { return label_.source(); }
+  AST* statement() { return stmt_; }
+
  private:
-  Token ident_;
+  Token label_;
   AST* stmt_;
 };
 

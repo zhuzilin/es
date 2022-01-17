@@ -273,17 +273,6 @@ function test_regexp_skip()
     assert(a === 2);
 }
 
-function test_labels()
-{
-    do x: { break x; } while(0);
-    if (1)
-        x: { break x; }
-    else
-        x: { break x; }
-    with ({}) x: { break x; };
-    while (0) x: { break x; };
-}
-
 function test_function_expr_name()
 {
     var f;
@@ -329,5 +318,4 @@ test_prototype();
 // test_arguments();
 // test_object_literal();
 // test_regexp_skip();
-// test_labels();
 // test_function_expr_name();
