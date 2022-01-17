@@ -22,7 +22,7 @@ $ bin/es hello_world.js
 
 ## Test
 
-Use test/*.cc:
+Use `test/*.cc`:
 
 ```bash
 cmake -S . -B build
