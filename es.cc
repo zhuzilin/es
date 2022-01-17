@@ -35,7 +35,8 @@ int main(int argc, char* argv[]) {
   es::Parser parser(filecontent);
   es::AST* ast = parser.ParseProgram();
   if (ast->IsIllegal()) {
-    es::log::PrintSource("ParserError: ", ast->source());
+    std::cout << "\033[1;31m" << "ParserError: " <<  es::log::ToString(ast->source())
+              << "\033[0m" << std::endl;
     return 0;
   }
 

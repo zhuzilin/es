@@ -20,11 +20,31 @@ class StringProto : public JSObject {
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSValue* val = RuntimeContext::TopValue();
+    if (!val->IsObject()) {
+      *e = *Error::TypeError(u"String.prototype.toString called with non-object");
+      return nullptr;
+    }
+    JSObject* obj = static_cast<JSObject*>(val);
+    if (obj->obj_type() != JSObject::OBJ_STRING) {
+      *e = *Error::TypeError(u"String.prototype.toString called with non-string");
+      return nullptr;
+    }
+    return obj->PrimitiveValue();
   }
 
   static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSValue* val = RuntimeContext::TopValue();
+    if (!val->IsObject()) {
+      *e = *Error::TypeError(u"String.prototype.valueOf called with non-object");
+      return nullptr;
+    }
+    JSObject* obj = static_cast<JSObject*>(val);
+    if (obj->obj_type() != JSObject::OBJ_STRING) {
+      *e = *Error::TypeError(u"String.prototype.valueOf called with non-string");
+      return nullptr;
+    }
+    return obj->PrimitiveValue();
   }
 
   static JSValue* charAt(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {

@@ -170,7 +170,7 @@ class String : public JSValue {
     return &singleton;
   }
 
-  inline std::string ToString() override { return "\"" + log::ToString(data_) + "\""; }
+  inline std::string ToString() override { return log::ToString(data_); }
 
  private:
   std::u16string data_;
