@@ -346,10 +346,18 @@ void InitGlobalObject() {
   global_obj->AddValueProperty(u"Object", ObjectConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Function", FunctionConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Number", NumberConstructor::Instance(), true, false, true);
-  global_obj->AddValueProperty(u"Error", ErrorConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Boolean", BoolConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"String", StringConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Array", ArrayConstructor::Instance(), true, false, true);
+
+  global_obj->AddValueProperty(u"Error", ErrorConstructor::Instance(), true, false, true);
+  // TODO(zhuzilin) differentiate errors.
+  global_obj->AddValueProperty(u"EvalError", ErrorConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"RangeError", ErrorConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"ReferenceError", ErrorConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"SyntaxError", ErrorConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"TypeError", ErrorConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"URIError", ErrorConstructor::Instance(), true, false, true);
 
   global_obj->AddFuncProperty(u"console_log", logger, true, false, true);
 }

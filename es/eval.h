@@ -1226,14 +1226,14 @@ JSValue* EvalRelationalOperator(Error* e, std::u16string op, JSValue* lval, JSVa
     return Bool::Wrap(!static_cast<Bool*>(r)->data());
   } else if (op == u"instanceof") {
     if (!rval->IsObject()) {
-      *e = *Error::TypeError(u"instanceof called on non-object");
+      *e = *Error::TypeError(u"Right-hand side of 'instanceof' is not an object");
+      return nullptr;
+    }
+    if (!rval->IsCallable()) {
+      *e = *Error::TypeError(u"Right-hand side of 'instanceof' is not callable");
       return nullptr;
     }
     JSObject* obj = static_cast<JSObject*>(rval);
-    if (!obj->IsFunction()) {  // only FunctionObject has [[HasInstance]]
-      *e = *Error::TypeError(u"only FunctionObject has [[HasInstance]]");
-      return nullptr;
-    }
     return Bool::Wrap(obj->HasInstance(e, lval));
   } else if (op == u"in") {
     if (!rval->IsObject()) {

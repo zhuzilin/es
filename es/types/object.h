@@ -95,8 +95,25 @@ class JSObject : public JSValue {
   }
   bool IsCallable() override { return is_callable_; }
   // [[HasInstance]]
-  virtual bool HasInstance(Error* e, JSValue* value) {
-    *e = *Error::TypeError(u"Object has no [[HasIstance]] internal method");
+  // NOTE(zhuzilin) Here we use the implementation in 15.3.5.3 [[HasInstance]] (V)
+  // to make sure all callables have HasInstance.
+  virtual bool HasInstance(Error* e, JSValue* V) {
+    assert(IsCallable());
+    if (!V->IsObject())
+      return false;
+    JSValue* O = Get(e, u"prototype");
+    if (!e->IsOk()) return false;
+    if (!O->IsObject()) {
+      *e = *Error::TypeError();
+      return false;
+    }
+    while (!V->IsNull()) {
+      if (V == O)
+        return true;
+      assert(V->IsObject());
+      V = static_cast<JSObject*>(V)->Prototype();
+      if (!e->IsOk()) return false;
+    }
     return false;
   }
 

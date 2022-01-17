@@ -202,9 +202,9 @@ function test_op2()
     assert(("x" in a), true, "in");
     assert(("y" in a), false, "in");
 
-    // a = {};
-    // assert((a instanceof Object), true, "instanceof");
-    // assert((a instanceof String), false, "instanceof");
+    a = {};
+    assert((a instanceof Object), true, "instanceof");
+    assert((a instanceof String), false, "instanceof");
 
     assert((typeof 1), "number", "typeof");
     assert((typeof Object), "function", "typeof");
@@ -227,13 +227,13 @@ function test_delete()
     /* the following are not tested by test262 */
     assert(delete "abc"[100], true);
 
-    // err = false;
-    // try {
-    //     delete null.a;
-    // } catch(e) {
-    //     err = (e instanceof TypeError);
-    // }
-    // assert(err, true, "delete");
+    err = false;
+    try {
+        delete null.a;
+    } catch(e) {
+        err = (e instanceof TypeError);
+    }
+    assert(err, true, "delete");
 }
 
 function test_prototype()
