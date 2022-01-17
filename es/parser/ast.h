@@ -557,13 +557,20 @@ class Switch : public AST {
   Switch() : AST(AST_STMT_SWITCH) {}
 
   ~Switch() override {
-    for (CaseClause clause : case_clauses_) {
-      if (clause.type == CaseClause::CASE) {
-        delete clause.expr;
-      }
+    for (CaseClause clause : before_default_case_clauses_) {
+      delete clause.expr;
       for (auto stmt : clause.stmts) {
         delete stmt;
       }
+    }
+    for (CaseClause clause : after_default_case_clauses_) {
+      delete clause.expr;
+      for (auto stmt : clause.stmts) {
+        delete stmt;
+      }
+    }
+    for (auto stmt : default_clause_.stmts) {
+      delete  stmt;
     }
   }
 
@@ -571,35 +578,45 @@ class Switch : public AST {
     expr_ = expr;
   }
 
+  struct DefaultClause {
+    std::vector<AST*> stmts;
+  };
+
   struct CaseClause {
-    enum Type {
-      CASE = 0,
-      DEFAULT,
-    };
-
-    CaseClause(Type t, std::vector<AST*> ss) : CaseClause(t, nullptr, ss) {
-      assert(type == DEFAULT);
-    }
-    CaseClause(Type t, AST* e, std::vector<AST*> ss) :
-      type(t), expr(e), stmts(ss) {}
-
-    Type type;
+    CaseClause(AST* expr, std::vector<AST*> stmts) : expr(expr), stmts(stmts) {}
     AST* expr;
     std::vector<AST*> stmts;
   };
 
-  void AddCaseClause(CaseClause c) {
-    // When having same key, will keep the last one.
-    // but {1.0: 1, 1.00: 2} will have 2 key-val pair.
-    case_clauses_.emplace_back(c);
+  void SetDefaultClause(std::vector<AST*> stmts) {
+    assert(!has_default_clause());
+    has_default_clause_ = true;
+    default_clause_.stmts = stmts;
+  }
+
+  void AddBeforeDefaultCaseClause(CaseClause c) {
+    before_default_case_clauses_.emplace_back(c);
+  }
+
+  void AddAfterDefaultCaseClause(CaseClause c) {
+    after_default_case_clauses_.emplace_back(c);
   }
 
   AST* expr() { return expr_; }
-  std::vector<CaseClause> case_clauses() { return case_clauses_; }
+  std::vector<CaseClause> before_default_case_clauses() { return before_default_case_clauses_; }
+  bool has_default_clause() { return has_default_clause_; }
+  DefaultClause default_clause() {
+    assert(has_default_clause());
+    return default_clause_;
+  }
+  std::vector<CaseClause> after_default_case_clauses() { return after_default_case_clauses_; }
 
  private:
   AST* expr_;
-  std::vector<CaseClause> case_clauses_;
+  bool has_default_clause_ = false;
+  DefaultClause default_clause_;
+  std::vector<CaseClause> before_default_case_clauses_;
+  std::vector<CaseClause> after_default_case_clauses_;
 };
 
 class For : public AST {

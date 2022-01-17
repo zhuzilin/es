@@ -570,6 +570,58 @@ TEST(TestProgram, Try1) {
   }
 }
 
+TEST(TestProgram, Switch0) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"'use strict';\n"
+      u"var a = 0;"
+      u"switch (a) {\n"
+      u"  case 0:"
+      u"    a++; break;\n"
+      u"  default: \n"
+      u"   a++;"
+      u"}\n"
+      u"a"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Completion res = EvalProgram(ast);
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(1, num->data());
+  }
+}
+
+TEST(TestProgram, Switch1) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"'use strict';\n"
+      u"var a = 0;"
+      u"switch (a) {\n"
+      u"  case 100:"
+      u"    a++;\n"
+      u"  default: \n"
+      u"   a++;"
+      u"  case 1: a++;"
+      u"  case 0: a++;"
+      u"}\n"
+      u"a"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Completion res = EvalProgram(ast);
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(3, num->data());
+  }
+}
+
 TEST(TestProgram, Fib0) {
   Init();
   {

@@ -19,6 +19,7 @@ namespace es {
 Completion EvalProgram(AST* ast);
 
 Completion EvalStatement(AST* ast);
+Completion EvalStatementList(std::vector<AST*> statements);
 Completion EvalBlockStatement(AST* ast);
 std::u16string EvalVarDecl(Error* e, AST* ast);
 Completion EvalVarStatement(AST* ast);
@@ -122,6 +123,8 @@ Completion EvalStatement(AST* ast) {
       return EvalBreakStatement(ast);
     case AST::AST_STMT_RETURN:
       return EvalReturnStatement(ast);
+    case AST::AST_STMT_SWITCH:
+      return EvalSwitchStatement(ast);
     case AST::AST_STMT_THROW:
       return EvalThrowStatement(ast);
     case AST::AST_STMT_TRY:
@@ -133,11 +136,9 @@ Completion EvalStatement(AST* ast) {
   }
 }
 
-Completion EvalBlockStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_BLOCK);
-  Block* block = static_cast<Block*>(ast);
+Completion EvalStatementList(std::vector<AST*> statements) {
   Completion sl;
-  for (auto stmt : block->statements()) {
+  for (auto stmt : statements) {
     Completion s = EvalStatement(stmt);
     if (s.IsThrow())
       return s;
@@ -146,6 +147,12 @@ Completion EvalBlockStatement(AST* ast) {
       return sl;
   }
   return sl;
+}
+
+Completion EvalBlockStatement(AST* ast) {
+  assert(ast->type() == AST::AST_STMT_BLOCK);
+  Block* block = static_cast<Block*>(ast);
+  return EvalStatementList(block->statements());
 }
 
 std::u16string EvalVarDecl(Error* e, AST* ast) {
@@ -463,25 +470,65 @@ Completion EvalReturnStatement(AST* ast) {
 }
 
 JSValue* EvalCaseClause(Error* e, Switch::CaseClause C) {
-  // TODO(zhuzilin)
-  assert(false);
+  JSValue* exp_ref = EvalExpression(e, C.expr);
+  if (!e->IsOk())
+    return nullptr;
+  return GetValue(e, exp_ref);
 }
 
-Completion EvalCaseBlock(std::vector<Switch::CaseClause> A, JSValue* input) {
+Completion EvalCaseBlock(Switch* switch_stmt, JSValue* input) {
   Error* e = Error::Ok();
   JSValue* V = nullptr;
-  bool searching = true;
-  for (auto C : A) {
-    if (!searching)
-      break;
+  bool found = false;
+  for (auto C : switch_stmt->before_default_case_clauses()) {
+    if (!found) {  // 5.a
+      JSValue* clause_selector = EvalCaseClause(e, C);
+      bool b = StrictEqual(e, input, clause_selector);
+      if (!e->IsOk())
+        return Completion(Completion::THROW, new ErrorObject(e), u"");
+      if (b)
+        found = true;
+    }
+    if (found) {  // 5.b
+      Completion R = EvalStatementList(C.stmts);
+      if (R.value != nullptr)
+        V = R.value;
+      if (R.IsAbruptCompletion())
+        return Completion(R.type, V, R.target);
+    }
+  }
+  bool found_in_b = false;
+  size_t i;
+  for (i = 0; !found_in_b && i < switch_stmt->after_default_case_clauses().size(); i++) {
+    auto C = switch_stmt->after_default_case_clauses()[i];
     JSValue* clause_selector = EvalCaseClause(e, C);
     bool b = StrictEqual(e, input, clause_selector);
     if (!e->IsOk())
       return Completion(Completion::THROW, new ErrorObject(e), u"");
     if (b) {
-      searching = false;
-      // TODO(zhuzilin)
+      found_in_b = true;
+      Completion R = EvalStatementList(C.stmts);
+      if (R.value != nullptr)
+        V = R.value;
+      if (R.IsAbruptCompletion())
+        return Completion(R.type, V, R.target);
     }
+  }
+  if (!found_in_b && switch_stmt->has_default_clause()) {  // 8
+    Completion R = EvalStatementList(switch_stmt->default_clause().stmts);
+    if (R.value != nullptr)
+      V = R.value;
+    if (R.IsAbruptCompletion())
+      return Completion(R.type, V, R.target);
+  }
+  for (i = 0; i < switch_stmt->after_default_case_clauses().size(); i++) {
+    auto C = switch_stmt->after_default_case_clauses()[i];
+    JSValue* clause_selector = EvalCaseClause(e, C);
+    Completion R = EvalStatementList(C.stmts);
+    if (R.value != nullptr)
+      V = R.value;
+    if (R.IsAbruptCompletion())
+      return Completion(R.type, V, R.target);
   }
   return Completion(Completion::NORMAL, V, u"");
 }
@@ -494,7 +541,7 @@ Completion EvalSwitchStatement(AST* ast) {
   JSValue* expr_ref = EvalExpression(e, switch_stmt->expr());
   if (!e->IsOk())
     return Completion(Completion::THROW, new ErrorObject(e), u"");
-  Completion R = EvalCaseBlock(switch_stmt->case_clauses(), expr_ref);
+  Completion R = EvalCaseBlock(switch_stmt, expr_ref);
   if (R.IsThrow())
     return R;
   bool has_label = RuntimeContext::TopContext()->HasLabel(R.target);

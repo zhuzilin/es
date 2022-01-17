@@ -1055,18 +1055,19 @@ error:
     while (token.type() != Token::TK_RBRACE) {
       AST* case_expr = nullptr;
       std::vector<AST*> stmts;
-      Switch::CaseClause::Type type;
-      if (token.source() == u"case") {
+      std::u16string type = token.source();
+      if (type == u"case") {
         lexer_.Next();  // skip case
-        type = Switch::CaseClause::CASE;
         case_expr = ParseExpression(false);
         if (case_expr->IsIllegal()) {
           delete switch_stmt;
           return case_expr;
         }
-      } else if (token.source() == u"default") {
+      } else if (type == u"default") {
         lexer_.Next();  // skip default
-        type = Switch::CaseClause::DEFAULT;
+        // can only have one default.
+        if (switch_stmt->has_default_clause())
+          goto error;
       } else {
         lexer_.Next();
         goto error;
@@ -1075,6 +1076,7 @@ error:
         delete case_expr;
         goto error;
       }
+      // parse StatementList
       token = lexer_.NextAndRewind();
       while (token.source() != u"case" && token.source() != u"default" &&
              token.type() != Token::TK_RBRACE) {
@@ -1089,10 +1091,14 @@ error:
         stmts.emplace_back(stmt);
         token = lexer_.NextAndRewind();
       }
-      if (type == Switch::CaseClause::CASE) {
-        switch_stmt->AddCaseClause(Switch::CaseClause(type, case_expr, stmts));
+      if (type == u"case") {
+        if (switch_stmt->has_default_clause()) {
+          switch_stmt->AddAfterDefaultCaseClause(Switch::CaseClause(case_expr, stmts));
+        } else {
+          switch_stmt->AddBeforeDefaultCaseClause(Switch::CaseClause(case_expr, stmts));
+        }
       } else {
-        switch_stmt->AddCaseClause(Switch::CaseClause(type, stmts));
+        switch_stmt->SetDefaultClause(stmts);
       }
       token = lexer_.NextAndRewind();
     }

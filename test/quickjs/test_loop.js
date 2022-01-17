@@ -355,8 +355,8 @@ test_while_break();
 test_do_while();
 test_for();
 // test_for_break();  // Label
-// test_switch1();  // Switch
-// test_switch2();  // Switch
+test_switch1();  // Switch
+test_switch2();  // Switch
 test_for_in();
 test_for_in2();
 

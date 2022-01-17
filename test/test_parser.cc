@@ -828,7 +828,10 @@ TEST(TestParser, Statement_Switch) {
       EXPECT_EQ(AST::AST_STMT_SWITCH, ast->type());
       EXPECT_EQ(source, ast->source());
       auto switch_stmt = static_cast<Switch*>(ast);
-      EXPECT_EQ(length, switch_stmt->case_clauses().size());
+      EXPECT_EQ(length,
+                switch_stmt->before_default_case_clauses().size() +
+                switch_stmt->has_default_clause() +
+                switch_stmt->after_default_case_clauses().size());
     }
   }
 
