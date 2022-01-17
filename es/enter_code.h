@@ -2,6 +2,7 @@
 #define ES_ENTER_CODE_H
 
 #include <es/error.h>
+#include <es/execution_context.h>
 #include <es/types/object.h>
 #include <es/types/builtin/object_object.h>
 #include <es/types/builtin/function_object.h>
@@ -11,7 +12,7 @@
 #include <es/types/builtin/string_object.h>
 #include <es/types/builtin/array_object.h>
 #include <es/types/builtin/arguments_object.h>
-#include <es/execution_context.h>
+#include <es/types/host/console.h>
 
 namespace es {
 
@@ -359,7 +360,7 @@ void InitGlobalObject() {
   global_obj->AddValueProperty(u"TypeError", ErrorConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"URIError", ErrorConstructor::Instance(), true, false, true);
 
-  global_obj->AddFuncProperty(u"console_log", logger, true, false, true);
+  global_obj->AddValueProperty(u"console", Console::Instance(), true, false, true);
 }
 
 void InitObject() {

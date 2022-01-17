@@ -1,1 +1,1 @@
-some test from quickjs 2021-03-27 release.
+some test from [quickjs](https://github.com/bellard/quickjs/tree/master/tests) 2021-03-27 release.

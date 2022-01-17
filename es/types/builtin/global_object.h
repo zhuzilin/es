@@ -70,15 +70,6 @@ class DirectEvalGuard {
     }
 };
 
-JSValue* logger(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-  std::cout << "[LOG] ";
-  for (auto val : vals) {
-    std::cout << val->ToString() << " ";
-  }
-  std::cout << std::endl;
-  return Number::Zero();
-}
-
 }  // namespace es
 
 #endif  // ES_TYPES_BUILTIN_GLOBAL_OBJECT
