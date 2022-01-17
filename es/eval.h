@@ -1416,7 +1416,6 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
     base = constructor->Construct(e, arg_list);
     if (!e->IsOk()) return nullptr;
   }
-
   return base;
 }
 

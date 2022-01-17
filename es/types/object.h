@@ -304,7 +304,6 @@ bool JSObject::DefineOwnProperty(
     named_properties_[P] = desc;
     return true;
   }
-  log::PrintSource("DefineOwnProperty: ", P, " defined");
   if (desc->bitmask() == 0) {  // 5
     return true;
   }

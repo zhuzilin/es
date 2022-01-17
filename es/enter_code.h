@@ -36,6 +36,7 @@ JSValue* MakeArgSetter(std::u16string name, LexicalEnvironment* env) {
   return new FunctionObject({param}, body, env);
 }
 
+// 10.6 Arguments Object
 JSObject* CreateArgumentsObject(
   FunctionObject* func, std::vector<JSValue*>& args,
   LexicalEnvironment* env, bool strict
@@ -43,11 +44,12 @@ JSObject* CreateArgumentsObject(
   std::vector<std::u16string> names = func->FormalParameters();
   int len = args.size();
   Object* map = new Object();  // 8
+  JSObject* obj = new ArgumentsObject(map, len);
   int indx = len - 1;  // 10
   std::set<std::u16string> mapped_names;
   while (indx >= 0) {  // 11
     JSValue* val = args[indx];  // 11.a
-    map->AddValueProperty(NumberToString(indx), val, true, true, true);  // 11.b
+    obj->AddValueProperty(NumberToString(indx), val, true, true, true);  // 11.b
     if (indx < names.size()) {  // 11.c
       std::u16string name = names[indx];  // 11.c.i
       if (!strict && mapped_names.find(name) == mapped_names.end()) {  // 11.c.ii
@@ -63,7 +65,6 @@ JSObject* CreateArgumentsObject(
     }
     indx--;  // 11.d
   }
-  JSObject* obj = new ArgumentsObject(map, len);
   if (!strict) {  // 13
     obj->AddValueProperty(u"callee", func, true, false, true);
   } else {  // 14

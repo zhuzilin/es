@@ -6,6 +6,8 @@
 namespace es {
 
 std::u16string ToString(Error* e, JSValue* input);
+double ToInteger(Error* e, JSValue* input);
+std::u16string NumberToString(double m);
 
 class StringProto : public JSObject {
  public:
@@ -115,7 +117,20 @@ class StringObject : public JSObject {
   }
 
   JSValue* GetOwnProperty(std::u16string P) override {
-    assert(false);
+    JSValue* val = JSObject::GetOwnProperty(P);
+    if (!val->IsUndefined())
+      return val;
+    Error* e = Error::Ok();
+    int index = ToInteger(e, new String(P));  // this will never has error.
+    if (NumberToString(fabs(index)) != P)
+      return Undefined::Instance();
+    std::u16string str = static_cast<String*>(PrimitiveValue())->data();
+    int len = str.size();
+    if (len <= index)
+      return Undefined::Instance();
+    PropertyDescriptor* desc = new PropertyDescriptor();
+    desc->SetDataDescriptor(new String(str.substr(index, 1)), true, false, false);
+    return desc;
   }
 
 };
@@ -138,7 +153,9 @@ class StringConstructor : public JSObject {
   JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
     if (arguments.size() == 0)
       return new StringObject(String::Empty());
-    return new StringObject(new String(::es::ToString(e, arguments[0])));
+    std::u16string str = ::es::ToString(e, arguments[0]);
+    if (!e->IsOk()) return nullptr;
+    return new StringObject(new String(str));
   }
 
   static JSValue* fromCharCode(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {

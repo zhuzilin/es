@@ -22,7 +22,7 @@ class ArgumentsObject : public JSObject {
   JSObject* ParameterMap() {return parameter_map_; }
 
   JSValue* Get(Error* e, std::u16string P) override {
-    log::PrintSource("arg Get ", P);
+    log::PrintSource("ArgumentsObject::Get ", P);
     JSObject* map = ParameterMap();
     JSValue* is_mapped = map->GetOwnProperty(P);
     if (is_mapped->IsUndefined()) {  // 3
@@ -59,7 +59,7 @@ class ArgumentsObject : public JSObject {
   }
 
   bool DefineOwnProperty(Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag) override {
-    log::PrintSource("arg DefineOwnProperty ", P, " " + desc->ToString());
+    log::PrintSource("ArgumentsObject::DefineOwnProperty ", P, " " + desc->ToString());
     JSObject* map = ParameterMap();
     JSValue* is_mapped = map->GetOwnProperty(P);
     bool allowed = JSObject::DefineOwnProperty(e, P, desc, false);
