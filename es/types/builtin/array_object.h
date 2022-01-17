@@ -7,6 +7,7 @@
 
 namespace es {
 
+bool ToBoolean(JSValue* input);
 double ToNumber(Error* e, JSValue* input);
 double ToUint32(Error* e, JSValue* input);
 std::u16string ToString(Error* e, JSValue* input);

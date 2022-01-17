@@ -32,6 +32,7 @@ Completion EvalContinueStatement(AST* ast);
 Completion EvalBreakStatement(AST* ast);
 Completion EvalReturnStatement(AST* ast);
 Completion EvalLabelledStatement(AST* ast);
+Completion EvalWithStatement(AST* ast);
 Completion EvalSwitchStatement(AST* ast);
 Completion EvalThrowStatement(AST* ast);
 Completion EvalTryStatement(AST* ast);
@@ -125,7 +126,7 @@ Completion EvalStatement(AST* ast) {
     case AST::AST_STMT_RETURN:
       return EvalReturnStatement(ast);
     case AST::AST_STMT_WITH:
-      assert(false);
+      return EvalWithStatement(ast);
     case AST::AST_STMT_LABEL:
       return EvalLabelledStatement(ast);
     case AST::AST_STMT_SWITCH:
@@ -481,6 +482,34 @@ Completion EvalLabelledStatement(AST* ast) {
     return Completion(Completion::NORMAL, R.value, u"");
   }
   return R;
+}
+
+// 12.10 The with Statement
+Completion EvalWithStatement(AST* ast) {
+  assert(ast->type() == AST::AST_STMT_WITH);
+  if (RuntimeContext::TopContext()->strict()) {
+    return Completion(
+      Completion::THROW,
+      new ErrorObject(Error::SyntaxError(u"cannot have with statement in strict mode")),
+      u"");
+  }
+  Error* e = Error::Ok();
+  WhileOrWith* with_stmt = static_cast<WhileOrWith*>(ast);
+  JSValue* ref = EvalExpression(e, with_stmt->expr());
+  if (!e->IsOk())
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  JSValue* val = GetValue(e, ref);
+  if (!e->IsOk())
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  JSObject* obj = ToObject(e, val);
+  if (!e->IsOk())
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  LexicalEnvironment* old_env = RuntimeContext::TopLexicalEnv();
+  LexicalEnvironment* new_env = LexicalEnvironment::NewObjectEnvironment(obj, old_env, true);
+  RuntimeContext::TopContext()->SetLexicalEnv(new_env);
+  Completion C = EvalStatement(with_stmt->stmt());
+  RuntimeContext::TopContext()->SetLexicalEnv(old_env);
+  return C;
 }
 
 JSValue* EvalCaseClause(Error* e, Switch::CaseClause C) {

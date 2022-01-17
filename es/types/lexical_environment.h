@@ -38,8 +38,8 @@ class LexicalEnvironment : public JSValue {
     return new LexicalEnvironment(lex, env_rec);
   }
 
-  static LexicalEnvironment* NewObjectEnvironment(JSObject* obj, JSValue* lex) {
-    ObjectEnvironmentRecord* env_rec = new ObjectEnvironmentRecord(obj);
+  static LexicalEnvironment* NewObjectEnvironment(JSObject* obj, JSValue* lex, bool provide_this = false) {
+    ObjectEnvironmentRecord* env_rec = new ObjectEnvironmentRecord(obj, provide_this);
     return new LexicalEnvironment(lex, env_rec);
   }
 

@@ -109,7 +109,8 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
 
 class ObjectEnvironmentRecord : public EnvironmentRecord {
  public:
-  ObjectEnvironmentRecord(JSObject* obj) : bindings_(obj), provide_this_(false) {}
+  ObjectEnvironmentRecord(JSObject* obj, bool provide_this = false) :
+    bindings_(obj), provide_this_(provide_this) {}
 
   bool HasBinding(std::u16string N) override {
     return bindings_->HasProperty(N);
