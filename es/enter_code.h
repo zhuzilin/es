@@ -537,6 +537,7 @@ void InitArray() {
   proto->AddFuncProperty(u"some", ArrayProto::some, false, false, false);
   proto->AddFuncProperty(u"forEach", ArrayProto::forEach, false, false, false);
   proto->AddFuncProperty(u"map", ArrayProto::map, false, false, false);
+  proto->AddFuncProperty(u"filter", ArrayProto::filter, false, false, false);
   proto->AddFuncProperty(u"reduce", ArrayProto::reduce, false, false, false);
   proto->AddFuncProperty(u"reduceRight", ArrayProto::reduceRight, false, false, false);
 }

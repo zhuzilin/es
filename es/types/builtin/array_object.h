@@ -75,15 +75,35 @@ class ArrayProto : public JSObject {
     return new String(R);
   }
 
+  // 15.4.4.6 Array.prototype.pop ( )
   static JSValue* pop(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSObject* O = ToObject(e, RuntimeContext::TopValue());
+    if (!e->IsOk()) return nullptr;
+    size_t len = ToNumber(e, O->Get(e, u"length"));
+    if (!e->IsOk()) return nullptr;
+    if (len == 0) {
+      O->Put(e, u"length", Number::Zero(), true);
+      if (!e->IsOk()) return nullptr;
+      return Undefined::Instance();
+    } else {
+      assert(len > 0);
+      std::u16string indx = NumberToString(len - 1);
+      JSValue* element = O->Get(e, indx);
+      if (!e->IsOk()) return nullptr;
+      O->Delete(e, indx, true);
+      if (!e->IsOk()) return nullptr;
+      O->Put(e, u"length", new Number(len - 1), true);
+      if (!e->IsOk()) return nullptr;
+      return element;
+    }
   }
 
   // 15.4.4.7 Array.prototype.push ( [ item1 [ , item2 [ , … ] ] ] )
   static JSValue* push(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     JSObject* O = ToObject(e, RuntimeContext::TopValue());
-    assert(O->obj_type() == JSObject::OBJ_ARRAY);
+    if (!e->IsOk()) return nullptr;
     double n = ToNumber(e, O->Get(e, u"length"));
+    if (!e->IsOk()) return nullptr;
     for (JSValue* E : vals) {
       O->Put(e, NumberToString(n), E, true);
       if (!e->IsOk()) return nullptr;
@@ -135,21 +155,15 @@ class ArrayProto : public JSObject {
     assert(false);
   }
 
-  static JSValue* forEach(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
-  }
+  static JSValue* forEach(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
   static JSValue* toLocaleUpperCase(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
   }
 
-  static JSValue* map(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
-  }
+  static JSValue* map(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
-  static JSValue* filter(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
-  }
+  static JSValue* filter(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
   static JSValue* reduce(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
@@ -306,6 +320,105 @@ class ArrayConstructor : public JSObject {
    ArrayConstructor() :
     JSObject(OBJ_OTHER, u"Array", true, nullptr, true, true) {}
 };
+
+// 15.4.4.18 Array.prototype.forEach ( callbackfn [ , thisArg ] )
+JSValue* ArrayProto::forEach(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  JSObject* O = ToObject(e, RuntimeContext::TopValue());
+  if (!e->IsOk()) return nullptr;
+  size_t len = ToNumber(e, O->Get(e, u"length"));
+  if (vals.size() == 0 || !vals[0]->IsCallable()) {  // 4
+    *e = *Error::TypeError(u"Array.prototype.forEach called on non-callable");
+    return nullptr;
+  }
+  JSObject* callbackfn = static_cast<JSObject*>(vals[0]);
+  JSValue* T;
+  if (vals.size() < 2) {
+    T = Undefined::Instance();
+  } else {
+    T = vals[1];
+  }
+  ArrayObject* A = new ArrayObject(len);
+  for (size_t k = 0; k < len; k++) {
+    std::u16string p_k = NumberToString(k);
+    bool k_present = O->HasProperty(p_k);
+    if (!e->IsOk()) return nullptr;
+    if (k_present) {
+      JSValue* k_value = O->Get(e, p_k);
+      if (!e->IsOk()) return nullptr;
+      JSValue* mapped_value = callbackfn->Call(e, T, {k_value, new Number(k), O});
+      if (!e->IsOk()) return nullptr;
+    }
+  }
+  return Undefined::Instance();
+}
+
+// 15.4.4.19 Array.prototype.map ( callbackfn [ , thisArg ] )
+JSValue* ArrayProto::map(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  JSObject* O = ToObject(e, RuntimeContext::TopValue());
+  if (!e->IsOk()) return nullptr;
+  size_t len = ToNumber(e, O->Get(e, u"length"));
+  if (vals.size() == 0 || !vals[0]->IsCallable()) {  // 4
+    *e = *Error::TypeError(u"Array.prototype.map called on non-callable");
+    return nullptr;
+  }
+  JSObject* callbackfn = static_cast<JSObject*>(vals[0]);
+  JSValue* T;
+  if (vals.size() < 2) {
+    T = Undefined::Instance();
+  } else {
+    T = vals[1];
+  }
+  ArrayObject* A = new ArrayObject(len);
+  for (size_t k = 0; k < len; k++) {
+    std::u16string p_k = NumberToString(k);
+    bool k_present = O->HasProperty(p_k);
+    if (!e->IsOk()) return nullptr;
+    if (k_present) {
+      JSValue* k_value = O->Get(e, p_k);
+      if (!e->IsOk()) return nullptr;
+      JSValue* mapped_value = callbackfn->Call(e, T, {k_value, new Number(k), O});
+      if (!e->IsOk()) return nullptr;
+      A->AddValueProperty(p_k, mapped_value, true, true, true);
+    }
+  }
+  return A;
+}
+
+// 15.4.4.20 Array.prototype.filter ( callbackfn [ , thisArg ] )
+JSValue* ArrayProto::filter(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  JSObject* O = ToObject(e, RuntimeContext::TopValue());
+  if (!e->IsOk()) return nullptr;
+  size_t len = ToNumber(e, O->Get(e, u"length"));
+  if (vals.size() == 0 || !vals[0]->IsCallable()) {  // 4
+    *e = *Error::TypeError(u"Array.prototype.filter called on non-callable");
+    return nullptr;
+  }
+  JSObject* callbackfn = static_cast<JSObject*>(vals[0]);
+  JSValue* T;
+  if (vals.size() < 2) {
+    T = Undefined::Instance();
+  } else {
+    T = vals[1];
+  }
+  size_t to = 0;
+  ArrayObject* A = new ArrayObject(len);
+  for (size_t k = 0; k < len; k++) {
+    std::u16string p_k = NumberToString(k);
+    bool k_present = O->HasProperty(p_k);
+    if (!e->IsOk()) return nullptr;
+    if (k_present) {
+      JSValue* k_value = O->Get(e, p_k);
+      if (!e->IsOk()) return nullptr;
+      JSValue* selected = callbackfn->Call(e, T, {k_value, new Number(k), O});
+      if (!e->IsOk()) return nullptr;
+      if (ToBoolean(selected)) {
+        A->AddValueProperty(NumberToString(to), k_value, true, true, true);
+        to++;
+      }
+    }
+  }
+  return A;
+}
 
 JSValue* ObjectConstructor::keys(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
   if (vals.size() < 1 || !vals[0]->IsObject()) {
