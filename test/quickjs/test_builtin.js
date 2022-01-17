@@ -309,9 +309,6 @@ function test_number()
     assert(parseInt("  123r"), 123);
     assert(parseInt("0x123"), 0x123);
     assert(parseInt("0o123"), 0);
-    assert(+"  123   ", 123);
-    assert(+"0b111", 7);
-    assert(+"0o123", 83);
     assert(parseFloat("0x1234"), 0);
     assert(parseFloat("Infinity"), Infinity);
     assert(parseFloat("-Infinity"), -Infinity);

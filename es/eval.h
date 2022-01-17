@@ -1348,35 +1348,32 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_LHS);
   LHS* lhs = static_cast<LHS*>(ast);
 
-  size_t new_count = lhs->new_count();
-  size_t base_offset = lhs->order().size();
-  if (base_offset > 0) {
-    for (size_t i = 0; i < new_count; i++) {
-      auto pair = lhs->order()[base_offset - 1];
-      if (pair.second == LHS::PostfixType::CALL) {
-        base_offset--;
-        if (base_offset == 0)
-          break;
-      } else {
-        break;
-      }
-    }
-  }
-
   ValueGuard guard;
   JSValue* base = EvalExpression(e, lhs->base());
   if (!e->IsOk()) return nullptr;
-  for (size_t i = 0; i < base_offset; i++) {
-    if (base == nullptr)
-      return base;
-    auto pair = lhs->order()[i];
+
+  size_t new_count = lhs->new_count();
+  for (auto pair : lhs->order()) {
     switch (pair.second) {
       case LHS::PostfixType::CALL: {
         auto args = lhs->args_list()[pair.first];
         auto arg_list = EvalArgumentsList(e, args);
         if (!e->IsOk()) return nullptr;
-        base = EvalCallExpression(e, base, arg_list);
-        if (!e->IsOk()) return nullptr;
+        if (new_count > 0) {
+          base = GetValue(e, base);
+          if (!e->IsOk()) return nullptr;
+          if (!base->IsConstructor()) {
+            *e = *Error::TypeError(u"base value is not a constructor");
+            return nullptr;
+          }
+          JSObject* constructor = static_cast<JSObject*>(base);
+          base = constructor->Construct(e, arg_list);
+          if (!e->IsOk()) return nullptr;
+          new_count--;
+        } else {
+          base = EvalCallExpression(e, base, arg_list);
+          if (!e->IsOk()) return nullptr;
+        }
         break;
       }
       case LHS::PostfixType::INDEX: {
@@ -1394,10 +1391,8 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
       default:
         assert(false);
     }
-
   }
-  // NewExpression
-  for (size_t i = 0; i < new_count; i++) {
+  while (new_count > 0) {
     base = GetValue(e, base);
     if (!e->IsOk()) return nullptr;
     if (!base->IsConstructor()) {
@@ -1405,16 +1400,9 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
       return nullptr;
     }
     JSObject* constructor = static_cast<JSObject*>(base);
-    std::vector<JSValue*> arg_list;
-    if (base_offset < lhs->order().size()) {
-      auto pair = lhs->order()[base_offset];
-      assert(pair.second == LHS::PostfixType::CALL);
-      auto args = lhs->args_list()[pair.first];
-      arg_list = EvalArgumentsList(e, args);
-      base_offset++;
-    }
-    base = constructor->Construct(e, arg_list);
+    base = constructor->Construct(e, {});
     if (!e->IsOk()) return nullptr;
+    new_count--;
   }
   return base;
 }

@@ -204,7 +204,7 @@ TEST(TestProgram, Object3) {
   }
 }
 
-TEST(TestProgram, New) {
+TEST(TestProgram, New0) {
   Init();
   {
     Error* e = Error::Ok();
@@ -223,6 +223,25 @@ TEST(TestProgram, New) {
     Reference* ref = static_cast<Reference*>(res.value);
     Number* num = static_cast<Number*>(GetValue(e, ref));
     EXPECT_EQ(23456, num->data());
+  }
+}
+
+TEST(TestProgram, New1) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"a = new String('abc').toString()\n"
+      u"a\n"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(ast);
+    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(JSValue::JS_REF, res.value->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    String* str = static_cast<String*>(GetValue(e, ref));
+    EXPECT_EQ(u"abc", str->data());
   }
 }
 
