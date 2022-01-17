@@ -224,8 +224,8 @@ function test_delete()
     assert((delete a.x), true, "delete");
     assert(("x" in a), false, "delete");
     
-    // /* the following are not tested by test262 */
-    // assert(delete "abc"[100], true);
+    /* the following are not tested by test262 */
+    assert(delete "abc"[100], true);
 
     // err = false;
     // try {
@@ -239,8 +239,6 @@ function test_delete()
 function test_prototype()
 {
     var f = function f() { };
-    console_log(f.prototype.toString())
-    console_log(f.prototype.constructor.toString());
     assert(f.prototype.constructor, f, "prototype");
 }
 
@@ -288,21 +286,6 @@ function test_function_expr_name()
         return myfunc;
     };
     assert(f(), f);
-    
-    /* strict mode test : assignment to the function name raises a
-       TypeError exception */
-
-    f = function myfunc() {
-        "use strict";
-        myfunc = 1;
-    };
-    assert_throws(TypeError, f);
-
-    f = function myfunc() {
-        "use strict";
-        eval("myfunc = 1");
-    };
-    assert_throws(TypeError, f);
 }
 
 test_op1();
@@ -315,4 +298,4 @@ test_prototype();
 test_arguments();
 // test_object_literal();  // JSON
 // test_regexp_skip();  // regex
-// test_function_expr_name();  // eval
+test_function_expr_name();

@@ -699,3 +699,23 @@ TEST(TestProgram, Fib1) {
     EXPECT_EQ(55, num->data());
   }
 }
+
+TEST(TestProgram, Eval0) {
+  Init();
+  {
+    Error* e = Error::Ok();
+    Parser parser(
+      u"'use strict';\n"
+      u" var a = 4;\n"
+      u"eval(a += 2);\n"
+      u"a"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(ast);
+    EXPECT_EQ(Error::E_OK, e->type());
+    Reference* ref = static_cast<Reference*>(res.value);
+    Number* num = static_cast<Number*>(GetValue(e, ref));
+    EXPECT_EQ(6, num->data());
+  }
+}

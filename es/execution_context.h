@@ -132,6 +132,7 @@ class ValueGuard {
   size_t count_;
 };
 
+// TODO(zhuzilin) move this method to a better place
 JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
   std::u16string first, second;
   if (hint == u"String" || hint == u"" && obj_type() == OBJ_DATE) {

@@ -62,7 +62,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     Binding b = bindings_[N];
     if (b.value->IsUndefined()) {
       if (S) {
-        *e = *Error::ReferenceError();
+        *e = *Error::ReferenceError(N + u" is not defined");
         return nullptr;
       } else {
         log::PrintSource("GetBindingValue ", N, " undefined");
@@ -133,7 +133,7 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
     bool value = HasBinding(N);
     if (!value) {
       if (S) {
-        *e = *Error::ReferenceError();
+        *e = *Error::ReferenceError(N + u" is not defined");
         return nullptr;
       } else {
         return Undefined::Instance();

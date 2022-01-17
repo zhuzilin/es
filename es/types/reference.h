@@ -44,7 +44,7 @@ JSValue* GetValue(Error* e, JSValue* V) {
   }
   Reference* ref = static_cast<Reference*>(V);
   if (ref->IsUnresolvableReference()) {
-    *e = *Error::ReferenceError();
+    *e = *Error::ReferenceError(ref->GetReferencedName() + u" is not defined");
     return nullptr;
   }
   JSValue* base = ref->GetBase();
@@ -81,7 +81,7 @@ JSValue* GetValue(Error* e, JSValue* V) {
 }
 
 void PutValue(Error* e, JSValue* V, JSValue* W) {
-  std::cout << "PutValue V: " << V->ToString() << ", W: " << W->ToString() << std::endl;
+  log::PrintSource("PutValue V: " + V->ToString() + ", W: " + W->ToString());
   if (!V->IsReference()) {
     *e = *Error::ReferenceError();
     return;

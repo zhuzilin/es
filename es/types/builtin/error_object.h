@@ -33,6 +33,7 @@ class ErrorObject : public JSObject {
     AddValueProperty(u"message", new String(e->message()), true, false, false);
   }
 
+  Error* e() { return e_; }
   Error::Type ErrorType() { return e_->type(); }
   std::u16string ErrorMessage() { return e_->message(); }
 

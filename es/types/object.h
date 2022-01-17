@@ -320,7 +320,7 @@ bool JSObject::DefineOwnProperty(
       same = same && (desc->Enumerable() == current_desc->Enumerable());
     if (same) return true;  // 6
   }
-  std::cout << "desc: " << desc->ToString() << ", current: " << current_desc->ToString() << std::endl;
+  log::PrintSource("desc: " + desc->ToString() + ", current: " + current_desc->ToString());
   if (!current_desc->Configurable()) { // 7
     if (desc->Configurable()) {  // 7.a
       log::PrintSource("DefineOwnProperty: ", P, " not configurable, while new value configurable");

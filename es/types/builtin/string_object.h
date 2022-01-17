@@ -126,7 +126,6 @@ class StringProto : public JSObject {
       start = S.size();
     else
       start = fmin(fmax(pos, 0), S.size());
-    std::cout << "pos: " << pos << ", start: " << start << std::endl;
     size_t find_pos = S.rfind(search_str, start);
     if (find_pos != std::u16string::npos) {
       return new Number(find_pos);

@@ -33,12 +33,12 @@ class Error {
     return new Error(E_RANGE, message);
   }
 
-  static Error* ReferenceError() {
-    return new Error(E_REFERENCE);
+  static Error* ReferenceError(std::u16string message = u"") {
+    return new Error(E_REFERENCE, message);
   }
 
-  static Error* SyntaxError() {
-    return new Error(E_SYNTAX);
+  static Error* SyntaxError(std::u16string message = u"") {
+    return new Error(E_SYNTAX, message);
   }
 
   static Error* TypeError(std::u16string message = u"") {

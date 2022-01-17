@@ -13,6 +13,7 @@ namespace es {
 
 double ToNumber(Error* e, JSValue* input);
 std::u16string NumberToString(double m);
+Completion EvalProgram(AST* ast);
 
 class FunctionProto : public JSObject {
  public:
@@ -97,8 +98,6 @@ void EnterFunctionCode(
   JSValue* this_arg, std::vector<JSValue*> args, bool strict
 );
 
-Completion EvalProgram(AST* ast);
-
 class FunctionObject : public JSObject {
  public:
   FunctionObject(
@@ -149,7 +148,8 @@ class FunctionObject : public JSObject {
         if (result.value->IsObject()) {
           JSObject* obj = static_cast<JSObject*>(result.value);
           if (obj->obj_type() == JSObject::OBJ_ERROR) {
-            message = static_cast<ErrorObject*>(obj)->ErrorMessage();
+            *e = *(static_cast<ErrorObject*>(obj)->e());
+            return nullptr;
           }
         }
         *e = *Error::NativeError(message);
@@ -322,7 +322,7 @@ class FunctionConstructor : public JSObject {
       Parser parser(P);
       names = parser.ParseFormalParameterList();
       if (names.size() == 0) {
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"invalid parameter name");
         return nullptr;
       }
     }
@@ -330,7 +330,7 @@ class FunctionConstructor : public JSObject {
       Parser parser(body);
       body_ast = parser.ParseFunctionBody(Token::TK_EOS);
       if (body_ast->IsIllegal()) {
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"failed to parse function body: " + body_ast->source());
         return nullptr;
       }
     }

@@ -48,9 +48,39 @@ int main(int argc, char* argv[]) {
   }
   es::Completion res = es::EvalProgram(ast);
   switch (res.type) {
-    case es::Completion::THROW:
-      std::cout << "\033[1;31m" << "Uncaught Error: " << res.value->ToString() << "\033[0m\n" << std::endl;
+    case es::Completion::THROW: {
+      std::cout << "\033[1;31m" << "Uncaught ";
+      if (res.value->IsObject()) {
+        es::JSObject* obj = static_cast<es::JSObject*>(res.value);
+        if (obj->obj_type() == es::JSObject::OBJ_ERROR) {
+          es::ErrorObject* error = static_cast<es::ErrorObject*>(obj);
+          switch (error->ErrorType()) {
+            case es::Error::E_EVAL:
+              std::cout << "Eval";
+              break;
+            case es::Error::E_RANGE:
+              std::cout << "Range";
+              break;
+            case es::Error::E_REFERENCE:
+              std::cout << "Reference";
+              break;
+            case es::Error::E_SYNTAX:
+              std::cout << "Syntax";
+              break;
+            case es::Error::E_TYPE:
+              std::cout << "Type";
+              break;
+            case es::Error::E_URI:
+              std::cout << "URI";
+              break;
+            default:
+              break;
+          }
+        }
+      }
+      std::cout << "Error: " << res.value->ToString() << "\033[0m" << std::endl;
       break;
+    }
     default:
       break;
   } 

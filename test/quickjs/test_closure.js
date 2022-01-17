@@ -167,4 +167,4 @@ test_closure1();
 test_closure2();
 test_closure3();
 // test_with();  // with, eval
-// test_eval_closure();  // eval
+test_eval_closure();

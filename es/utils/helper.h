@@ -13,10 +13,12 @@ namespace es {
 namespace log {
 
 void PrintSource(std::string comment, std::u16string str = u"", std::string postfix = "") {
+#ifdef TEST
   std::cout << comment;
   for (const auto& c: str)
     std::cout << static_cast<char>(c);
   std::cout << postfix << std::endl;
+#endif
 }
 
 std::string ToString(std::u16string str) {

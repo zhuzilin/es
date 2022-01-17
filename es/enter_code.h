@@ -235,6 +235,78 @@ void EnterGlobalCode(Error* e, AST* ast) {
   DeclarationBindingInstantiation(e, context, program, CODE_GLOBAL);
 }
 
+// 10.4.2
+void EnterEvalCode(Error* e, AST* ast) {
+  assert(ast->type() == AST::AST_PROGRAM);
+  ProgramOrFunctionBody* program = static_cast<ProgramOrFunctionBody*>(ast);
+  ExecutionContext* context;
+  LexicalEnvironment* variable_env;
+  LexicalEnvironment* lexical_env;
+  JSValue* this_binding;
+  if (!GlobalObject::Instance()->direct_eval()) {  // 1
+    LexicalEnvironment* global_env = LexicalEnvironment::Global();
+    variable_env = global_env;
+    lexical_env = global_env;
+    this_binding = GlobalObject::Instance();
+  } else {  // 2
+    ExecutionContext* calling_context = RuntimeContext::TopContext();
+    variable_env = calling_context->variable_env();
+    lexical_env = calling_context->lexical_env();
+    this_binding = calling_context->this_binding();
+  }
+  bool strict = RuntimeContext::TopContext()->strict() ||
+                (program->strict() && GlobalObject::Instance()->direct_eval());
+  if (strict) {  // 3
+    LexicalEnvironment* strict_var_env = LexicalEnvironment::NewDeclarativeEnvironment(lexical_env);
+    lexical_env = strict_var_env;
+    variable_env = strict_var_env;
+  }
+  context = new ExecutionContext(variable_env, lexical_env, this_binding, strict);
+  RuntimeContext::Global()->AddContext(context);
+  // 4
+  DeclarationBindingInstantiation(e, context, program, CODE_EVAL);
+}
+
+// 15.1.2.1 eval(X)
+JSValue* GlobalObject::eval(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  log::PrintSource("enter GlobalObject::eval");
+  if (vals.size() == 0)
+    return Undefined::Instance();
+  if (!vals[0]->IsString())
+    return vals[0];
+  std::u16string x = static_cast<String*>(vals[0])->data();
+  Parser parser(x);
+  AST* program = parser.ParseProgram();
+  if (program->IsIllegal()) {
+    *e = *Error::SyntaxError(u"failed to parse eval");
+    return nullptr;
+  }
+  EnterEvalCode(e, program);
+  if (!e->IsOk()) return nullptr;
+  Completion result = EvalProgram(program);
+  RuntimeContext::Global()->PopContext();
+
+  switch (result.type) {
+    case Completion::NORMAL:
+      if (result.value != nullptr)
+        return result.value;
+      else
+        return Undefined::Instance();
+    default: {
+      assert(result.type == Completion::THROW);
+      std::u16string message = ::es::ToString(e, result.value);
+      if (result.value->IsObject()) {
+        JSObject* obj = static_cast<JSObject*>(result.value);
+        if (obj->obj_type() == JSObject::OBJ_ERROR) {
+          message = static_cast<ErrorObject*>(obj)->ErrorMessage();
+        }
+      }
+      *e = *Error::NativeError(message);
+      return result.value;
+    }
+  }
+}
+
 // 10.4.3
 void EnterFunctionCode(
   Error* e, JSObject* f, ProgramOrFunctionBody* body,
@@ -250,7 +322,7 @@ void EnterFunctionCode(
       GlobalObject::Instance() : this_arg;
   }
   LexicalEnvironment* local_env = LexicalEnvironment::NewDeclarativeEnvironment(func->Scope());
-  ExecutionContext* context = new ExecutionContext(local_env, local_env, this_binding, body->strict());  // 8
+  ExecutionContext* context = new ExecutionContext(local_env, local_env, this_binding, strict);  // 8
   RuntimeContext::Global()->AddContext(context);
   // 9
   DeclarationBindingInstantiation(e, context, body, CODE_FUNC, func, args);

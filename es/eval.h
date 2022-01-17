@@ -1300,7 +1300,7 @@ JSValue* EvalSimpleAssignment(Error* e, JSValue* lref, JSValue* rval) {
     // NOTE in 11.13.1.
     // TODO(zhuzilin) not sure how to implement the type error part of the note.
     if (ref->IsStrictReference() && ref->IsUnresolvableReference()) {
-      *e = *Error::ReferenceError();
+      *e = *Error::ReferenceError(ref->GetReferencedName() + u" is not defined");
       return nullptr;
     }
     if (ref->IsStrictReference() && ref->GetBase()->type() == JSValue::JS_ENV_REC &&
@@ -1461,7 +1461,13 @@ JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_li
   } else {
     this_value = Undefined::Instance();
   }
-  return obj->Call(e, this_value, arg_list);
+  // indirect 
+  if (ref->IsReference() && static_cast<Reference*>(ref)->GetReferencedName() == u"eval") {
+    DirectEvalGuard guard;
+    return obj->Call(e, this_value, arg_list);
+  } else {
+    return obj->Call(e, this_value, arg_list);
+  }
 }
 
 // 11.2.1 Property Accessors
