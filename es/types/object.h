@@ -69,7 +69,7 @@ class JSObject : public JSValue {
   void Put(Error* e, std::u16string P, JSValue* V, bool throw_flag);
   bool CanPut(std::u16string P);
   bool HasProperty(std::u16string P);
-  bool Delete(Error* e, std::u16string P, bool throw_flag);
+  virtual bool Delete(Error* e, std::u16string P, bool throw_flag);
   JSValue* DefaultValue(Error* e, std::u16string hint);
   virtual bool DefineOwnProperty(Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag);
 

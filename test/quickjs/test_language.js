@@ -10,9 +10,6 @@ function assert(actual, expected, message) {
     &&  actual.toString() === expected.toString())
         return;
 
-        "assertion failed: got |" + actual
-      console_log("before throw")
-
     throw Error("assertion failed: got |" + actual + "|" +
                 ", expected |" + expected + "|" +
                 (message ? " (" + message + ")" : ""));
@@ -315,7 +312,7 @@ test_inc_dec();
 test_op2();
 test_delete();
 test_prototype();
-// test_arguments();
+test_arguments();
 // test_object_literal();
 // test_regexp_skip();
 // test_function_expr_name();

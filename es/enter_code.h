@@ -10,6 +10,7 @@
 #include <es/types/builtin/bool_object.h>
 #include <es/types/builtin/string_object.h>
 #include <es/types/builtin/array_object.h>
+#include <es/types/builtin/arguments_object.h>
 #include <es/execution_context.h>
 
 namespace es {
@@ -20,29 +21,55 @@ enum CodeType {
   CODE_EVAL,
 };
 
+JSValue* MakeArgGetter(std::u16string name, LexicalEnvironment* env) {
+  Parser parser(u"return " + name + u";");
+  ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(
+    parser.ParseFunctionBody(Token::TK_EOS));
+  return new FunctionObject({}, body, env);
+}
+
+JSValue* MakeArgSetter(std::u16string name, LexicalEnvironment* env) {
+  std::u16string param = name + u"_arg";
+  Parser parser(name + u" = " + param);
+  ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(
+    parser.ParseFunctionBody(Token::TK_EOS));
+  return new FunctionObject({param}, body, env);
+}
+
 JSObject* CreateArgumentsObject(
   FunctionObject* func, std::vector<JSValue*>& args,
-  EnvironmentRecord* env, bool strict
+  LexicalEnvironment* env, bool strict
 ) {
   std::vector<std::u16string> names = func->FormalParameters();
   int len = args.size();
-  JSObject* obj = new JSObject(JSObject::OBJ_OTHER, u"Arguments", true, nullptr, false, false);
-  obj->SetPrototype(ObjectProto::Instance());
-  obj->AddValueProperty(u"length", new Number(len), true, false, true);
-  Object* map = new Object();
-  int indx = len - 1;
-  // TODO(zhuzilin) maps and custom methods
-  while (indx >= 0) {
-    JSValue* val = args[indx];
-    obj->AddValueProperty(ToString(nullptr, new Number(indx)), val, true, true, true);
-    indx--;
+  Object* map = new Object();  // 8
+  int indx = len - 1;  // 10
+  std::set<std::u16string> mapped_names;
+  while (indx >= 0) {  // 11
+    JSValue* val = args[indx];  // 11.a
+    map->AddValueProperty(NumberToString(indx), val, true, true, true);  // 11.b
+    if (indx < names.size()) {  // 11.c
+      std::u16string name = names[indx];  // 11.c.i
+      if (!strict && mapped_names.find(name) == mapped_names.end()) {  // 11.c.ii
+        mapped_names.insert(name);
+        JSValue* g = MakeArgGetter(name, env);
+        JSValue* p = MakeArgSetter(name, env);
+        PropertyDescriptor* desc = new PropertyDescriptor();
+        desc->SetSet(p);
+        desc->SetGet(g);
+        desc->SetConfigurable(true);
+        map->DefineOwnProperty(nullptr, NumberToString(indx), desc, false);
+      }
+    }
+    indx--;  // 11.d
   }
-  if (!strict) {
+  JSObject* obj = new ArgumentsObject(map, len);
+  if (!strict) {  // 13
     obj->AddValueProperty(u"callee", func, true, false, true);
-  } else {
+  } else {  // 14
     // TODO(zhuzilin) thrower
   }
-  return obj;
+  return obj;  // 15
 }
 
 void FindAllVarDecl(std::vector<AST*> stmts, std::vector<VarDecl*>& decls) {
@@ -163,7 +190,7 @@ void DeclarationBindingInstantiation(
   bool arguments_already_declared = env->HasBinding(u"arguments");
   // 7
   if (code_type == CODE_FUNC && !arguments_already_declared) {
-    auto args_obj = CreateArgumentsObject(f, args, env, strict);
+    auto args_obj = CreateArgumentsObject(f, args, context->variable_env(), strict);
     if (strict) {  // 7.b
       DeclarativeEnvironmentRecord* decl_env = static_cast<DeclarativeEnvironmentRecord*>(env);
       decl_env->CreateImmutableBinding(u"arguments");
