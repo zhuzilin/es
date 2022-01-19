@@ -28,7 +28,7 @@ class ArrayProto : public JSObject {
 
   // 15.4.4.2 Array.prototype.toString ( )
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSObject* array = ToObject(e, RuntimeContext::TopValue());
+    JSObject* array = ToObject(e, Runtime::TopValue());
     JSValue* func = array->Get(e, u"join");
     if (!e->IsOk()) return nullptr;
     if (!func->IsCallable()) {
@@ -47,7 +47,7 @@ class ArrayProto : public JSObject {
   }
 
   static JSValue* join(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSObject* O = ToObject(e, RuntimeContext::TopValue());
+    JSObject* O = ToObject(e, Runtime::TopValue());
     Number* len_val = static_cast<Number*>(O->Get(e, u"length"));
     size_t len = len_val->data();
 
@@ -78,7 +78,7 @@ class ArrayProto : public JSObject {
 
   // 15.4.4.6 Array.prototype.pop ( )
   static JSValue* pop(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSObject* O = ToObject(e, RuntimeContext::TopValue());
+    JSObject* O = ToObject(e, Runtime::TopValue());
     if (!e->IsOk()) return nullptr;
     size_t len = ToNumber(e, O->Get(e, u"length"));
     if (!e->IsOk()) return nullptr;
@@ -101,7 +101,7 @@ class ArrayProto : public JSObject {
 
   // 15.4.4.7 Array.prototype.push ( [ item1 [ , item2 [ , … ] ] ] )
   static JSValue* push(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSObject* O = ToObject(e, RuntimeContext::TopValue());
+    JSObject* O = ToObject(e, Runtime::TopValue());
     if (!e->IsOk()) return nullptr;
     double n = ToNumber(e, O->Get(e, u"length"));
     if (!e->IsOk()) return nullptr;
@@ -324,7 +324,7 @@ class ArrayConstructor : public JSObject {
 
 // 15.4.4.18 Array.prototype.forEach ( callbackfn [ , thisArg ] )
 JSValue* ArrayProto::forEach(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-  JSObject* O = ToObject(e, RuntimeContext::TopValue());
+  JSObject* O = ToObject(e, Runtime::TopValue());
   if (!e->IsOk()) return nullptr;
   size_t len = ToNumber(e, O->Get(e, u"length"));
   if (vals.size() == 0 || !vals[0]->IsCallable()) {  // 4
@@ -355,7 +355,7 @@ JSValue* ArrayProto::forEach(Error* e, JSValue* this_arg, std::vector<JSValue*> 
 
 // 15.4.4.19 Array.prototype.map ( callbackfn [ , thisArg ] )
 JSValue* ArrayProto::map(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-  JSObject* O = ToObject(e, RuntimeContext::TopValue());
+  JSObject* O = ToObject(e, Runtime::TopValue());
   if (!e->IsOk()) return nullptr;
   size_t len = ToNumber(e, O->Get(e, u"length"));
   if (vals.size() == 0 || !vals[0]->IsCallable()) {  // 4
@@ -387,7 +387,7 @@ JSValue* ArrayProto::map(Error* e, JSValue* this_arg, std::vector<JSValue*> vals
 
 // 15.4.4.20 Array.prototype.filter ( callbackfn [ , thisArg ] )
 JSValue* ArrayProto::filter(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-  JSObject* O = ToObject(e, RuntimeContext::TopValue());
+  JSObject* O = ToObject(e, Runtime::TopValue());
   if (!e->IsOk()) return nullptr;
   size_t len = ToNumber(e, O->Get(e, u"length"));
   if (vals.size() == 0 || !vals[0]->IsCallable()) {  // 4

@@ -15,77 +15,77 @@ class Lexer {
  public:
   Lexer(std::u16string source) :
     source_(source), pos_(0), end_(source.size()),
-    token_(Token::Type::TK_NOT_FOUND, u"") {
+    token_(Token::Type::TK_NOT_FOUND, u"", 0, 0) {
     UpdateC();
   }
 
   Token Next(bool line_terminator = false) {
-    Token token = Token(Token::Type::TK_NOT_FOUND, u"");
+    Token token = Token(Token::Type::TK_NOT_FOUND, u"", 0, 0);
     do {
       size_t start = pos_;
       switch (c_) {
         case character::EOS: {
-          token = Token(Token::Type::TK_EOS, source_.substr(pos_, 0));
+          token = Token(Token::Type::TK_EOS, u"", start, start);
           break;
         }
 
         case u'{': {
           Advance();
-          token = Token(Token::Type::TK_LBRACE, source_.substr(start, 1));
+          token = Token(Token::Type::TK_LBRACE, source_.substr(start, 1), start, start + 1);
           break;
         }
         case u'}': {
           Advance();
-          token = Token(Token::Type::TK_RBRACE, source_.substr(start, 1));
+          token = Token(Token::Type::TK_RBRACE, source_.substr(start, 1), start, start + 1);
           break;
         }
         case u'(': {
           Advance();
-          token = Token(Token::Type::TK_LPAREN, source_.substr(start, 1));
+          token = Token(Token::Type::TK_LPAREN, source_.substr(start, 1), start, start + 1);
           break;
         }
         case u')': {
           Advance();
-          token = Token(Token::Type::TK_RPAREN, source_.substr(start, 1));
+          token = Token(Token::Type::TK_RPAREN, source_.substr(start, 1), start, start + 1);
           break;
         }
         case u'[': {
           Advance();
-          token = Token(Token::Type::TK_LBRACK, source_.substr(start, 1));
+          token = Token(Token::Type::TK_LBRACK, source_.substr(start, 1), start, start + 1);
           break;
         }
         case u']': {
           Advance();
-          token = Token(Token::Type::TK_RBRACK, source_.substr(start, 1));
+          token = Token(Token::Type::TK_RBRACK, source_.substr(start, 1), start, start + 1);
           break;
         }
         case u'.': {
           if (character::IsDecimalDigit(LookAhead())) {
             token = ScanNumericLiteral();
           } else {
-            token = Token(Token::Type::TK_DOT, source_.substr(start, 1));
+            token = Token(Token::Type::TK_DOT, source_.substr(start, 1), start, start + 1);
             Advance();
           }
           break;
         }
         case u';': {
           Advance();
-          token = Token(Token::Type::TK_SEMICOLON, source_.substr(start, 1));
+          token = Token(Token::Type::TK_SEMICOLON, source_.substr(start, 1), start, start + 1);
           break;
         }
         case u',': {
           Advance();
-          token = Token(Token::Type::TK_COMMA, source_.substr(start, 1));
+          token = Token(Token::Type::TK_COMMA, source_.substr(start, 1), start, start + 1);
           break;
         }
         case u'?': {
           Advance();
-          token = Token(Token::Type::TK_QUESTION, source_.substr(start, 1));
+          token = Token(Token::Type::TK_QUESTION, source_.substr(start, 1), start, start + 1);
           break;
         }
         case u':': {
           Advance();
-          token = Token(Token::Type::TK_COLON, source_.substr(start, 1));
+          token = Token(Token::Type::TK_COLON, source_.substr(start, 1), start, start + 1);
           break;
         }
 
@@ -97,18 +97,18 @@ class Lexer {
               switch (c_) {
                 case u'=':  // <<=
                   Advance();
-                  token = Token(Token::Type::TK_BIT_LSH_ASSIGN, source_.substr(start, 3));
+                  token = Token(Token::Type::TK_BIT_LSH_ASSIGN, source_.substr(start, 3), start, start + 3);
                   break;
                 default:  // <<
-                  token = Token(Token::Type::TK_BIT_LSH, source_.substr(start, 2));
+                  token = Token(Token::Type::TK_BIT_LSH, source_.substr(start, 2), start, start + 2);
               }
               break;
             case u'=':  // <=
               Advance();
-              token = Token(Token::Type::TK_LE, source_.substr(start, 2));
+              token = Token(Token::Type::TK_LE, source_.substr(start, 2), start, start + 2);
               break;
             default:  // <
-              token = Token(Token::Type::TK_LT, source_.substr(start, 1));
+              token = Token(Token::Type::TK_LT, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
@@ -123,26 +123,26 @@ class Lexer {
                   switch (c_) {
                     case u'=':  // >>>=
                       Advance();
-                      token = Token(Token::Type::TK_BIT_URSH_ASSIGN, source_.substr(start, 4));
+                      token = Token(Token::Type::TK_BIT_URSH_ASSIGN, source_.substr(start, 4), start, start + 4);
                       break;
                     default:  // >>>
-                      token = Token(Token::Type::TK_BIT_URSH, source_.substr(start, 3));
+                      token = Token(Token::Type::TK_BIT_URSH, source_.substr(start, 3), start, start + 3);
                   }
                   break;
                 case u'=':  // >>=
-                  token = Token(Token::Type::TK_BIT_RSH_ASSIGN, source_.substr(start, 3));
+                  token = Token(Token::Type::TK_BIT_RSH_ASSIGN, source_.substr(start, 3), start, start + 3);
                   Advance();
                   break;
                 default:  // >>
-                  token = Token(Token::Type::TK_BIT_RSH, source_.substr(start, 2));
+                  token = Token(Token::Type::TK_BIT_RSH, source_.substr(start, 2), start, start + 2);
               }
               break;
             case u'=':  // >=
               Advance();
-              token = Token(Token::Type::TK_GE, source_.substr(start, 2));
+              token = Token(Token::Type::TK_GE, source_.substr(start, 2), start, start + 2);
               break;
             default:  // >
-              token = Token(Token::Type::TK_GT, source_.substr(start, 1));
+              token = Token(Token::Type::TK_GT, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
@@ -154,15 +154,15 @@ class Lexer {
               switch (c_) {
                 case u'=':  // ===
                   Advance();
-                  token = Token(Token::Type::TK_EQ3, source_.substr(start, 3));
+                  token = Token(Token::Type::TK_EQ3, source_.substr(start, 3), start, start + 3);
                   break;
                 default:  // ==
-                  token = Token(Token::Type::TK_EQ, source_.substr(start, 2));
+                  token = Token(Token::Type::TK_EQ, source_.substr(start, 2), start, start + 2);
                   break;
               }
               break;
             default:  // =
-              token = Token(Token::Type::TK_ASSIGN, source_.substr(start, 1));
+              token = Token(Token::Type::TK_ASSIGN, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
@@ -174,15 +174,15 @@ class Lexer {
               switch (c_) {
                 case u'=':  // !==
                   Advance();
-                  token = Token(Token::Type::TK_NE3, source_.substr(start, 3));
+                  token = Token(Token::Type::TK_NE3, source_.substr(start, 3), start, start + 3);
                   break;
                 default:  // !=
-                  token = Token(Token::Type::TK_NE, source_.substr(start, 2));
+                  token = Token(Token::Type::TK_NE, source_.substr(start, 2), start, start + 2);
                   break;
               }
               break;
             default:  // !
-              token = Token(Token::Type::TK_LOGICAL_NOT, source_.substr(start, 1));
+              token = Token(Token::Type::TK_LOGICAL_NOT, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
@@ -192,14 +192,14 @@ class Lexer {
           switch (c_) {
             case u'+':  // ++
               Advance();
-              token = Token(Token::Type::TK_INC, source_.substr(start, 2));
+              token = Token(Token::Type::TK_INC, source_.substr(start, 2), start, start + 2);
               break;
             case u'=':  // +=
               Advance();
-              token = Token(Token::Type::TK_ADD_ASSIGN, source_.substr(start, 2));
+              token = Token(Token::Type::TK_ADD_ASSIGN, source_.substr(start, 2), start, start + 2);
               break;
             default:  // +
-              token = Token(Token::Type::TK_ADD, source_.substr(start, 1));
+              token = Token(Token::Type::TK_ADD, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
@@ -208,13 +208,13 @@ class Lexer {
           switch (c_) {
             case u'-':  // --
               Advance();
-              token = Token(Token::Type::TK_DEC, source_.substr(start, 2));
+              token = Token(Token::Type::TK_DEC, source_.substr(start, 2), start, start + 2);
               break;
             case u'=':  // -=
               Advance();
-              token = Token(Token::Type::TK_SUB_ASSIGN, source_.substr(start, 2));
+              token = Token(Token::Type::TK_SUB_ASSIGN, source_.substr(start, 2), start, start + 2);
             default:  // -
-              token = Token(Token::Type::TK_SUB, source_.substr(start, 1));
+              token = Token(Token::Type::TK_SUB, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
@@ -222,9 +222,9 @@ class Lexer {
           Advance();
           if (c_ == u'=') {  // *=
             Advance();
-            token = Token(Token::Type::TK_MUL_ASSIGN, source_.substr(start, 2));
+            token = Token(Token::Type::TK_MUL_ASSIGN, source_.substr(start, 2), start, start + 2);
           } else {  // +
-            token = Token(Token::Type::TK_MUL, source_.substr(start, 1));
+            token = Token(Token::Type::TK_MUL, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
@@ -232,9 +232,9 @@ class Lexer {
           Advance();
           if (c_ == u'=') {  // %=
             Advance();
-            token = Token(Token::Type::TK_MOD_ASSIGN, source_.substr(start, 2));
+            token = Token(Token::Type::TK_MOD_ASSIGN, source_.substr(start, 2), start, start + 2);
           } else {  // %
-            token = Token(Token::Type::TK_MOD, source_.substr(start, 1));
+            token = Token(Token::Type::TK_MOD, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
@@ -244,14 +244,14 @@ class Lexer {
           switch (c_) {
             case u'&':  // &&
               Advance();
-              token = Token(Token::Type::TK_LOGICAL_AND, source_.substr(start, 2));
+              token = Token(Token::Type::TK_LOGICAL_AND, source_.substr(start, 2), start, start + 2);
               break;
             case u'=':  // &=
               Advance();
-              token = Token(Token::Type::TK_BIT_AND_ASSIGN, source_.substr(start, 2));
+              token = Token(Token::Type::TK_BIT_AND_ASSIGN, source_.substr(start, 2), start, start + 2);
               break;
             default:  // &
-              token = Token(Token::Type::TK_BIT_AND, source_.substr(start, 1));
+              token = Token(Token::Type::TK_BIT_AND, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
@@ -260,14 +260,14 @@ class Lexer {
           switch (c_) {
             case u'|':  // ||
               Advance();
-              token = Token(Token::Type::TK_LOGICAL_OR, source_.substr(start, 2));
+              token = Token(Token::Type::TK_LOGICAL_OR, source_.substr(start, 2), start, start + 2);
               break;
             case u'=':  // |=
               Advance();
-              token = Token(Token::Type::TK_BIT_OR_ASSIGN, source_.substr(start, 2));
+              token = Token(Token::Type::TK_BIT_OR_ASSIGN, source_.substr(start, 2), start, start + 2);
               break;
             default:  // |
-              token = Token(Token::Type::TK_BIT_OR, source_.substr(start, 1));
+              token = Token(Token::Type::TK_BIT_OR, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
@@ -275,15 +275,15 @@ class Lexer {
           Advance();
           if (c_ == u'=') {  // ^=
             Advance();
-            token = Token(Token::Type::TK_BIT_XOR_ASSIGN, source_.substr(start, 2));
+            token = Token(Token::Type::TK_BIT_XOR_ASSIGN, source_.substr(start, 2), start, start + 2);
           } else {
-            token = Token(Token::Type::TK_BIT_XOR, source_.substr(start, 1));
+            token = Token(Token::Type::TK_BIT_XOR, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
         case u'~': {
           Advance();
-          token = Token(Token::Type::TK_BIT_NOT, source_.substr(start, 1));
+          token = Token(Token::Type::TK_BIT_NOT, source_.substr(start, 1), start, start + 1);
           break;
         }
 
@@ -300,13 +300,13 @@ class Lexer {
               break;
             case u'=':  // /=
               Advance();
-              token = Token(Token::Type::TK_DIV_ASSIGN, source_.substr(start, 2));
+              token = Token(Token::Type::TK_DIV_ASSIGN, source_.substr(start, 2), start, start + 2);
               break;
             default:  // /
               // We cannot distinguish DIV and regex in lexer level and therefore,
               // we need to check if the symbol of div operator or start of regex
               // in parser.
-              token = Token(Token::Type::TK_DIV, source_.substr(start, 1));
+              token = Token(Token::Type::TK_DIV, source_.substr(start, 1), start, start + 1);
           }
           break;
         }
@@ -332,7 +332,7 @@ class Lexer {
             token = ScanIdentifier();
           } else {
             Advance();
-            token = Token(Token::TK_ILLEGAL, source_.substr(start, 1));
+            token = Token(Token::TK_ILLEGAL, source_.substr(start, 1), start, start + 1);
           }
       }
     } while(token.type() == Token::Type::TK_NOT_FOUND);
@@ -416,11 +416,11 @@ class Lexer {
           Advance();
         }
       }
-      token_ = Token(Token::Type::TK_REGEX, source_.substr(start, pos_ - start));
+      token_ = Token(Token::Type::TK_REGEX, source_.substr(start, pos_ - start), start, pos_);
       return token_;
     }
 error:
-    token_ = Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start));
+    token_ = Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start), start, pos_);
     return token_;
   }
 
@@ -527,7 +527,7 @@ error:
     } else {
       Advance();
     }
-    return Token(Token::TK_LINE_TERM, source_.substr(start, pos_ - start));
+    return Token(Token::TK_LINE_TERM, source_.substr(start, pos_ - start), start, pos_);
   }
 
   void SkipLineTerminatorSequence() {
@@ -594,10 +594,10 @@ error:
 
     if (c_ == quote) {
       Advance();
-      return Token(Token::Type::TK_STRING, source_.substr(start, pos_ - start));
+      return Token(Token::Type::TK_STRING, source_.substr(start, pos_ - start), start, pos_);
     }
 error:
-    return Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start));
+    return Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start), start, pos_);
   }
 
   bool SkipAtLeastOneDecimalDigit() {
@@ -688,9 +688,9 @@ error:
       Advance();
       goto error;
     }
-    return Token(Token::Type::TK_NUMBER, source_.substr(start, pos_ - start));
+    return Token(Token::Type::TK_NUMBER, source_.substr(start, pos_ - start), start, pos_);
 error:
-    return Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start));
+    return Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start), start, pos_);
   }
 
   bool SkipUnicodeEscapeSequence() {
@@ -735,26 +735,26 @@ error:
 
     source = source_.substr(start, pos_ - start);
     if (source == u"null") {
-      return Token(Token::Type::TK_NULL, source);
+      return Token(Token::Type::TK_NULL, source, start, pos_);
     }
     if (source == u"true" || source == u"false") {
-      return Token(Token::Type::TK_BOOL, source);
+      return Token(Token::Type::TK_BOOL, source, start, pos_);
     }
     for (auto keyword : kKeywords) {
       if (source == keyword) {
-        return Token(Token::Type::TK_KEYWORD, source);
+        return Token(Token::Type::TK_KEYWORD, source, start, pos_);
       }
     }
     for (auto future : kFutureReservedWords) {
       if (source == future) {
-        return Token(Token::Type::TK_FUTURE, source);
+        return Token(Token::Type::TK_FUTURE, source, start, pos_);
       }
       // TODO(zhuzilin) Check if source in kStrictModeFutureReservedWords
       // when stric mode code is supported.
     }
-    return Token(Token::Type::TK_IDENT, source);
+    return Token(Token::Type::TK_IDENT, source, start, pos_);
 error:
-    return Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start)); 
+    return Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start), start, pos_); 
   }
 
   char16_t c_;

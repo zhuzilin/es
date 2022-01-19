@@ -30,13 +30,27 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   std::string filename(argv[1]);
-  std::u16string filecontent = ReadUTF8FileToUTF16String(filename);
+  std::u16string source = ReadUTF8FileToUTF16String(filename);
 
-  es::Parser parser(filecontent);
+  es::Parser parser(source);
   es::AST* ast = parser.ParseProgram();
   if (ast->IsIllegal()) {
-    std::cout << "\033[1;31m" << "ParserError: " <<  es::log::ToString(ast->source())
-              << "\033[0m" << std::endl;
+    size_t start = ast->start();
+    for (size_t i = 0; i < 10; i++) {
+      if (start == 0 || es::character::IsLineTerminator(source[start - 1]))
+        break;
+      start--;
+    }
+    size_t end = ast->end();
+    for (size_t i = 0; i < 10; i++) {
+      if (end == source.size() || es::character::IsLineTerminator(source[end]))
+        break;
+      end++;
+    }
+    std::cout << "\033[1;31m" << "ParserError: " << "\033[0m"
+              << es::log::ToString(source.substr(start, ast->start() - start))
+              << "\033[1;31m" << es::log::ToString(ast->source()) << "\033[0m"
+              << es::log::ToString(source.substr(ast->end(), end - ast->end())) << std::endl;
     return 0;
   }
 

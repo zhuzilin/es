@@ -102,8 +102,8 @@ class Token {
     TK_ILLEGAL,
   };
 
-  Token(Type type, std::u16string source) :
-    type_(type), source_(source) {}
+  Token(Type type, std::u16string source, size_t start, size_t end) :
+    type_(type), source_(source), start_(start), end_(end) {}
 
   inline bool IsAssignmentOperator() {
     switch(type_) {
@@ -176,10 +176,10 @@ class Token {
         return 11;
 
       case TK_KEYWORD:
-        if (source_ == u"instanceof") {
+        if (source() == u"instanceof") {
           return 8;
         // To prevent parsing for(a in b).
-        } else if (!no_in && source_ == u"in") {
+        } else if (!no_in && source() == u"in") {
           return 8;
         }
       default:
@@ -199,7 +199,7 @@ class Token {
         return 100;  // UnaryExpresion always have higher priority.
 
       case TK_KEYWORD:
-        if (source_ == u"delete" || source_ == u"void" || source_ == u"typeof") {
+        if (source() == u"delete" || source() == u"void" || source() == u"typeof") {
           return 100;
         }
       default:
@@ -220,10 +220,14 @@ class Token {
 
   Type type() { return type_; }
   std::u16string source() { return source_; }
+  size_t start() { return start_; }
+  size_t end() { return end_; }
 
  private:
   Type type_;
   std::u16string source_;
+  size_t start_;
+  size_t end_;
 };
 
 const std::array<std::u16string, 26> kKeywords = {

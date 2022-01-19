@@ -213,7 +213,7 @@ Completion EvalIfStatement(AST* ast) {
 Completion EvalDoWhileStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_DO_WHILE);
   Error* e = Error::Ok();
-  RuntimeContext::TopContext()->EnterIteration();
+  Runtime::TopContext()->EnterIteration();
   DoWhile* loop_stmt = static_cast<DoWhile*>(ast);
   JSValue* V = nullptr;
   JSValue* expr_ref;
@@ -227,11 +227,11 @@ Completion EvalDoWhileStatement(AST* ast) {
     has_label = stmt.target == ast->label() || stmt.target == u"";
     if (stmt.type != Completion::CONTINUE || !has_label) {
       if (stmt.type == Completion::BREAK && has_label) {
-        RuntimeContext::TopContext()->ExitIteration();
+        Runtime::TopContext()->ExitIteration();
         return Completion(Completion::NORMAL, V, u"");
       }
       if (stmt.IsAbruptCompletion()) {
-        RuntimeContext::TopContext()->ExitIteration();
+        Runtime::TopContext()->ExitIteration();
         return stmt;
       }
     }
@@ -243,10 +243,10 @@ Completion EvalDoWhileStatement(AST* ast) {
     if (!ToBoolean(val))
       break;
   }
-  RuntimeContext::TopContext()->ExitIteration();
+  Runtime::TopContext()->ExitIteration();
   return Completion(Completion::NORMAL, V, u"");
 error:
-  RuntimeContext::TopContext()->ExitIteration();
+  Runtime::TopContext()->ExitIteration();
   return Completion(Completion::THROW, new ErrorObject(e), u"");
 }
 
@@ -254,7 +254,7 @@ error:
 Completion EvalWhileStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_WHILE);
   Error* e = Error::Ok();
-  RuntimeContext::TopContext()->EnterIteration();
+  Runtime::TopContext()->EnterIteration();
   WhileOrWith* loop_stmt = static_cast<WhileOrWith*>(ast);
   JSValue* V = nullptr;
   JSValue* expr_ref;
@@ -275,19 +275,19 @@ Completion EvalWhileStatement(AST* ast) {
     has_label = stmt.target == ast->label() || stmt.target == u"";
     if (stmt.type != Completion::CONTINUE || !has_label) {
       if (stmt.type == Completion::BREAK && has_label) {
-        RuntimeContext::TopContext()->ExitIteration();
+        Runtime::TopContext()->ExitIteration();
         return Completion(Completion::NORMAL, V, u"");
       }
       if (stmt.IsAbruptCompletion()) {
-        RuntimeContext::TopContext()->ExitIteration();
+        Runtime::TopContext()->ExitIteration();
         return stmt;
       }
     }
   }
-  RuntimeContext::TopContext()->ExitIteration();
+  Runtime::TopContext()->ExitIteration();
   return Completion(Completion::NORMAL, V, u"");
 error:
-  RuntimeContext::TopContext()->ExitIteration();
+  Runtime::TopContext()->ExitIteration();
   return Completion(Completion::THROW, new ErrorObject(e), u"");
 }
 
@@ -295,7 +295,7 @@ error:
 Completion EvalForStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_FOR);
   Error* e = Error::Ok();
-  RuntimeContext::TopContext()->EnterIteration();
+  Runtime::TopContext()->EnterIteration();
   For* for_stmt = static_cast<For*>(ast);
   JSValue* V = nullptr;
   Completion stmt;
@@ -327,11 +327,11 @@ Completion EvalForStatement(AST* ast) {
     has_label = stmt.target == ast->label() || stmt.target == u"";
     if (stmt.type != Completion::CONTINUE || !has_label) {
       if (stmt.type == Completion::BREAK && has_label) {
-        RuntimeContext::TopContext()->ExitIteration();
+        Runtime::TopContext()->ExitIteration();
         return Completion(Completion::NORMAL, V, u"");
       }
       if (stmt.IsAbruptCompletion()) {
-        RuntimeContext::TopContext()->ExitIteration();
+        Runtime::TopContext()->ExitIteration();
         return stmt;
       }
     }
@@ -343,10 +343,10 @@ Completion EvalForStatement(AST* ast) {
       if (!e->IsOk()) goto error;
     }
   }
-  RuntimeContext::TopContext()->ExitIteration();
+  Runtime::TopContext()->ExitIteration();
   return Completion(Completion::NORMAL, V, u"");
 error:
-  RuntimeContext::TopContext()->ExitIteration();
+  Runtime::TopContext()->ExitIteration();
   return Completion(Completion::THROW, new ErrorObject(e), u"");
 }
 
@@ -354,7 +354,7 @@ error:
 Completion EvalForInStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_FOR_IN);
   Error* e = Error::Ok();
-  RuntimeContext::TopContext()->EnterIteration();
+  Runtime::TopContext()->EnterIteration();
   ForIn* for_in_stmt = static_cast<ForIn*>(ast);
   JSObject* obj;
   JSValue* expr_ref;
@@ -371,7 +371,7 @@ Completion EvalForInStatement(AST* ast) {
     expr_val = GetValue(e, expr_ref);
     if (!e->IsOk()) goto error;
     if (expr_val->IsUndefined() || expr_val->IsNull()) {
-      RuntimeContext::TopContext()->ExitIteration();
+      Runtime::TopContext()->ExitIteration();
       return Completion(Completion::NORMAL, nullptr, u"");
     }
     obj = ToObject(e, expr_val);
@@ -389,11 +389,11 @@ Completion EvalForInStatement(AST* ast) {
       has_label = stmt.target == ast->label() || stmt.target == u"";
       if (stmt.type != Completion::CONTINUE || !has_label) {
         if (stmt.type == Completion::BREAK && has_label) {
-          RuntimeContext::TopContext()->ExitIteration();
+          Runtime::TopContext()->ExitIteration();
           return Completion(Completion::NORMAL, V, u"");
         }
         if (stmt.IsAbruptCompletion()) {
-          RuntimeContext::TopContext()->ExitIteration();
+          Runtime::TopContext()->ExitIteration();
           return stmt;
         }
       }
@@ -406,7 +406,7 @@ Completion EvalForInStatement(AST* ast) {
     expr_val = GetValue(e, expr_ref);
     if (!e->IsOk()) goto error;
     if (expr_val->IsUndefined() || expr_val->IsNull()) {
-      RuntimeContext::TopContext()->ExitIteration();
+      Runtime::TopContext()->ExitIteration();
       return Completion(Completion::NORMAL, nullptr, u"");
     }
     obj = ToObject(e, expr_val);
@@ -423,27 +423,27 @@ Completion EvalForInStatement(AST* ast) {
       has_label = stmt.target == ast->label() || stmt.target == u"";
       if (stmt.type != Completion::CONTINUE || !has_label) {
         if (stmt.type == Completion::BREAK && has_label) {
-          RuntimeContext::TopContext()->ExitIteration();
+          Runtime::TopContext()->ExitIteration();
           return Completion(Completion::NORMAL, V, u"");
         }
         if (stmt.IsAbruptCompletion()) {
-          RuntimeContext::TopContext()->ExitIteration();
+          Runtime::TopContext()->ExitIteration();
           return stmt;
         }
       }
     }
   }
-  RuntimeContext::TopContext()->ExitIteration();
+  Runtime::TopContext()->ExitIteration();
   return Completion(Completion::NORMAL, V, u"");
 error:
-  RuntimeContext::TopContext()->ExitIteration();
+  Runtime::TopContext()->ExitIteration();
   return Completion(Completion::THROW, new ErrorObject(e), u"");
 }
 
 Completion EvalContinueStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_CONTINUE);
   Error* e = Error::Ok();
-  if (!RuntimeContext::TopContext()->InIteration()) {
+  if (!Runtime::TopContext()->InIteration()) {
     *e = *Error::SyntaxError();
     return Completion(Completion::THROW, new ErrorObject(e), u"");
   }
@@ -454,7 +454,7 @@ Completion EvalContinueStatement(AST* ast) {
 Completion EvalBreakStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_BREAK);
   Error* e = Error::Ok();
-  if (!RuntimeContext::TopContext()->InIteration()) {
+  if (!Runtime::TopContext()->InIteration()) {
     *e = *Error::SyntaxError();
     return Completion(Completion::THROW, new ErrorObject(e), u"");
   }
@@ -487,7 +487,7 @@ Completion EvalLabelledStatement(AST* ast) {
 // 12.10 The with Statement
 Completion EvalWithStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_WITH);
-  if (RuntimeContext::TopContext()->strict()) {
+  if (Runtime::TopContext()->strict()) {
     return Completion(
       Completion::THROW,
       new ErrorObject(Error::SyntaxError(u"cannot have with statement in strict mode")),
@@ -504,11 +504,11 @@ Completion EvalWithStatement(AST* ast) {
   JSObject* obj = ToObject(e, val);
   if (!e->IsOk())
     return Completion(Completion::THROW, new ErrorObject(e), u"");
-  LexicalEnvironment* old_env = RuntimeContext::TopLexicalEnv();
+  LexicalEnvironment* old_env = Runtime::TopLexicalEnv();
   LexicalEnvironment* new_env = LexicalEnvironment::NewObjectEnvironment(obj, old_env, true);
-  RuntimeContext::TopContext()->SetLexicalEnv(new_env);
+  Runtime::TopContext()->SetLexicalEnv(new_env);
   Completion C = EvalStatement(with_stmt->stmt());
-  RuntimeContext::TopContext()->SetLexicalEnv(old_env);
+  Runtime::TopContext()->SetLexicalEnv(old_env);
   return C;
 }
 
@@ -610,7 +610,7 @@ Completion EvalThrowStatement(AST* ast) {
 Completion EvalCatch(Try* try_stmt, Completion C) {
   // NOTE(zhuzilin) Don't gc these two env, during this function.
   Error* e = Error::Ok();
-  LexicalEnvironment* old_env = RuntimeContext::TopLexicalEnv();
+  LexicalEnvironment* old_env = Runtime::TopLexicalEnv();
   LexicalEnvironment* catch_env = LexicalEnvironment::NewDeclarativeEnvironment(old_env);
   catch_env->env_rec()->CreateMutableBinding(e, try_stmt->catch_ident(), false);  // 4
   if (!e->IsOk()) {
@@ -622,9 +622,9 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   if (!e->IsOk()) {
     return Completion(Completion::THROW, new ErrorObject(e), u"");
   }
-  RuntimeContext::TopContext()->SetLexicalEnv(catch_env);
+  Runtime::TopContext()->SetLexicalEnv(catch_env);
   Completion B = EvalBlockStatement(try_stmt->catch_block());
-  RuntimeContext::TopContext()->SetLexicalEnv(old_env);
+  Runtime::TopContext()->SetLexicalEnv(old_env);
   return B;
 }
 
@@ -705,7 +705,7 @@ JSValue* EvalPrimaryExpression(Error* e, AST* ast) {
   JSValue* val;
   switch (ast->type()) {
     case AST::AST_EXPR_THIS:
-      val = RuntimeContext::TopContext()->this_binding();
+      val = Runtime::TopContext()->this_binding();
       break;
     case AST::AST_EXPR_IDENT:
       val = EvalIdentifier(ast);
@@ -740,8 +740,8 @@ JSValue* EvalPrimaryExpression(Error* e, AST* ast) {
 
 Reference* IdentifierResolution(std::u16string name) {
   // 10.3.1 Identifier Resolution
-  LexicalEnvironment* env = RuntimeContext::TopLexicalEnv();
-  bool strict = RuntimeContext::TopContext()->strict();
+  LexicalEnvironment* env = Runtime::TopLexicalEnv();
+  bool strict = Runtime::TopContext()->strict();
   return env->GetIdentifierReference(name, strict);
 }
 
@@ -926,7 +926,7 @@ std::u16string EvalPropertyName(Error* e, Token token) {
 Object* EvalObject(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_OBJ);
   ObjectLiteral* obj_ast = static_cast<ObjectLiteral*>(ast);
-  bool strict = RuntimeContext::TopContext()->strict();
+  bool strict = Runtime::TopContext()->strict();
   Object* obj = new Object();
   // PropertyName : AssignmentExpression
   for (auto property : obj_ast->properties()) {
@@ -953,7 +953,7 @@ Object* EvalObject(Error* e, AST* ast) {
         }
         FunctionObject* closure = new FunctionObject(
           func_ast->params(), func_ast->body(),
-          RuntimeContext::TopLexicalEnv()
+          Runtime::TopLexicalEnv()
         );
         if (property.type == ObjectLiteral::Property::GET) {
           desc->SetGet(closure);
@@ -1496,7 +1496,7 @@ JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, std::u16string identif
   base_value->CheckObjectCoercible(e);
   if (!e->IsOk())
     return nullptr;
-  bool strict = RuntimeContext::TopContext()->strict();
+  bool strict = Runtime::TopContext()->strict();
   return new Reference(base_value, identifier_name, strict);
 }
 

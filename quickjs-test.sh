@@ -1,5 +1,5 @@
 echo "compiling..."
-g++ es.cc -std=c++17 -O2 -I$(PWD) -o bin/es
+g++ es.cc -std=c++17 -I$(PWD) -o bin/es
 echo "run test_builtin"
 bin/es test/quickjs/test_builtin.js
 echo "run test_closure"

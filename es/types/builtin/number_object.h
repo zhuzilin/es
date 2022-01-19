@@ -25,7 +25,7 @@ class NumberProto : public JSObject {
   }
 
   static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     if (val->IsObject()) {
       JSObject* obj = static_cast<JSObject*>(val);
       if (obj->obj_type() == JSObject::OBJ_NUMBER) {

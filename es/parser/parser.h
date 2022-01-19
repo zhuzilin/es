@@ -7,7 +7,8 @@
 #include <es/utils/helper.h>
 
 #define START_POS size_t start = lexer_.Pos()
-#define SOURCE_PARSED source_.substr(start, lexer_.Pos() - start)
+#define SOURCE_PARSED source_.substr(start, lexer_.Pos() - start), start, lexer_.Pos()
+#define TOKEN_SOURCE token.source(), token.start(), token.end()
 
 namespace es {
 
@@ -16,29 +17,30 @@ class Parser {
   Parser(std::u16string source) : source_(source), lexer_(source) {}
 
   AST* ParsePrimaryExpression() {
+    START_POS;
     Token token = lexer_.NextAndRewind();
     switch (token.type()) {
       case Token::TK_KEYWORD:
         if (token.source() == u"this") {
           lexer_.Next();
-          return new AST(AST::AST_EXPR_THIS, token.source());
+          return new AST(AST::AST_EXPR_THIS, TOKEN_SOURCE);
         }
         goto error;
       case Token::TK_IDENT:
         lexer_.Next();
-        return new AST(AST::AST_EXPR_IDENT, token.source());
+        return new AST(AST::AST_EXPR_IDENT, TOKEN_SOURCE);
       case Token::TK_NULL:
         lexer_.Next();
-        return new AST(AST::AST_EXPR_NULL, token.source());
+        return new AST(AST::AST_EXPR_NULL, TOKEN_SOURCE);
       case Token::TK_BOOL:
         lexer_.Next();
-        return new AST(AST::AST_EXPR_BOOL, token.source());
+        return new AST(AST::AST_EXPR_BOOL, TOKEN_SOURCE);
       case Token::TK_NUMBER:
         lexer_.Next();
-        return new AST(AST::AST_EXPR_NUMBER, token.source());
+        return new AST(AST::AST_EXPR_NUMBER, TOKEN_SOURCE);
       case Token::TK_STRING:
         lexer_.Next();
-        return new AST(AST::AST_EXPR_STRING, token.source());
+        return new AST(AST::AST_EXPR_STRING, TOKEN_SOURCE);
       case Token::TK_LBRACK:  // [
         return ParseArrayLiteral();
       case Token::TK_LBRACE:  // {
@@ -52,14 +54,14 @@ class Parser {
           delete value;
           goto error;
         }
-        return new Paren(value, value->source());
+        return new Paren(value, value->source(), value->start(), value->end());
       }
       case Token::TK_DIV: {  // /
         lexer_.Next(); // skip /
         lexer_.Back(); // back to /
         token = lexer_.ScanRegexLiteral();
         if (token.type() == Token::TK_REGEX) {
-          return new AST(AST::AST_EXPR_REGEX, token.source());
+          return new AST(AST::AST_EXPR_REGEX, TOKEN_SOURCE);
         } else {
           goto error;
         }
@@ -70,7 +72,7 @@ class Parser {
     }
 
 error:
-    return new AST(AST::AST_ILLEGAL, token.source());
+    return new AST(AST::AST_ILLEGAL, TOKEN_SOURCE);
   }
 
   std::vector<std::u16string> ParseFormalParameterList() {
@@ -98,7 +100,7 @@ error:
     START_POS;
     assert(lexer_.Next().source() == u"function");
 
-    Token name(Token::TK_NOT_FOUND, u"");
+    Token name(Token::TK_NOT_FOUND, source_, 0, 0);
     std::vector<std::u16string> params;
     AST* tmp;
     AST* body;
@@ -382,8 +384,7 @@ error:
         rhs = ParseBinaryAndUnaryExpression(no_in, binary_op.BinaryPriority(no_in));
         if (rhs->IsIllegal())
           return rhs;
-        lhs = new Binary(lhs, rhs, binary_op);
-        lhs->SetSource(SOURCE_PARSED);
+        lhs = new Binary(lhs, rhs, binary_op, SOURCE_PARSED);
       } else {
         break;
       }
@@ -559,7 +560,7 @@ error:
         return ParseBlockStatement();
       case Token::TK_SEMICOLON:  // ;
         lexer_.Next();
-        return new AST(AST::AST_STMT_EMPTY, u";");
+        return new AST(AST::AST_STMT_EMPTY, TOKEN_SOURCE);
       case Token::TK_KEYWORD: {
         if (token.source() == u"var")
           return ParseVariableStatement(false);
@@ -1116,7 +1117,7 @@ error:
     assert(lexer_.Next().source() == u"try");
 
     AST* try_block;
-    Token catch_ident(Token::TK_NOT_FOUND, u"");
+    Token catch_ident(Token::TK_NOT_FOUND, source_, 0, 0);
     AST* catch_block = nullptr;
     AST* finally_block = nullptr;
 

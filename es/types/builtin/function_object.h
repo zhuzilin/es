@@ -30,7 +30,7 @@ class FunctionProto : public JSObject {
 
   // 15.3.4.3 Function.prototype.apply (thisArg, argArray)
   static JSValue* apply(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     if (!val->IsObject()) {
       *e = *Error::TypeError(u"Function.prototype.apply called on non-object");
       return nullptr;
@@ -68,7 +68,7 @@ class FunctionProto : public JSObject {
   }
 
   static JSValue* call(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     if (!val->IsObject()) {
       *e = *Error::TypeError(u"Function.prototype.call called on non-object");
       return nullptr;
@@ -110,7 +110,7 @@ class FunctionObject : public JSObject {
     if (body != nullptr) {
       assert(body->type() == AST::AST_FUNC_BODY);
       body_ = static_cast<ProgramOrFunctionBody*>(body);
-      strict_ = body_->strict() || RuntimeContext::TopContext()->strict();
+      strict_ = body_->strict() || Runtime::TopContext()->strict();
       AddValueProperty(u"length", new Number(names.size()), false, false, false);  // 14 & 15
       JSObject* proto = new Object();  // 16
       proto->AddValueProperty(u"constructor", this, true, false, true);
@@ -138,7 +138,7 @@ class FunctionObject : public JSObject {
     if (body_ != nullptr) {
       result = EvalProgram(body_);
     }
-    RuntimeContext::Global()->PopContext();   // 3
+    Runtime::Global()->PopContext();   // 3
 
     switch (result.type) {
       case Completion::RETURN:
@@ -316,18 +316,20 @@ class FunctionConstructor : public JSObject {
       body = ::es::ToString(e, arguments[arg_count - 1]);
       if (!e->IsOk()) return nullptr;
     }
+    std::u16string P_view = Runtime::Global()->AddSource(std::move(P));
     std::vector<std::u16string> names;
     AST* body_ast;
-    if (P.size() > 0) {
-      Parser parser(P);
+    if (P_view.size() > 0) {
+      Parser parser(P_view);
       names = parser.ParseFormalParameterList();
       if (names.size() == 0) {
         *e = *Error::SyntaxError(u"invalid parameter name");
         return nullptr;
       }
     }
+    std::u16string body_view = Runtime::Global()->AddSource(std::move(body));
     {
-      Parser parser(body);
+      Parser parser(body_view);
       body_ast = parser.ParseFunctionBody(Token::TK_EOS);
       if (body_ast->IsIllegal()) {
         *e = *Error::SyntaxError(u"failed to parse function body: " + body_ast->source());
@@ -362,7 +364,7 @@ class FunctionConstructor : public JSObject {
 };
 
 JSValue* FunctionProto::toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-  JSValue* val = RuntimeContext::TopValue();
+  JSValue* val = Runtime::TopValue();
   if (!val->IsObject()) {
     *e = *Error::TypeError(u"Function.prototype.toString called on non-object");
     return nullptr;
@@ -387,7 +389,7 @@ JSValue* FunctionProto::toString(Error* e, JSValue* this_arg, std::vector<JSValu
 
 // 15.3.4.5 Function.prototype.bind (thisArg [, arg1 [, arg2, …]])
 JSValue* FunctionProto::bind(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-  JSValue* val = RuntimeContext::TopValue();
+  JSValue* val = Runtime::TopValue();
   if (!val->IsCallable()) {
     *e = *Error::TypeError(u"Function.prototype.call called on non-callable");
     return nullptr;
@@ -417,12 +419,12 @@ FunctionObject* InstantiateFunctionDeclaration(Error* e, Function* func_ast) {
     assert(func_ast->is_named());
     std::u16string identifier = func_ast->name();
     auto func_env = LexicalEnvironment::NewDeclarativeEnvironment(  // 1
-      RuntimeContext::TopLexicalEnv()
+      Runtime::TopLexicalEnv()
     );
     auto env_rec = static_cast<DeclarativeEnvironmentRecord*>(func_env->env_rec());  // 2
     env_rec->CreateImmutableBinding(identifier);  // 3
     auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
-    bool strict = body->strict() || RuntimeContext::TopContext()->strict();
+    bool strict = body->strict() || Runtime::TopContext()->strict();
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
@@ -454,7 +456,7 @@ JSValue* EvalFunction(Error* e, AST* ast) {
     return InstantiateFunctionDeclaration(e, func_ast);
   } else {
     auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
-    bool strict = body->strict() || RuntimeContext::TopContext()->strict();
+    bool strict = body->strict() || Runtime::TopContext()->strict();
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
@@ -470,7 +472,7 @@ JSValue* EvalFunction(Error* e, AST* ast) {
     }
     return new FunctionObject(
       func_ast->params(), func_ast->body(),
-      RuntimeContext::TopLexicalEnv()
+      Runtime::TopLexicalEnv()
     );
   }
 }

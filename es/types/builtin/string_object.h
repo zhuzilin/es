@@ -20,7 +20,7 @@ class StringProto : public JSObject {
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     if (!val->IsObject()) {
       *e = *Error::TypeError(u"String.prototype.toString called with non-object");
       return nullptr;
@@ -34,7 +34,7 @@ class StringProto : public JSObject {
   }
 
   static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     if (!val->IsObject()) {
       *e = *Error::TypeError(u"String.prototype.valueOf called with non-object");
       return nullptr;
@@ -50,7 +50,7 @@ class StringProto : public JSObject {
   static JSValue* charAt(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     if (vals.size() == 0)
       return String::Empty();
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     val->CheckObjectCoercible(e);
     if (!e->IsOk()) return nullptr;
     std::u16string S = ::es::ToString(e, val);
@@ -65,7 +65,7 @@ class StringProto : public JSObject {
   static JSValue* charCodeAt(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     if (vals.size() == 0)
       return Number::NaN();
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     val->CheckObjectCoercible(e);
     if (!e->IsOk()) return nullptr;
     std::u16string S = ::es::ToString(e, val);
@@ -78,7 +78,7 @@ class StringProto : public JSObject {
   }
 
   static JSValue* concat(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     val->CheckObjectCoercible(e);
     if (!e->IsOk()) return nullptr;
     std::u16string S = ::es::ToString(e, val);
@@ -94,7 +94,7 @@ class StringProto : public JSObject {
   }
 
   static JSValue* indexOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     val->CheckObjectCoercible(e);
     if (!e->IsOk()) return nullptr;
     std::u16string S = ::es::ToString(e, val);
@@ -122,7 +122,7 @@ class StringProto : public JSObject {
   }
 
   static JSValue* lastIndexOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     val->CheckObjectCoercible(e);
     if (!e->IsOk()) return nullptr;
     std::u16string S = ::es::ToString(e, val);
@@ -180,7 +180,7 @@ class StringProto : public JSObject {
   static JSValue* substring(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     if (vals.size() == 0)
       return Number::NaN();
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     val->CheckObjectCoercible(e);
     if (!e->IsOk()) return nullptr;
     std::u16string S = ::es::ToString(e, val);

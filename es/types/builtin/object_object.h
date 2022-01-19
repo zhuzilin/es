@@ -17,7 +17,7 @@ class ObjectProto : public JSObject {
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     if (val->IsUndefined())
       return new String(u"[object Undefined]");
     if (val->IsNull())
@@ -31,7 +31,7 @@ class ObjectProto : public JSObject {
   }
 
   static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = RuntimeContext::TopValue();
+    JSValue* val = Runtime::TopValue();
     JSObject* O = ToObject(e, val);
     if (!e->IsOk()) return nullptr;
     // TODO(zhuzilin) Host object

@@ -231,7 +231,7 @@ void EnterGlobalCode(Error* e, AST* ast) {
   // 1 10.4.1.1
   LexicalEnvironment* global_env = LexicalEnvironment::Global();
   ExecutionContext* context = new ExecutionContext(global_env, global_env, GlobalObject::Instance(), program->strict());
-  RuntimeContext::Global()->AddContext(context);
+  Runtime::Global()->AddContext(context);
   // 2
   DeclarationBindingInstantiation(e, context, program, CODE_GLOBAL);
 }
@@ -250,12 +250,12 @@ void EnterEvalCode(Error* e, AST* ast) {
     lexical_env = global_env;
     this_binding = GlobalObject::Instance();
   } else {  // 2
-    ExecutionContext* calling_context = RuntimeContext::TopContext();
+    ExecutionContext* calling_context = Runtime::TopContext();
     variable_env = calling_context->variable_env();
     lexical_env = calling_context->lexical_env();
     this_binding = calling_context->this_binding();
   }
-  bool strict = RuntimeContext::TopContext()->strict() ||
+  bool strict = Runtime::TopContext()->strict() ||
                 (program->strict() && GlobalObject::Instance()->direct_eval());
   if (strict) {  // 3
     LexicalEnvironment* strict_var_env = LexicalEnvironment::NewDeclarativeEnvironment(lexical_env);
@@ -263,7 +263,7 @@ void EnterEvalCode(Error* e, AST* ast) {
     variable_env = strict_var_env;
   }
   context = new ExecutionContext(variable_env, lexical_env, this_binding, strict);
-  RuntimeContext::Global()->AddContext(context);
+  Runtime::Global()->AddContext(context);
   // 4
   DeclarationBindingInstantiation(e, context, program, CODE_EVAL);
 }
@@ -285,7 +285,7 @@ JSValue* GlobalObject::eval(Error* e, JSValue* this_arg, std::vector<JSValue*> v
   EnterEvalCode(e, program);
   if (!e->IsOk()) return nullptr;
   Completion result = EvalProgram(program);
-  RuntimeContext::Global()->PopContext();
+  Runtime::Global()->PopContext();
 
   switch (result.type) {
     case Completion::NORMAL:
@@ -324,7 +324,7 @@ void EnterFunctionCode(
   }
   LexicalEnvironment* local_env = LexicalEnvironment::NewDeclarativeEnvironment(func->Scope());
   ExecutionContext* context = new ExecutionContext(local_env, local_env, this_binding, strict);  // 8
-  RuntimeContext::Global()->AddContext(context);
+  Runtime::Global()->AddContext(context);
   // 9
   DeclarationBindingInstantiation(e, context, body, CODE_FUNC, func, args);
 }

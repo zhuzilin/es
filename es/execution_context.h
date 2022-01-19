@@ -60,10 +60,10 @@ class ExecutionContext {
   size_t iteration_layers_;
 };
 
-class RuntimeContext {
+class Runtime {
  public:
-  static RuntimeContext* Global() {
-    static RuntimeContext singleton;
+  static Runtime* Global() {
+    static Runtime singleton;
     return &singleton;
   }
 
@@ -74,11 +74,11 @@ class RuntimeContext {
   }
 
   static ExecutionContext* TopContext() {
-    return RuntimeContext::Global()->context_stack_.top();
+    return Runtime::Global()->context_stack_.top();
   }
 
   static LexicalEnvironment* TopLexicalEnv() {
-    return RuntimeContext::TopContext()->lexical_env();
+    return Runtime::TopContext()->lexical_env();
   }
 
   void PopContext() {
@@ -88,7 +88,7 @@ class RuntimeContext {
   }
 
   static JSValue* TopValue() {
-    return RuntimeContext::Global()->value_stack_.top();
+    return Runtime::Global()->value_stack_.top();
   }
 
   void AddValue(JSValue* val) {
@@ -99,10 +99,13 @@ class RuntimeContext {
     value_stack_.pop();
   }
 
-  ExecutionContext* global_env() { return global_env_; }
+  std::u16string AddSource(std::u16string&& source) {
+    sources_.emplace_back(source);
+    return sources_[sources_.size() - 1];
+  }
 
  private:
-  RuntimeContext() {
+  Runtime() {
     value_stack_.push(Null::Instance());
   }
 
@@ -111,6 +114,7 @@ class RuntimeContext {
   // This is to make sure builtin function like `array.push()`
   // can visit `array`.
   std::stack<JSValue*> value_stack_;
+  std::vector<std::u16string> sources_;
 };
 
 class ValueGuard {
@@ -118,13 +122,13 @@ class ValueGuard {
   ValueGuard() : count_(0) {}
   ~ValueGuard() {
     while (count_ > 0) {
-      RuntimeContext::Global()->PopValue();
+      Runtime::Global()->PopValue();
       count_--;
     }
   }
 
   void AddValue(JSValue* val) {
-    RuntimeContext::Global()->AddValue(val);
+    Runtime::Global()->AddValue(val);
     count_++;
   }
 
