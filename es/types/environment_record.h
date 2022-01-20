@@ -60,7 +60,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   JSValue* GetBindingValue(Error* e, std::u16string N, bool S) override {
     assert(HasBinding(N));
     Binding b = bindings_[N];
-    if (b.value->IsUndefined()) {
+    if (b.value->IsUndefined() && !b.is_mutable) {
       if (S) {
         *e = *Error::ReferenceError(N + u" is not defined");
         return nullptr;

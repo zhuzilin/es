@@ -136,6 +136,7 @@ Completion EvalStatement(AST* ast) {
     case AST::AST_STMT_TRY:
       return EvalTryStatement(ast);
     case AST::AST_STMT_DEBUG:
+      log::Debugger::Turn();
       return Completion(Completion::NORMAL, nullptr, u"");
     default:
       return EvalExpressionStatement(ast);
@@ -700,6 +701,7 @@ JSValue* EvalExpression(Error* e, AST* ast) {
       break;
     case AST::AST_EXPR:
       val = EvalExpressionList(e, ast);
+      break;
     case AST::AST_FUNC:
       val = EvalFunction(e, ast);
       break;

@@ -12,13 +12,27 @@
 namespace es {
 namespace log {
 
+class Debugger {
+ public:
+  static Debugger* Instance() {
+    static Debugger debug;
+    return &debug;
+  }
+
+  static void Turn() { Debugger::Instance()->on_ = !Debugger::Instance()->on_; }
+  static bool On() { return Debugger::Instance()->on_; }
+
+ private:
+  bool on_ = false;
+};
+
 void PrintSource(std::string comment, std::u16string str = u"", std::string postfix = "") {
-#ifdef TEST
-  std::cout << comment;
-  for (const auto& c: str)
-    std::cout << static_cast<char>(c);
-  std::cout << postfix << std::endl;
-#endif
+  if (Debugger::On()) {
+    std::cout << comment;
+    for (const auto& c: str)
+      std::cout << static_cast<char>(c);
+    std::cout << postfix << std::endl;
+  }
 }
 
 std::string ToString(std::u16string str) {
