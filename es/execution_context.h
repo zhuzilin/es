@@ -18,7 +18,8 @@ class ExecutionContext {
     JSValue* this_binding,
     bool strict
   ) : variable_env_(variable_env), lexical_env_(lexical_env),
-      this_binding_(this_binding), strict_(strict), iteration_layers_(0) {}
+      this_binding_(this_binding), strict_(strict),
+      iteration_layers_(0), switch_layers_(0) {}
 
   LexicalEnvironment* variable_env() { return variable_env_; }
   LexicalEnvironment* lexical_env() { return lexical_env_; }
@@ -51,6 +52,13 @@ class ExecutionContext {
   }
   bool InIteration() { return iteration_layers_ != 0; }
 
+  void EnterSwitch() { switch_layers_++; }
+  void ExitSwitch() {
+    if (switch_layers_ != 0)
+      switch_layers_--;
+  }
+  bool InSwitch() { return switch_layers_ != 0; }
+
  private:
   LexicalEnvironment* variable_env_;
   LexicalEnvironment* lexical_env_;
@@ -58,6 +66,7 @@ class ExecutionContext {
   bool strict_;
   std::stack<std::u16string> label_stack_;
   size_t iteration_layers_;
+  size_t switch_layers_;
 };
 
 class Runtime {

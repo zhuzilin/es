@@ -4,6 +4,7 @@
 #include <math.h>
 
 #include <es/types/object.h>
+#include <es/parser/character.h>
 
 namespace es {
 
@@ -203,19 +204,35 @@ class StringProto : public JSObject {
   }
 
   static JSValue* toLowerCase(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSValue* val = Runtime::TopValue();
+    val->CheckObjectCoercible(e);
+    if (!e->IsOk()) return nullptr;
+    std::u16string S = ::es::ToString(e, val);
+    if (!e->IsOk()) return nullptr;
+    std::u16string L = S;
+    std::transform(L.begin(), L.end(), L.begin(), character::ToLowerCase);
+    return new String(L);
   }
 
   static JSValue* toLocaleLowerCase(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    // TODO(zhuzilin) may need to fix this.
+    return toLowerCase(e, this_arg, vals);
   }
 
   static JSValue* toUpperCase(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSValue* val = Runtime::TopValue();
+    val->CheckObjectCoercible(e);
+    if (!e->IsOk()) return nullptr;
+    std::u16string S = ::es::ToString(e, val);
+    if (!e->IsOk()) return nullptr;
+    std::u16string U = S;
+    std::transform(U.begin(), U.end(), U.begin(), character::ToUpperCase);
+    return new String(U);
   }
 
   static JSValue* toLocaleUpperCase(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    // TODO(zhuzilin) may need to fix this.
+    return toUpperCase(e, this_arg, vals);
   }
 
   static JSValue* trim(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {

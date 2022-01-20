@@ -351,7 +351,8 @@ error:
     AST* rhs = nullptr;
     // Prefix Operators.
     Token prefix_op = lexer_.NextAndRewind();
-    if (prefix_op.UnaryPrefixPriority() > priority) {
+    // NOTE(zhuzilin) !!a = !(!a)
+    if (prefix_op.UnaryPrefixPriority() >= priority) {
       lexer_.Next();
       lhs = ParseBinaryAndUnaryExpression(no_in, prefix_op.UnaryPrefixPriority());
       if (lhs->IsIllegal())

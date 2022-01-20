@@ -22,7 +22,7 @@ JSValue* LessThan(Error* e, JSValue* x, JSValue* y, bool left_first = true) {
     px = ToPrimitive(e, x, u"Number");
     if (!e->IsOk()) return Undefined::Instance();
   }
-  if (!px->IsString() && !py->IsString()) {  // 3
+  if (!(px->IsString() && py->IsString())) {  // 3
     double nx = ToNumber(e, px);
     if (!e->IsOk()) return Undefined::Instance();
     double ny = ToNumber(e, py);
@@ -90,7 +90,7 @@ bool Equal(Error* e, JSValue* x, JSValue* y) {
     double numy = ToNumber(e, x);
     if (!e->IsOk()) return false;
     return Equal(e, x, new Number(numy));
-  } else if (x->IsNumber() || x->IsString()) {  // 8
+  } else if ((x->IsNumber() || x->IsString()) && y->IsObject()) {  // 8
     JSValue* primy = ToPrimitive(e, y, u"");
     if (!e->IsOk()) return false;
     return Equal(e, x, primy);

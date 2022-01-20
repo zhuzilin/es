@@ -5,6 +5,9 @@
 
 namespace es {
 
+std::u16string ToString(Error* e, JSValue* input);
+double StringToNumber(std::u16string source);
+
 // 15.1 The Global Object
 class GlobalObject : public JSObject {
  public:
@@ -23,12 +26,27 @@ class GlobalObject : public JSObject {
 
   // 15.1.2.2 parseInt (string , radix)
   static JSValue* parseInt(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    // TODO(zhuzilin) use parseFloat at the moment. fix later
+    return GlobalObject::parseFloat(e, this_arg, vals);
   }
 
   // 15.1.2.3 parseFloat (string)
   static JSValue* parseFloat(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    if (vals.size() == 0)
+      return Number::NaN();
+    std::u16string input_string = ::es::ToString(e, vals[0]);
+    size_t i = 0;
+    while (i < input_string.size() && character::IsWhiteSpace(i))
+      i++;
+    std::u16string trimmed_string = input_string.substr(i);
+    Lexer lexer(trimmed_string);
+    // TODO(zhuzilin) parseFloat should not be able to parse hex integer
+    Token token = lexer.Next();
+    if (token.type() == Token::TK_NUMBER) {
+      return new Number(StringToNumber(token.source()));
+    } else {
+      return Number::NaN();
+    }
   }
 
   // 15.1.2.4 isNaN (number)

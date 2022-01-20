@@ -120,8 +120,40 @@ class ArrayProto : public JSObject {
     assert(false);
   }
 
+  // 15.4.4.9 Array.prototype.shift ( )
   static JSValue* shift(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSObject* O = ToObject(e, Runtime::TopValue());
+    if (!e->IsOk()) return nullptr;
+    size_t len = ToNumber(e, O->Get(e, u"length"));
+    if (!e->IsOk()) return nullptr;
+    if (len == 0) {
+      O->Put(e, u"length", Number::Zero(), true);
+      if (!e->IsOk()) return nullptr;
+      return Undefined::Instance();
+    }
+    JSValue* first = O->Get(e, u"0");
+    if (!e->IsOk()) return nullptr;
+    size_t k = 1;
+    while (k < len) {  // 7
+      std::u16string from = NumberToString(k);
+      std::u16string to = NumberToString(k - 1);
+      bool from_present = O->HasProperty(from);
+      if (from_present) {
+        JSValue* from_val = O->Get(e, from);
+        if (!e->IsOk()) return nullptr;
+        O->Put(e, to, from_val, true);
+        if (!e->IsOk()) return nullptr;
+      } else {
+        O->Delete(e, to, true);
+        if (!e->IsOk()) return nullptr;
+      }
+      k++;
+    }
+    O->Delete(e, NumberToString(len - 1), true);
+    if (!e->IsOk()) return nullptr;
+    O->Put(e, u"length", new Number(len - 1), true);
+    if (!e->IsOk()) return nullptr;
+    return first;
   }
 
   static JSValue* slice(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {

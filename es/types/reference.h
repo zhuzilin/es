@@ -39,6 +39,7 @@ class Reference : public JSValue {
 };
 
 JSValue* GetValue(Error* e, JSValue* V) {
+  log::PrintSource("GetValue V:" + V->ToString());
   if (!V->IsReference()) {
     return V;
   }

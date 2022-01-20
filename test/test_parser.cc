@@ -258,7 +258,7 @@ TEST(TestParser, Expression_Binary) {
 TEST(TestParser, Expression_Unary) {
   {
     std::vector<std::pair<string, string>> sources = {
-      {u"a ++", u"a"}, {u"++\na", u"\na"}, {u"++ a", u" a"},
+      {u"a ++", u"a"}, {u"++\na", u"\na"}, {u"++ a", u" a"}, {u"!!a", u"!a"}
     };
     for (auto pair : sources) {
       auto source = pair.first;

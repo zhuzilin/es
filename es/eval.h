@@ -444,7 +444,7 @@ Completion EvalContinueStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_CONTINUE);
   Error* e = Error::Ok();
   if (!Runtime::TopContext()->InIteration()) {
-    *e = *Error::SyntaxError();
+    *e = *Error::SyntaxError(u"continue not in iteration");
     return Completion(Completion::THROW, new ErrorObject(e), u"");
   }
   ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
@@ -454,8 +454,8 @@ Completion EvalContinueStatement(AST* ast) {
 Completion EvalBreakStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_BREAK);
   Error* e = Error::Ok();
-  if (!Runtime::TopContext()->InIteration()) {
-    *e = *Error::SyntaxError();
+  if (!Runtime::TopContext()->InIteration() && !Runtime::TopContext()->InSwitch()) {
+    *e = *Error::SyntaxError(u"break not in iteration or switch");
     return Completion(Completion::THROW, new ErrorObject(e), u"");
   }
   ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
@@ -470,6 +470,9 @@ Completion EvalReturnStatement(AST* ast) {
     return Completion(Completion::RETURN, Undefined::Instance(), u"");
   }
   auto exp_ref = EvalExpression(e, return_stmt->expr());
+  if (!e->IsOk()) {
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  }
   return Completion(Completion::RETURN, GetValue(e, exp_ref), u"");
 }
 
@@ -584,7 +587,12 @@ Completion EvalSwitchStatement(AST* ast) {
   JSValue* expr_ref = EvalExpression(e, switch_stmt->expr());
   if (!e->IsOk())
     return Completion(Completion::THROW, new ErrorObject(e), u"");
-  Completion R = EvalCaseBlock(switch_stmt, expr_ref);
+  JSValue* expr_val = GetValue(e, expr_ref);
+  if (!e->IsOk())
+    return Completion(Completion::THROW, new ErrorObject(e), u"");
+  Runtime::TopContext()->EnterSwitch();
+  Completion R = EvalCaseBlock(switch_stmt, expr_val);
+  Runtime::TopContext()->ExitSwitch();
   if (R.IsThrow())
     return R;
   bool has_label = ast->label() == R.target;
@@ -672,6 +680,7 @@ JSValue* EvalExpression(Error* e, AST* ast) {
     case AST::AST_EXPR_BOOL:
     case AST::AST_EXPR_NUMBER:
     case AST::AST_EXPR_STRING:
+    case AST::AST_EXPR_REGEX:
     case AST::AST_EXPR_OBJ:
     case AST::AST_EXPR_ARRAY:
     case AST::AST_EXPR_PAREN:
@@ -695,6 +704,7 @@ JSValue* EvalExpression(Error* e, AST* ast) {
       val = EvalFunction(e, ast);
       break;
     default:
+      log::PrintSource("ast: ", ast->source(), "type: " + std::to_string(ast->type()));
       assert(false);
   }
   if (!e->IsOk()) return nullptr;
@@ -731,6 +741,8 @@ JSValue* EvalPrimaryExpression(Error* e, AST* ast) {
     case AST::AST_EXPR_PAREN:
       val = EvalExpression(e, static_cast<Paren*>(ast)->expr());
       break;
+    case AST::AST_EXPR_REGEX:
+      assert(false);
     default:
       std::cout << "Not primary expression, type " << ast->type() << std::endl;
       assert(false);
@@ -946,7 +958,7 @@ Object* EvalObject(Error* e, AST* ast) {
         if (strict || strict_func) {
           for (auto name : func_ast->params()) {
             if (name == u"eval" || name == u"arguments") {
-              *e = *Error::SyntaxError();
+              *e = *Error::SyntaxError(u"object cannot have getter or setter named eval or arguments");
               return nullptr;
             }
           }
@@ -970,17 +982,17 @@ Object* EvalObject(Error* e, AST* ast) {
       PropertyDescriptor* previous_desc = static_cast<PropertyDescriptor*>(previous);
       if (strict &&
           previous_desc->IsDataDescriptor() && desc->IsDataDescriptor()) {  // 4.a
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"repeat object property name " + prop_name);
         return nullptr;
       }
       if (previous_desc->IsDataDescriptor() && desc->IsAccessorDescriptor() ||  // 4.b
           previous_desc->IsAccessorDescriptor() && desc->IsDataDescriptor()) {  // 4.c
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"repeat object property name " + prop_name);
         return nullptr;
       }
       if (previous_desc->IsAccessorDescriptor() && desc->IsAccessorDescriptor() &&  // 4.d
           (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet())) {
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"repeat object property name " + prop_name);
         return nullptr;
       }
     }
@@ -1019,7 +1031,7 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
       Reference* ref = static_cast<Reference*>(expr);
       if (ref->IsStrictReference() && ref->GetBase()->IsEnvironmentRecord() &&
           (ref->GetReferencedName() == u"eval" || ref->GetReferencedName() == u"arguments")) {
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"cannot inc or dec on eval or arguments");
         return nullptr;
       }
     }
@@ -1046,7 +1058,7 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
     Reference* ref = static_cast<Reference*>(expr);
     if (ref->IsUnresolvableReference()) {  // 3
       if (ref->IsStrictReference()) {
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"delete not exist variable " + ref->GetReferencedName());
         return Bool::False();
       }
       return Bool::True();
@@ -1057,7 +1069,7 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
       return Bool::Wrap(obj->Delete(e, ref->GetReferencedName(), ref->IsStrictReference()));
     } else {
       if (ref->IsStrictReference()) {
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"cannot delete environment record in strict mode");
         return Bool::False();
       }
       EnvironmentRecord* bindings = static_cast<EnvironmentRecord*>(ref->GetBase());
@@ -1334,7 +1346,7 @@ JSValue* EvalSimpleAssignment(Error* e, JSValue* lref, JSValue* rval) {
     }
     if (ref->IsStrictReference() && ref->GetBase()->type() == JSValue::JS_ENV_REC &&
         (ref->GetReferencedName() == u"eval" || ref->GetReferencedName() == u"arguments")) {
-      *e = *Error::SyntaxError();
+      *e = *Error::SyntaxError(u"cannot assign on eval or arguments");
       return nullptr;
     }
   }

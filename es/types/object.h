@@ -11,6 +11,7 @@
 #include <es/types/same_value.h>
 #include <es/types/property_descriptor.h>
 #include <es/error.h>
+#include <es/utils/helper.h>
 
 namespace es {
 
@@ -157,7 +158,34 @@ class JSObject : public JSValue {
 
  private:  
   ObjType obj_type_;
-  std::map<std::u16string, PropertyDescriptor*> named_properties_;
+
+  static bool IsIntegerIndices(const std::u16string& a) {
+    if (a.size() == 1 && a[0] == u'0') {
+      return true;
+    }
+    if (!character::IsDecimalDigit(a[0]) || a[0] == u'0') {
+      return false;
+    }
+    for (size_t i = 1; i < a.size(); i++) {
+      if (!character::IsDecimalDigit(a[0]))
+        return false;
+    }
+    return true;
+  }
+
+  // TODO(zhuzilin) The order of the properties are determined by ES5 spec.
+  // However, array need to have a ordered property.
+  // Try to follow the traverse order in ES6
+  struct cmpPropertName {
+    bool operator() (const std::u16string& a, const std::u16string& b) const {
+      if (IsIntegerIndices(a) && IsIntegerIndices(b)) {
+        return a.size() == b.size() ? a < b : a.size() < b.size();
+      }
+      return a < b;
+    }
+  };
+
+  std::map<std::u16string, PropertyDescriptor*, cmpPropertName> named_properties_;
 
   JSValue* prototype_;
   std::u16string class_;
@@ -247,7 +275,6 @@ bool JSObject::CanPut(std::u16string P) {
 
 // 8.12.5 [[Put]] ( P, V, Throw )
 void JSObject::Put(Error* e, std::u16string P, JSValue* V, bool throw_flag) {
-  log::PrintSource("Put ", P, " " + V->ToString());
   if (!CanPut(P)) {  // 1
     if (throw_flag) {  // 1.a
       *e = *Error::TypeError();
@@ -379,8 +406,7 @@ bool JSObject::DefineOwnProperty(
       }
     }
   }
-  log::PrintSource("DefineOwnProperty: ", P, " is set" +
-                    (desc->HasValue() ? " to " + desc->Value()->ToString() : ""));
+  log::PrintSource("DefineOwnProperty: ", P, " is set to " + desc->Value()->ToString());
   // 12.
   current_desc->Set(desc);
   // 13.

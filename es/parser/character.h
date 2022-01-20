@@ -150,6 +150,87 @@ inline double Digit(char16_t c) {
   }
 }
 
+inline char16_t ToLowerCase(char16_t c) {
+  if ('A' <= c && c <= 'Z') {
+    return c + ('a' - 'A');
+  }
+  // lowercase not found until 192
+  if (c < 192) {
+    return c;
+  }
+  // suppress compiler warnings
+  {
+    const std::size_t index = c - 192;
+    if (index < kLowerCaseCache.size()) {
+      assert(index < kLowerCaseCache.size());
+      return kUpperCaseCache[index];
+    }
+  }
+  std::array<char16_t, 101>::const_iterator it =
+      std::upper_bound(kLowerCaseKeys.begin(),
+                       kLowerCaseKeys.end(), c) - 1;
+  const int result = static_cast<int>(it - kLowerCaseKeys.begin());
+  assert(result < 101);
+  if (result >= 0) {
+    bool by2 = false;
+    const char16_t start = kLowerCaseKeys[result];
+    char16_t end = kLowerCaseValues[result * 2];
+    if ((start & 0x8000) != (end & 0x8000)) {
+        end ^= 0x8000;
+        by2 = true;
+    }
+    if (c <= end) {
+      if (by2 && (c & 1) != (start & 1)) {
+        return c;
+      }
+      const char16_t mapping = kLowerCaseValues[result * 2 + 1];
+      return c + mapping;
+    }
+  }
+  return c;
+}
+
+inline char16_t ToUpperCase(char16_t c) {
+  if ('a' <= c && c <= 'z') {
+    return c - ('a' - 'A');
+  }
+  // uppercase not found until 181
+  if (c < 181) {
+    return c;
+  }
+
+  // suppress compiler warnings
+  {
+    const std::size_t index = c - 181;
+    if (index < kUpperCaseCache.size()) {
+      assert(index < kUpperCaseCache.size());
+      return kUpperCaseCache[index];
+    }
+  }
+  std::array<char16_t, 113>::const_iterator it =
+      std::upper_bound(kUpperCaseKeys.begin(),
+                       kUpperCaseKeys.end(), c) - 1;
+  const int result = static_cast<int>(it - kUpperCaseKeys.begin());
+  assert(result < 113);
+  if (result >= 0) {
+    bool by2 = false;
+    const char16_t start = *it;
+    char16_t end = kUpperCaseValues[result * 2];
+    if ((start & 0x8000) != (end & 0x8000)) {
+      end ^= 0x8000;
+      by2 = true;
+    }
+    if (c <= end) {
+      if (by2 && (c & 1) != (start & 1)) {
+        return c;
+      }
+      const char16_t mapping = kUpperCaseValues[result * 2 + 1];
+      return c + mapping;
+    }
+  }
+  return c;
+}
+
 }  // namespace character
 }  // namespace es
 

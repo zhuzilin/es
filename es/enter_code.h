@@ -11,6 +11,8 @@
 #include <es/types/builtin/bool_object.h>
 #include <es/types/builtin/string_object.h>
 #include <es/types/builtin/array_object.h>
+#include <es/types/builtin/date_object.h>
+#include <es/types/builtin/math_object.h>
 #include <es/types/builtin/arguments_object.h>
 #include <es/types/host/console.h>
 
@@ -77,11 +79,34 @@ JSObject* CreateArgumentsObject(
 void FindAllVarDecl(std::vector<AST*> stmts, std::vector<VarDecl*>& decls) {
   for (auto stmt : stmts) {
     switch (stmt->type()) {
+      case AST::AST_STMT_BLOCK: {
+        Block* block = static_cast<Block*>(stmt);
+        FindAllVarDecl(block->statements(), decls);
+        break;
+      }
       case AST::AST_STMT_VAR: {
         VarStmt* var_stmt = static_cast<VarStmt*>(stmt);
         for (auto d : var_stmt->decls()) {
           decls.emplace_back(d);
         }
+        break;
+      }
+      case AST::AST_STMT_IF: {
+        If* if_stmt = static_cast<If*>(stmt);
+        FindAllVarDecl({if_stmt->if_block()}, decls);
+        if (if_stmt->else_block() != nullptr)
+          FindAllVarDecl({if_stmt->else_block()}, decls);
+        break;
+      }
+      case AST::AST_STMT_WHILE:
+      case AST::AST_STMT_WITH: {
+        WhileOrWith* while_stmt = static_cast<WhileOrWith*>(stmt);
+        FindAllVarDecl({while_stmt->stmt()}, decls);
+        break;
+      }
+      case AST::AST_STMT_DO_WHILE: {
+        DoWhile* do_while_stmt = static_cast<DoWhile*>(stmt);
+        FindAllVarDecl({do_while_stmt->stmt()}, decls);
         break;
       }
       case AST::AST_STMT_FOR: {
@@ -104,9 +129,22 @@ void FindAllVarDecl(std::vector<AST*> stmts, std::vector<VarDecl*>& decls) {
         FindAllVarDecl({for_in_stmt->statement()}, decls);
         break;
       }
-      case AST::AST_STMT_BLOCK: {
-        Block* block = static_cast<Block*>(stmt);
-        FindAllVarDecl(block->statements(), decls);
+      case AST::AST_STMT_LABEL: {
+        LabelledStmt* label = static_cast<LabelledStmt*>(stmt);
+        FindAllVarDecl({label->statement()}, decls);
+        break;
+      }
+      case AST::AST_STMT_SWITCH: {
+        Switch* switch_stmt = static_cast<Switch*>(stmt);
+        for (auto clause : switch_stmt->before_default_case_clauses()) {
+          FindAllVarDecl(clause.stmts, decls);
+        }
+        if (switch_stmt->has_default_clause()) {
+          FindAllVarDecl(switch_stmt->default_clause().stmts, decls);
+        }
+        for (auto clause : switch_stmt->after_default_case_clauses()) {
+          FindAllVarDecl(clause.stmts, decls);
+        }
         break;
       }
       case AST::AST_STMT_TRY: {
@@ -350,7 +388,7 @@ void InitGlobalObject() {
   global_obj->AddValueProperty(u"Boolean", BoolConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"String", StringConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Array", ArrayConstructor::Instance(), true, false, true);
-
+  global_obj->AddValueProperty(u"Date", DateConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Error", ErrorConstructor::Instance(), true, false, true);
   // TODO(zhuzilin) differentiate errors.
   global_obj->AddValueProperty(u"EvalError", ErrorConstructor::Instance(), true, false, true);
@@ -360,6 +398,8 @@ void InitGlobalObject() {
   global_obj->AddValueProperty(u"TypeError", ErrorConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"URIError", ErrorConstructor::Instance(), true, false, true);
 
+  global_obj->AddValueProperty(u"Math", Math::Instance(), true, false, true);
+
   global_obj->AddValueProperty(u"console", Console::Instance(), true, false, true);
 }
 
@@ -368,33 +408,32 @@ void InitObject() {
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.2.3 Properties of the Object Constructor
   constructor->AddValueProperty(u"prototype", ObjectProto::Instance(), false, false, false);
-  constructor->AddFuncProperty(u"toString", ObjectConstructor::toString, false, false, false);
-  // TODO(zhuzilin) check if the config is correct.
-  constructor->AddFuncProperty(u"getPrototypeOf", ObjectConstructor::getPrototypeOf, false, false, false);
-  constructor->AddFuncProperty(u"getOwnPropertyDescriptor", ObjectConstructor::getOwnPropertyDescriptor, false, false, false);
-  constructor->AddFuncProperty(u"getOwnPropertyNames", ObjectConstructor::getOwnPropertyNames, false, false, false);
-  constructor->AddFuncProperty(u"create", ObjectConstructor::create, false, false, false);
-  constructor->AddFuncProperty(u"defineProperty", ObjectConstructor::defineProperty, false, false, false);
-  constructor->AddFuncProperty(u"defineProperties", ObjectConstructor::defineProperties, false, false, false);
-  constructor->AddFuncProperty(u"seal", ObjectConstructor::seal, false, false, false);
-  constructor->AddFuncProperty(u"freeze", ObjectConstructor::freeze, false, false, false);
-  constructor->AddFuncProperty(u"preventExtensions", ObjectConstructor::preventExtensions, false, false, false);
-  constructor->AddFuncProperty(u"isSealed", ObjectConstructor::isSealed, false, false, false);
-  constructor->AddFuncProperty(u"isFrozen", ObjectConstructor::isFrozen, false, false, false);
-  constructor->AddFuncProperty(u"isExtensible", ObjectConstructor::isExtensible, false, false, false);
-  constructor->AddFuncProperty(u"keys", ObjectConstructor::keys, false, false, false);
+  constructor->AddFuncProperty(u"toString", ObjectConstructor::toString, true, false, false);
+  constructor->AddFuncProperty(u"getPrototypeOf", ObjectConstructor::getPrototypeOf, true, false, false);
+  constructor->AddFuncProperty(u"getOwnPropertyDescriptor", ObjectConstructor::getOwnPropertyDescriptor, true, false, false);
+  constructor->AddFuncProperty(u"getOwnPropertyNames", ObjectConstructor::getOwnPropertyNames, true, false, false);
+  constructor->AddFuncProperty(u"create", ObjectConstructor::create, true, false, false);
+  constructor->AddFuncProperty(u"defineProperty", ObjectConstructor::defineProperty, true, false, false);
+  constructor->AddFuncProperty(u"defineProperties", ObjectConstructor::defineProperties, true, false, false);
+  constructor->AddFuncProperty(u"seal", ObjectConstructor::seal, true, false, false);
+  constructor->AddFuncProperty(u"freeze", ObjectConstructor::freeze, true, false, false);
+  constructor->AddFuncProperty(u"preventExtensions", ObjectConstructor::preventExtensions, true, false, false);
+  constructor->AddFuncProperty(u"isSealed", ObjectConstructor::isSealed, true, false, false);
+  constructor->AddFuncProperty(u"isFrozen", ObjectConstructor::isFrozen, true, false, false);
+  constructor->AddFuncProperty(u"isExtensible", ObjectConstructor::isExtensible, true, false, false);
+  constructor->AddFuncProperty(u"keys", ObjectConstructor::keys, true, false, false);
   // ES6
-  constructor->AddFuncProperty(u"setPrototypeOf", ObjectConstructor::setPrototypeOf, false, false, false);
+  constructor->AddFuncProperty(u"setPrototypeOf", ObjectConstructor::setPrototypeOf, true, false, false);
 
   ObjectProto* proto = ObjectProto::Instance();
   // 15.2.4 Properties of the Object Prototype Object
   proto->AddValueProperty(u"constructor", ObjectConstructor::Instance(), false, false, false);
-  proto->AddFuncProperty(u"toString", ObjectProto::toString, false, false, false);
-  proto->AddFuncProperty(u"toLocaleString", ObjectProto::toLocaleString, false, false, false);
-  proto->AddFuncProperty(u"valueOf", ObjectProto::valueOf, false, false, false);
-  proto->AddFuncProperty(u"hasOwnProperty", ObjectProto::hasOwnProperty, false, false, false);
-  proto->AddFuncProperty(u"isPrototypeOf", ObjectProto::isPrototypeOf, false, false, false);
-  proto->AddFuncProperty(u"propertyIsEnumerable", ObjectProto::propertyIsEnumerable, false, false, false);
+  proto->AddFuncProperty(u"toString", ObjectProto::toString, true, false, false);
+  proto->AddFuncProperty(u"toLocaleString", ObjectProto::toLocaleString, true, false, false);
+  proto->AddFuncProperty(u"valueOf", ObjectProto::valueOf, true, false, false);
+  proto->AddFuncProperty(u"hasOwnProperty", ObjectProto::hasOwnProperty, true, false, false);
+  proto->AddFuncProperty(u"isPrototypeOf", ObjectProto::isPrototypeOf, true, false, false);
+  proto->AddFuncProperty(u"propertyIsEnumerable", ObjectProto::propertyIsEnumerable, true, false, false);
 }
 
 void InitFunction() {
@@ -403,16 +442,16 @@ void InitFunction() {
   // 15.3.3 Properties of the Function Constructor
   constructor->AddValueProperty(u"prototype", FunctionProto::Instance(), false, false, false);
   constructor->AddValueProperty(u"length", Number::One(), false, false, false);
-  constructor->AddFuncProperty(u"toString", FunctionConstructor::toString, false, false, false);
+  constructor->AddFuncProperty(u"toString", FunctionConstructor::toString, true, false, false);
 
   FunctionProto* proto = FunctionProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
   // 15.2.4 Properties of the Function Prototype Function
   proto->AddValueProperty(u"constructor", FunctionConstructor::Instance(), false, false, false);
-  proto->AddFuncProperty(u"toString", FunctionProto::toString, false, false, false);
-  proto->AddFuncProperty(u"apply", FunctionProto::apply, false, false, false);
-  proto->AddFuncProperty(u"call", FunctionProto::call, false, false, false);
-  proto->AddFuncProperty(u"bind", FunctionProto::bind, false, false, false);
+  proto->AddFuncProperty(u"toString", FunctionProto::toString, true, false, false);
+  proto->AddFuncProperty(u"apply", FunctionProto::apply, true, false, false);
+  proto->AddFuncProperty(u"call", FunctionProto::call, true, false, false);
+  proto->AddFuncProperty(u"bind", FunctionProto::bind, true, false, false);
 }
 
 void InitNumber() {
@@ -431,12 +470,12 @@ void InitNumber() {
   proto->SetPrototype(ObjectProto::Instance());
   // 15.2.4 Properties of the Number Prototype Number
   proto->AddValueProperty(u"constructor", NumberConstructor::Instance(), false, false, false);
-  proto->AddFuncProperty(u"toString", NumberProto::toString, false, false, false);
-  proto->AddFuncProperty(u"toLocaleString", NumberProto::toLocaleString, false, false, false);
-  proto->AddFuncProperty(u"valueOf", NumberProto::valueOf, false, false, false);
-  proto->AddFuncProperty(u"toFixed", NumberProto::toFixed, false, false, false);
-  proto->AddFuncProperty(u"toExponential", NumberProto::toExponential, false, false, false);
-  proto->AddFuncProperty(u"toPrecision", NumberProto::toPrecision, false, false, false);
+  proto->AddFuncProperty(u"toString", NumberProto::toString, true, false, false);
+  proto->AddFuncProperty(u"toLocaleString", NumberProto::toLocaleString, true, false, false);
+  proto->AddFuncProperty(u"valueOf", NumberProto::valueOf, true, false, false);
+  proto->AddFuncProperty(u"toFixed", NumberProto::toFixed, true, false, false);
+  proto->AddFuncProperty(u"toExponential", NumberProto::toExponential, true, false, false);
+  proto->AddFuncProperty(u"toPrecision", NumberProto::toPrecision, true, false, false);
 }
 
 void InitError() {
@@ -445,7 +484,7 @@ void InitError() {
   // 15.11.3 Properties of the Error Constructor
   constructor->AddValueProperty(u"prototype", ErrorProto::Instance(), false, false, false);
   constructor->AddValueProperty(u"length", Number::One(), false, false, false);
-  constructor->AddFuncProperty(u"toString", NumberConstructor::toString, false, false, false);
+  constructor->AddFuncProperty(u"toString", NumberConstructor::toString, true, false, false);
 
   ErrorProto* proto = ErrorProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
@@ -453,7 +492,7 @@ void InitError() {
   proto->AddValueProperty(u"constructor", ErrorConstructor::Instance(), false, false, false);
   proto->AddValueProperty(u"name", new String(u"Error"), false, false, false);
   proto->AddValueProperty(u"message", String::Empty(), true, false, false);
-  proto->AddFuncProperty(u"call", ErrorProto::toString, false, false, false);
+  proto->AddFuncProperty(u"call", ErrorProto::toString, true, false, false);
 }
 
 void InitBool() {
@@ -461,14 +500,14 @@ void InitBool() {
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.6.3 Properties of the Boolean Constructor
   constructor->AddValueProperty(u"prototype", BoolProto::Instance(), false, false, false);
-  constructor->AddFuncProperty(u"toString", BoolConstructor::toString, false, false, false);
+  constructor->AddFuncProperty(u"toString", BoolConstructor::toString, true, false, false);
 
   BoolProto* proto = BoolProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
   // 15.6.4 Properties of the Boolean Prototype Object
   proto->AddValueProperty(u"constructor", BoolConstructor::Instance(), false, false, false);
-  proto->AddFuncProperty(u"toString", BoolProto::toString, false, false, false);
-  proto->AddFuncProperty(u"valueOf", BoolProto::valueOf, false, false, false);
+  proto->AddFuncProperty(u"toString", BoolProto::toString, true, false, false);
+  proto->AddFuncProperty(u"valueOf", BoolProto::valueOf, true, false, false);
 }
 
 void InitString() {
@@ -477,32 +516,32 @@ void InitString() {
   // 15.3.3 Properties of the String Constructor
   constructor->AddValueProperty(u"prototype", StringProto::Instance(), false, false, false);
   constructor->AddValueProperty(u"length", Number::One(), true, false, false);
-  constructor->AddFuncProperty(u"fromCharCode", StringConstructor::fromCharCode, false, false, false);
-  constructor->AddFuncProperty(u"toString", StringConstructor::toString, false, false, false);
+  constructor->AddFuncProperty(u"fromCharCode", StringConstructor::fromCharCode, true, false, false);
+  constructor->AddFuncProperty(u"toString", StringConstructor::toString, true, false, false);
 
   StringProto* proto = StringProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
   // 15.2.4 Properties of the String Prototype String
   proto->AddValueProperty(u"constructor", StringConstructor::Instance(), false, false, false);
-  proto->AddFuncProperty(u"toString", StringProto::toString, false, false, false);
-  proto->AddFuncProperty(u"valueOf", StringProto::valueOf, false, false, false);
-  proto->AddFuncProperty(u"charAt", StringProto::charAt, false, false, false);
-  proto->AddFuncProperty(u"charCodeAt", StringProto::charCodeAt, false, false, false);
-  proto->AddFuncProperty(u"concat", StringProto::concat, false, false, false);
-  proto->AddFuncProperty(u"indexOf", StringProto::indexOf, false, false, false);
-  proto->AddFuncProperty(u"lastIndexOf", StringProto::lastIndexOf, false, false, false);
-  proto->AddFuncProperty(u"localeCompare", StringProto::localeCompare, false, false, false);
-  proto->AddFuncProperty(u"match", StringProto::match, false, false, false);
-  proto->AddFuncProperty(u"replace", StringProto::replace, false, false, false);
-  proto->AddFuncProperty(u"search", StringProto::search, false, false, false);
-  proto->AddFuncProperty(u"slice", StringProto::slice, false, false, false);
-  proto->AddFuncProperty(u"split", StringProto::split, false, false, false);
-  proto->AddFuncProperty(u"substring", StringProto::substring, false, false, false);
-  proto->AddFuncProperty(u"toLowerCase", StringProto::toLowerCase, false, false, false);
-  proto->AddFuncProperty(u"toLocaleLowerCase", StringProto::toLocaleLowerCase, false, false, false);
-  proto->AddFuncProperty(u"toUpperCase", StringProto::toUpperCase, false, false, false);
-  proto->AddFuncProperty(u"toLocaleUpperCase", StringProto::toLocaleUpperCase, false, false, false);
-  proto->AddFuncProperty(u"trim", StringProto::trim, false, false, false);
+  proto->AddFuncProperty(u"toString", StringProto::toString, true, false, false);
+  proto->AddFuncProperty(u"valueOf", StringProto::valueOf, true, false, false);
+  proto->AddFuncProperty(u"charAt", StringProto::charAt, true, false, false);
+  proto->AddFuncProperty(u"charCodeAt", StringProto::charCodeAt, true, false, false);
+  proto->AddFuncProperty(u"concat", StringProto::concat, true, false, false);
+  proto->AddFuncProperty(u"indexOf", StringProto::indexOf, true, false, false);
+  proto->AddFuncProperty(u"lastIndexOf", StringProto::lastIndexOf, true, false, false);
+  proto->AddFuncProperty(u"localeCompare", StringProto::localeCompare, true, false, false);
+  proto->AddFuncProperty(u"match", StringProto::match, true, false, false);
+  proto->AddFuncProperty(u"replace", StringProto::replace, true, false, false);
+  proto->AddFuncProperty(u"search", StringProto::search, true, false, false);
+  proto->AddFuncProperty(u"slice", StringProto::slice, true, false, false);
+  proto->AddFuncProperty(u"split", StringProto::split, true, false, false);
+  proto->AddFuncProperty(u"substring", StringProto::substring, true, false, false);
+  proto->AddFuncProperty(u"toLowerCase", StringProto::toLowerCase, true, false, false);
+  proto->AddFuncProperty(u"toLocaleLowerCase", StringProto::toLocaleLowerCase, true, false, false);
+  proto->AddFuncProperty(u"toUpperCase", StringProto::toUpperCase, true, false, false);
+  proto->AddFuncProperty(u"toLocaleUpperCase", StringProto::toLocaleUpperCase, true, false, false);
+  proto->AddFuncProperty(u"trim", StringProto::trim, true, false, false);
 }
 
 void InitArray() {
@@ -511,35 +550,94 @@ void InitArray() {
   // 15.6.3 Properties of the Arrayean Constructor
   constructor->AddValueProperty(u"length", Number::One(), false, false, false);
   constructor->AddValueProperty(u"prototype", ArrayProto::Instance(), false, false, false);
-  constructor->AddFuncProperty(u"isArray", ArrayConstructor::isArray, false, false, false);
-  constructor->AddFuncProperty(u"toString", ArrayConstructor::toString, false, false, false);
+  constructor->AddFuncProperty(u"isArray", ArrayConstructor::isArray, true, false, false);
+  constructor->AddFuncProperty(u"toString", ArrayConstructor::toString, true, false, false);
 
   ArrayProto* proto = ArrayProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
   // 15.6.4 Properties of the Arrayean Prototype Object
   proto->AddValueProperty(u"length", Number::Zero(), false, false, false);
   proto->AddValueProperty(u"constructor", ArrayConstructor::Instance(), false, false, false);
-  proto->AddFuncProperty(u"toString", ArrayProto::toString, false, false, false);
-  proto->AddFuncProperty(u"toLocaleString", ArrayProto::toLocaleString, false, false, false);
-  proto->AddFuncProperty(u"concat", ArrayProto::concat, false, false, false);
-  proto->AddFuncProperty(u"join", ArrayProto::join, false, false, false);
-  proto->AddFuncProperty(u"pop", ArrayProto::pop, false, false, false);
-  proto->AddFuncProperty(u"push", ArrayProto::push, false, false, false);
-  proto->AddFuncProperty(u"reverse", ArrayProto::reverse, false, false, false);
-  proto->AddFuncProperty(u"shift", ArrayProto::shift, false, false, false);
-  proto->AddFuncProperty(u"slice", ArrayProto::slice, false, false, false);
-  proto->AddFuncProperty(u"sort", ArrayProto::sort, false, false, false);
-  proto->AddFuncProperty(u"splice", ArrayProto::splice, false, false, false);
-  proto->AddFuncProperty(u"unshift", ArrayProto::unshift, false, false, false);
-  proto->AddFuncProperty(u"indexOf", ArrayProto::indexOf, false, false, false);
-  proto->AddFuncProperty(u"lastIndexOf", ArrayProto::lastIndexOf, false, false, false);
-  proto->AddFuncProperty(u"every", ArrayProto::every, false, false, false);
-  proto->AddFuncProperty(u"some", ArrayProto::some, false, false, false);
-  proto->AddFuncProperty(u"forEach", ArrayProto::forEach, false, false, false);
-  proto->AddFuncProperty(u"map", ArrayProto::map, false, false, false);
-  proto->AddFuncProperty(u"filter", ArrayProto::filter, false, false, false);
-  proto->AddFuncProperty(u"reduce", ArrayProto::reduce, false, false, false);
-  proto->AddFuncProperty(u"reduceRight", ArrayProto::reduceRight, false, false, false);
+  proto->AddFuncProperty(u"toString", ArrayProto::toString, true, false, false);
+  proto->AddFuncProperty(u"toLocaleString", ArrayProto::toLocaleString, true, false, false);
+  proto->AddFuncProperty(u"concat", ArrayProto::concat, true, false, false);
+  proto->AddFuncProperty(u"join", ArrayProto::join, true, false, false);
+  proto->AddFuncProperty(u"pop", ArrayProto::pop, true, false, false);
+  proto->AddFuncProperty(u"push", ArrayProto::push, true, false, false);
+  proto->AddFuncProperty(u"reverse", ArrayProto::reverse, true, false, false);
+  proto->AddFuncProperty(u"shift", ArrayProto::shift, true, false, false);
+  proto->AddFuncProperty(u"slice", ArrayProto::slice, true, false, false);
+  proto->AddFuncProperty(u"sort", ArrayProto::sort, true, false, false);
+  proto->AddFuncProperty(u"splice", ArrayProto::splice, true, false, false);
+  proto->AddFuncProperty(u"unshift", ArrayProto::unshift, true, false, false);
+  proto->AddFuncProperty(u"indexOf", ArrayProto::indexOf, true, false, false);
+  proto->AddFuncProperty(u"lastIndexOf", ArrayProto::lastIndexOf, true, false, false);
+  proto->AddFuncProperty(u"every", ArrayProto::every, true, false, false);
+  proto->AddFuncProperty(u"some", ArrayProto::some, true, false, false);
+  proto->AddFuncProperty(u"forEach", ArrayProto::forEach, true, false, false);
+  proto->AddFuncProperty(u"map", ArrayProto::map, true, false, false);
+  proto->AddFuncProperty(u"filter", ArrayProto::filter, true, false, false);
+  proto->AddFuncProperty(u"reduce", ArrayProto::reduce, true, false, false);
+  proto->AddFuncProperty(u"reduceRight", ArrayProto::reduceRight, true, false, false);
+}
+
+void InitDate() {
+  DateConstructor* constructor = DateConstructor::Instance();
+  constructor->SetPrototype(FunctionProto::Instance());
+  // 15.6.3 Properties of the Dateean Constructor
+  constructor->AddValueProperty(u"length", new Number(7), false, false, false);
+  constructor->AddValueProperty(u"prototype", DateProto::Instance(), false, false, false);
+  constructor->AddFuncProperty(u"parse", DateConstructor::parse, true, false, false);
+  constructor->AddFuncProperty(u"UTC", DateConstructor::UTC, true, false, false);
+  constructor->AddFuncProperty(u"now", DateConstructor::now, true, false, false);
+  constructor->AddFuncProperty(u"toString", DateConstructor::toString, true, false, false);
+
+  DateProto* proto = DateProto::Instance();
+  proto->SetPrototype(ObjectProto::Instance());
+  // 15.6.4 Properties of the Dateean Prototype Object
+  proto->AddValueProperty(u"length", Number::Zero(), false, false, false);
+  proto->AddValueProperty(u"constructor", DateConstructor::Instance(), false, false, false);
+  proto->AddFuncProperty(u"toString", DateProto::toString, true, false, false);
+  proto->AddFuncProperty(u"toDateString", DateProto::toDateString, true, false, false);
+  proto->AddFuncProperty(u"toTimeString", DateProto::toTimeString, true, false, false);
+  proto->AddFuncProperty(u"toLocaleString", DateProto::toLocaleString, true, false, false);
+  proto->AddFuncProperty(u"toLocaleDateString", DateProto::toLocaleDateString, true, false, false);
+  proto->AddFuncProperty(u"toLocaleTimeString", DateProto::toLocaleTimeString, true, false, false);
+  proto->AddFuncProperty(u"valueOf", DateProto::valueOf, true, false, false);
+  proto->AddFuncProperty(u"getTime", DateProto::getTime, true, false, false);
+  proto->AddFuncProperty(u"getFullYear", DateProto::getFullYear, true, false, false);
+  proto->AddFuncProperty(u"getUTCFullYear", DateProto::getUTCFullYear, true, false, false);
+  proto->AddFuncProperty(u"getMonth", DateProto::getMonth, true, false, false);
+  proto->AddFuncProperty(u"getUTCMonth", DateProto::getUTCMonth, true, false, false);
+  proto->AddFuncProperty(u"getDate", DateProto::getDate, true, false, false);
+  proto->AddFuncProperty(u"getUTCDate", DateProto::getUTCDate, true, false, false);
+  proto->AddFuncProperty(u"getUTCDay", DateProto::getUTCDay, true, false, false);
+  proto->AddFuncProperty(u"getHours", DateProto::getHours, true, false, false);
+  proto->AddFuncProperty(u"getUTCHours", DateProto::getUTCHours, true, false, false);
+  proto->AddFuncProperty(u"getMinutes", DateProto::getMinutes, true, false, false);
+  proto->AddFuncProperty(u"getUTCMinutes", DateProto::getUTCMinutes, true, false, false);
+  proto->AddFuncProperty(u"getSeconds", DateProto::getSeconds, true, false, false);
+  proto->AddFuncProperty(u"getUTCSeconds", DateProto::getUTCSeconds, true, false, false);
+  proto->AddFuncProperty(u"getMilliseconds", DateProto::getMilliseconds, true, false, false);
+  proto->AddFuncProperty(u"getUTCMilliseconds", DateProto::getUTCMilliseconds, true, false, false);
+  proto->AddFuncProperty(u"getTimezoneOffset", DateProto::getTimezoneOffset, true, false, false);
+  proto->AddFuncProperty(u"setTime", DateProto::setTime, true, false, false);
+  proto->AddFuncProperty(u"setMilliseconds", DateProto::setMilliseconds, true, false, false);
+  proto->AddFuncProperty(u"setUTCMilliseconds", DateProto::setUTCMilliseconds, true, false, false);
+  proto->AddFuncProperty(u"setSeconds", DateProto::setSeconds, true, false, false);
+  proto->AddFuncProperty(u"setUTCSeconds", DateProto::setUTCSeconds, true, false, false);
+  proto->AddFuncProperty(u"setMinutes", DateProto::setMinutes, true, false, false);
+  proto->AddFuncProperty(u"setHours", DateProto::setHours, true, false, false);
+  proto->AddFuncProperty(u"setUTCHours", DateProto::setUTCHours, true, false, false);
+  proto->AddFuncProperty(u"setDate", DateProto::setDate, true, false, false);
+  proto->AddFuncProperty(u"setUTCDate", DateProto::setUTCDate, true, false, false);
+  proto->AddFuncProperty(u"setMonth", DateProto::setMonth, true, false, false);
+  proto->AddFuncProperty(u"setUTCMonth", DateProto::setUTCMonth, true, false, false);
+  proto->AddFuncProperty(u"setFullYear", DateProto::setFullYear, true, false, false);
+  proto->AddFuncProperty(u"setUTCFullYear", DateProto::setUTCFullYear, true, false, false);
+  proto->AddFuncProperty(u"toUTCString", DateProto::toUTCString, true, false, false);
+  proto->AddFuncProperty(u"toISOString", DateProto::toISOString, true, false, false);
+  proto->AddFuncProperty(u"toJSON", DateProto::toJSON, true, false, false);
 }
 
 void Init() {
@@ -551,6 +649,8 @@ void Init() {
   InitBool();
   InitString();
   InitArray();
+  InitDate();
+  InitMath();
 }
 
 }  // namespace es

@@ -130,7 +130,7 @@ class FunctionObject : public JSObject {
 
   // 13.2.1 [[Call]]
   virtual JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments) override {
-    log::PrintSource("enter FunctionObject::Call ", body_->source());
+    log::PrintSource("enter FunctionObject::Call ", body_->source().substr(0, 100));
     EnterFunctionCode(e, this, body_, this_arg, arguments, strict_);
     if (!e->IsOk()) return nullptr;
 
@@ -140,22 +140,28 @@ class FunctionObject : public JSObject {
     }
     Runtime::Global()->PopContext();   // 3
 
+    log::PrintSource("exit FunctionObject::Call", body_->source().substr(0, 100));
     switch (result.type) {
       case Completion::RETURN:
+        log::PrintSource("exit FunctionObject::Call RETURN");
         return result.value;
       case Completion::THROW: {
-        std::u16string message = ::es::ToString(e, result.value);
+        log::PrintSource("exit FunctionObject::Call THROW");
         if (result.value->IsObject()) {
           JSObject* obj = static_cast<JSObject*>(result.value);
           if (obj->obj_type() == JSObject::OBJ_ERROR) {
             *e = *(static_cast<ErrorObject*>(obj)->e());
+            log::PrintSource("message: ", e->message());
             return nullptr;
           }
         }
+        std::u16string message = ::es::ToString(e, result.value);
+        log::PrintSource("message: ", message);
         *e = *Error::NativeError(message);
         return nullptr;
       }
       default:
+        log::PrintSource("exit FunctionObject::Call NORMAL");
         assert(result.type == Completion::NORMAL);
         return Undefined::Instance();
     }
@@ -341,12 +347,12 @@ class FunctionConstructor : public JSObject {
     if (strict) {
       // 13.1
       if (HaveDuplicate(names)) {
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"have duplicate parameter name in strict mode");
         return nullptr;
       }
       for (auto name : names) {
         if (name == u"eval" || name == u"arguments") {
-          *e = *Error::SyntaxError();
+          *e = *Error::SyntaxError(u"param name cannot be eval or arguments in strict mode");
           return nullptr;
         }
       }
@@ -428,17 +434,17 @@ FunctionObject* InstantiateFunctionDeclaration(Error* e, Function* func_ast) {
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"have duplicate parameter name in strict mode");
         return nullptr;
       }
       for (auto name : func_ast->params()) {
         if (name == u"eval" || name == u"arguments") {
-          *e = *Error::SyntaxError();
+          *e = *Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
           return nullptr;
         }
       }
       if (func_ast->name() == u"eval" || func_ast->name() == u"arguments") {
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"function name cannot be eval or arguments in strict mode");
         return nullptr;
       }
     }
@@ -460,12 +466,12 @@ JSValue* EvalFunction(Error* e, AST* ast) {
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
-        *e = *Error::SyntaxError();
+        *e = *Error::SyntaxError(u"have duplicate parameter name in strict mode");
         return nullptr;
       }
       for (auto name : func_ast->params()) {
         if (name == u"eval" || name == u"arguments") {
-          *e = *Error::SyntaxError();
+          *e = *Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
           return nullptr;
         }
       }
