@@ -1011,7 +1011,9 @@ ArrayObject* EvalArray(Error* e, AST* ast) {
   for (auto pair : array_ast->elements()) {
     JSValue* init_result = EvalAssignmentExpression(e, pair.second);
     if (!e->IsOk()) return nullptr;
-    arr->AddValueProperty(NumberToString(pair.first), init_result, true, true, true);
+    JSValue* init_value = GetValue(e, init_result);
+    if (!e->IsOk()) return nullptr;
+    arr->AddValueProperty(NumberToString(pair.first), init_value, true, true, true);
   }
   return arr;
 }
@@ -1363,9 +1365,11 @@ JSValue* EvalCompoundAssignment(Error* e, std::u16string op, JSValue* lref, JSVa
   std::u16string calc_op = op.substr(0, op.size() - 1);
   JSValue* lval = GetValue(e, lref);
   if (!e->IsOk()) return nullptr;
-  JSValue* r = EvalBinaryExpression(e, calc_op, lval, rval);
+  JSValue* rref = EvalBinaryExpression(e, calc_op, lval, rval);
   if (!e->IsOk()) return nullptr;
-  return EvalSimpleAssignment(e, lref, r);
+  JSValue* val = GetValue(e, rref);
+  if (!e->IsOk()) return nullptr;
+  return EvalSimpleAssignment(e, lref, val);
 }
 
 // 11.12 Conditional Operator ( ? : )

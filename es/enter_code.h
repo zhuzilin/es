@@ -670,7 +670,6 @@ JSValue* StringProto::split(Error* e, JSValue* this_arg, std::vector<JSValue*> v
   size_t s = S.size();
   size_t p = 0;
   if (vals.size() < 1 || vals[0]->IsUndefined()) {  // 10
-  std::cout << "sep undefined" << std::endl;
     A->AddValueProperty(u"0", new String(S), true, true, true);
     return A;
   }

@@ -455,8 +455,6 @@ FunctionObject* InstantiateFunctionDeclaration(Error* e, Function* func_ast) {
 }
 
 JSValue* EvalFunction(Error* e, AST* ast) {
-  if (log::Debugger::On())
-    std::cout << ast->type() << ", " << AST::AST_FUNC << std::endl;
   assert(ast->type() == AST::AST_FUNC);
   Function* func_ast = static_cast<Function*>(ast);
 

@@ -172,11 +172,7 @@ class String : public JSValue {
     return &singleton;
   }
 
-  inline std::string ToString() override {
-    if (data_.size() < 100)
-      return log::ToString(data_);
-    return log::ToString(data_.substr(0, 100) + u"...");
-  }
+  inline std::string ToString() override { return log::ToString(data_); }
 
  private:
   std::u16string data_;

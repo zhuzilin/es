@@ -275,6 +275,7 @@ bool JSObject::CanPut(std::u16string P) {
 
 // 8.12.5 [[Put]] ( P, V, Throw )
 void JSObject::Put(Error* e, std::u16string P, JSValue* V, bool throw_flag) {
+  assert(V->IsLanguageType());
   if (!CanPut(P)) {  // 1
     if (throw_flag) {  // 1.a
       *e = *Error::TypeError();
