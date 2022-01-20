@@ -142,7 +142,7 @@ function test_enum()
          "4294967294": 1,
          "1": 2};
     tab = Object.keys(a);
-    assert(tab, ["1","18014398509481984","4294967294","4294967295","4294967296","9007199254740991","9007199254740992","x","y"])
+    assert(tab, ["1","4294967294","4294967295","4294967296","9007199254740991","9007199254740992","18014398509481984","x","y"])
   }
 
 function test_array()
@@ -267,27 +267,49 @@ function test_string()
     assert("Abc123!".toLowerCase(), "abc123!");
     assert("Abc123!".toUpperCase(), "ABC123!");
 
-    // assert("a,b,c".split(","), ["a","b","c"]);
-    // assert(",b,c".split(","), ["","b","c"]);
-    // assert("a,b,".split(","), ["a","b",""]);
+    assert("a,b,c".split(","), ["a","b","c"]);
+    assert(",b,c".split(","), ["","b","c"]);
+    assert("a,b,".split(","), ["a","b",""]);
 
-    // assert("aaaa".split(), [ "aaaa" ]);
-    // assert("aaaa".split(undefined, 0), [ ]);
-    // assert("aaaa".split(""), [ "a", "a", "a", "a" ]);
-    // assert("aaaa".split("", 0), [ ]);
-    // assert("aaaa".split("", 1), [ "a" ]);
-    // assert("aaaa".split("", 2), [ "a", "a" ]);
-    // assert("aaaa".split("a"), [ "", "", "", "", "" ]);
-    // assert("aaaa".split("a", 2), [ "", "" ]);
-    // assert("aaaa".split("aa"), [ "", "", "" ]);
-    // assert("aaaa".split("aa", 0), [ ]);
-    // assert("aaaa".split("aa", 1), [ "" ]);
-    // assert("aaaa".split("aa", 2), [ "", "" ]);
-    // assert("aaaa".split("aaa"), [ "", "a" ]);
-    // assert("aaaa".split("aaaa"), [ "", "" ]);
-    // assert("aaaa".split("aaaaa"), [ "aaaa" ]);
-    // assert("aaaa".split("aaaaa", 0), [  ]);
-    // assert("aaaa".split("aaaaa", 1), [ "aaaa" ]);
+    assert("a,b,c".split(",").length, 3);
+    assert(",b,c".split(",").length, 3);
+    assert("a,b,".split(",").length, 3);
+
+    assert("aaaa".split(), [ "aaaa" ]);
+    assert("aaaa".split(undefined, 0), [ ]);
+    assert("aaaa".split(""), [ "a", "a", "a", "a" ]);
+    assert("aaaa".split("", 0), [ ]);
+    assert("aaaa".split("", 1), [ "a" ]);
+    assert("aaaa".split("", 2), [ "a", "a" ]);
+    assert("aaaa".split("a"), [ "", "", "", "", "" ]);
+    assert("aaaa".split("a", 2), [ "", "" ]);
+    assert("aaaa".split("aa"), [ "", "", "" ]);
+    assert("aaaa".split("aa", 0), [ ]);
+    assert("aaaa".split("aa", 1), [ "" ]);
+    assert("aaaa".split("aa", 2), [ "", "" ]);
+    assert("aaaa".split("aaa"), [ "", "a" ]);
+    assert("aaaa".split("aaaa"), [ "", "" ]);
+    assert("aaaa".split("aaaaa"), [ "aaaa" ]);
+    assert("aaaa".split("aaaaa", 0), [  ]);
+    assert("aaaa".split("aaaaa", 1), [ "aaaa" ]);
+
+    assert("aaaa".split().length, 1);
+    assert("aaaa".split().length, 0);
+    assert("aaaa".split("").length, 4);
+    assert("aaaa".split("", 0).length, 0);
+    assert("aaaa".split("", 1).length, 1);
+    assert("aaaa".split("", 2).length, 2);
+    assert("aaaa".split("a").length, 5);
+    assert("aaaa".split("a", 2).length, 2);
+    assert("aaaa".split("aa").length, 3);
+    assert("aaaa".split("aa", 0).length, 0);
+    assert("aaaa".split("aa", 1).length, 1);
+    assert("aaaa".split("aa", 2).length, 2);
+    assert("aaaa".split("aaa").length, 2);
+    assert("aaaa".split("aaaa").length, 2);
+    assert("aaaa".split("aaaaa").length, 1);
+    assert("aaaa".split("aaaaa", 0).length, 0);
+    assert("aaaa".split("aaaaa", 1).length, 1);
 
     // assert(eval('"\0"'), "\0");
 }
@@ -465,14 +487,14 @@ function test_regexp()
     assert(a, ["a{11"] );
 }
 
-test();
-test_function();
+// test();
+// test_function();
 test_enum();
-test_array();
-test_string();
+// test_array();
+// test_string();
 // test_math();
 // test_number();
-test_eval();
+// test_eval();
 // test_json();
 // test_date();
 // test_regexp();

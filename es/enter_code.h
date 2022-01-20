@@ -15,6 +15,7 @@
 #include <es/types/builtin/math_object.h>
 #include <es/types/builtin/arguments_object.h>
 #include <es/types/host/console.h>
+#include <es/regex/match.h>
 
 namespace es {
 
@@ -651,6 +652,67 @@ void Init() {
   InitArray();
   InitDate();
   InitMath();
+}
+
+JSValue* StringProto::split(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  JSValue* val = Runtime::TopValue();
+  val->CheckObjectCoercible(e);
+  if (!e->IsOk()) return nullptr;
+  std::u16string S = ::es::ToString(e, val);
+  if (!e->IsOk()) return nullptr;
+  ArrayObject* A = new ArrayObject(0);
+  size_t length_A = 0;
+  size_t lim = 4294967295.0;
+  if (vals.size() >= 2 && !vals[1]->IsUndefined()) {
+    lim = ToUint32(e, vals[1]);
+    if (!e->IsOk()) return nullptr;
+  }
+  size_t s = S.size();
+  size_t p = 0;
+  if (vals.size() < 1 || vals[0]->IsUndefined()) {  // 10
+  std::cout << "sep undefined" << std::endl;
+    A->AddValueProperty(u"0", new String(S), true, true, true);
+    return A;
+  }
+  if (vals[0]->IsRegex()) {
+    assert(false);
+  }
+  assert(vals[0]->IsString());
+  std::u16string R = ::es::ToString(e, vals[0]);
+  if (s == 0) {
+    regex::MatchResult z = regex::SplitMatch(S, 0, R);
+    if (!z.failed) return A;
+    A->AddValueProperty(u"0", new String(S), true, true, true);
+    return A;
+  }
+  size_t q = p;
+  while (q != s) {  // 13.
+    regex::MatchResult z = regex::SplitMatch(S, q, R);  // 13.a
+    if (z.failed) {  // 13.b
+      q++;
+    } else {  // 13.c
+      size_t e = z.state.end_index;
+      std::vector<std::u16string> cap = z.state.captures;
+      if (e == p) {  // 13.c.ii
+        q++;
+      } else {  // 13.c.iii
+        std::u16string T = S.substr(p, q - p);
+        A->AddValueProperty(NumberToString(length_A), new String(T), true, true, true);
+        length_A++;
+        p = e;
+        for (size_t i = 0; i < cap.size(); i++) {  // 13.c.iii.7
+          A->AddValueProperty(NumberToString(length_A), new String(cap[i]), true, true, true);
+          length_A++;
+          if (length_A == lim)
+            return A;
+        }
+        q = p;
+      }
+    }
+  }
+  std::u16string T = S.substr(p);  // 14
+  A->AddValueProperty(NumberToString(length_A), new String(T), true, true, true);  // 15
+  return A;
 }
 
 }  // namespace es

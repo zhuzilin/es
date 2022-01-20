@@ -18,6 +18,7 @@ class JSValue {
     JS_NULL,
     JS_BOOL,
     JS_STRING,
+    JS_REGEX,
     JS_NUMBER,
     JS_OBJECT,
 
@@ -42,6 +43,7 @@ class JSValue {
   inline bool IsNull() { return type_ == JS_NULL; }
   inline bool IsBool() { return type_ == JS_BOOL; }
   inline bool IsString() { return type_ == JS_STRING; }
+  inline bool IsRegex() { return type_ == JS_REGEX; }
   inline bool IsNumber() { return type_ == JS_NUMBER; }
   inline bool IsObject() { return type_ == JS_OBJECT; }
 

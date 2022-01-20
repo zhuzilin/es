@@ -2,6 +2,8 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <codecvt>
+#include <locale>
 
 #include <es/parser/parser.h>
 #include <es/types/property_descriptor_object_conversion.h>

@@ -23,7 +23,11 @@ class Debugger {
   static bool On() { return Debugger::Instance()->on_; }
 
  private:
+#ifdef TEST
+  bool on_ = true;
+#else
   bool on_ = false;
+#endif
 };
 
 void PrintSource(std::string comment, std::u16string str = u"", std::string postfix = "") {

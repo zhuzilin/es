@@ -29,6 +29,7 @@ class ArrayProto : public JSObject {
   // 15.4.4.2 Array.prototype.toString ( )
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     JSObject* array = ToObject(e, Runtime::TopValue());
+    if (!e->IsOk()) return nullptr;
     JSValue* func = array->Get(e, u"join");
     if (!e->IsOk()) return nullptr;
     if (!func->IsCallable()) {
@@ -42,12 +43,11 @@ class ArrayProto : public JSObject {
     assert(false);
   }
 
-  static JSValue* concat(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
-  }
+  static JSValue* concat(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
   static JSValue* join(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     JSObject* O = ToObject(e, Runtime::TopValue());
+    if (!e->IsOk()) return nullptr;
     Number* len_val = static_cast<Number*>(O->Get(e, u"length"));
     size_t len = len_val->data();
 
@@ -353,6 +353,39 @@ class ArrayConstructor : public JSObject {
    ArrayConstructor() :
     JSObject(OBJ_OTHER, u"Array", true, nullptr, true, true) {}
 };
+
+// 15.4.4.4 Array.prototype.concat ( [ item1 [ , item2 [ , … ] ] ] )
+JSValue* ArrayProto::concat(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  std::vector<JSValue*> items = {Runtime::TopValue()};
+  items.insert(items.end(), vals.begin(), vals.end());
+  ArrayObject* A = new ArrayObject(0);
+  size_t n = 0;
+  for (auto E : items) {
+    bool is_array = false;
+    if (E->IsObject()) {
+      JSObject* O = static_cast<JSObject*>(E);
+      if (O->obj_type() == JSObject::OBJ_ARRAY) {
+        is_array = true;
+        size_t len = ToNumber(e, O->Get(e, u"length"));
+        if (!e->IsOk()) return nullptr;
+        for (size_t k = 0; k < len; k++) {  // 5.b.iii
+          std::u16string P = NumberToString(k);
+          if (O->HasProperty(P)) {
+            JSValue* sub_element = O->Get(e, P);
+            if (!e->IsOk()) return nullptr;
+            A->AddValueProperty(NumberToString(n), sub_element, true, true, true);
+          }
+          n++;
+        }
+      }
+    }
+    if (!is_array) {
+      A->AddValueProperty(NumberToString(n), E, true, true, true);
+      n++;
+    }
+  }
+  return A;
+}
 
 // 15.4.4.18 Array.prototype.forEach ( callbackfn [ , thisArg ] )
 JSValue* ArrayProto::forEach(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {

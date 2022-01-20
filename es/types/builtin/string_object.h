@@ -174,9 +174,7 @@ class StringProto : public JSObject {
     assert(false);
   }
 
-  static JSValue* split(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
-  }
+  static JSValue* split(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
   static JSValue* substring(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     if (vals.size() == 0)
