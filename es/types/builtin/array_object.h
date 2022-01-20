@@ -156,9 +156,7 @@ class ArrayProto : public JSObject {
     return first;
   }
 
-  static JSValue* slice(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
-  }
+  static JSValue* slice(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
   static JSValue* sort(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
@@ -383,6 +381,48 @@ JSValue* ArrayProto::concat(Error* e, JSValue* this_arg, std::vector<JSValue*> v
       A->AddValueProperty(NumberToString(n), E, true, true, true);
       n++;
     }
+  }
+  return A;
+}
+
+// 15.4.4.10 Array.prototype.slice (start, end)
+JSValue* ArrayProto::slice(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  JSObject* O = ToObject(e, Runtime::TopValue());
+  if (!e->IsOk()) return nullptr;
+  double len = ToNumber(e, O->Get(e, u"length"));
+  ArrayObject* A = new ArrayObject(0);
+  if (vals.size() == 0 || vals[0]->IsUndefined()) {
+    *e = *Error::TypeError(u"start of Array.prototype.slice cannot be undefined");
+  }
+  int relative_start = ToInteger(e, vals[0]);
+  if (!e->IsOk()) return nullptr;
+  int k;
+  if (relative_start < 0)
+    k = fmax(relative_start + len, 0);
+  else
+    k = fmin(relative_start, len);
+  int relative_end;
+  if (vals.size() < 2 || vals[1]->IsUndefined()) {
+    relative_end = len;
+  } else {
+    relative_end = ToInteger(e, vals[1]);
+    if (!e->IsOk()) return nullptr;
+  }
+  int final;
+  int n = 0;
+  if (relative_end < 0)
+    final = fmax(relative_end + len, 0);
+  else
+    final = fmin(relative_end, len);
+  while (k < final) {
+    std::u16string Pk = NumberToString(k);
+    if (O->HasProperty(Pk)) {
+      JSValue* k_value = O->Get(e, Pk);
+      if (!e->IsOk()) return nullptr;
+      A->AddValueProperty(NumberToString(n), k_value, true, true, true);
+    }
+    k++;
+    n++;
   }
   return A;
 }

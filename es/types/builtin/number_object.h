@@ -7,6 +7,7 @@
 namespace es {
 
 double ToNumber(Error* e, JSValue* input);
+double ToInteger(Error* e, JSValue* input);
 JSObject* ToObject(Error* e, JSValue* input);
 
 class NumberProto : public JSObject {
@@ -16,8 +17,33 @@ class NumberProto : public JSObject {
     return &singleton;
   }
 
+  // 15.7.4.2 Number.prototype.toString ( [ radix ] )
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
+    JSValue* val = Runtime::TopValue();
+    if (val->IsObject()) {
+      JSObject* obj = static_cast<JSObject*>(val);
+      if (obj->obj_type() != JSObject::OBJ_NUMBER) {
+        *e = *Error::TypeError(u"Number.prototype.toString called by non-number");
+        return nullptr;
+      }
+    } else if (!val->IsNumber()) {
+      *e = *Error::TypeError(u"Number.prototype.toString called by non-number");
+      return nullptr;
+    }
+    double num = ToNumber(e, val);
+    if (!e->IsOk()) return nullptr;
+    int radix = 10;
+    if (vals.size() > 0 && !vals[0]->IsUndefined()) {
+      radix = ToInteger(e, vals[0]);
+      if (!e->IsOk()) return nullptr;
+      if (radix < 2 || radix > 36) {
+        *e = *Error::RangeError(u"Number.prototype.toString radix not in [2, 36]");
+        return nullptr;
+      }
+    }
+    // TODO(zhuzilin) support other radix
+    assert(radix == 10);
+    return new String(NumberToString(num));
   }
 
   static JSValue* toLocaleString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
