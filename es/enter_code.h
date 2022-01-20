@@ -669,6 +669,8 @@ JSValue* StringProto::split(Error* e, JSValue* this_arg, std::vector<JSValue*> v
   }
   size_t s = S.size();
   size_t p = 0;
+  if (lim == 0)
+    return A;
   if (vals.size() < 1 || vals[0]->IsUndefined()) {  // 10
     A->AddValueProperty(u"0", new String(S), true, true, true);
     return A;
@@ -698,6 +700,8 @@ JSValue* StringProto::split(Error* e, JSValue* this_arg, std::vector<JSValue*> v
         std::u16string T = S.substr(p, q - p);
         A->AddValueProperty(NumberToString(length_A), new String(T), true, true, true);
         length_A++;
+        if (length_A == lim)
+          return A;
         p = e;
         for (size_t i = 0; i < cap.size(); i++) {  // 13.c.iii.7
           A->AddValueProperty(NumberToString(length_A), new String(cap[i]), true, true, true);

@@ -36,9 +36,16 @@ class GlobalObject : public JSObject {
       return Number::NaN();
     std::u16string input_string = ::es::ToString(e, vals[0]);
     size_t i = 0;
-    while (i < input_string.size() && character::IsWhiteSpace(i))
+    while (i < input_string.size() && character::IsWhiteSpace(input_string[i]))
       i++;
-    std::u16string trimmed_string = input_string.substr(i);
+    size_t j = input_string.size();
+    while (j > 0 && character::IsWhiteSpace(input_string[j - 1]))
+      j--;
+    std::u16string trimmed_string = input_string.substr(i, j - i);
+    if (trimmed_string == u"Infinity" || trimmed_string == u"+Infinity")
+      return Number::PositiveInfinity();
+    if (trimmed_string == u"-Infinity")
+      return Number::NegativeInfinity();
     Lexer lexer(trimmed_string);
     // TODO(zhuzilin) parseFloat should not be able to parse hex integer
     Token token = lexer.Next();
