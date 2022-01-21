@@ -6,6 +6,7 @@
 namespace es {
 
 std::u16string ToString(Error* e, JSValue* input);
+double ToInt32(Error* e, JSValue* input);
 double StringToNumber(std::u16string source);
 
 // 15.1 The Global Object
@@ -27,7 +28,55 @@ class GlobalObject : public JSObject {
   // 15.1.2.2 parseInt (string , radix)
   static JSValue* parseInt(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     // TODO(zhuzilin) use parseFloat at the moment. fix later
-    return GlobalObject::parseFloat(e, this_arg, vals);
+    if (vals.size() == 0 || vals[0]->IsUndefined()) {
+      *e = *Error::TypeError(u"parseInt called with undefined string");
+      return nullptr;
+    }
+    std::u16string input_string = ::es::ToString(e, vals[0]);
+    size_t len = input_string.size();
+    if (!e->IsOk()) return nullptr;
+    double R = 10;
+    bool strip_prefix = true;
+    if (vals.size() >= 2 && !vals[1]->IsUndefined()) {
+      R = ToInt32(e, vals[0]);
+      if (!e->IsOk()) return nullptr;
+      if (R < 2 || R > 36)
+        return Number::NaN();
+      if (R != 0 && R != 16)
+        strip_prefix = false;
+      if (R == 0)
+        R = 10;
+    }
+    size_t offset = 0;
+    while (offset < len && character::IsWhiteSpace(input_string[offset]))
+      offset++;
+    if (offset == len)
+      return Number::NaN();
+    double sign = 1;
+    if (input_string[offset] == u'-') {
+      sign = -1;
+      offset++;
+    } else if (input_string[offset] == u'+') {
+      offset++;
+    }
+    if (strip_prefix && len - offset >= 2) {
+      if (input_string[offset] == u'0' &&
+          (input_string[offset + 1] == u'x' || input_string[offset + 1] == u'X')) {
+        offset += 2;
+        R = 16;
+      }
+    } 
+    size_t Z = offset;
+    while (Z < input_string.size() && character::IsRadixDigit(input_string[Z], R))
+      Z++;
+    if (offset == Z)
+      return Number::NaN();
+    double number = 0;
+    for (size_t i = offset; i < Z; i++) {
+      number *= R;
+      number += character::Digit(input_string[i]);
+    }
+    return new Number(number);
   }
 
   // 15.1.2.3 parseFloat (string)

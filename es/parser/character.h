@@ -72,6 +72,15 @@ inline bool IsHexDigit(char16_t c) {
   return IsDecimalDigit(c) || u'A' <= c && c <= u'F' || u'a' <= c && c <= u'f';
 }
 
+inline bool IsRadixDigit(char16_t c, int radix) {
+  if (radix == 10)
+    return IsDecimalDigit(c);
+  else if (radix < 10)
+    return u'0' <= c && c < u'0' + radix;
+  else
+    return IsDecimalDigit(c) || u'A' <= c && c <= u'A' + radix - 10 || u'a' <= c && c <= u'a' + radix - 10;
+}
+
 inline bool IsSingleEscapeCharacter(char16_t c) {
   return c == u'\'' || c == u'"' || c == u'\\' || c == u'b' ||
          c == u'f'  || c == u'f' || c == u'n'  || c == u'r' ||
@@ -146,6 +155,10 @@ inline double Digit(char16_t c) {
     case u'f':
       return 15;
     default:
+      if (u'A' <= c && c <= u'Z')
+        return c - u'A' + 10;
+      if (u'a' <= c && c <= u'z')
+        return c - u'a' + 10;
       assert(false);
   }
 }

@@ -331,9 +331,9 @@ function test_math()
 function test_number()
 {
     assert(parseInt("123"), 123);
-    // assert(parseInt("  123r"), 123);
+    assert(parseInt("  123r"), 123);
     assert(parseInt("0x123"), 0x123);
-    // assert(parseInt("0o123"), 0);
+    assert(parseInt("0o123"), 0);
     // assert(parseFloat("0x1234"), 0);
     assert(parseFloat("Infinity"), Infinity);
     assert(parseFloat("-Infinity"), -Infinity);

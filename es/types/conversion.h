@@ -231,6 +231,8 @@ double ToUint16(Error* e, JSValue* input) {
 
 std::u16string NumberToString(double m) {
   // TODO(zhuzilin) Figure out how to solve the large number error.
+  if (isnan(m))
+    return u"NaN";
   if (m == 0)
     return String::Zero()->data();
   std::u16string sign = u"";
