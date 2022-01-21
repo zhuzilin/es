@@ -9,6 +9,7 @@ namespace es {
 
 bool ToBoolean(JSValue* input);
 double ToNumber(Error* e, JSValue* input);
+double ToInteger(Error* e, JSValue* input);
 double ToUint32(Error* e, JSValue* input);
 std::u16string ToString(Error* e, JSValue* input);
 std::u16string NumberToString(double m);
@@ -359,25 +360,20 @@ JSValue* ArrayProto::concat(Error* e, JSValue* this_arg, std::vector<JSValue*> v
   ArrayObject* A = new ArrayObject(0);
   size_t n = 0;
   for (auto E : items) {
-    bool is_array = false;
-    if (E->IsObject()) {
-      JSObject* O = static_cast<JSObject*>(E);
-      if (O->obj_type() == JSObject::OBJ_ARRAY) {
-        is_array = true;
-        size_t len = ToNumber(e, O->Get(e, u"length"));
-        if (!e->IsOk()) return nullptr;
-        for (size_t k = 0; k < len; k++) {  // 5.b.iii
-          std::u16string P = NumberToString(k);
-          if (O->HasProperty(P)) {
-            JSValue* sub_element = O->Get(e, P);
-            if (!e->IsOk()) return nullptr;
-            A->AddValueProperty(NumberToString(n), sub_element, true, true, true);
-          }
-          n++;
+    if (E->IsArrayObject()) {
+      ArrayObject* O = static_cast<ArrayObject*>(E);
+      size_t len = ToNumber(e, O->Get(e, u"length"));
+      if (!e->IsOk()) return nullptr;
+      for (size_t k = 0; k < len; k++) {  // 5.b.iii
+        std::u16string P = NumberToString(k);
+        if (O->HasProperty(P)) {
+          JSValue* sub_element = O->Get(e, P);
+          if (!e->IsOk()) return nullptr;
+          A->AddValueProperty(NumberToString(n), sub_element, true, true, true);
         }
+        n++;
       }
-    }
-    if (!is_array) {
+    } else {
       A->AddValueProperty(NumberToString(n), E, true, true, true);
       n++;
     }

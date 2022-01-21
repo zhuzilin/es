@@ -13,6 +13,7 @@
 #include <es/types/builtin/array_object.h>
 #include <es/types/builtin/date_object.h>
 #include <es/types/builtin/math_object.h>
+#include <es/types/builtin/regexp_object.h>
 #include <es/types/builtin/arguments_object.h>
 #include <es/types/host/console.h>
 #include <es/regex/match.h>
@@ -334,12 +335,11 @@ JSValue* GlobalObject::eval(Error* e, JSValue* this_arg, std::vector<JSValue*> v
         return Undefined::Instance();
     default: {
       assert(result.type == Completion::THROW);
-      std::u16string message = ::es::ToString(e, result.value);
-      if (result.value->IsObject()) {
-        JSObject* obj = static_cast<JSObject*>(result.value);
-        if (obj->obj_type() == JSObject::OBJ_ERROR) {
-          message = static_cast<ErrorObject*>(obj)->ErrorMessage();
-        }
+      std::u16string message;
+      if (result.value->IsErrorObject()) {
+        message = static_cast<ErrorObject*>(result.value)->ErrorMessage();
+      } else {
+        message = ::es::ToString(e, result.value);
       }
       *e = *Error::NativeError(message);
       return result.value;
@@ -390,6 +390,7 @@ void InitGlobalObject() {
   global_obj->AddValueProperty(u"String", StringConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Array", ArrayConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Date", DateConstructor::Instance(), true, false, true);
+  global_obj->AddValueProperty(u"RegExp", RegExpConstructor::Instance(), true, false, true);
   global_obj->AddValueProperty(u"Error", ErrorConstructor::Instance(), true, false, true);
   // TODO(zhuzilin) differentiate errors.
   global_obj->AddValueProperty(u"EvalError", ErrorConstructor::Instance(), true, false, true);
@@ -641,6 +642,21 @@ void InitDate() {
   proto->AddFuncProperty(u"toJSON", DateProto::toJSON, true, false, false);
 }
 
+void InitRegExp() {
+  RegExpConstructor* constructor = RegExpConstructor::Instance();
+  constructor->SetPrototype(FunctionProto::Instance());
+  // 15.6.3 Properties of the RegExpean Constructor
+  constructor->AddValueProperty(u"prototype", RegExpProto::Instance(), false, false, false);
+
+  RegExpProto* proto = RegExpProto::Instance();
+  proto->SetPrototype(ObjectProto::Instance());
+  // 15.6.4 Properties of the RegExpean Prototype Object
+  proto->AddValueProperty(u"constructor", RegExpConstructor::Instance(), false, false, false);
+  proto->AddFuncProperty(u"exec", RegExpProto::exec, true, false, false);
+  proto->AddFuncProperty(u"test", RegExpProto::test, true, false, false);
+  proto->AddFuncProperty(u"toString", RegExpProto::toString, true, false, false);
+};
+
 void Init() {
   InitGlobalObject();
   InitObject();
@@ -652,6 +668,7 @@ void Init() {
   InitArray();
   InitDate();
   InitMath();
+  InitRegExp();
 }
 
 JSValue* StringProto::split(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -675,7 +692,7 @@ JSValue* StringProto::split(Error* e, JSValue* this_arg, std::vector<JSValue*> v
     A->AddValueProperty(u"0", new String(S), true, true, true);
     return A;
   }
-  if (vals[0]->IsRegex()) {
+  if (vals[0]->IsRegExpObject()) {
     assert(false);
   }
   assert(vals[0]->IsString());

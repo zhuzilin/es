@@ -16,7 +16,6 @@ class Console : public JSObject {
   }
 
   static JSValue* log(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    std::cout << "[LOG] ";
     if (vals.size())
       std::cout << vals[0]->ToString();
     for (size_t i = 1; i < vals.size(); i++) {

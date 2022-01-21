@@ -21,7 +21,7 @@ class AST {
     AST_EXPR_BOOL,
     AST_EXPR_NUMBER,
     AST_EXPR_STRING,
-    AST_EXPR_REGEX,
+    AST_EXPR_REGEXP,
 
     AST_EXPR_ARRAY,
     AST_EXPR_OBJ,
@@ -95,6 +95,20 @@ class AST {
   size_t end_;
   std::u16string source_;
   std::u16string label_;
+};
+
+class RegExpLiteral : public AST {
+ public:
+  RegExpLiteral(std::u16string pattern, std::u16string flag,
+                std::u16string source, size_t start, size_t end) :
+    AST(AST_EXPR_REGEXP, source, start, end), pattern_(pattern), flag_(flag) {}
+
+  std::u16string pattern() { return pattern_; }
+  std::u16string flag() { return flag_; }
+
+ private:
+  std::u16string pattern_;
+  std::u16string flag_;
 };
 
 class ArrayLiteral : public AST {

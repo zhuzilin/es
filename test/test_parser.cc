@@ -94,7 +94,7 @@ TEST(TestParser, PrimaryExpression_Literal) {
     }
   }
 
-  // Regex
+  // RegExp
   {
     vec_string sources = {
       u"/a/", u"/[a-z]*?/", u"/[012]/g", u"/[012]/$", u"/你好/",
@@ -102,7 +102,7 @@ TEST(TestParser, PrimaryExpression_Literal) {
     for (auto source : sources) {
       Parser parser(source);
       AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(AST::AST_EXPR_REGEX, ast->type());
+      EXPECT_EQ(AST::AST_EXPR_REGEXP, ast->type());
       EXPECT_EQ(source, ast->source());
     }
   }

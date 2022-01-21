@@ -147,13 +147,10 @@ class FunctionObject : public JSObject {
         return result.value;
       case Completion::THROW: {
         log::PrintSource("exit FunctionObject::Call THROW");
-        if (result.value->IsObject()) {
-          JSObject* obj = static_cast<JSObject*>(result.value);
-          if (obj->obj_type() == JSObject::OBJ_ERROR) {
-            *e = *(static_cast<ErrorObject*>(obj)->e());
-            log::PrintSource("message: ", e->message());
-            return nullptr;
-          }
+        if (result.value->IsErrorObject()) {
+          *e = *(static_cast<ErrorObject*>(result.value)->e());
+          log::PrintSource("message: ", e->message());
+          return nullptr;
         }
         std::u16string message = ::es::ToString(e, result.value);
         log::PrintSource("message: ", message);

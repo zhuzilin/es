@@ -9,6 +9,7 @@
 #include <es/types/reference.h>
 #include <es/types/builtin/function_object.h>
 #include <es/types/builtin/array_object.h>
+#include <es/types/builtin/regexp_object.h>
 #include <es/types/builtin/error_object.h>
 #include <es/types/compare.h>
 #include <es/execution_context.h>
@@ -681,7 +682,7 @@ JSValue* EvalExpression(Error* e, AST* ast) {
     case AST::AST_EXPR_BOOL:
     case AST::AST_EXPR_NUMBER:
     case AST::AST_EXPR_STRING:
-    case AST::AST_EXPR_REGEX:
+    case AST::AST_EXPR_REGEXP:
     case AST::AST_EXPR_OBJ:
     case AST::AST_EXPR_ARRAY:
     case AST::AST_EXPR_PAREN:
@@ -743,8 +744,11 @@ JSValue* EvalPrimaryExpression(Error* e, AST* ast) {
     case AST::AST_EXPR_PAREN:
       val = EvalExpression(e, static_cast<Paren*>(ast)->expr());
       break;
-    case AST::AST_EXPR_REGEX:
-      assert(false);
+    case AST::AST_EXPR_REGEXP: {
+      RegExpLiteral* literal = static_cast<RegExpLiteral*>(ast);
+      val = new RegExpObject(literal->pattern(), literal->flag());
+      break;
+    }
     default:
       std::cout << "Not primary expression, type " << ast->type() << std::endl;
       assert(false);

@@ -59,9 +59,10 @@ class Parser {
       case Token::TK_DIV: {  // /
         lexer_.Next(); // skip /
         lexer_.Back(); // back to /
-        token = lexer_.ScanRegexLiteral();
+        std::u16string pattern, flag;
+        token = lexer_.ScanRegExpLiteral(pattern, flag);
         if (token.type() == Token::TK_REGEX) {
-          return new AST(AST::AST_EXPR_REGEX, TOKEN_SOURCE);
+          return new RegExpLiteral(pattern, flag, TOKEN_SOURCE);
         } else {
           goto error;
         }

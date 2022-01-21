@@ -374,27 +374,27 @@ class Lexer {
     return false;
   }
 
-  Token ScanRegexLiteral() {
+  bool ScanRegExpPattern(std::u16string& pattern) {
     assert(c_ == u'/');
-    size_t start = pos_;
     Advance();
     if (!character::IsRegularExpressionFirstChar(c_)) {
       Advance();
-      goto error;
+      return false;
     }
+    size_t start = pos_;
     while(c_ != character::EOS && c_ != u'/' && !character::IsLineTerminator(c_)) {
       switch (c_) {
         case u'\\': {  // Regular Expression
           if (!SkipRegularExpressionBackslashSequence()) {
             Advance();
-            goto error;
+            return false;
           }
           break;
         }
         case u'[': {
           if (!SkipRegularExpressionClass()) {
             Advance();
-            goto error;
+            return false;
           }
           break;
         }
@@ -402,24 +402,41 @@ class Lexer {
           SkipRegularExpressionChars();
       }
     }
+    pattern = source_.substr(start, pos_ - start);
+    return true;
+  }
 
+  bool ScanRegExpFlag(std::u16string& flag) {
     if (c_ == u'/') {
       Advance();
+      size_t start = pos_;
       // RegularExpressionFlags
       while (character::IsIdentifierPart(c_)) {
         if (c_ == u'\\') {
           Advance();
           if (!SkipUnicodeEscapeSequence()) {
             Advance();
-            goto error;
+            return false;
           }
         } else {
           Advance();
         }
       }
-      token_ = Token(Token::Type::TK_REGEX, source_.substr(start, pos_ - start), start, pos_);
-      return token_;
+      flag = source_.substr(start, pos_ - start);
+      return true;
     }
+    return false;
+  }
+
+  Token ScanRegExpLiteral(std::u16string& pattern, std::u16string& flag) {
+    size_t start = pos_;
+    if (!ScanRegExpPattern(pattern)) {
+      goto error;
+    }
+    if (!ScanRegExpFlag(flag)) {
+      goto error;
+    }
+    return Token(Token::Type::TK_REGEX, source_.substr(start, pos_ - start), start, pos_);
 error:
     token_ = Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start), start, pos_);
     return token_;

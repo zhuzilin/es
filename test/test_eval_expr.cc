@@ -221,7 +221,7 @@ TEST(TestEvalExpr, Array) {
   EnterGlobalCode(e, new ProgramOrFunctionBody(AST::AST_PROGRAM, false));
   {
     std::vector<std::pair<std::u16string, size_t>> sources = {
-      {u"[, 1, 'abc', a,]", 4}, {u"[]", 0}
+      {u"[, 1, 'abc', 123.4,]", 4}, {u"[]", 0}
     };
     for (auto pair : sources) {
       Parser parser(pair.first);

@@ -7,6 +7,7 @@
 #include <vector>
 #include <map>
 
+#include <es/parser/character.h>
 #include <es/types/base.h>
 #include <es/types/same_value.h>
 #include <es/types/property_descriptor.h>
@@ -29,7 +30,7 @@ class JSObject : public JSValue {
     OBJ_NUMBER,
     OBJ_MATH,
     OBJ_DATE,
-    OBJ_REGEX,
+    OBJ_REGEXP,
     OBJ_JSON,
     OBJ_ERROR,
 
@@ -418,6 +419,22 @@ reject:
     *e = *Error::TypeError();
   }
   return false;
+}
+
+bool JSValue::IsNumberObject() {
+  return IsObject() ? (static_cast<JSObject*>(this)->obj_type() == JSObject::OBJ_NUMBER) : false;
+}
+
+bool JSValue::IsArrayObject() {
+  return IsObject() ? (static_cast<JSObject*>(this)->obj_type() == JSObject::OBJ_ARRAY) : false;
+}
+
+bool JSValue::IsRegExpObject() {
+  return IsObject() ? (static_cast<JSObject*>(this)->obj_type() == JSObject::OBJ_REGEXP) : false;
+}
+
+bool JSValue::IsErrorObject() {
+  return IsObject() ? (static_cast<JSObject*>(this)->obj_type() == JSObject::OBJ_ERROR) : false;
 }
 
 }  // namespace

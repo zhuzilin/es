@@ -9,6 +9,7 @@ namespace es {
 double ToNumber(Error* e, JSValue* input);
 double ToInteger(Error* e, JSValue* input);
 JSObject* ToObject(Error* e, JSValue* input);
+std::u16string NumberToString(double m);
 
 class NumberProto : public JSObject {
  public:
@@ -52,11 +53,8 @@ class NumberProto : public JSObject {
 
   static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     JSValue* val = Runtime::TopValue();
-    if (val->IsObject()) {
-      JSObject* obj = static_cast<JSObject*>(val);
-      if (obj->obj_type() == JSObject::OBJ_NUMBER) {
-        return obj->PrimitiveValue();
-      }
+    if (val->IsNumberObject()) {
+      return static_cast<JSObject*>(val)->PrimitiveValue();
     } else if (val->IsNumber()) {
       return val;
     }
@@ -86,14 +84,8 @@ class NumberProto : public JSObject {
 class NumberObject : public JSObject {
  public:
   NumberObject(JSValue* primitive_value) :
-    JSObject(
-      OBJ_NUMBER,
-      u"Number",
-      true,  // extensible
-      primitive_value,
-      false,
-      false
-    ) {
+    JSObject(OBJ_NUMBER, u"Number", true, primitive_value, false, false
+  ) {
     SetPrototype(NumberProto::Instance());
   }
 };
