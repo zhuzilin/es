@@ -1,6 +1,8 @@
 #ifndef ES_TYPES_BUILTIN_ARRAY_OBJECT
 #define ES_TYPES_BUILTIN_ARRAY_OBJECT
 
+#include <algorithm>
+
 #include <es/types/object.h>
 #include <es/types/builtin/object_object.h>
 #include <es/utils/helper.h>
@@ -159,9 +161,7 @@ class ArrayProto : public JSObject {
 
   static JSValue* slice(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
-  static JSValue* sort(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    assert(false);
-  }
+  static JSValue* sort(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
   static JSValue* splice(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     assert(false);
@@ -209,9 +209,7 @@ class ArrayProto : public JSObject {
    ArrayProto() :
     JSObject(
       OBJ_ARRAY, u"Array", true, nullptr, false, false
-    ) {
-
-    }
+    ) {}
 };
 
 class ArrayObject : public JSObject {
@@ -421,6 +419,73 @@ JSValue* ArrayProto::slice(Error* e, JSValue* this_arg, std::vector<JSValue*> va
     n++;
   }
   return A;
+}
+
+// 15.4.4.11 Array.prototype.sort (comparefn)
+JSValue* ArrayProto::sort(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  JSObject* obj = ToObject(e, Runtime::TopValue());
+  if (!e->IsOk()) return nullptr;
+  size_t len = ToNumber(e, obj->Get(e, u"length"));
+  // TODO(zhuzilin) Check the implementation dependecy cases would not cause error.
+  JSValue* comparefn;
+  if (vals.size() == 0 || vals[0]->IsUndefined()) {
+    comparefn = Undefined::Instance();
+  } else if (vals[0]->IsCallable()) {
+    comparefn = static_cast<JSObject*>(vals[0]);
+  } else {
+    *e = *Error::TypeError(u"comparefn of Array.prototype.sort is not callable");
+    return nullptr;
+  }
+  std::vector<std::pair<bool, JSValue*>> indices;
+  for (size_t i = 0; i < len; i++) {
+    std::u16string istr = NumberToString(i);
+    if (obj->HasProperty(istr)) {
+      JSValue* val = obj->Get(e, istr);
+      if (!e->IsOk()) return nullptr;
+      indices.emplace_back(std::make_pair(true, val));
+    } else {
+      indices.emplace_back(std::make_pair(false, nullptr));
+    }
+  }
+  std::sort(indices.begin(), indices.end(),
+    // SortCompare
+    [&] (const auto& pair_x, const auto& pair_y) {
+      bool hasj = pair_x.first;
+      bool hask = pair_y.first;
+      if (!hask)
+        return false;
+      if (!hasj && hask)
+        return true;
+      JSValue* x = pair_x.second;
+      JSValue* y = pair_y.second;
+      if (y->IsUndefined())
+        return false;
+      if (x->IsUndefined() && !y->IsUndefined())
+        return true;
+      if (!comparefn->IsUndefined()) {
+        JSValue* res = static_cast<JSObject*>(comparefn)->Call(e, Undefined::Instance(), {x, y});
+        if (!e->IsOk()) return false;
+        return ToNumber(e, res) < 0;
+      }
+      // NOTE(zhuzilin) 123 will be smaller 21... which I've checked with V8.
+      std::u16string xstr = ::es::ToString(e, x);
+      std::u16string ystr = ::es::ToString(e, y);
+      return xstr < ystr;
+    });
+  if (!e->IsOk()) return nullptr;
+  for (size_t i = 0; i < len; i++) {
+    std::u16string istr = NumberToString(i);
+    bool has = indices[i].first;
+    JSValue* val = indices[i].second;
+    if (indices[i].first) {
+      obj->Put(e, istr, val, true);
+      if (!e->IsOk()) return nullptr;
+    } else {
+      obj->Delete(e, istr, true);
+      if (!e->IsOk()) return nullptr;
+    }
+  }
+  return obj;
 }
 
 // 15.4.4.18 Array.prototype.forEach ( callbackfn [ , thisArg ] )
