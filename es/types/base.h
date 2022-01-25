@@ -27,6 +27,7 @@ class JSValue : public HeapObject {
     JS_REF,
     JS_PROP_DESC,
     JS_ENV_REC,
+    JS_LEX_ENV,
 
     NUM_TYPES,
   };
@@ -53,6 +54,7 @@ class JSValue : public HeapObject {
   inline bool IsReference() { return type_ == JS_REF; }
   inline bool IsPropertyDescriptor() { return type_ == JS_PROP_DESC; }
   inline bool IsEnvironmentRecord() { return type_ == JS_ENV_REC; }
+  inline bool IsLexicalEnvironment() { return type_ == JS_LEX_ENV; }
 
   virtual std::string ToString() = 0;
 

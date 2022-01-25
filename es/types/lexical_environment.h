@@ -7,10 +7,10 @@
 
 namespace es {
 
-class LexicalEnvironment {
+class LexicalEnvironment : public JSValue {
  public:
   LexicalEnvironment(LexicalEnvironment* outer, EnvironmentRecord* env_rec) :
-    outer_(outer), env_rec_(env_rec) {}
+    JSValue(JS_LEX_ENV), outer_(outer), env_rec_(env_rec) {}
 
   static LexicalEnvironment* Global() {
     static LexicalEnvironment* singleton = new LexicalEnvironment(
@@ -43,12 +43,12 @@ class LexicalEnvironment {
   LexicalEnvironment* outer() { return outer_; }
   EnvironmentRecord* env_rec() { return env_rec_; }
 
-  std::string ToString() { return "LexicalEnvironment"; }
+  std::string ToString() override { return "LexicalEnvironment"; }
 
-  std::vector<void*> Pointers() {
+  std::vector<void*> Pointers() override {
     std::vector<void*> pointers;
-    std::cout << "add pointer: outer " << outer_ << std::endl;
-    pointers.emplace_back(&outer_);
+    if (outer_ != nullptr)
+      pointers.emplace_back(&outer_);
     pointers.emplace_back(&env_rec_);
     return pointers;
   }
