@@ -2,7 +2,7 @@
 #define ES_TYPES_BUILTIN_OBJECT_OBJECT
 
 #include <es/types/object.h>
-#include <es/execution_context.h>
+#include <es/runtime.h>
 
 namespace es {
 
@@ -12,8 +12,8 @@ PropertyDescriptor* ToPropertyDescriptor(Error* e, JSValue* obj);
 class ObjectProto : public JSObject {
  public:
   static ObjectProto* Instance() {
-    static ObjectProto singleton;
-    return &singleton;
+    static ObjectProto* singleton = new ObjectProto();
+    return singleton;
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -70,8 +70,8 @@ class Object : public JSObject {
 class ObjectConstructor : public JSObject {
  public:
   static ObjectConstructor* Instance() {
-    static ObjectConstructor singleton;
-    return &singleton;
+    static ObjectConstructor* singleton = new ObjectConstructor();
+    return singleton;
   }
 
   // 15.2.1 The Object Constructor Called as a Function

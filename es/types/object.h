@@ -35,6 +35,7 @@ class JSObject : public JSValue {
     OBJ_ERROR,
 
     OBJ_INNER_FUNC,
+    OBJ_HOST,
     OBJ_OTHER,
   };
 
@@ -47,11 +48,18 @@ class JSObject : public JSValue {
     bool is_callable,
     inner_func callable = nullptr
   ) : JSValue(JS_OBJECT), obj_type_(obj_type),
-      prototype_(Null::Instance()), class_(klass), extensible_(extensible),
+      class_(klass), extensible_(extensible),
       primitive_value_(primitive_value), is_constructor_(is_constructor),
-      is_callable_(is_callable), callable_(callable) {}
+      is_callable_(is_callable), callable_(callable) {
+    SetPrototype(Null::Instance());
+  }
 
   ObjType obj_type() { return obj_type_; }
+  void print_named_properties() {
+    for(auto& pair : named_properties_) {
+      std::cout << "PRINT NAMED_PROP: " << log::ToString(pair.first) << std::endl;
+    }
+  }
 
   bool IsFunction() { return obj_type_ == OBJ_FUNC; }
 
@@ -156,6 +164,25 @@ class JSObject : public JSValue {
   }
 
   virtual std::string ToString() override { return log::ToString(class_); }
+
+  std::vector<void*> Pointers() override {
+    std::vector<void*> pointers;
+    std::cout << named_properties_.size() << std::endl;
+    for(auto& pair : named_properties_) {
+      std::cout << "add pointer: " << log::ToString(pair.first) << std::endl;
+      // TODO(zhuzilin) check why there is coruption in the iteration...
+      if (pair.second != nullptr) {
+        pointers.emplace_back(&(pair.second));
+        std::cout << pair.second->ToString() << std::endl;
+      }
+    }
+    std::cout << "add pointer: prototype "<< std::endl;
+    pointers.emplace_back(&prototype_);
+    if (HasPrimitiveValue())
+      pointers.emplace_back(&primitive_value_);
+    std::cout << "pointers size: " << pointers.size() << std::endl;
+    return pointers;
+  }
 
  private:  
   ObjType obj_type_;
@@ -342,7 +369,7 @@ bool JSObject::DefineOwnProperty(
   if (current->IsUndefined()) {
     if(!extensible_)  // 3
       goto reject;
-     // 4.
+    // 4.
     named_properties_[P] = desc;
     return true;
   }

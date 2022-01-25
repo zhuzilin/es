@@ -13,8 +13,8 @@ double StringToNumber(std::u16string source);
 class GlobalObject : public JSObject {
  public:
   static GlobalObject* Instance() {
-    static GlobalObject singleton;
-    return &singleton;
+    static GlobalObject* singleton = new GlobalObject();
+    return singleton;
   }
 
   bool direct_eval() { return direct_eval_; }

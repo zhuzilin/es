@@ -11,8 +11,8 @@ bool ToBoolean(JSValue*);
 class Console : public JSObject {
  public:
   static  Console* Instance() {
-    static  Console singleton;
-    return &singleton;
+    static Console* singleton = new Console();
+    return singleton;
   }
 
   static JSValue* log(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -28,7 +28,7 @@ class Console : public JSObject {
  private:
    Console() :
     JSObject(
-      OBJ_BOOL, u"Console", true, Bool::False(), false, false
+      OBJ_HOST, u"Console", true, nullptr, false, false
     ) {
       AddFuncProperty(u"log", log, false, false, false);
     }

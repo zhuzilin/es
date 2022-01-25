@@ -2,7 +2,7 @@
 #define ES_TYPES_BUILTIN_REGEX_OBJECT
 
 #include <es/types/object.h>
-#include <es/execution_context.h>
+#include <es/runtime.h>
 
 namespace es {
 
@@ -10,9 +10,9 @@ std::u16string ToString(Error* e, JSValue* input);
 
 class RegExpProto : public JSObject {
  public:
-  static  RegExpProto* Instance() {
-    static  RegExpProto singleton;
-    return &singleton;
+  static RegExpProto* Instance() {
+    static RegExpProto* singleton = new RegExpProto();
+    return singleton;
   }
 
   static JSValue* exec(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -76,9 +76,9 @@ class RegExpObject : public JSObject {
 
 class RegExpConstructor : public JSObject {
  public:
-  static  RegExpConstructor* Instance() {
-    static  RegExpConstructor singleton;
-    return &singleton;
+  static RegExpConstructor* Instance() {
+    static RegExpConstructor* singleton = new RegExpConstructor();
+    return singleton;
   }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {

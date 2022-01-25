@@ -32,6 +32,12 @@ class Reference : public JSValue {
 
   std::string ToString() override { return "ref(" + log::ToString(reference_name_) + ")"; }
 
+  std::vector<void*> Pointers() override {
+    std::vector<void*> pointers;
+    pointers.emplace_back(&base_);
+    return pointers;
+  }
+
  private:
   JSValue* base_;
   std::u16string reference_name_;

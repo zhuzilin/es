@@ -25,8 +25,8 @@ bool IsArrayIndex(std::u16string P) {
 class ArrayProto : public JSObject {
  public:
   static  ArrayProto* Instance() {
-    static  ArrayProto singleton;
-    return &singleton;
+    static  ArrayProto* singleton = new ArrayProto();
+    return singleton;
   }
 
   // 15.4.4.2 Array.prototype.toString ( )
@@ -307,8 +307,8 @@ reject:
 class ArrayConstructor : public JSObject {
  public:
   static  ArrayConstructor* Instance() {
-    static  ArrayConstructor singleton;
-    return &singleton;
+    static  ArrayConstructor* singleton = new ArrayConstructor();
+    return singleton;
   }
 
   // 15.5.1.1 Array ( [ value ] )

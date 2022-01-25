@@ -7,9 +7,9 @@ namespace es {
 
 class DateProto : public JSObject {
  public:
-  static  DateProto* Instance() {
-  static  DateProto singleton;
-    return &singleton;
+  static DateProto* Instance() {
+    static DateProto* singleton = new DateProto();
+    return singleton;
   }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
@@ -205,9 +205,9 @@ class DateObject : public JSObject {
 
 class DateConstructor : public JSObject {
  public:
-  static  DateConstructor* Instance() {
-  static  DateConstructor singleton;
-    return &singleton;
+  static DateConstructor* Instance() {
+    static DateConstructor* singleton = new DateConstructor();
+    return singleton;
   }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {

@@ -7,9 +7,9 @@ namespace es {
 
 class ErrorProto : public JSObject {
  public:
-  static  ErrorProto* Instance() {
-    static  ErrorProto singleton;
-    return &singleton;
+  static ErrorProto* Instance() {
+    static ErrorProto* singleton = new ErrorProto();
+    return singleton;
   }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
@@ -45,9 +45,9 @@ class ErrorObject : public JSObject {
 
 class ErrorConstructor : public JSObject {
  public:
-  static  ErrorConstructor* Instance() {
-    static  ErrorConstructor singleton;
-    return &singleton;
+  static ErrorConstructor* Instance() {
+    static ErrorConstructor* singleton = new ErrorConstructor();
+    return singleton;
   }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {

@@ -59,6 +59,14 @@ class ExecutionContext {
   }
   bool InSwitch() { return switch_layers_ != 0; }
 
+  std::vector<void*> Pointers() {
+    std::vector<void*> pointers;
+    pointers.emplace_back(&lexical_env_);
+    pointers.emplace_back(&variable_env_);
+    pointers.emplace_back(&this_binding_);
+    return pointers;
+  }
+
  private:
   LexicalEnvironment* variable_env_;
   LexicalEnvironment* lexical_env_;
@@ -77,13 +85,11 @@ class Runtime {
   }
 
   void AddContext(ExecutionContext* context) {
-    context_stack_.push(context);
-    if (context_stack_.size() == 1)
-      global_env_ = context;
+    context_stack_.emplace_back(context);
   }
 
   static ExecutionContext* TopContext() {
-    return Runtime::Global()->context_stack_.top();
+    return Runtime::Global()->context_stack_.back();
   }
 
   static LexicalEnvironment* TopLexicalEnv() {
@@ -91,21 +97,21 @@ class Runtime {
   }
 
   void PopContext() {
-    ExecutionContext* top = context_stack_.top();
-    context_stack_.pop();
+    ExecutionContext* top = context_stack_.back();
+    context_stack_.pop_back();
     delete top;
   }
 
   static JSValue* TopValue() {
-    return Runtime::Global()->value_stack_.top();
+    return Runtime::Global()->value_stack_.back();
   }
 
   void AddValue(JSValue* val) {
-    value_stack_.push(val);
+    value_stack_.emplace_back(val);
   }
 
   void PopValue() {
-    value_stack_.pop();
+    value_stack_.pop_back();
   }
 
   std::u16string AddSource(std::u16string&& source) {
@@ -113,16 +119,24 @@ class Runtime {
     return sources_[sources_.size() - 1];
   }
 
- private:
-  Runtime() {
-    value_stack_.push(Null::Instance());
+  std::vector<void*> Pointers() {
+    std::vector<void*> pointers;
+    for (ExecutionContext* context : context_stack_) {
+      auto context_pointer = context->Pointers();
+      pointers.insert(pointers.end(), context_pointer.begin(), context_pointer.end());
+    }
+    return pointers;
   }
 
-  std::stack<ExecutionContext*> context_stack_;
-  ExecutionContext* global_env_;
+ private:
+  Runtime() {
+    value_stack_.emplace_back(Null::Instance());
+  }
+
+  std::vector<ExecutionContext*> context_stack_;
   // This is to make sure builtin function like `array.push()`
   // can visit `array`.
-  std::stack<JSValue*> value_stack_;
+  std::vector<JSValue*> value_stack_;
   std::vector<std::u16string> sources_;
 };
 

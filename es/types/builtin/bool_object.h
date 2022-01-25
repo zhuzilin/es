@@ -9,9 +9,9 @@ bool ToBoolean(JSValue*);
 
 class BoolProto : public JSObject {
  public:
-  static  BoolProto* Instance() {
-    static  BoolProto singleton;
-    return &singleton;
+  static BoolProto* Instance() {
+    static BoolProto* singleton = new BoolProto();
+    return singleton;
   }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
@@ -43,9 +43,9 @@ class BoolObject : public JSObject {
 
 class BoolConstructor : public JSObject {
  public:
-  static  BoolConstructor* Instance() {
-    static  BoolConstructor singleton;
-    return &singleton;
+  static BoolConstructor* Instance() {
+    static BoolConstructor* singleton = new BoolConstructor();
+    return singleton;
   }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {

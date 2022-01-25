@@ -2,7 +2,7 @@
 #define ES_TYPES_BUILTIN_NUMBER_OBJECT
 
 #include <es/types/object.h>
-#include <es/execution_context.h>
+#include <es/runtime.h>
 
 namespace es {
 
@@ -13,9 +13,9 @@ std::u16string NumberToString(double m);
 
 class NumberProto : public JSObject {
  public:
-  static  NumberProto* Instance() {
-    static  NumberProto singleton;
-    return &singleton;
+  static NumberProto* Instance() {
+    static NumberProto* singleton = new NumberProto();
+    return singleton;
   }
 
   // 15.7.4.2 Number.prototype.toString ( [ radix ] )
@@ -93,8 +93,8 @@ class NumberObject : public JSObject {
 class NumberConstructor : public JSObject {
  public:
   static  NumberConstructor* Instance() {
-    static  NumberConstructor singleton;
-    return &singleton;
+    static  NumberConstructor* singleton = new NumberConstructor();
+    return singleton;
   }
 
   // 15.7.1.1 Number ( [ value ] )

@@ -101,7 +101,17 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     bindings_[N].value = V;
   }
 
-  virtual std::string ToString() override { return "DeclarativeEnvRec(" + log::ToString(this) + ")"; }
+  std::string ToString() override {
+    return "DeclarativeEnvRec(" + log::ToString(this) + ")";
+  }
+
+  std::vector<void*> Pointers() override {
+    std::vector<void*> pointers;
+    for (auto& pair : bindings_) {
+      pointers.emplace_back(&(pair.second.value));
+    }
+    return pointers;
+  }
 
  private:
   std::unordered_map<std::u16string, Binding> bindings_;
@@ -155,6 +165,12 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
   }
 
   virtual std::string ToString() override { return "ObjectEnvRec(" + log::ToString(this) + ")"; }
+
+  std::vector<void*> Pointers() override {
+    std::vector<void*> pointers;
+    pointers.emplace_back(&bindings_);
+    return pointers;
+  }
 
  private:
   JSObject *bindings_;

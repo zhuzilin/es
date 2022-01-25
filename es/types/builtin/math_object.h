@@ -9,9 +9,9 @@ double ToNumber(Error* e, JSValue* input);
 
 class Math : public JSObject {
  public:
-  static  Math* Instance() {
-  static  Math singleton;
-    return &singleton;
+  static Math* Instance() {
+  static Math* singleton = new Math();
+    return singleton;
   }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {

@@ -6,7 +6,7 @@
 #include <es/types/builtin/object_object.h>
 #include <es/types/builtin/error_object.h>
 #include <es/types/lexical_environment.h>
-#include <es/execution_context.h>
+#include <es/runtime.h>
 #include <es/types/completion.h>
 
 namespace es {
@@ -15,11 +15,16 @@ double ToNumber(Error* e, JSValue* input);
 std::u16string NumberToString(double m);
 Completion EvalProgram(AST* ast);
 
+void EnterFunctionCode(
+  Error* e, JSObject* f, ProgramOrFunctionBody* body,
+  JSValue* this_arg, std::vector<JSValue*> args, bool strict
+);
+
 class FunctionProto : public JSObject {
  public:
   static FunctionProto* Instance() {
-    static FunctionProto singleton;
-    return &singleton;
+    static FunctionProto* singleton = new FunctionProto();
+    return singleton;
   }
 
   JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
@@ -92,11 +97,6 @@ class FunctionProto : public JSObject {
   FunctionProto() :
     JSObject(OBJ_FUNC, u"Function", true, nullptr, false, true) {}
 };
-
-void EnterFunctionCode(
-  Error* e, JSObject* f, ProgramOrFunctionBody* body,
-  JSValue* this_arg, std::vector<JSValue*> args, bool strict
-);
 
 class FunctionObject : public JSObject {
  public:
@@ -291,8 +291,8 @@ class BindFunctionObject : public FunctionObject {
 class FunctionConstructor : public JSObject {
  public:
   static FunctionConstructor* Instance() {
-    static FunctionConstructor singleton;
-    return &singleton;
+    static FunctionConstructor* singleton = new FunctionConstructor();
+    return singleton;
   }
 
   // 15.3.1 The Function Constructor Called as a Function

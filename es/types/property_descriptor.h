@@ -93,11 +93,20 @@ class PropertyDescriptor : public JSValue {
     std::string res = "PropertyDescriptor{";
     if (HasValue()) res += "v: " + value_->ToString() + ", ";
     if (HasWritable()) res += "w: " + log::ToString(writable_) + ", ";
+    if (HasGet()) res += "get: " + getter_->ToString() + ", ";
+    if (HasSet()) res += "set: " + setter_->ToString() + ", ";
     if (HasEnumerable()) res += "e: " + log::ToString(enumerable_) + ", ";
     if (HasConfigurable()) res += "c: " + log::ToString(configurable_);
-
     res += '}';
     return res;
+  }
+
+  std::vector<void*> Pointers() override {
+    std::vector<void*> pointers;
+    if (HasValue()) pointers.emplace_back(&value_);
+    if (HasGet()) pointers.emplace_back(&getter_);
+    if (HasSet()) pointers.emplace_back(&setter_);
+    return pointers;
   }
 
  private:
@@ -118,16 +127,6 @@ class PropertyDescriptor : public JSValue {
   JSValue* setter_;
   bool enumerable_;
   bool configurable_;
-};
-
-class PropertyIdentifier : public JSValue {
- public:
-  PropertyIdentifier(std::u16string name, PropertyDescriptor* desciptor) :
-    JSValue(JS_PROP_IDEN), name_(name), desciptor_(desciptor) {}
-
- private:
-  std::u16string name_;
-  PropertyDescriptor* desciptor_;
 };
 
 }  // namespace es

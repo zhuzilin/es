@@ -2,7 +2,7 @@
 #define ES_ENTER_CODE_H
 
 #include <es/error.h>
-#include <es/execution_context.h>
+#include <es/runtime.h>
 #include <es/types/object.h>
 #include <es/types/builtin/object_object.h>
 #include <es/types/builtin/function_object.h>

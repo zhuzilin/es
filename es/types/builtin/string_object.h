@@ -15,9 +15,9 @@ std::u16string NumberToString(double m);
 
 class StringProto : public JSObject {
  public:
-  static  StringProto* Instance() {
-    static  StringProto singleton;
-    return &singleton;
+  static StringProto* Instance() {
+    static StringProto* singleton = new StringProto();
+    return singleton;
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -282,9 +282,9 @@ class StringObject : public JSObject {
 
 class StringConstructor : public JSObject {
  public:
-  static  StringConstructor* Instance() {
-    static  StringConstructor singleton;
-    return &singleton;
+  static StringConstructor* Instance() {
+    static StringConstructor* singleton = new StringConstructor();
+    return singleton;
   }
 
   // 15.5.1.1 String ( [ value ] )

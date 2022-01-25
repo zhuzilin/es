@@ -7,11 +7,12 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <es/gc/heap_object.h>
 #include <es/error.h>
 
 namespace es {
 
-class JSValue {
+class JSValue : public HeapObject {
  public:
   enum Type {
     JS_UNDEFINED = 0,
@@ -24,11 +25,10 @@ class JSValue {
     LANG_TO_SPEC,
 
     JS_REF,
-    JS_LIST,
     JS_PROP_DESC,
-    JS_PROP_IDEN,
-    JS_LEX_ENV,
     JS_ENV_REC,
+
+    NUM_TYPES,
   };
 
   JSValue(Type type) : type_(type) {}
@@ -52,8 +52,6 @@ class JSValue {
 
   inline bool IsReference() { return type_ == JS_REF; }
   inline bool IsPropertyDescriptor() { return type_ == JS_PROP_DESC; }
-  inline bool IsPropertyIdentifier() { return type_ == JS_PROP_IDEN; }
-  inline bool IsLexicalEnvironment() { return type_ == JS_LEX_ENV; }
   inline bool IsEnvironmentRecord() { return type_ == JS_ENV_REC; }
 
   virtual std::string ToString() = 0;
@@ -83,11 +81,12 @@ class JSValue {
 class Undefined : public JSValue {
  public:
   static Undefined* Instance() {
-    static Undefined singleton;
-    return &singleton;
+    static Undefined* singleton = new Undefined();
+    return singleton;
   }
 
   inline std::string ToString() override { return "Undefined"; }
+  inline std::vector<void*> Pointers() override { return {}; }
 
  private:
   Undefined() : JSValue(JS_UNDEFINED) {}
@@ -96,10 +95,11 @@ class Undefined : public JSValue {
 class Null : public JSValue {
  public:
   static Null* Instance() {
-    static Null singleton;
-    return &singleton;
+    static Null* singleton = new Null();
+    return singleton;
   }
   std::string ToString() override { return "Null"; }
+  inline std::vector<void*> Pointers() override { return {}; }
 
  private:
   Null() : JSValue(JS_NULL) {}
@@ -108,12 +108,12 @@ class Null : public JSValue {
 class Bool : public JSValue {
  public:
   static Bool* True() {
-    static Bool singleton(true);
-    return &singleton;
+    static Bool* singleton = new Bool(true);
+    return singleton;
   }
   static Bool* False() {
-    static Bool singleton(false);
-    return &singleton;
+    static Bool* singleton = new Bool(false);
+    return singleton;
   }
 
   static Bool* Wrap(bool val) {
@@ -123,6 +123,7 @@ class Bool : public JSValue {
   inline bool data() { return data_; }
 
   inline std::string ToString() override { return data_ ? "true" : "false"; }
+  inline std::vector<void*> Pointers() override { return {}; }
 
  private:
   Bool(bool data) : JSValue(JS_BOOL), data_(data) {}
@@ -136,46 +137,47 @@ class String : public JSValue {
   std::u16string data() { return data_; }
 
   static String* Empty() {
-    static String singleton(u"");
-    return &singleton;
+    static String* singleton = new String(u"");
+    return singleton;
   }
 
   static String* Undefined() {
-    static String singleton(u"undefined");
-    return &singleton;
+    static String* singleton = new String(u"undefined");
+    return singleton;
   }
 
   static String* Null() {
-    static String singleton(u"null");
-    return &singleton;
+    static String* singleton = new String(u"null");
+    return singleton;
   }
 
   static String* True() {
-    static String singleton(u"true");
-    return &singleton;
+    static String* singleton = new String(u"true");
+    return singleton;
   }
 
   static String* False() {
-    static String singleton(u"false");
-    return &singleton;
+    static String* singleton = new String(u"false");
+    return singleton;
   }
 
   static String* NaN() {
-    static String singleton(u"NaN");
-    return &singleton;
+    static String* singleton = new String(u"NaN");
+    return singleton;
   }
 
   static String* Zero() {
-    static String singleton(u"0");
-    return &singleton;
+    static String* singleton = new String(u"0");
+    return singleton;
   }
 
   static String* Infinity() {
-    static String singleton(u"Infinity");
-    return &singleton;
+    static String* singleton = new String(u"Infinity");
+    return singleton;
   }
 
   inline std::string ToString() override { return log::ToString(data_); }
+  inline std::vector<void*> Pointers() override { return {}; }
 
  private:
   std::u16string data_;
@@ -187,33 +189,33 @@ class Number : public JSValue {
     JSValue(JS_NUMBER), data_(data) {}
 
   static Number* NaN() {
-    static Number singleton(nan(""));
-    return &singleton;
+    static Number* singleton = new Number(nan(""));
+    return singleton;
   }
 
   static Number* PositiveInfinity() {
-    static Number singleton(std::numeric_limits<double>::infinity());
-    return &singleton;
+    static Number* singleton = new Number(std::numeric_limits<double>::infinity());
+    return singleton;
   }
 
   static Number* NegativeInfinity() {
-    static Number singleton(-std::numeric_limits<double>::infinity());
-    return &singleton;
+    static Number* singleton = new Number(-std::numeric_limits<double>::infinity());
+    return singleton;
   }
 
   static Number* Zero() {
-    static Number singleton(0.0);
-    return &singleton;
+    static Number* singleton = new Number(0.0);
+    return singleton;
   }
 
   static Number* NegativeZero() {
-    static Number singleton(-0.0);
-    return &singleton;
+    static Number* singleton = new Number(-0.0);
+    return singleton;
   }
 
   static Number* One() {
-    static Number singleton(1.0);
-    return &singleton;
+    static Number* singleton = new Number(1.0);
+    return singleton;
   }
 
   inline bool IsInfinity() { return isinf(data_); }
@@ -224,6 +226,7 @@ class Number : public JSValue {
   inline double data() { return data_; }
 
   inline std::string ToString() override { return std::to_string(data_); }
+  inline std::vector<void*> Pointers() override { return {}; }
 
  private:
   double data_;
