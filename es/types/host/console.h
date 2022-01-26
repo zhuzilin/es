@@ -11,7 +11,7 @@ bool ToBoolean(JSValue*);
 class Console : public JSObject {
  public:
   static  Console* Instance() {
-    static Console* singleton = new Console();
+    static Console* singleton = Console::New();
     return singleton;
   }
 
@@ -26,12 +26,14 @@ class Console : public JSObject {
   }
 
  private:
-   Console() :
-    JSObject(
-      OBJ_HOST, u"Console", true, nullptr, false, false
-    ) {
-      AddFuncProperty(u"log", log, false, false, false);
-    }
+  static Console* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_HOST, u"Console", true, nullptr, false, false, nullptr, 0
+    );
+    Console* obj = new (jsobj) Console();
+    obj->AddFuncProperty(u"log", log, false, false, false);
+    return obj;
+  }
 };
 
 }  // namespace es

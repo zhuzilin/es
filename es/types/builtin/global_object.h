@@ -5,7 +5,7 @@
 
 namespace es {
 
-std::u16string ToString(Error* e, JSValue* input);
+std::u16string ToU16String(Error* e, JSValue* input);
 double ToInt32(Error* e, JSValue* input);
 double StringToNumber(std::u16string source);
 
@@ -13,13 +13,13 @@ double StringToNumber(std::u16string source);
 class GlobalObject : public JSObject {
  public:
   static GlobalObject* Instance() {
-    static GlobalObject* singleton = new GlobalObject();
+    static GlobalObject* singleton = GlobalObject::New();
     return singleton;
   }
 
-  bool direct_eval() { return direct_eval_; }
+  bool direct_eval() { return READ_VALUE(this, kDirectEvalOffset, bool); }
   void SetDirectEval(bool direct_eval) {
-    direct_eval_ = direct_eval;
+    SET_VALUE(this, kDirectEvalOffset, direct_eval, bool);
   }
 
   // 15.1.2.1 eval(X)
@@ -32,7 +32,7 @@ class GlobalObject : public JSObject {
       *e = *Error::TypeError(u"parseInt called with undefined string");
       return nullptr;
     }
-    std::u16string input_string = ::es::ToString(e, vals[0]);
+    std::u16string input_string = ToU16String(e, vals[0]);
     size_t len = input_string.size();
     if (!e->IsOk()) return nullptr;
     double R = 10;
@@ -76,14 +76,14 @@ class GlobalObject : public JSObject {
       number *= R;
       number += character::Digit(input_string[i]);
     }
-    return new Number(number);
+    return Number::New(number);
   }
 
   // 15.1.2.3 parseFloat (string)
   static JSValue* parseFloat(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     if (vals.size() == 0)
       return Number::NaN();
-    std::u16string input_string = ::es::ToString(e, vals[0]);
+    std::u16string input_string = es::ToU16String(e, vals[0]);
     size_t i = 0;
     while (i < input_string.size() && character::IsWhiteSpace(input_string[i]))
       i++;
@@ -99,7 +99,7 @@ class GlobalObject : public JSObject {
     // TODO(zhuzilin) parseFloat should not be able to parse hex integer
     Token token = lexer.Next();
     if (token.type() == Token::TK_NUMBER) {
-      return new Number(StringToNumber(token.source()));
+      return Number::New(StringToNumber(token.source()));
     } else {
       return Number::NaN();
     }
@@ -118,8 +118,8 @@ class GlobalObject : public JSObject {
   inline std::string ToString() override { return "GlobalObject"; }
 
  private:
-  GlobalObject() :
-    JSObject(
+  static GlobalObject* New() {
+    JSObject* jsobj = JSObject::New(
       OBJ_GLOBAL,
       // 15.1 The values of the [[Prototype]] and [[Class]]
       // of the global object are implementation-dependent.
@@ -127,8 +127,14 @@ class GlobalObject : public JSObject {
       // NOTE(zhuzilin) global object need to have [[Extensible]] as true,
       // otherwise we cannot define variable in global code, as global varaibles
       // are the property of global object.
-      true, nullptr, false, false
-    ), direct_eval_(false) {}
+      true, nullptr, false, false, nullptr, kBoolSize
+    );
+    SET_VALUE(jsobj, kDirectEvalOffset, false, bool);
+    GlobalObject* obj = new (jsobj) GlobalObject();
+    return obj;
+  }
+
+  static constexpr size_t kDirectEvalOffset = kJSObjectOffset;
 
   bool direct_eval_;
 };

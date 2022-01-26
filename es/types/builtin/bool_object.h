@@ -10,12 +10,8 @@ bool ToBoolean(JSValue*);
 class BoolProto : public JSObject {
  public:
   static BoolProto* Instance() {
-    static BoolProto* singleton = new BoolProto();
+    static BoolProto* singleton = BoolProto::New();
     return singleton;
-  }
-
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
-    return Undefined::Instance();
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -27,24 +23,29 @@ class BoolProto : public JSObject {
   }
 
  private:
-   BoolProto() :
-    JSObject(
-      OBJ_BOOL, u"Boolean", true, Bool::False(), false, true
-    ) {}
+  static BoolProto* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_BOOL, u"Boolean", true, Bool::False(), false, false, nullptr, 0);
+    return new (jsobj) BoolProto();
+  }
 };
 
 class BoolObject : public JSObject {
  public:
-  BoolObject(JSValue* primitive_value) :
-    JSObject(OBJ_BOOL, u"Boolean", true, primitive_value, false, false) {
-    SetPrototype(BoolProto::Instance());
+  static BoolObject* New(JSValue* primitive_value) {
+    JSObject* jsobj = JSObject::New(
+      OBJ_BOOL, u"Boolean", true, primitive_value, false, false, nullptr, 0
+    );
+    BoolObject* obj = new (jsobj) BoolObject();
+    obj->SetPrototype(BoolProto::Instance());
+    return obj;
   }
 };
 
 class BoolConstructor : public JSObject {
  public:
   static BoolConstructor* Instance() {
-    static BoolConstructor* singleton = new BoolConstructor();
+    static BoolConstructor* singleton = BoolConstructor::New();
     return singleton;
   }
 
@@ -63,16 +64,19 @@ class BoolConstructor : public JSObject {
       b = ToBoolean(Undefined::Instance());
     else
       b = ToBoolean(arguments[0]);
-    return new BoolObject(Bool::Wrap(b));
+    return BoolObject::New(Bool::Wrap(b));
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    return new String(u"function Bool() { [native code] }");
+    return String::New(u"function Bool() { [native code] }");
   }
 
  private:
-   BoolConstructor() :
-    JSObject(OBJ_OTHER, u"Boolean", true, nullptr, true, true) {}
+  static BoolConstructor* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_OTHER, u"Boolean", true, nullptr, true, true, nullptr, 0);
+    return new (jsobj) BoolConstructor();
+  }
 };
 
 }  // namespace es

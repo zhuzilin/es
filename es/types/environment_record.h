@@ -13,72 +13,100 @@ namespace es {
 // EnvironmentRecord is also of type JSValue 
 class EnvironmentRecord : public JSValue {
  public:
-  EnvironmentRecord() : JSValue(JS_ENV_REC) {}
+  static EnvironmentRecord* New(size_t size) {
+    return static_cast<EnvironmentRecord*>(JSValue::New(JS_ENV_REC, size));
+  }
 
-  virtual bool HasBinding(std::u16string N) = 0;
-  virtual void CreateMutableBinding(Error* e, std::u16string N, bool D) = 0;
-  virtual void SetMutableBinding(Error* e, std::u16string N, JSValue* V, bool S) = 0;
-  virtual JSValue* GetBindingValue(Error* e, std::u16string N, bool S) = 0;
-  virtual bool DeleteBinding(Error* e, std::u16string N) = 0;
+  virtual bool HasBinding(String* N) = 0;
+  virtual void CreateMutableBinding(Error* e, String* N, bool D) = 0;
+  virtual void SetMutableBinding(Error* e, String* N, JSValue* V, bool S) = 0;
+  virtual JSValue* GetBindingValue(Error* e, String* N, bool S) = 0;
+  virtual bool DeleteBinding(Error* e, String* N) = 0;
   virtual JSValue* ImplicitThisValue() = 0;
+
+ protected:
+  static constexpr size_t kEnvironmentRecordOffset = kJSValueOffset;
 };
 
 class DeclarativeEnvironmentRecord : public EnvironmentRecord {
  public:
-  struct Binding {
-    JSValue* value;
-    bool can_delete;
-    bool is_mutable;
+  class Binding : public HeapObject {
+   public:
+    static Binding* New(JSValue* value, bool can_delete, bool is_mutable) {
+      HeapObject* heap_obj = HeapObject::New(kBindingOffset - kHeapObjectOffset);
+      SET_VALUE(heap_obj, kValueOffset, value, JSValue*);
+      SET_VALUE(heap_obj, kCanDeleteOffset, can_delete, bool);
+      SET_VALUE(heap_obj, kIsMutableOffset, is_mutable, bool);
+      return new (heap_obj) Binding();
+    }
+
+    JSValue* value() { return READ_VALUE(this, kValueOffset, JSValue*); };
+    void SetValue(JSValue* value) { SET_VALUE(this, kValueOffset, value, JSValue*); }
+    bool can_delete() { return READ_VALUE(this, kCanDeleteOffset, bool); }
+    bool is_mutable() { return READ_VALUE(this, kIsMutableOffset, bool); }
+
+    std::vector<void*> Pointers() override { return {}; }
+
+   private:
+    static constexpr size_t kValueOffset = kHeapObjectOffset;
+    static constexpr size_t kCanDeleteOffset = kValueOffset + kPtrSize;
+    static constexpr size_t kIsMutableOffset = kCanDeleteOffset + kBoolSize;
+    static constexpr size_t kBindingOffset = kIsMutableOffset + kBoolSize;
   };
 
-  bool HasBinding(std::u16string N) override {
-    return bindings_.find(N)!= bindings_.end();
+  static DeclarativeEnvironmentRecord* New() {
+    EnvironmentRecord* env_rec = EnvironmentRecord::New(kPtrSize);
+    SET_VALUE(env_rec, kBindingsOffset, HashMap<Binding>::New(), HashMap<Binding>*);
+    return new (env_rec) DeclarativeEnvironmentRecord();
   }
 
-  void CreateMutableBinding(Error* e, std::u16string N, bool D) override {
+  HashMap<Binding>* bindings() { return READ_VALUE(this, kBindingsOffset, HashMap<Binding>*); }
+
+  bool HasBinding(String* N) override {
+    return bindings()->Get(N) != nullptr;
+  }
+
+  void CreateMutableBinding(Error* e, String* N, bool D) override {
     assert(!HasBinding(N));
-    Binding b;
-    b.value = Undefined::Instance();
-    b.can_delete = D;
-    b.is_mutable = true;
-    bindings_[N] = b;
+    Binding* b = Binding::New(Undefined::Instance(), D, true);
+    bindings()->Set(N, b);
   }
 
-  void SetMutableBinding(Error* e, std::u16string N, JSValue* V, bool S) override {
-    log::PrintSource("enter SetMutableBinding ", N, " to " + V->ToString());
+  void SetMutableBinding(Error* e, String* N, JSValue* V, bool S) override {
+    log::PrintSource("enter SetMutableBinding ", N->data(), " to " + V->ToString());
     assert(V->IsLanguageType());
     assert(HasBinding(N));
     // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,
     // the value stored in bindings_ won't change.
-    if (bindings_[N].is_mutable) {
-      bindings_[N].value = V;
+    if (bindings()->Get(N)->is_mutable()) {
+      bindings()->Get(N)->SetValue(V);
     } else if (S) {
       *e = *Error::TypeError();
     }
   }
 
-  JSValue* GetBindingValue(Error* e, std::u16string N, bool S) override {
+  JSValue* GetBindingValue(Error* e, String* N, bool S) override {
     assert(HasBinding(N));
-    Binding b = bindings_[N];
-    if (b.value->IsUndefined() && !b.is_mutable) {
+    Binding* b = bindings()->Get(N);
+    if (b->value()->IsUndefined() && !b->is_mutable()) {
       if (S) {
-        *e = *Error::ReferenceError(N + u" is not defined");
+        *e = *Error::ReferenceError(N->data() + u" is not defined");
         return nullptr;
       } else {
-        log::PrintSource("GetBindingValue ", N, " undefined");
+        log::PrintSource("GetBindingValue ", N->data(), " undefined");
         return Undefined::Instance();
       }
     }
-    log::PrintSource("GetBindingValue ", N, " " + b.value->ToString());
-    return b.value;
+    log::PrintSource("GetBindingValue ", N->data(), " " + b->value()->ToString());
+    return b->value();
   }
 
-  bool DeleteBinding(Error* e, std::u16string N) override {
+  bool DeleteBinding(Error* e, String* N) override {
     if (!HasBinding(N)) return true;
-    if (!bindings_[N].can_delete) {
+    if (!bindings()->Get(N)->can_delete()) {
       return false;
     }
-    bindings_.erase(N);
+    bindings()->Delete(N);
     return true;
   }
 
@@ -86,19 +114,16 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     return Undefined::Instance();
   }
 
-  void CreateImmutableBinding(std::u16string N) {
+  void CreateImmutableBinding(String* N) {
     assert(!HasBinding(N));
-    Binding b;
-    b.value = Undefined::Instance();
-    b.can_delete = false;
-    b.is_mutable = false;
-    bindings_[N] = b;
+    Binding* b = Binding::New(Undefined::Instance(), false, false);
+    bindings()->Set(N, b);
   }
 
-  void InitializeImmutableBinding(std::u16string N, JSValue* V) {
+  void InitializeImmutableBinding(String* N, JSValue* V) {
     assert(HasBinding(N));
-    assert(!bindings_[N].is_mutable && bindings_[N].value->IsUndefined());
-    bindings_[N].value = V;
+    assert(!bindings()->Get(N)->is_mutable() && bindings()->Get(N)->value()->IsUndefined());
+    bindings()->Get(N)->SetValue(V);
   }
 
   std::string ToString() override {
@@ -106,60 +131,63 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   }
 
   std::vector<void*> Pointers() override {
-    std::vector<void*> pointers;
-    for (auto& pair : bindings_) {
-      pointers.emplace_back(&(pair.second.value));
-    }
-    return pointers;
+    assert(false);
   }
 
  private:
-  std::unordered_map<std::u16string, Binding> bindings_;
+  static constexpr size_t kBindingsOffset = kEnvironmentRecordOffset;
 };
 
 class ObjectEnvironmentRecord : public EnvironmentRecord {
  public:
-  ObjectEnvironmentRecord(JSObject* obj, bool provide_this = false) :
-    bindings_(obj), provide_this_(provide_this) {}
+  static ObjectEnvironmentRecord* New(JSObject* obj, bool provide_this = false) {
+    EnvironmentRecord* env_rec = EnvironmentRecord::New(kPtrSize + kBoolSize);
+    SET_VALUE(env_rec, kBindingsOffset, obj, JSObject*);
+    SET_VALUE(env_rec, kProvideThisOffset, provide_this, bool);
+    return new (env_rec) ObjectEnvironmentRecord();
+  }
 
-  bool HasBinding(std::u16string N) override {
-    return bindings_->HasProperty(N);
+  JSObject* bindings() { return READ_VALUE(this, kBindingsOffset, JSObject*); }
+  bool provide_this() { return READ_VALUE(this, kProvideThisOffset, bool); }
+
+  bool HasBinding(String* N) override {
+    return bindings()->HasProperty(N);
   }
 
   // 10.2.1.2.2 CreateMutableBinding (N, D)
-  void CreateMutableBinding(Error* e, std::u16string N, bool D) override {
+  void CreateMutableBinding(Error* e, String* N, bool D) override {
     assert(!HasBinding(N));
-    PropertyDescriptor* desc = new PropertyDescriptor();
+    PropertyDescriptor* desc = PropertyDescriptor::New();
     desc->SetDataDescriptor(Undefined::Instance(), true, true, D);
-    bindings_->DefineOwnProperty(e, N, desc, true);
+    bindings()->DefineOwnProperty(e, N, desc, true);
   }
 
-  void SetMutableBinding(Error* e, std::u16string N, JSValue* V, bool S) override {
-    log::PrintSource("enter SetMutableBinding ", N, " to " + V->ToString());
+  void SetMutableBinding(Error* e, String* N, JSValue* V, bool S) override {
+    log::PrintSource("enter SetMutableBinding " + N->ToString() + " to " + V->ToString());
     assert(V->IsLanguageType());
-    bindings_->Put(e, N, V, S);
+    bindings()->Put(e, N, V, S);
   }
 
-  JSValue* GetBindingValue(Error* e, std::u16string N, bool S) override {
+  JSValue* GetBindingValue(Error* e, String* N, bool S) override {
     bool value = HasBinding(N);
     if (!value) {
       if (S) {
-        *e = *Error::ReferenceError(N + u" is not defined");
+        *e = *Error::ReferenceError(N->data() + u" is not defined");
         return nullptr;
       } else {
         return Undefined::Instance();
       }
     }
-    return bindings_->Get(e, N);
+    return bindings()->Get(e, N);
   }
 
-  bool DeleteBinding(Error* e, std::u16string N) override {
-    return bindings_->Delete(e, N, false);
+  bool DeleteBinding(Error* e, String* N) override {
+    return bindings()->Delete(e, N, false);
   }
 
   JSValue* ImplicitThisValue() override {
-    if (provide_this_) {
-      return bindings_;
+    if (provide_this()) {
+      return bindings();
     }
     return Undefined::Instance();
   }
@@ -167,14 +195,12 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
   virtual std::string ToString() override { return "ObjectEnvRec(" + log::ToString(this) + ")"; }
 
   std::vector<void*> Pointers() override {
-    std::vector<void*> pointers;
-    pointers.emplace_back(&bindings_);
-    return pointers;
+    assert(false);
   }
 
  private:
-  JSObject *bindings_;
-  bool provide_this_;
+  static constexpr size_t kBindingsOffset = kEnvironmentRecordOffset;
+  static constexpr size_t kProvideThisOffset = kBindingsOffset + kPtrSize;
 };
 
 }  // namespace es

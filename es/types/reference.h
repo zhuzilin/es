@@ -12,36 +12,39 @@ JSObject* ToObject(Error* e, JSValue* input);
 
 class Reference : public JSValue {
  public:
-  Reference(
+  static Reference* New(
     JSValue* base,
-    std::u16string reference_name,
+    String* reference_name,
     bool strict_reference
-  ) : JSValue(JS_REF), base_(base), reference_name_(reference_name),
-      strict_reference_(strict_reference) {}
+  ) {
+    JSValue* jsval = JSValue::New(JS_REF, kStrictReferenceOffset + kBoolSize - kJSValueOffset);
+    SET_VALUE(jsval, kBaseOffset, base, JSValue*);
+    SET_VALUE(jsval, kReferenceNameOffset, reference_name, String*);
+    SET_VALUE(jsval, kStrictReferenceOffset, strict_reference, bool);
+    return new (jsval) Reference();
+  }
 
-  JSValue* GetBase() { return base_; }
-  std::u16string GetReferencedName() { return reference_name_; }
-  bool IsStrictReference() { return strict_reference_; }
+  JSValue* GetBase() { return READ_VALUE(this, kBaseOffset, JSValue*); }
+  String* GetReferencedName() { return READ_VALUE(this, kReferenceNameOffset, String*); }
+  bool IsStrictReference() { return READ_VALUE(this, kStrictReferenceOffset, bool); }
   bool HasPrimitiveBase() {
-    return base_->IsBool() || base_->IsString() || base_->IsNumber();
+    return GetBase()->IsBool() || GetBase()->IsString() || GetBase()->IsNumber();
   }
   bool IsPropertyReference() {
-    return base_->IsObject() || HasPrimitiveBase();
+    return GetBase()->IsObject() || HasPrimitiveBase();
   }
-  bool IsUnresolvableReference() { return base_->IsUndefined(); }
+  bool IsUnresolvableReference() { return GetBase()->IsUndefined(); }
 
-  std::string ToString() override { return "ref(" + log::ToString(reference_name_) + ")"; }
+  std::string ToString() override { return "ref(" + GetReferencedName()->ToString() + ")"; }
 
   std::vector<void*> Pointers() override {
-    std::vector<void*> pointers;
-    pointers.emplace_back(&base_);
-    return pointers;
+    assert(false);
   }
 
  private:
-  JSValue* base_;
-  std::u16string reference_name_;
-  bool strict_reference_;
+  static constexpr size_t kBaseOffset = kJSValueOffset;
+  static constexpr size_t kReferenceNameOffset = kBaseOffset + kPtrSize;
+  static constexpr size_t kStrictReferenceOffset = kReferenceNameOffset + kPtrSize;
 };
 
 JSValue* GetValue(Error* e, JSValue* V) {
@@ -51,7 +54,7 @@ JSValue* GetValue(Error* e, JSValue* V) {
   }
   Reference* ref = static_cast<Reference*>(V);
   if (ref->IsUnresolvableReference()) {
-    *e = *Error::ReferenceError(ref->GetReferencedName() + u" is not defined");
+    *e = *Error::ReferenceError(ref->GetReferencedName()->data() + u" is not defined");
     return nullptr;
   }
   JSValue* base = ref->GetBase();
@@ -103,7 +106,7 @@ void PutValue(Error* e, JSValue* V, JSValue* W) {
     GlobalObject::Instance()->Put(e, ref->GetReferencedName(), W, false);  // 3.b
   } else if (ref->IsPropertyReference()) {
     bool throw_flag = ref->IsStrictReference();
-    std::u16string P = ref->GetReferencedName();
+    String* P = ref->GetReferencedName();
     if (!ref->HasPrimitiveBase()) {
       assert(base->IsObject());
       JSObject* base_obj = static_cast<JSObject*>(base);

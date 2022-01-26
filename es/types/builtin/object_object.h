@@ -6,24 +6,24 @@
 
 namespace es {
 
-std::u16string ToString(Error* e, JSValue* input);
+String* ToString(Error* e, JSValue* input);
 PropertyDescriptor* ToPropertyDescriptor(Error* e, JSValue* obj);
 
 class ObjectProto : public JSObject {
  public:
   static ObjectProto* Instance() {
-    static ObjectProto* singleton = new ObjectProto();
+    static ObjectProto* singleton = ObjectProto::New();
     return singleton;
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     JSValue* val = Runtime::TopValue();
     if (val->IsUndefined())
-      return new String(u"[object Undefined]");
+      return String::New(u"[object Undefined]");
     if (val->IsNull())
-      return new String(u"[object Null]");
+      return String::New(u"[object Null]");
     JSObject* obj = ToObject(e, val);
-    return new String(u"[object " + obj->Class() + u"]");
+    return String::New(u"[object " + obj->Class()->data() + u"]");
   }
 
   static JSValue* toLocaleString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -51,26 +51,29 @@ class ObjectProto : public JSObject {
   }
 
  private:
-  ObjectProto() :
-    JSObject(
-      OBJ_OTHER, u"Object", true, nullptr, false, false
-    ) {}
+  static ObjectProto* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_OBJECT, u"Object", true, nullptr, false, false, nullptr, 0);
+    return new (jsobj) ObjectProto();
+  }
 };
 
 class Object : public JSObject {
  public:
-  Object() :
-    JSObject(
-      OBJ_OTHER, u"Object", true, nullptr, false, false
-    ) {
-    SetPrototype(ObjectProto::Instance());
+  static Object* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_OBJECT, u"Object", true, nullptr, false, false, nullptr, 0
+    );
+    Object* obj = new (jsobj) Object();
+    obj->SetPrototype(ObjectProto::Instance());
+    return obj;
   }
 };
 
 class ObjectConstructor : public JSObject {
  public:
   static ObjectConstructor* Instance() {
-    static ObjectConstructor* singleton = new ObjectConstructor();
+    static ObjectConstructor* singleton = ObjectConstructor::New();
     return singleton;
   }
 
@@ -98,7 +101,7 @@ class ObjectConstructor : public JSObject {
       }
     }
     assert(arguments.size() == 0 || arguments[0]->IsNull() || arguments[0]->IsUndefined());
-    JSObject* obj = new Object();
+    JSObject* obj = Object::New();
     return obj;
   }
 
@@ -125,7 +128,7 @@ class ObjectConstructor : public JSObject {
       *e = *Error::TypeError(u"Object.create called on non-object");
       return nullptr;
     }
-    Object* obj = new Object();
+    Object* obj = Object::New();
     obj->SetPrototype(vals[0]);
     if (vals.size() > 1 && !vals[1]->IsUndefined()) {
       ObjectConstructor::defineProperties(e, this_arg, vals);
@@ -144,7 +147,7 @@ class ObjectConstructor : public JSObject {
       *e = *Error::TypeError(u"Object.defineProperty need 3 arguments");
       return nullptr;
     }
-    std::u16string name = ::es::ToString(e, vals[1]);
+    String* name = ::es::ToString(e, vals[1]);
     if (!e->IsOk()) return nullptr;
     PropertyDescriptor* desc = ToPropertyDescriptor(e, vals[2]);
     if (!e->IsOk()) return nullptr;
@@ -213,12 +216,15 @@ class ObjectConstructor : public JSObject {
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    return new String(u"function Object() { [native code] }");
+    return String::New(u"function Object() { [native code] }");
   }
 
  private:
-  ObjectConstructor() :
-    JSObject(OBJ_OTHER, u"Object", true, nullptr, true, true) {}
+  static ObjectConstructor* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_OTHER, u"Object", true, nullptr, true, true, nullptr, 0);
+    return new (jsobj) ObjectConstructor();
+  }
 };
 
 }  // namespace es

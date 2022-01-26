@@ -6,12 +6,12 @@
 
 namespace es {
 
-std::u16string ToString(Error* e, JSValue* input);
+String* ToString(Error* e, JSValue* input);
 
 class RegExpProto : public JSObject {
  public:
   static RegExpProto* Instance() {
-    static RegExpProto* singleton = new RegExpProto();
+    static RegExpProto* singleton = RegExpProto::New();
     return singleton;
   }
 
@@ -26,58 +26,71 @@ class RegExpProto : public JSObject {
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
 
  private:
-   RegExpProto() :
-    JSObject(
-      OBJ_REGEXP, u"RegExp", true, nullptr, false, false
-    ) {}
+  static RegExpProto* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_REGEXP, u"RegExp", true, nullptr, false, false, nullptr, 0);
+    return new (jsobj) RegExpProto();
+  }
 };
 
 class RegExpObject : public JSObject {
  public:
-  RegExpObject(std::u16string pattern, std::u16string flag) :
-    JSObject(OBJ_REGEXP, u"RegExp", true, nullptr, false, false), source_(pattern), flag_(flag) {
-    SetPrototype(RegExpProto::Instance());
-    for (auto c : flag) {
+  static RegExpObject* New(String* pattern, String* flag) {
+    JSObject* jsobj = JSObject::New(
+      OBJ_REGEXP, u"RegExp", true, nullptr, false, false, nullptr,
+      kRegExpObjectOffset - kJSObjectOffset
+    );
+    SET_VALUE(jsobj, kPatternOffset, pattern, String*);
+    SET_VALUE(jsobj, kFlagOffset, flag, String*);
+    bool global = false, ignore_case = false, multiline = false;
+    for (auto c : flag->data()) {
       switch (c) {
         case u'g':
-          global_ = true;
+          global = true;
           break;
         case u'i':
-          ignore_case_ = true;
+          ignore_case = true;
           break;
         case u'm':
-          multiline_ = true;
+          multiline = true;
           break;
       }
     }
-    AddValueProperty(u"source", new String(source_), false, false, false);
-    AddValueProperty(u"global", Bool::Wrap(global_), false, false, false);
-    AddValueProperty(u"ignoreCase", Bool::Wrap(ignore_case_), false, false, false);
-    AddValueProperty(u"multiline", Bool::Wrap(multiline_), false, false, false);
+    SET_VALUE(jsobj, kGlobalOffset, global, bool);
+    SET_VALUE(jsobj, kIgnoreCaseOffset, ignore_case, bool);
+    SET_VALUE(jsobj, kMultilineOffset, multiline, bool);
+
+    RegExpObject* obj = new (jsobj) RegExpObject();
+    obj->SetPrototype(RegExpProto::Instance());
+    obj->AddValueProperty(u"source", pattern, false, false, false);
+    obj->AddValueProperty(u"global", Bool::Wrap(global), false, false, false);
+    obj->AddValueProperty(u"ignoreCase", Bool::Wrap(ignore_case), false, false, false);
+    obj->AddValueProperty(u"multiline", Bool::Wrap(multiline), false, false, false);
     // TODO(zhuzilin) Not sure if this should be initialized to 0.
-    AddValueProperty(u"lastIndex", Number::Zero(), false, false, false);
+    obj->AddValueProperty(u"lastIndex", Number::Zero(), false, false, false);
+    return obj;
   }
 
-  std::u16string pattern() { return source_; }
-  std::u16string flag() { return flag_; }
-  bool global() { return global_; }
-  bool ignore_case() { return ignore_case_; }
-  bool multiline() { return multiline_; }
+  static constexpr size_t kPatternOffset = kJSObjectOffset;
+  static constexpr size_t kFlagOffset = kPatternOffset + kPtrSize;
+  static constexpr size_t kGlobalOffset = kFlagOffset + kPtrSize;
+  static constexpr size_t kIgnoreCaseOffset = kGlobalOffset + kBoolSize;
+  static constexpr size_t kMultilineOffset = kIgnoreCaseOffset + kBoolSize;
+  static constexpr size_t kRegExpObjectOffset = kMultilineOffset + kBoolSize;
+
+  String* pattern() { return READ_VALUE(this, kPatternOffset, String*); }
+  String* flag() { return READ_VALUE(this, kFlagOffset, String*); }
+  bool global() { return READ_VALUE(this, kGlobalOffset, bool); }
+  bool ignore_case() { return READ_VALUE(this, kIgnoreCaseOffset, bool); }
+  bool multiline() { return READ_VALUE(this, kMultilineOffset, bool); }
 
   std::string ToString() { return "/" + log::ToString(pattern()) + "/" + log::ToString(flag()); }
-
- private:
-  std::u16string source_;
-  std::u16string flag_;
-  bool global_ = false;
-  bool ignore_case_ = false;
-  bool multiline_ = false;
 };
 
 class RegExpConstructor : public JSObject {
  public:
   static RegExpConstructor* Instance() {
-    static RegExpConstructor* singleton = new RegExpConstructor();
+    static RegExpConstructor* singleton = RegExpConstructor::New();
     return singleton;
   }
 
@@ -93,9 +106,9 @@ class RegExpConstructor : public JSObject {
   }
 
   JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
-    std::u16string P, F;
+    String* P, *F;
     if (arguments.size() == 0) {
-      P = u"";
+      P = String::Empty();
     } else if (arguments[0]->IsRegExpObject()) {
       if (arguments.size() > 1 && !arguments[1]->IsUndefined()) {
         RegExpObject* R = static_cast<RegExpObject*>(arguments[0]);
@@ -110,7 +123,7 @@ class RegExpConstructor : public JSObject {
       if (!e->IsOk()) return nullptr;
     }
     if (arguments.size() < 2 || arguments[1]->IsUndefined()) {
-      F = u"";
+      F = String::Empty();
     } else {
       F = ::es::ToString(e, arguments[1]);
       if (!e->IsOk()) return nullptr;
@@ -118,7 +131,7 @@ class RegExpConstructor : public JSObject {
     // Check is flag is valid
     std::unordered_map<char16_t, size_t> count;
     bool valid_flag = true;
-    for (auto c : F) {
+    for (auto c : F->data()) {
       if (c != u'g' && c != u'i' && c != u'm') {
         valid_flag = false;
         break;
@@ -130,19 +143,22 @@ class RegExpConstructor : public JSObject {
       count[c]++;
     }
     if (!valid_flag) {
-      *e = *Error::SyntaxError(u"invalid RegExp flag: " + F);
+      *e = *Error::SyntaxError(u"invalid RegExp flag: " + F->data());
       return nullptr;
     }
-    return new RegExpObject(P, F);
+    return RegExpObject::New(P, F);
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    return new String(u"function RegExp() { [native code] }");
+    return String::New(u"function RegExp() { [native code] }");
   }
 
  private:
-   RegExpConstructor() :
-    JSObject(OBJ_OTHER, u"RegExp", true, nullptr, true, true) {}
+  static RegExpConstructor* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_OTHER, u"RegExp", true, nullptr, true, true, nullptr, 0);
+    return new (jsobj) RegExpConstructor();
+  }
 };
 
 JSValue* RegExpProto::toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -152,8 +168,8 @@ JSValue* RegExpProto::toString(Error* e, JSValue* this_arg, std::vector<JSValue*
     return nullptr;
   }
   RegExpObject* regexp = static_cast<RegExpObject*>(val);
-  return new String(
-    u"/" + regexp->pattern() + u"/" +
+  return String::New(
+    u"/" + regexp->pattern()->data() + u"/" +
     (regexp->global() ? u"g" : u"") +
     (regexp->ignore_case() ? u"i" : u"") +
     (regexp->multiline() ? u"m" : u"")

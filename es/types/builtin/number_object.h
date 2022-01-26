@@ -9,12 +9,12 @@ namespace es {
 double ToNumber(Error* e, JSValue* input);
 double ToInteger(Error* e, JSValue* input);
 JSObject* ToObject(Error* e, JSValue* input);
-std::u16string NumberToString(double m);
+String* NumberToString(double m);
 
 class NumberProto : public JSObject {
  public:
   static NumberProto* Instance() {
-    static NumberProto* singleton = new NumberProto();
+    static NumberProto* singleton = NumberProto::New();
     return singleton;
   }
 
@@ -44,7 +44,7 @@ class NumberProto : public JSObject {
     }
     // TODO(zhuzilin) support other radix
     assert(radix == 10);
-    return new String(NumberToString(num));
+    return NumberToString(num);
   }
 
   static JSValue* toLocaleString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -75,25 +75,29 @@ class NumberProto : public JSObject {
   }
 
  private:
-   NumberProto() :
-    JSObject(
-      OBJ_NUMBER, u"Number", true, Number::Zero(), false, false
-    ) {}
+  static NumberProto* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_NUMBER, u"Number", true, Number::Zero(), false, false, nullptr, 0);
+    return new (jsobj) NumberProto();
+  }
 };
 
 class NumberObject : public JSObject {
  public:
-  NumberObject(JSValue* primitive_value) :
-    JSObject(OBJ_NUMBER, u"Number", true, primitive_value, false, false
-  ) {
-    SetPrototype(NumberProto::Instance());
+  static NumberObject* New(JSValue* primitive_value) {
+    JSObject* jsobj = JSObject::New(
+      OBJ_NUMBER, u"Number", true, primitive_value, false, false, nullptr, 0
+    );
+    NumberObject* obj = new (jsobj) NumberObject();
+    obj->SetPrototype(NumberProto::Instance());
+    return obj;
   }
 };
 
 class NumberConstructor : public JSObject {
  public:
   static  NumberConstructor* Instance() {
-    static  NumberConstructor* singleton = new NumberConstructor();
+    static  NumberConstructor* singleton = NumberConstructor::New();
     return singleton;
   }
 
@@ -105,7 +109,7 @@ class NumberConstructor : public JSObject {
     } else {
       double num = ToNumber(e, arguments[0]);
       if (!e->IsOk()) return nullptr;
-      js_num = new Number(num);
+      js_num = Number::New(num);
     }
     return js_num;
   }
@@ -117,18 +121,21 @@ class NumberConstructor : public JSObject {
     } else {
       double num = ToNumber(e, arguments[0]);
       if (!e->IsOk()) return nullptr;
-      js_num = new Number(num);
+      js_num = Number::New(num);
     }
-    return new NumberObject(js_num);
+    return NumberObject::New(js_num);
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    return new String(u"function Number() { [native code] }");
+    return String::New(u"function Number() { [native code] }");
   }
 
  private:
-   NumberConstructor() :
-    JSObject(OBJ_OTHER, u"Number", true, nullptr, true, true) {}
+  static NumberConstructor* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_OTHER, u"Number", true, nullptr, true, true, nullptr, 0);
+    return new (jsobj) NumberConstructor();
+  }
 };
 
 }  // namespace es

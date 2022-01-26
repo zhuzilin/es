@@ -229,12 +229,12 @@ double ToUint16(Error* e, JSValue* input) {
   return ToUint(e, input, 16);
 }
 
-std::u16string NumberToString(double m) {
-  // TODO(zhuzilin) Figure out how to solve the large number error.
+std::u16string NumberToU16String(double m) {
+  if (m == 0)
+    return u"0";
   if (isnan(m))
     return u"NaN";
-  if (m == 0)
-    return String::Zero()->data();
+  // TODO(zhuzilin) Figure out how to solve the large number error.
   std::u16string sign = u"";
   if (m < 0) {
     m = -m;
@@ -251,7 +251,7 @@ std::u16string NumberToString(double m) {
     frac_digit++;
     m *= 10;
   }
-  while (fmod(m, 10) < 1e-6) {
+  while (m != 0 && fmod(m, 10) < 1e-6) {
     frac_digit--;
     m /= 10;
   }
@@ -303,9 +303,9 @@ std::u16string NumberToString(double m) {
     res += u'0' + int(s);
     res += u"e";
     if (n - 1 > 0) {
-      res += u"+" + NumberToString(n - 1);
+      res += u"+" + NumberToU16String(n - 1);
     } else {
-      res += u"-" + NumberToString(1 - n);
+      res += u"-" + NumberToU16String(1 - n);
     }
     return sign + res;
   }
@@ -320,41 +320,59 @@ std::u16string NumberToString(double m) {
   }
   res += u"e";
   if (n - 1 > 0) {
-    res += u"+" + NumberToString(n - 1);
+    res += u"+" + NumberToU16String(n - 1);
   } else {
-    res += u"-" + NumberToString(1 - n);
+    res += u"-" + NumberToU16String(1 - n);
   }
   return sign + res;
 }
 
-std::u16string NumberToString(Number* num) {
+String* NumberToString(double m) {
+  if (isnan(m))
+    return String::NaN();
+  if (m == 0)
+    return String::Zero();
+  return String::New(NumberToU16String(m));
+}
+
+String* NumberToString(Number* num) {
   if (num->IsNaN())
-    return String::NaN()->data();
+    return String::NaN();
   if (num->IsInfinity())
-    return String::Infinity()->data();
+    return String::Infinity();
   return NumberToString(num->data());
 }
 
-std::u16string ToString(Error* e, JSValue* input) {
+String* ToString(Error* e, JSValue* input) {
   assert(input->IsLanguageType());
   switch (input->type()) {
     case JSValue::JS_UNDEFINED:
-      return String::Undefined()->data();
+      return String::Undefined();
     case JSValue::JS_NULL:
-      return String::Null()->data();
+      return String::Null();
     case JSValue::JS_BOOL:
-      return static_cast<Bool*>(input)->data() ? u"true" : u"false";
+      return static_cast<Bool*>(input)->data() ? String::True() : String::False();
     case JSValue::JS_NUMBER:
       return NumberToString(static_cast<Number*>(input));
     case JSValue::JS_STRING:
-      return static_cast<String*>(input)->data();
+      return static_cast<String*>(input);
     case JSValue::JS_OBJECT: {
       JSValue* prim_value = ToPrimitive(e, input, u"String");
-      if (!e->IsOk()) return u"";
+      if (!e->IsOk()) return String::Empty();
       return ToString(e, prim_value);
     }
     default:
       assert(false);
+  }
+}
+
+std::u16string ToU16String(Error* e, JSValue* input) {
+  assert(input->IsLanguageType());
+  switch (input->type()) {
+    case JSValue::JS_NUMBER:
+      return NumberToU16String(static_cast<Number*>(input)->data());
+    default:
+      return ToString(e, input)->data();
   }
 }
 
@@ -366,11 +384,11 @@ JSObject* ToObject(Error* e, JSValue* input) {
       *e = *Error::TypeError(u"Cannot convert undefined or null to object");
       return nullptr;
     case JSValue::JS_BOOL:
-      return new BoolObject(input);
+      return BoolObject::New(input);
     case JSValue::JS_NUMBER:
-      return new NumberObject(input);
+      return NumberObject::New(input);
     case JSValue::JS_STRING:
-      return new StringObject(input);
+      return StringObject::New(input);
     case JSValue::JS_OBJECT:
       return static_cast<JSObject*>(input);
     default:

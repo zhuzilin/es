@@ -13,19 +13,19 @@ bool ToBoolean(JSValue* input);
 double ToNumber(Error* e, JSValue* input);
 double ToInteger(Error* e, JSValue* input);
 double ToUint32(Error* e, JSValue* input);
-std::u16string ToString(Error* e, JSValue* input);
-std::u16string NumberToString(double m);
-double StringToNumber(std::u16string source);
+std::u16string ToU16String(Error* e, JSValue* input);
+std::u16string NumberToU16String(double m);
+double StringToNumber(String* source);
 JSObject* ToObject(Error* e, JSValue* input);
 
-bool IsArrayIndex(std::u16string P) {
-  return P == NumberToString(uint32_t(StringToNumber(P)));
+bool IsArrayIndex(String* P) {
+  return *P == *NumberToString(uint32_t(StringToNumber(P)));
 }
 
 class ArrayProto : public JSObject {
  public:
   static  ArrayProto* Instance() {
-    static  ArrayProto* singleton = new ArrayProto();
+    static  ArrayProto* singleton = ArrayProto::New();
     return singleton;
   }
 
@@ -33,10 +33,10 @@ class ArrayProto : public JSObject {
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     JSObject* array = ToObject(e, Runtime::TopValue());
     if (!e->IsOk()) return nullptr;
-    JSValue* func = array->Get(e, u"join");
+    JSValue* func = array->Get(e, String::New(u"join"));
     if (!e->IsOk()) return nullptr;
     if (!func->IsCallable()) {
-      func = ObjectProto::Instance()->Get(e, u"toString");
+      func = ObjectProto::Instance()->Get(e, String::New(u"toString"));
       if (!e->IsOk()) return nullptr;
     }
     return static_cast<JSObject*>(func)->Call(e, this_arg, vals);
@@ -51,52 +51,52 @@ class ArrayProto : public JSObject {
   static JSValue* join(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     JSObject* O = ToObject(e, Runtime::TopValue());
     if (!e->IsOk()) return nullptr;
-    Number* len_val = static_cast<Number*>(O->Get(e, u"length"));
+    Number* len_val = static_cast<Number*>(O->Get(e, String::Length()));
     size_t len = len_val->data();
 
     std::u16string sep = u",";
     if (vals.size() > 0 && !vals[0]->IsUndefined()) {
-      sep = ::es::ToString(e, vals[0]);
+      sep = ToU16String(e, vals[0]);
       if (!e->IsOk()) return nullptr;
     }
     if (len == 0)
       return String::Empty();
-    JSValue* element0 = O->Get(e, u"0");
+    JSValue* element0 = O->Get(e, String::New(u"0"));
     if (!e->IsOk()) return nullptr;
     std::u16string R = u"";
     if (!element0->IsUndefined() && !element0->IsNull()) {
-      R = ::es::ToString(e, element0);
+      R = ToU16String(e, element0);
     }
     for (double k = 1; k < len; k++) {
       JSValue* element = O->Get(e, NumberToString(k));
       if (!e->IsOk()) return nullptr;
       std::u16string next = u"";
       if (!element->IsUndefined() && !element->IsNull()) {
-        next = ::es::ToString(e, element);
+        next = ToU16String(e, element);
       }
       R += sep + next;
     }
-    return new String(R);
+    return String::New(R);
   }
 
   // 15.4.4.6 Array.prototype.pop ( )
   static JSValue* pop(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     JSObject* O = ToObject(e, Runtime::TopValue());
     if (!e->IsOk()) return nullptr;
-    size_t len = ToNumber(e, O->Get(e, u"length"));
+    size_t len = ToNumber(e, O->Get(e, String::Length()));
     if (!e->IsOk()) return nullptr;
     if (len == 0) {
-      O->Put(e, u"length", Number::Zero(), true);
+      O->Put(e, String::Length(), Number::Zero(), true);
       if (!e->IsOk()) return nullptr;
       return Undefined::Instance();
     } else {
       assert(len > 0);
-      std::u16string indx = NumberToString(len - 1);
+      String* indx = NumberToString(len - 1);
       JSValue* element = O->Get(e, indx);
       if (!e->IsOk()) return nullptr;
       O->Delete(e, indx, true);
       if (!e->IsOk()) return nullptr;
-      O->Put(e, u"length", new Number(len - 1), true);
+      O->Put(e, String::Length(), Number::New(len - 1), true);
       if (!e->IsOk()) return nullptr;
       return element;
     }
@@ -106,15 +106,15 @@ class ArrayProto : public JSObject {
   static JSValue* push(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     JSObject* O = ToObject(e, Runtime::TopValue());
     if (!e->IsOk()) return nullptr;
-    double n = ToNumber(e, O->Get(e, u"length"));
+    double n = ToNumber(e, O->Get(e, String::Length()));
     if (!e->IsOk()) return nullptr;
     for (JSValue* E : vals) {
       O->Put(e, NumberToString(n), E, true);
       if (!e->IsOk()) return nullptr;
       n++;      
     }
-    Number* num = new Number(n);
-    O->Put(e, u"length", num, true);
+    Number* num = Number::New(n);
+    O->Put(e, String::Length(), num, true);
     if (!e->IsOk()) return nullptr;
     return num;
   }
@@ -127,19 +127,19 @@ class ArrayProto : public JSObject {
   static JSValue* shift(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
     JSObject* O = ToObject(e, Runtime::TopValue());
     if (!e->IsOk()) return nullptr;
-    size_t len = ToNumber(e, O->Get(e, u"length"));
+    size_t len = ToNumber(e, O->Get(e, String::Length()));
     if (!e->IsOk()) return nullptr;
     if (len == 0) {
-      O->Put(e, u"length", Number::Zero(), true);
+      O->Put(e, String::Length(), Number::Zero(), true);
       if (!e->IsOk()) return nullptr;
       return Undefined::Instance();
     }
-    JSValue* first = O->Get(e, u"0");
+    JSValue* first = O->Get(e, String::Zero());
     if (!e->IsOk()) return nullptr;
     size_t k = 1;
     while (k < len) {  // 7
-      std::u16string from = NumberToString(k);
-      std::u16string to = NumberToString(k - 1);
+      String* from = NumberToString(k);
+      String* to = NumberToString(k - 1);
       bool from_present = O->HasProperty(from);
       if (from_present) {
         JSValue* from_val = O->Get(e, from);
@@ -154,7 +154,7 @@ class ArrayProto : public JSObject {
     }
     O->Delete(e, NumberToString(len - 1), true);
     if (!e->IsOk()) return nullptr;
-    O->Put(e, u"length", new Number(len - 1), true);
+    O->Put(e, String::Length(), Number::New(len - 1), true);
     if (!e->IsOk()) return nullptr;
     return first;
   }
@@ -206,32 +206,37 @@ class ArrayProto : public JSObject {
   }
 
  private:
-   ArrayProto() :
-    JSObject(
-      OBJ_ARRAY, u"Array", true, nullptr, false, false
-    ) {}
+  static ArrayProto* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_ARRAY, u"Array", true, nullptr, false, false, nullptr, 0);
+    return new (jsobj) ArrayProto();
+  }
 };
 
 class ArrayObject : public JSObject {
  public:
-  ArrayObject(double len) :
-    JSObject(OBJ_ARRAY, u"Array", true, nullptr, false, false) {
-    SetPrototype(ArrayProto::Instance());
+  static ArrayObject* New(double len) {
+    JSObject* jsobj = JSObject::New(
+      OBJ_ARRAY, u"Array", true, nullptr, false, false, nullptr, 0
+    );
+    ArrayObject* obj = new (jsobj) ArrayObject();
+    obj->SetPrototype(ArrayProto::Instance());
+    PropertyDescriptor* desc = PropertyDescriptor::New();
     // Not using AddValueProperty here to by pass the override DefineOwnProperty
-    PropertyDescriptor* desc = new PropertyDescriptor();
-    desc->SetDataDescriptor(new Number(len), true, false, false);
-    JSObject::DefineOwnProperty(nullptr, u"length", desc, false);
+    desc->SetDataDescriptor(Number::New(len), true, false, false);
+    obj->JSObject::DefineOwnProperty(nullptr, String::Length(), desc, false);
+    return obj;
   }
 
-  bool DefineOwnProperty(Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag) override {
-    auto old_len_desc = static_cast<PropertyDescriptor*>(GetOwnProperty(u"length"));
+  bool DefineOwnProperty(Error* e, String* P, PropertyDescriptor* desc, bool throw_flag) override {
+    auto old_len_desc = static_cast<PropertyDescriptor*>(GetOwnProperty(String::Length()));
     assert(!old_len_desc->IsUndefined());
     double old_len = ToNumber(e, old_len_desc->Value());
-    if (P == u"length") {  // 3
+    if (*P == *String::Length()) {  // 3
       if (!desc->HasValue()) {  // 3.a
-        return JSObject::DefineOwnProperty(e, u"length", desc, throw_flag);
+        return JSObject::DefineOwnProperty(e, String::Length(), desc, throw_flag);
       }
-      PropertyDescriptor* new_len_desc = new PropertyDescriptor();
+      PropertyDescriptor* new_len_desc = PropertyDescriptor::New();
       new_len_desc->Set(desc);
       double new_len = ToUint32(e, desc->Value());
       if (!e->IsOk()) goto reject;
@@ -241,9 +246,9 @@ class ArrayObject : public JSObject {
         *e = *Error::RangeError(u"length of array need to be uint32.");
         return false;
       }
-      new_len_desc->SetValue(new Number(new_len));
+      new_len_desc->SetValue(Number::New(new_len));
       if (new_len >= old_len) {  // 3.f
-        return JSObject::DefineOwnProperty(e, u"length", new_len_desc, throw_flag);
+        return JSObject::DefineOwnProperty(e, String::Length(), new_len_desc, throw_flag);
       }
       if (!old_len_desc->Writable())  // 3.g
         goto reject;
@@ -254,23 +259,23 @@ class ArrayObject : public JSObject {
         new_writable = false;
         new_len_desc->SetWritable(true);
       }
-      bool succeeded = JSObject::DefineOwnProperty(e, u"length", new_len_desc, throw_flag);
+      bool succeeded = JSObject::DefineOwnProperty(e, String::Length(), new_len_desc, throw_flag);
       if (!succeeded) return false;  // 3.k
       while (new_len < old_len) {  // 3.l
         old_len--;
-        bool delete_succeeded = Delete(e, ::es::ToString(e, new Number(old_len)), false);
+        bool delete_succeeded = Delete(e, ::es::ToString(e, Number::New(old_len)), false);
         if (!delete_succeeded) {  // 3.l.iii
-          new_len_desc->SetValue(new Number(old_len + 1));
+          new_len_desc->SetValue(Number::New(old_len + 1));
           if (!new_writable)  // 3.l.iii.2
             new_len_desc->SetWritable(false);
-          JSObject::DefineOwnProperty(e, u"length", new_len_desc, false);
+          JSObject::DefineOwnProperty(e, String::Length(), new_len_desc, false);
           goto reject;  // 3.l.iii.4
         }
       }
       if (!new_writable) {  // 3.m
-        auto tmp = new PropertyDescriptor();
+        auto tmp = PropertyDescriptor::New();
         tmp->SetWritable(false);
-        assert(JSObject::DefineOwnProperty(e, u"length", new_len_desc, false));
+        assert(JSObject::DefineOwnProperty(e, String::Length(), new_len_desc, false));
         return true;
       }
       return true;  // 3.n
@@ -283,15 +288,15 @@ class ArrayObject : public JSObject {
         if (!succeeded)
           goto reject;
         if (index >= old_len) {  // 4.e
-          old_len_desc->SetValue(new Number(index + 1));
-          return JSObject::DefineOwnProperty(e, u"length", old_len_desc, false);
+          old_len_desc->SetValue(Number::New(index + 1));
+          return JSObject::DefineOwnProperty(e, String::Length(), old_len_desc, false);
         }
         return true;
       }
     }
     return JSObject::DefineOwnProperty(e, P, desc, throw_flag);
 reject:
-    log::PrintSource("Array::DefineOwnProperty reject ", P, " " + desc->ToString());
+    log::PrintSource("Array::DefineOwnProperty reject " + P->ToString() + " " + desc->ToString());
     if (throw_flag) {
       *e = *Error::TypeError();
     }
@@ -299,7 +304,7 @@ reject:
   }
 
   std::string ToString() override {
-    size_t num = ToNumber(nullptr, Get(nullptr, u"length"));
+    size_t num = ToNumber(nullptr, Get(nullptr, String::Length()));
     return "Array(" + std::to_string(num) + ")";
   }
 };
@@ -307,7 +312,7 @@ reject:
 class ArrayConstructor : public JSObject {
  public:
   static  ArrayConstructor* Instance() {
-    static  ArrayConstructor* singleton = new ArrayConstructor();
+    static  ArrayConstructor* singleton = ArrayConstructor::New();
     return singleton;
   }
 
@@ -321,16 +326,16 @@ class ArrayConstructor : public JSObject {
     if (arguments.size() == 1 && arguments[0]->IsNumber()) {
       Number* len = static_cast<Number*>(arguments[0]);
       if (len->data() == ToUint32(e, len)) {
-        return new ArrayObject(len->data());
+        return ArrayObject::New(len->data());
       } else {
         *e = *Error::RangeError(u"Invalid array length");
         return nullptr;
       }
     }
-    ArrayObject* arr = new ArrayObject(arguments.size());
+    ArrayObject* arr = ArrayObject::New(arguments.size());
     for (size_t i = 0; i < arguments.size(); i++) {
       JSValue* arg = arguments[i];
-      arr->AddValueProperty(::es::NumberToString(i), arg, true, true, true);
+      arr->AddValueProperty(NumberToU16String(i), arg, true, true, true);
     }
     return arr;
   }
@@ -339,40 +344,43 @@ class ArrayConstructor : public JSObject {
     if (vals.size() == 0 || !vals[0]->IsObject())
       return Bool::False();
     JSObject* obj = static_cast<JSObject*>(vals[0]);
-    return Bool::Wrap(obj->Class() == u"Array");
+    return Bool::Wrap(obj->Class()->data() == u"Array");
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    return new String(u"function Array() { [native code] }");
+    return String::New(u"function Array() { [native code] }");
   }
 
  private:
-   ArrayConstructor() :
-    JSObject(OBJ_OTHER, u"Array", true, nullptr, true, true) {}
+  static ArrayConstructor* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_OTHER, u"Array", true, nullptr, true, true, nullptr, 0);
+    return new (jsobj) ArrayConstructor();
+  }
 };
 
 // 15.4.4.4 Array.prototype.concat ( [ item1 [ , item2 [ , … ] ] ] )
 JSValue* ArrayProto::concat(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
   std::vector<JSValue*> items = {Runtime::TopValue()};
   items.insert(items.end(), vals.begin(), vals.end());
-  ArrayObject* A = new ArrayObject(0);
+  ArrayObject* A = ArrayObject::New(0);
   size_t n = 0;
   for (auto E : items) {
     if (E->IsArrayObject()) {
       ArrayObject* O = static_cast<ArrayObject*>(E);
-      size_t len = ToNumber(e, O->Get(e, u"length"));
+      size_t len = ToNumber(e, O->Get(e, String::Length()));
       if (!e->IsOk()) return nullptr;
       for (size_t k = 0; k < len; k++) {  // 5.b.iii
-        std::u16string P = NumberToString(k);
+        String* P = NumberToString(k);
         if (O->HasProperty(P)) {
           JSValue* sub_element = O->Get(e, P);
           if (!e->IsOk()) return nullptr;
-          A->AddValueProperty(NumberToString(n), sub_element, true, true, true);
+          A->AddValueProperty(NumberToU16String(n), sub_element, true, true, true);
         }
         n++;
       }
     } else {
-      A->AddValueProperty(NumberToString(n), E, true, true, true);
+      A->AddValueProperty(NumberToU16String(n), E, true, true, true);
       n++;
     }
   }
@@ -383,8 +391,8 @@ JSValue* ArrayProto::concat(Error* e, JSValue* this_arg, std::vector<JSValue*> v
 JSValue* ArrayProto::slice(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
   JSObject* O = ToObject(e, Runtime::TopValue());
   if (!e->IsOk()) return nullptr;
-  double len = ToNumber(e, O->Get(e, u"length"));
-  ArrayObject* A = new ArrayObject(0);
+  double len = ToNumber(e, O->Get(e, String::Length()));
+  ArrayObject* A = ArrayObject::New(0);
   if (vals.size() == 0 || vals[0]->IsUndefined()) {
     *e = *Error::TypeError(u"start of Array.prototype.slice cannot be undefined");
   }
@@ -409,11 +417,11 @@ JSValue* ArrayProto::slice(Error* e, JSValue* this_arg, std::vector<JSValue*> va
   else
     final = fmin(relative_end, len);
   while (k < final) {
-    std::u16string Pk = NumberToString(k);
+    String* Pk = NumberToString(k);
     if (O->HasProperty(Pk)) {
       JSValue* k_value = O->Get(e, Pk);
       if (!e->IsOk()) return nullptr;
-      A->AddValueProperty(NumberToString(n), k_value, true, true, true);
+      A->AddValueProperty(NumberToU16String(n), k_value, true, true, true);
     }
     k++;
     n++;
@@ -425,7 +433,7 @@ JSValue* ArrayProto::slice(Error* e, JSValue* this_arg, std::vector<JSValue*> va
 JSValue* ArrayProto::sort(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
   JSObject* obj = ToObject(e, Runtime::TopValue());
   if (!e->IsOk()) return nullptr;
-  size_t len = ToNumber(e, obj->Get(e, u"length"));
+  size_t len = ToNumber(e, obj->Get(e, String::Length()));
   // TODO(zhuzilin) Check the implementation dependecy cases would not cause error.
   JSValue* comparefn;
   if (vals.size() == 0 || vals[0]->IsUndefined()) {
@@ -438,7 +446,7 @@ JSValue* ArrayProto::sort(Error* e, JSValue* this_arg, std::vector<JSValue*> val
   }
   std::vector<std::pair<bool, JSValue*>> indices;
   for (size_t i = 0; i < len; i++) {
-    std::u16string istr = NumberToString(i);
+    String* istr = NumberToString(i);
     if (obj->HasProperty(istr)) {
       JSValue* val = obj->Get(e, istr);
       if (!e->IsOk()) return nullptr;
@@ -468,13 +476,13 @@ JSValue* ArrayProto::sort(Error* e, JSValue* this_arg, std::vector<JSValue*> val
         return ToNumber(e, res) < 0;
       }
       // NOTE(zhuzilin) 123 will be smaller 21... which I've checked with V8.
-      std::u16string xstr = ::es::ToString(e, x);
-      std::u16string ystr = ::es::ToString(e, y);
+      std::u16string xstr = ToU16String(e, x);
+      std::u16string ystr = ToU16String(e, y);
       return xstr < ystr;
     });
   if (!e->IsOk()) return nullptr;
   for (size_t i = 0; i < len; i++) {
-    std::u16string istr = NumberToString(i);
+    String* istr = NumberToString(i);
     bool has = indices[i].first;
     JSValue* val = indices[i].second;
     if (indices[i].first) {
@@ -492,7 +500,7 @@ JSValue* ArrayProto::sort(Error* e, JSValue* this_arg, std::vector<JSValue*> val
 JSValue* ArrayProto::forEach(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
   JSObject* O = ToObject(e, Runtime::TopValue());
   if (!e->IsOk()) return nullptr;
-  size_t len = ToNumber(e, O->Get(e, u"length"));
+  size_t len = ToNumber(e, O->Get(e, String::Length()));
   if (vals.size() == 0 || !vals[0]->IsCallable()) {  // 4
     *e = *Error::TypeError(u"Array.prototype.forEach called on non-callable");
     return nullptr;
@@ -504,15 +512,15 @@ JSValue* ArrayProto::forEach(Error* e, JSValue* this_arg, std::vector<JSValue*> 
   } else {
     T = vals[1];
   }
-  ArrayObject* A = new ArrayObject(len);
+  ArrayObject* A = ArrayObject::New(len);
   for (size_t k = 0; k < len; k++) {
-    std::u16string p_k = NumberToString(k);
+    String* p_k = NumberToString(k);
     bool k_present = O->HasProperty(p_k);
     if (!e->IsOk()) return nullptr;
     if (k_present) {
       JSValue* k_value = O->Get(e, p_k);
       if (!e->IsOk()) return nullptr;
-      JSValue* mapped_value = callbackfn->Call(e, T, {k_value, new Number(k), O});
+      JSValue* mapped_value = callbackfn->Call(e, T, {k_value, Number::New(k), O});
       if (!e->IsOk()) return nullptr;
     }
   }
@@ -523,7 +531,7 @@ JSValue* ArrayProto::forEach(Error* e, JSValue* this_arg, std::vector<JSValue*> 
 JSValue* ArrayProto::map(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
   JSObject* O = ToObject(e, Runtime::TopValue());
   if (!e->IsOk()) return nullptr;
-  size_t len = ToNumber(e, O->Get(e, u"length"));
+  size_t len = ToNumber(e, O->Get(e, String::Length()));
   if (vals.size() == 0 || !vals[0]->IsCallable()) {  // 4
     *e = *Error::TypeError(u"Array.prototype.map called on non-callable");
     return nullptr;
@@ -535,17 +543,17 @@ JSValue* ArrayProto::map(Error* e, JSValue* this_arg, std::vector<JSValue*> vals
   } else {
     T = vals[1];
   }
-  ArrayObject* A = new ArrayObject(len);
+  ArrayObject* A = ArrayObject::New(len);
   for (size_t k = 0; k < len; k++) {
-    std::u16string p_k = NumberToString(k);
+    String* p_k = NumberToString(k);
     bool k_present = O->HasProperty(p_k);
     if (!e->IsOk()) return nullptr;
     if (k_present) {
       JSValue* k_value = O->Get(e, p_k);
       if (!e->IsOk()) return nullptr;
-      JSValue* mapped_value = callbackfn->Call(e, T, {k_value, new Number(k), O});
+      JSValue* mapped_value = callbackfn->Call(e, T, {k_value, Number::New(k), O});
       if (!e->IsOk()) return nullptr;
-      A->AddValueProperty(p_k, mapped_value, true, true, true);
+      A->AddValueProperty(p_k->data(), mapped_value, true, true, true);
     }
   }
   return A;
@@ -555,7 +563,7 @@ JSValue* ArrayProto::map(Error* e, JSValue* this_arg, std::vector<JSValue*> vals
 JSValue* ArrayProto::filter(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
   JSObject* O = ToObject(e, Runtime::TopValue());
   if (!e->IsOk()) return nullptr;
-  size_t len = ToNumber(e, O->Get(e, u"length"));
+  size_t len = ToNumber(e, O->Get(e, String::Length()));
   if (vals.size() == 0 || !vals[0]->IsCallable()) {  // 4
     *e = *Error::TypeError(u"Array.prototype.filter called on non-callable");
     return nullptr;
@@ -568,18 +576,18 @@ JSValue* ArrayProto::filter(Error* e, JSValue* this_arg, std::vector<JSValue*> v
     T = vals[1];
   }
   size_t to = 0;
-  ArrayObject* A = new ArrayObject(len);
+  ArrayObject* A = ArrayObject::New(len);
   for (size_t k = 0; k < len; k++) {
-    std::u16string p_k = NumberToString(k);
+    String* p_k = NumberToString(k);
     bool k_present = O->HasProperty(p_k);
     if (!e->IsOk()) return nullptr;
     if (k_present) {
       JSValue* k_value = O->Get(e, p_k);
       if (!e->IsOk()) return nullptr;
-      JSValue* selected = callbackfn->Call(e, T, {k_value, new Number(k), O});
+      JSValue* selected = callbackfn->Call(e, T, {k_value, Number::New(k), O});
       if (!e->IsOk()) return nullptr;
       if (ToBoolean(selected)) {
-        A->AddValueProperty(NumberToString(to), k_value, true, true, true);
+        A->AddValueProperty(NumberToU16String(to), k_value, true, true, true);
         to++;
       }
     }
@@ -595,10 +603,10 @@ JSValue* ObjectConstructor::keys(Error* e, JSValue* this_arg, std::vector<JSValu
   JSObject* O = static_cast<JSObject*>(vals[0]);
   auto properties = O->AllEnumerableProperties();
   size_t n = properties.size();
-  ArrayObject* arr_obj = new ArrayObject(n);
+  ArrayObject* arr_obj = ArrayObject::New(n);
   for (size_t index = 0; index < n; index++) {
     arr_obj->AddValueProperty(
-      NumberToString(index), new String(properties[index].first), true, true, true);
+      NumberToString(index), properties[index].first, true, true, true);
   }
   return arr_obj;
 }

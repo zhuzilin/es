@@ -13,10 +13,11 @@
 #include <es/types/property_descriptor.h>
 #include <es/error.h>
 #include <es/utils/helper.h>
+#include <es/utils/hashmap.h>
 
 namespace es {
 
-typedef std::function<JSValue* (Error*, JSValue*, std::vector<JSValue*>)> inner_func;
+typedef JSValue* (*inner_func)(Error*, JSValue*, std::vector<JSValue*>);
 
 class JSObject : public JSValue {
  public:
@@ -39,71 +40,77 @@ class JSObject : public JSValue {
     OBJ_OTHER,
   };
 
-  JSObject(
+  static JSObject* New(
     ObjType obj_type,
     std::u16string klass,
     bool extensible,
     JSValue* primitive_value,
     bool is_constructor,
     bool is_callable,
-    inner_func callable = nullptr
-  ) : JSValue(JS_OBJECT), obj_type_(obj_type),
-      class_(klass), extensible_(extensible),
-      primitive_value_(primitive_value), is_constructor_(is_constructor),
-      is_callable_(is_callable), callable_(callable) {
-    SetPrototype(Null::Instance());
+    inner_func callable,
+    size_t size
+  ) {
+    JSValue* jsval = JSValue::New(JS_OBJECT, kJSObjectOffset - kJSValueOffset + size);
+    SET_VALUE(jsval, kObjTypeOffset, obj_type, ObjType);
+    SET_VALUE(jsval, kClassOffset, String::New(klass), String*);
+    SET_VALUE(jsval, kExtensibleOffset, extensible, bool);
+    SET_VALUE(jsval, kPrimitiveValueOffset, primitive_value, JSValue*);
+    SET_VALUE(jsval, kIsConstructorOffset, is_constructor, bool);
+    SET_VALUE(jsval, kIsCallableOffset, is_callable, bool);
+    // NOTE(zhuzilin) function pointer is different.
+    TYPED_PTR(jsval, kCallableOffset, inner_func)[0] = callable;
+    SET_VALUE(jsval, kPrototypeOffset, Null::Instance(), JSValue*);
+    SET_VALUE(jsval, kNamedPropertiesOffset, HashMap<PropertyDescriptor>::New(), HashMap<PropertyDescriptor>*);
+    return new (jsval) JSObject();
   }
 
-  ObjType obj_type() { return obj_type_; }
-  void print_named_properties() {
-    for(auto& pair : named_properties_) {
-      std::cout << "PRINT NAMED_PROP: " << log::ToString(pair.first) << std::endl;
-    }
-  }
+  ObjType obj_type() { return READ_VALUE(this, kObjTypeOffset, ObjType); }
 
-  bool IsFunction() { return obj_type_ == OBJ_FUNC; }
+  bool IsFunction() { return obj_type() == OBJ_FUNC; }
 
   // Internal Preperties Common to All Objects
-  JSValue* Prototype() { return prototype_; }
+  JSValue* Prototype() { return READ_VALUE(this, kPrototypeOffset, JSValue*); }
   void SetPrototype(JSValue* proto) {
-    assert(proto->type() == JS_NULL || proto->type() == JS_OBJECT);
-    prototype_ = proto;
+    assert(proto->IsPrototype());
+    SET_VALUE(this, kPrototypeOffset, proto, JSValue*);
   }
-  std::u16string Class() { return class_; };
-  bool Extensible() { return extensible_; };
-  void SetExtensible(bool extensible) { extensible_ = extensible; }
+  String* Class() { return READ_VALUE(this, kClassOffset, String*); };
+  bool Extensible() { return READ_VALUE(this, kExtensibleOffset, bool); };
+  void SetExtensible(bool extensible) { SET_VALUE(this, kExtensibleOffset, extensible, bool); }
 
-  virtual JSValue* Get(Error* e, std::u16string P);
-  virtual JSValue* GetOwnProperty(std::u16string P);
-  JSValue* GetProperty(std::u16string P);
-  void Put(Error* e, std::u16string P, JSValue* V, bool throw_flag);
-  bool CanPut(std::u16string P);
-  bool HasProperty(std::u16string P);
-  virtual bool Delete(Error* e, std::u16string P, bool throw_flag);
+  virtual JSValue* Get(Error* e, String* P);
+  virtual JSValue* GetOwnProperty(String* P);
+  JSValue* GetProperty(String* P);
+  void Put(Error* e, String* P, JSValue* V, bool throw_flag);
+  bool CanPut(String* P);
+  bool HasProperty(String* P);
+  virtual bool Delete(Error* e, String* P, bool throw_flag);
   JSValue* DefaultValue(Error* e, std::u16string hint);
-  virtual bool DefineOwnProperty(Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag);
+  virtual bool DefineOwnProperty(Error* e, String* P, PropertyDescriptor* desc, bool throw_flag);
 
   // Internal Properties Only Defined for Some Objects
   // [[PrimitiveValue]]
   JSValue* PrimitiveValue() {
-    assert(primitive_value_ != nullptr);
-    return primitive_value_;
+    JSValue* primitive_value = READ_VALUE(this, kPrimitiveValueOffset, JSValue*);
+    assert(primitive_value != nullptr);
+    return primitive_value;
   };
   bool HasPrimitiveValue() {
-    return obj_type_ == OBJ_BOOL || obj_type_ == OBJ_DATE ||
-           obj_type_ == OBJ_NUMBER || obj_type_ == OBJ_STRING;
+    return obj_type() == OBJ_BOOL || obj_type() == OBJ_DATE ||
+           obj_type() == OBJ_NUMBER || obj_type() == OBJ_STRING;
   }
   // [[Construct]]
   virtual JSObject* Construct(Error* e, std::vector<JSValue*> arguments) {
     assert(false);
   }
-  bool IsConstructor() override { return is_constructor_; }
+  bool IsConstructor() override { return READ_VALUE(this, kIsConstructorOffset, bool); }
   // [[Call]]
   virtual JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) {
-    assert(is_callable_ && callable_ != nullptr);
-    return callable_(e, this, arguments);
+    inner_func callable = TYPED_PTR(this, kCallableOffset, inner_func)[0];
+    assert(IsCallable() && callable != nullptr);
+    return callable(e, this, arguments);
   }
-  bool IsCallable() override { return is_callable_; }
+  bool IsCallable() override { return READ_VALUE(this, kIsCallableOffset, bool); }
   // [[HasInstance]]
   // NOTE(zhuzilin) Here we use the implementation in 15.3.5.3 [[HasInstance]] (V)
   // to make sure all callables have HasInstance.
@@ -111,7 +118,7 @@ class JSObject : public JSValue {
     assert(IsCallable());
     if (!V->IsObject())
       return false;
-    JSValue* O = Get(e, u"prototype");
+    JSValue* O = Get(e, String::Prototype());
     if (!e->IsOk()) return false;
     if (!O->IsObject()) {
       *e = *Error::TypeError();
@@ -131,7 +138,14 @@ class JSObject : public JSValue {
     std::u16string name, JSValue* value, bool writable,
     bool enumerable, bool configurable
   ) {
-    PropertyDescriptor* desc = new PropertyDescriptor();
+    return AddValueProperty(String::New(name), value, writable, enumerable, configurable);
+  }
+
+  void AddValueProperty(
+    String* name, JSValue* value, bool writable,
+    bool enumerable, bool configurable
+  ) {
+    PropertyDescriptor* desc = PropertyDescriptor::New();
     desc->SetDataDescriptor(value, writable, enumerable, configurable);
     // This should just like named_properties_[name] = desc
     DefineOwnProperty(nullptr, name, desc, false);
@@ -143,19 +157,17 @@ class JSObject : public JSValue {
   );
 
   // This for for-in statement.
-  virtual std::vector<std::pair<std::u16string, PropertyDescriptor*>> AllEnumerableProperties() {
-    std::vector<std::pair<std::u16string, PropertyDescriptor*>> result;
-    for (auto pair : named_properties_) {
-      if (!pair.second->HasEnumerable() || !pair.second->Enumerable())
-        continue;
-      result.emplace_back(pair);
-    }
-    if (!prototype_->IsNull()) {
-      JSObject* proto = static_cast<JSObject*>(prototype_);
+  virtual std::vector<std::pair<String*, PropertyDescriptor*>> AllEnumerableProperties() {
+    auto filter = [](PropertyDescriptor* desc) {
+      return desc->HasEnumerable() && desc->Enumerable();
+    };
+    auto result = named_properties()->SortedKeyValPairs(filter);
+    if (!Prototype()->IsNull()) {
+      JSObject* proto = static_cast<JSObject*>(Prototype());
       for (auto pair : proto->AllEnumerableProperties()) {
         if (!pair.second->HasEnumerable() || !pair.second->Enumerable())
           continue;
-        if (named_properties_.find(pair.first) == named_properties_.end()) {
+        if (named_properties()->Get(pair.first) == nullptr) {
           result.emplace_back(pair);
         }
       }
@@ -163,84 +175,43 @@ class JSObject : public JSValue {
     return result;
   }
 
-  virtual std::string ToString() override { return log::ToString(class_); }
+  virtual std::string ToString() override { return log::ToString(Class()->data()); }
 
   std::vector<void*> Pointers() override {
-    std::vector<void*> pointers;
-    std::cout << named_properties_.size() << std::endl;
-    for(auto& pair : named_properties_) {
-      std::cout << "add pointer: " << log::ToString(pair.first) << std::endl;
-      // TODO(zhuzilin) check why there is coruption in the iteration...
-      if (pair.second != nullptr) {
-        pointers.emplace_back(&(pair.second));
-        std::cout << pair.second->ToString() << std::endl;
-      }
-    }
-    std::cout << "add pointer: prototype "<< std::endl;
-    pointers.emplace_back(&prototype_);
-    if (HasPrimitiveValue())
-      pointers.emplace_back(&primitive_value_);
-    std::cout << "pointers size: " << pointers.size() << std::endl;
-    return pointers;
+    assert(false);
   }
 
- private:  
-  ObjType obj_type_;
+ protected:
+  static constexpr size_t kObjTypeOffset = kJSValueOffset;
+  static constexpr size_t kClassOffset = kObjTypeOffset + kIntSize;
+  static constexpr size_t kExtensibleOffset = kClassOffset + kPtrSize;
+  static constexpr size_t kPrimitiveValueOffset = kExtensibleOffset + kBoolSize;
+  static constexpr size_t kIsConstructorOffset = kPrimitiveValueOffset + kPtrSize;
+  static constexpr size_t kIsCallableOffset = kIsConstructorOffset + kBoolSize;
+  static constexpr size_t kCallableOffset = kIsCallableOffset + kBoolSize;
+  static constexpr size_t kPrototypeOffset = kCallableOffset + kFuncPtrSize;
+  static constexpr size_t kNamedPropertiesOffset = kPrototypeOffset + kPtrSize;
+  static constexpr size_t kJSObjectOffset = kNamedPropertiesOffset + kPtrSize;
 
-  static bool IsIntegerIndices(const std::u16string& a) {
-    if (a.size() == 1 && a[0] == u'0') {
-      return true;
-    }
-    if (!character::IsDecimalDigit(a[0]) || a[0] == u'0') {
-      return false;
-    }
-    for (size_t i = 1; i < a.size(); i++) {
-      if (!character::IsDecimalDigit(a[0]))
-        return false;
-    }
-    return true;
-  }
-
-  // TODO(zhuzilin) The order of the properties are determined by ES5 spec.
-  // However, array need to have a ordered property.
-  // Try to follow the traverse order in ES6
-  struct cmpPropertName {
-    bool operator() (const std::u16string& a, const std::u16string& b) const {
-      if (IsIntegerIndices(a) && IsIntegerIndices(b)) {
-        return a.size() == b.size() ? a < b : a.size() < b.size();
-      }
-      return a < b;
-    }
-  };
-
-  std::map<std::u16string, PropertyDescriptor*, cmpPropertName> named_properties_;
-
-  JSValue* prototype_;
-  std::u16string class_;
-  bool extensible_;
-
-  JSValue* primitive_value_;
-
-  bool is_constructor_;
-  bool is_callable_;
-  inner_func callable_;
+ private:
+  HashMap<PropertyDescriptor>* named_properties() { return READ_VALUE(this, kNamedPropertiesOffset, HashMap<PropertyDescriptor>*); };
 };
 
 // 8.12.1 [[GetOwnProperty]] (P)
-JSValue* JSObject::GetOwnProperty(std::u16string P) {
+JSValue* JSObject::GetOwnProperty(String* P) {
   // TODO(zhuzilin) String Object has a more elaborate impl 15.5.5.2.
-  auto iter = named_properties_.find(P);
-  if (iter == named_properties_.end()) {
+  JSValue* val = named_properties()->Get(P);
+  if (val == nullptr) {
     return Undefined::Instance();
   }
   // NOTE(zhuzilin) In the spec, we need to create a new property descriptor D,
   // And assign the property to it. However, if we init D->value = a, and
   // set D->value = b in DefineOwnProperty, the value saved in the named_properties_ will
   // remain b and that is not what we want.
-  return iter->second;
+  return val;
 }
 
-JSValue* JSObject::GetProperty(std::u16string P) {
+JSValue* JSObject::GetProperty(String* P) {
   JSValue* own_property = GetOwnProperty(P);
   if (!own_property->IsUndefined()) {
     return own_property;
@@ -254,7 +225,7 @@ JSValue* JSObject::GetProperty(std::u16string P) {
   return proto_obj->GetProperty(P);
 }
 
-JSValue* JSObject::Get(Error* e, std::u16string P) {
+JSValue* JSObject::Get(Error* e, String* P) {
   JSValue* value = GetProperty(P);
   if (value->IsUndefined()) {
     return Undefined::Instance();
@@ -273,7 +244,7 @@ JSValue* JSObject::Get(Error* e, std::u16string P) {
   }
 }
 
-bool JSObject::CanPut(std::u16string P) {
+bool JSObject::CanPut(String* P) {
   JSValue* value = GetOwnProperty(P);
   if (!value->IsUndefined()) {
     PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(value);
@@ -302,7 +273,7 @@ bool JSObject::CanPut(std::u16string P) {
 }
 
 // 8.12.5 [[Put]] ( P, V, Throw )
-void JSObject::Put(Error* e, std::u16string P, JSValue* V, bool throw_flag) {
+void JSObject::Put(Error* e, String* P, JSValue* V, bool throw_flag) {
   assert(V->IsLanguageType());
   if (!CanPut(P)) {  // 1
     if (throw_flag) {  // 1.a
@@ -314,7 +285,7 @@ void JSObject::Put(Error* e, std::u16string P, JSValue* V, bool throw_flag) {
   if (!value->IsUndefined()) {
     PropertyDescriptor* own_desc = static_cast<PropertyDescriptor*>(value);  // 2
     if (own_desc->IsDataDescriptor()) {  // 3
-      PropertyDescriptor* value_desc = new PropertyDescriptor();
+      PropertyDescriptor* value_desc = PropertyDescriptor::New();
       value_desc->SetValue(V);
       log::PrintSource("Overwrite the old desc with " + value_desc->ToString());
       DefineOwnProperty(e, P, value_desc, throw_flag);
@@ -333,24 +304,24 @@ void JSObject::Put(Error* e, std::u16string P, JSValue* V, bool throw_flag) {
       return;
     }
   }
-  PropertyDescriptor* new_desc = new PropertyDescriptor();
+  PropertyDescriptor* new_desc = PropertyDescriptor::New();
   new_desc->SetDataDescriptor(V, true, true, true);  // 6.a
   DefineOwnProperty(e, P, new_desc, throw_flag);
 }
 
-bool JSObject::HasProperty(std::u16string P) {
+bool JSObject::HasProperty(String* P) {
   JSValue* desc = GetOwnProperty(P);
   return !desc->IsUndefined();
 }
 
-bool JSObject::Delete(Error* e, std::u16string P, bool throw_flag) {
+bool JSObject::Delete(Error* e, String* P, bool throw_flag) {
   JSValue* value = GetOwnProperty(P);
   if (value->IsUndefined()) {
     return true;
   }
   PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(value);
   if (desc->Configurable()) {
-    named_properties_.erase(P);
+    named_properties()->Delete(P);
     return true;
   } else {
     if (throw_flag) {
@@ -362,15 +333,15 @@ bool JSObject::Delete(Error* e, std::u16string P, bool throw_flag) {
 
 // 8.12.9 [[DefineOwnProperty]] (P, Desc, Throw)
 bool JSObject::DefineOwnProperty(
-  Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag
+  Error* e, String* P, PropertyDescriptor* desc, bool throw_flag
 ) {
   JSValue* current = GetOwnProperty(P);
   PropertyDescriptor* current_desc;
   if (current->IsUndefined()) {
-    if(!extensible_)  // 3
+    if(!Extensible())  // 3
       goto reject;
     // 4.
-    named_properties_[P] = desc;
+    named_properties()->Set(P, desc);
     return true;
   }
   if (desc->bitmask() == 0) {  // 5
@@ -396,11 +367,11 @@ bool JSObject::DefineOwnProperty(
   log::PrintSource("desc: " + desc->ToString() + ", current: " + current_desc->ToString());
   if (!current_desc->Configurable()) { // 7
     if (desc->Configurable()) {  // 7.a
-      log::PrintSource("DefineOwnProperty: ", P, " not configurable, while new value configurable");
+      log::PrintSource("DefineOwnProperty: " + P->ToString() + " not configurable, while new value configurable");
       goto reject;
     }
     if (desc->HasEnumerable() && (desc->Enumerable() != current_desc->Enumerable())) {  // 7.b
-      log::PrintSource("DefineOwnProperty: ", P, " enumerable value differ");
+      log::PrintSource("DefineOwnProperty: " + P->ToString() + " enumerable value differ");
       goto reject;
     }
   }
@@ -410,12 +381,12 @@ bool JSObject::DefineOwnProperty(
       // 9.a
       if (!current_desc->Configurable()) goto reject;
       // 9.b.i & 9.c.i
-      PropertyDescriptor* old_property = named_properties_[P];
-      PropertyDescriptor* new_property = new PropertyDescriptor();
+      PropertyDescriptor* old_property = named_properties()->Get(P);
+      PropertyDescriptor* new_property = PropertyDescriptor::New();
       new_property->SetConfigurable(old_property->Configurable());
       new_property->SetEnumerable(old_property->Enumerable());
       new_property->SetBitMask(old_property->bitmask());
-      named_properties_[P] = new_property;
+      named_properties()->Set(P, new_property);
     } else if (current_desc->IsDataDescriptor() && desc->IsDataDescriptor()) {  // 10.
       if (!current_desc->Configurable()) {  // 10.a
         if (!current_desc->Writable()) {
@@ -435,7 +406,7 @@ bool JSObject::DefineOwnProperty(
       }
     }
   }
-  log::PrintSource("DefineOwnProperty: ", P, " is set to " + desc->Value()->ToString());
+  log::PrintSource("DefineOwnProperty: " + P->ToString() + " is set to " + desc->Value()->ToString());
   // 12.
   current_desc->Set(desc);
   // 13.

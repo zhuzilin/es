@@ -30,7 +30,7 @@ JSValue* MakeArgGetter(std::u16string name, LexicalEnvironment* env) {
   Parser parser(u"return " + name + u";");
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(
     parser.ParseFunctionBody(Token::TK_EOS));
-  return new FunctionObject({}, body, env);
+  return FunctionObject::New({}, body, env);
 }
 
 JSValue* MakeArgSetter(std::u16string name, LexicalEnvironment* env) {
@@ -38,7 +38,7 @@ JSValue* MakeArgSetter(std::u16string name, LexicalEnvironment* env) {
   Parser parser(name + u" = " + param);
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(
     parser.ParseFunctionBody(Token::TK_EOS));
-  return new FunctionObject({param}, body, env);
+  return FunctionObject::New({param}, body, env);
 }
 
 // 10.6 Arguments Object
@@ -46,22 +46,22 @@ JSObject* CreateArgumentsObject(
   FunctionObject* func, std::vector<JSValue*>& args,
   LexicalEnvironment* env, bool strict
 ) {
-  std::vector<std::u16string> names = func->FormalParameters();
+  FixedArray<String>* names = func->FormalParameters();
   int len = args.size();
-  Object* map = new Object();  // 8
-  JSObject* obj = new ArgumentsObject(map, len);
+  Object* map = Object::New();  // 8
+  JSObject* obj = ArgumentsObject::New(map, len);
   int indx = len - 1;  // 10
   std::set<std::u16string> mapped_names;
   while (indx >= 0) {  // 11
     JSValue* val = args[indx];  // 11.a
     obj->AddValueProperty(NumberToString(indx), val, true, true, true);  // 11.b
-    if (indx < names.size()) {  // 11.c
-      std::u16string name = names[indx];  // 11.c.i
+    if (indx < names->size()) {  // 11.c
+      std::u16string name = names->Get(indx)->data();  // 11.c.i
       if (!strict && mapped_names.find(name) == mapped_names.end()) {  // 11.c.ii
         mapped_names.insert(name);
         JSValue* g = MakeArgGetter(name, env);
         JSValue* p = MakeArgSetter(name, env);
-        PropertyDescriptor* desc = new PropertyDescriptor();
+        PropertyDescriptor* desc = PropertyDescriptor::New();
         desc->SetSet(p);
         desc->SetGet(g);
         desc->SetConfigurable(true);
@@ -183,7 +183,8 @@ void DeclarationBindingInstantiation(
     Function* func_ast = static_cast<Function*>(code);
     size_t arg_count = args.size();  // 4.b
     size_t n = 0;  // 4.c
-    for (auto arg_name : names) {  // 4.d
+    for (size_t i = 0; i < names->size(); i++) {
+      String* arg_name = names->Get(i);  // 4.d
       JSValue* v = Undefined::Instance();
       if (n < arg_count)  // 4.d.i & 4.d.ii
         v = args[n++];
@@ -200,7 +201,7 @@ void DeclarationBindingInstantiation(
   // 5
   for (Function* func_decl : body->func_decls()) {
     assert(func_decl->is_named());
-    std::u16string fn = func_decl->name();
+    String* fn = String::New(func_decl->name());
     FunctionObject* fo = InstantiateFunctionDeclaration(e, func_decl);
     if (!e->IsOk()) return;
     bool func_already_declared = env->HasBinding(fn);
@@ -213,7 +214,7 @@ void DeclarationBindingInstantiation(
       assert(!existing_prop->IsUndefined());
       auto existing_prop_desc = static_cast<PropertyDescriptor*>(existing_prop);
       if (existing_prop_desc->Configurable()) {  // 5.e.iii
-        auto new_desc = new PropertyDescriptor();
+        auto new_desc = PropertyDescriptor::New();
         new_desc->SetDataDescriptor(Undefined::Instance(), true, true, configurable_bindings);
         go->DefineOwnProperty(e, fn, new_desc, true);
         if (!e->IsOk()) return;
@@ -229,25 +230,25 @@ void DeclarationBindingInstantiation(
     env->SetMutableBinding(e, fn, fo, strict);  // 5.f
   }
   // 6
-  bool arguments_already_declared = env->HasBinding(u"arguments");
+  bool arguments_already_declared = env->HasBinding(String::Arguments());
   // 7
   if (code_type == CODE_FUNC && !arguments_already_declared) {
     auto args_obj = CreateArgumentsObject(f, args, context->variable_env(), strict);
     if (strict) {  // 7.b
       DeclarativeEnvironmentRecord* decl_env = static_cast<DeclarativeEnvironmentRecord*>(env);
-      decl_env->CreateImmutableBinding(u"arguments");
-      decl_env->InitializeImmutableBinding(u"arguments", args_obj);
+      decl_env->CreateImmutableBinding(String::Arguments());
+      decl_env->InitializeImmutableBinding(String::Arguments(), args_obj);
     } else {  // 7.c
       // NOTE(zhuzlin) I'm not sure if this should be false.
-      env->CreateMutableBinding(e, u"arguments", false);
-      env->SetMutableBinding(e, u"arguments", args_obj, false);
+      env->CreateMutableBinding(e, String::Arguments(), false);
+      env->SetMutableBinding(e, String::Arguments(), args_obj, false);
     }
   }
   // 8
   std::vector<VarDecl*> decls;
   FindAllVarDecl(body->statements(), decls);
   for (VarDecl* d : decls) {
-    std::u16string dn = d->ident();
+    String* dn = String::New(d->ident());
     bool var_already_declared = env->HasBinding(dn);
     if (!var_already_declared) {
       env->CreateMutableBinding(e, dn, configurable_bindings);
@@ -339,7 +340,7 @@ JSValue* GlobalObject::eval(Error* e, JSValue* this_arg, std::vector<JSValue*> v
       if (result.value->IsErrorObject()) {
         message = static_cast<ErrorObject*>(result.value)->ErrorMessage();
       } else {
-        message = ::es::ToString(e, result.value);
+        message = ToU16String(e, result.value);
       }
       *e = *Error::NativeError(message);
       return result.value;
@@ -409,7 +410,7 @@ void InitObject() {
   ObjectConstructor* constructor = ObjectConstructor::Instance();
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.2.3 Properties of the Object Constructor
-  constructor->AddValueProperty(u"prototype", ObjectProto::Instance(), false, false, false);
+  constructor->AddValueProperty(String::Prototype(), ObjectProto::Instance(), false, false, false);
   constructor->AddFuncProperty(u"toString", ObjectConstructor::toString, true, false, false);
   constructor->AddFuncProperty(u"getPrototypeOf", ObjectConstructor::getPrototypeOf, true, false, false);
   constructor->AddFuncProperty(u"getOwnPropertyDescriptor", ObjectConstructor::getOwnPropertyDescriptor, true, false, false);
@@ -442,8 +443,8 @@ void InitFunction() {
   FunctionConstructor* constructor = FunctionConstructor::Instance();
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.3.3 Properties of the Function Constructor
-  constructor->AddValueProperty(u"prototype", FunctionProto::Instance(), false, false, false);
-  constructor->AddValueProperty(u"length", Number::One(), false, false, false);
+  constructor->AddValueProperty(String::Prototype(), FunctionProto::Instance(), false, false, false);
+  constructor->AddValueProperty(String::Length(), Number::One(), false, false, false);
   constructor->AddFuncProperty(u"toString", FunctionConstructor::toString, true, false, false);
 
   FunctionProto* proto = FunctionProto::Instance();
@@ -460,10 +461,10 @@ void InitNumber() {
   NumberConstructor* constructor = NumberConstructor::Instance();
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.3.3 Properties of the Number Constructor
-  constructor->AddValueProperty(u"prototype", NumberProto::Instance(), false, false, false);
-  constructor->AddValueProperty(u"length", Number::One(), false, false, false);
-  constructor->AddValueProperty(u"MAX_VALUE", new Number(1.7976931348623157e308), false, false, false);
-  constructor->AddValueProperty(u"MIN_VALUE", new Number(5e-324), false, false, false);
+  constructor->AddValueProperty(String::Prototype(), NumberProto::Instance(), false, false, false);
+  constructor->AddValueProperty(String::Length(), Number::One(), false, false, false);
+  constructor->AddValueProperty(u"MAX_VALUE", Number::New(1.7976931348623157e308), false, false, false);
+  constructor->AddValueProperty(u"MIN_VALUE", Number::New(5e-324), false, false, false);
   constructor->AddValueProperty(u"NaN", Number::NaN(), false, false, false);
   constructor->AddValueProperty(u"NEGATIVE_INFINITY", Number::PositiveInfinity(), false, false, false);
   constructor->AddValueProperty(u"POSITIVE_INFINITY", Number::NegativeInfinity(), false, false, false);
@@ -484,15 +485,15 @@ void InitError() {
   ErrorConstructor* constructor = ErrorConstructor::Instance();
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.11.3 Properties of the Error Constructor
-  constructor->AddValueProperty(u"prototype", ErrorProto::Instance(), false, false, false);
-  constructor->AddValueProperty(u"length", Number::One(), false, false, false);
+  constructor->AddValueProperty(String::Prototype(), ErrorProto::Instance(), false, false, false);
+  constructor->AddValueProperty(String::Length(), Number::One(), false, false, false);
   constructor->AddFuncProperty(u"toString", NumberConstructor::toString, true, false, false);
 
   ErrorProto* proto = ErrorProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
   // 15.11.4 Properties of the Error Prototype Object
   proto->AddValueProperty(u"constructor", ErrorConstructor::Instance(), false, false, false);
-  proto->AddValueProperty(u"name", new String(u"Error"), false, false, false);
+  proto->AddValueProperty(u"name", String::New(u"Error"), false, false, false);
   proto->AddValueProperty(u"message", String::Empty(), true, false, false);
   proto->AddFuncProperty(u"call", ErrorProto::toString, true, false, false);
 }
@@ -501,7 +502,7 @@ void InitBool() {
   BoolConstructor* constructor = BoolConstructor::Instance();
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.6.3 Properties of the Boolean Constructor
-  constructor->AddValueProperty(u"prototype", BoolProto::Instance(), false, false, false);
+  constructor->AddValueProperty(String::Prototype(), BoolProto::Instance(), false, false, false);
   constructor->AddFuncProperty(u"toString", BoolConstructor::toString, true, false, false);
 
   BoolProto* proto = BoolProto::Instance();
@@ -516,8 +517,8 @@ void InitString() {
   StringConstructor* constructor = StringConstructor::Instance();
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.3.3 Properties of the String Constructor
-  constructor->AddValueProperty(u"prototype", StringProto::Instance(), false, false, false);
-  constructor->AddValueProperty(u"length", Number::One(), true, false, false);
+  constructor->AddValueProperty(String::Prototype(), StringProto::Instance(), false, false, false);
+  constructor->AddValueProperty(String::Length(), Number::One(), true, false, false);
   constructor->AddFuncProperty(u"fromCharCode", StringConstructor::fromCharCode, true, false, false);
   constructor->AddFuncProperty(u"toString", StringConstructor::toString, true, false, false);
 
@@ -550,15 +551,15 @@ void InitArray() {
   ArrayConstructor* constructor = ArrayConstructor::Instance();
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.6.3 Properties of the Arrayean Constructor
-  constructor->AddValueProperty(u"length", Number::One(), false, false, false);
-  constructor->AddValueProperty(u"prototype", ArrayProto::Instance(), false, false, false);
+  constructor->AddValueProperty(String::Length(), Number::One(), false, false, false);
+  constructor->AddValueProperty(String::Prototype(), ArrayProto::Instance(), false, false, false);
   constructor->AddFuncProperty(u"isArray", ArrayConstructor::isArray, true, false, false);
   constructor->AddFuncProperty(u"toString", ArrayConstructor::toString, true, false, false);
 
   ArrayProto* proto = ArrayProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
   // 15.6.4 Properties of the Arrayean Prototype Object
-  proto->AddValueProperty(u"length", Number::Zero(), false, false, false);
+  proto->AddValueProperty(String::Length(), Number::Zero(), false, false, false);
   proto->AddValueProperty(u"constructor", ArrayConstructor::Instance(), false, false, false);
   proto->AddFuncProperty(u"toString", ArrayProto::toString, true, false, false);
   proto->AddFuncProperty(u"toLocaleString", ArrayProto::toLocaleString, true, false, false);
@@ -587,8 +588,8 @@ void InitDate() {
   DateConstructor* constructor = DateConstructor::Instance();
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.6.3 Properties of the Dateean Constructor
-  constructor->AddValueProperty(u"length", new Number(7), false, false, false);
-  constructor->AddValueProperty(u"prototype", DateProto::Instance(), false, false, false);
+  constructor->AddValueProperty(String::Length(), Number::New(7), false, false, false);
+  constructor->AddValueProperty(String::Prototype(), DateProto::Instance(), false, false, false);
   constructor->AddFuncProperty(u"parse", DateConstructor::parse, true, false, false);
   constructor->AddFuncProperty(u"UTC", DateConstructor::UTC, true, false, false);
   constructor->AddFuncProperty(u"now", DateConstructor::now, true, false, false);
@@ -597,7 +598,7 @@ void InitDate() {
   DateProto* proto = DateProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
   // 15.6.4 Properties of the Dateean Prototype Object
-  proto->AddValueProperty(u"length", Number::Zero(), false, false, false);
+  proto->AddValueProperty(String::Length(), Number::Zero(), false, false, false);
   proto->AddValueProperty(u"constructor", DateConstructor::Instance(), false, false, false);
   proto->AddFuncProperty(u"toString", DateProto::toString, true, false, false);
   proto->AddFuncProperty(u"toDateString", DateProto::toDateString, true, false, false);
@@ -646,7 +647,7 @@ void InitRegExp() {
   RegExpConstructor* constructor = RegExpConstructor::Instance();
   constructor->SetPrototype(FunctionProto::Instance());
   // 15.6.3 Properties of the RegExpean Constructor
-  constructor->AddValueProperty(u"prototype", RegExpProto::Instance(), false, false, false);
+  constructor->AddValueProperty(String::Prototype(), RegExpProto::Instance(), false, false, false);
 
   RegExpProto* proto = RegExpProto::Instance();
   proto->SetPrototype(ObjectProto::Instance());
@@ -675,9 +676,9 @@ JSValue* StringProto::split(Error* e, JSValue* this_arg, std::vector<JSValue*> v
   JSValue* val = Runtime::TopValue();
   val->CheckObjectCoercible(e);
   if (!e->IsOk()) return nullptr;
-  std::u16string S = ::es::ToString(e, val);
+  std::u16string S = ToU16String(e, val);
   if (!e->IsOk()) return nullptr;
-  ArrayObject* A = new ArrayObject(0);
+  ArrayObject* A = ArrayObject::New(0);
   size_t length_A = 0;
   size_t lim = 4294967295.0;
   if (vals.size() >= 2 && !vals[1]->IsUndefined()) {
@@ -689,18 +690,18 @@ JSValue* StringProto::split(Error* e, JSValue* this_arg, std::vector<JSValue*> v
   if (lim == 0)
     return A;
   if (vals.size() < 1 || vals[0]->IsUndefined()) {  // 10
-    A->AddValueProperty(u"0", new String(S), true, true, true);
+    A->AddValueProperty(u"0", String::New(S), true, true, true);
     return A;
   }
   if (vals[0]->IsRegExpObject()) {
     assert(false);
   }
   assert(vals[0]->IsString());
-  std::u16string R = ::es::ToString(e, vals[0]);
+  std::u16string R = ToU16String(e, vals[0]);
   if (s == 0) {
     regex::MatchResult z = regex::SplitMatch(S, 0, R);
     if (!z.failed) return A;
-    A->AddValueProperty(u"0", new String(S), true, true, true);
+    A->AddValueProperty(u"0", String::New(S), true, true, true);
     return A;
   }
   size_t q = p;
@@ -715,13 +716,13 @@ JSValue* StringProto::split(Error* e, JSValue* this_arg, std::vector<JSValue*> v
         q++;
       } else {  // 13.c.iii
         std::u16string T = S.substr(p, q - p);
-        A->AddValueProperty(NumberToString(length_A), new String(T), true, true, true);
+        A->AddValueProperty(NumberToString(length_A), String::New(T), true, true, true);
         length_A++;
         if (length_A == lim)
           return A;
         p = e;
         for (size_t i = 0; i < cap.size(); i++) {  // 13.c.iii.7
-          A->AddValueProperty(NumberToString(length_A), new String(cap[i]), true, true, true);
+          A->AddValueProperty(NumberToString(length_A), String::New(cap[i]), true, true, true);
           length_A++;
           if (length_A == lim)
             return A;
@@ -731,7 +732,7 @@ JSValue* StringProto::split(Error* e, JSValue* this_arg, std::vector<JSValue*> v
     }
   }
   std::u16string T = S.substr(p);  // 14
-  A->AddValueProperty(NumberToString(length_A), new String(T), true, true, true);  // 15
+  A->AddValueProperty(NumberToString(length_A), String::New(T), true, true, true);  // 15
   return A;
 }
 

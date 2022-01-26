@@ -64,7 +64,7 @@ JSValue* EvalAssignmentExpression(Error* e, AST* ast);
 JSValue* EvalLeftHandSideExpression(Error* e, AST* ast);
 std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast);
 JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_list);
-JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, std::u16string identifier_name, ValueGuard& guard);
+JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, String* identifier_name, ValueGuard& guard);
 JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, AST* expr, ValueGuard& guard);
 JSValue* EvalExpressionList(Error* e, AST* ast);
 
@@ -79,7 +79,7 @@ Completion EvalProgram(AST* ast) {
   if (ast->type() != AST::AST_FUNC_BODY) {
     for (auto stmt : statements) {
       if (stmt->type() == AST::AST_STMT_RETURN) {
-        return Completion(Completion::THROW, new ErrorObject(Error::SyntaxError()), u"");
+        return Completion(Completion::THROW, ErrorObject::New(Error::SyntaxError()), u"");
       }
     }
   }
@@ -190,7 +190,7 @@ Completion EvalVarStatement(AST* ast) {
   }
   return Completion(Completion::NORMAL, nullptr, u"");
 error:
-  return Completion(Completion::THROW, new ErrorObject(e), u"");
+  return Completion(Completion::THROW, ErrorObject::New(e), u"");
 }
 
 Completion EvalIfStatement(AST* ast) {
@@ -199,10 +199,10 @@ Completion EvalIfStatement(AST* ast) {
   If* if_stmt = static_cast<If*>(ast);
   JSValue* expr_ref = EvalExpression(e, if_stmt->cond());
   if (!e->IsOk())
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   JSValue* expr = GetValue(e, expr_ref);
   if (!e->IsOk())
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   if (ToBoolean(expr)) {
     return EvalStatement(if_stmt->if_block());
   } else if (if_stmt->else_block() != nullptr){
@@ -249,7 +249,7 @@ Completion EvalDoWhileStatement(AST* ast) {
   return Completion(Completion::NORMAL, V, u"");
 error:
   Runtime::TopContext()->ExitIteration();
-  return Completion(Completion::THROW, new ErrorObject(e), u"");
+  return Completion(Completion::THROW, ErrorObject::New(e), u"");
 }
 
 // 12.6.2 The while Statement
@@ -290,7 +290,7 @@ Completion EvalWhileStatement(AST* ast) {
   return Completion(Completion::NORMAL, V, u"");
 error:
   Runtime::TopContext()->ExitIteration();
-  return Completion(Completion::THROW, new ErrorObject(e), u"");
+  return Completion(Completion::THROW, ErrorObject::New(e), u"");
 }
 
 // 12.6.3 The for Statement
@@ -349,7 +349,7 @@ Completion EvalForStatement(AST* ast) {
   return Completion(Completion::NORMAL, V, u"");
 error:
   Runtime::TopContext()->ExitIteration();
-  return Completion(Completion::THROW, new ErrorObject(e), u"");
+  return Completion(Completion::THROW, ErrorObject::New(e), u"");
 }
 
 // 12.6.4 The for-in Statement
@@ -380,7 +380,7 @@ Completion EvalForInStatement(AST* ast) {
     if (!e->IsOk()) goto error;
 
     for (auto pair : obj->AllEnumerableProperties()) {
-      String* P = new String(pair.first);
+      String* P = pair.first;
       Reference* var_ref = IdentifierResolution(var_name);
       PutValue(e, var_ref, P);
       if (!e->IsOk()) goto error;
@@ -413,7 +413,7 @@ Completion EvalForInStatement(AST* ast) {
     }
     obj = ToObject(e, expr_val);
     for (auto pair : obj->AllEnumerableProperties()) {
-      String* P = new String(pair.first);
+      String* P = pair.first;
       JSValue* lhs_ref = EvalExpression(e, for_in_stmt->expr0());
       if (!e->IsOk()) goto error;
       PutValue(e, lhs_ref, P);
@@ -439,7 +439,7 @@ Completion EvalForInStatement(AST* ast) {
   return Completion(Completion::NORMAL, V, u"");
 error:
   Runtime::TopContext()->ExitIteration();
-  return Completion(Completion::THROW, new ErrorObject(e), u"");
+  return Completion(Completion::THROW, ErrorObject::New(e), u"");
 }
 
 Completion EvalContinueStatement(AST* ast) {
@@ -447,7 +447,7 @@ Completion EvalContinueStatement(AST* ast) {
   Error* e = Error::Ok();
   if (!Runtime::TopContext()->InIteration()) {
     *e = *Error::SyntaxError(u"continue not in iteration");
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
   ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
   return Completion(Completion::CONTINUE, nullptr, stmt->ident());
@@ -458,7 +458,7 @@ Completion EvalBreakStatement(AST* ast) {
   Error* e = Error::Ok();
   if (!Runtime::TopContext()->InIteration() && !Runtime::TopContext()->InSwitch()) {
     *e = *Error::SyntaxError(u"break not in iteration or switch");
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
   ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
   return Completion(Completion::BREAK, nullptr, stmt->ident());
@@ -473,7 +473,7 @@ Completion EvalReturnStatement(AST* ast) {
   }
   auto exp_ref = EvalExpression(e, return_stmt->expr());
   if (!e->IsOk()) {
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
   return Completion(Completion::RETURN, GetValue(e, exp_ref), u"");
 }
@@ -495,20 +495,20 @@ Completion EvalWithStatement(AST* ast) {
   if (Runtime::TopContext()->strict()) {
     return Completion(
       Completion::THROW,
-      new ErrorObject(Error::SyntaxError(u"cannot have with statement in strict mode")),
+      ErrorObject::New(Error::SyntaxError(u"cannot have with statement in strict mode")),
       u"");
   }
   Error* e = Error::Ok();
   WhileOrWith* with_stmt = static_cast<WhileOrWith*>(ast);
   JSValue* ref = EvalExpression(e, with_stmt->expr());
   if (!e->IsOk())
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   JSValue* val = GetValue(e, ref);
   if (!e->IsOk())
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   JSObject* obj = ToObject(e, val);
   if (!e->IsOk())
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   LexicalEnvironment* old_env = Runtime::TopLexicalEnv();
   LexicalEnvironment* new_env = LexicalEnvironment::NewObjectEnvironment(obj, old_env, true);
   Runtime::TopContext()->SetLexicalEnv(new_env);
@@ -533,7 +533,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, JSValue* input) {
       JSValue* clause_selector = EvalCaseClause(e, C);
       bool b = StrictEqual(e, input, clause_selector);
       if (!e->IsOk())
-        return Completion(Completion::THROW, new ErrorObject(e), u"");
+        return Completion(Completion::THROW, ErrorObject::New(e), u"");
       if (b)
         found = true;
     }
@@ -552,7 +552,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, JSValue* input) {
     JSValue* clause_selector = EvalCaseClause(e, C);
     bool b = StrictEqual(e, input, clause_selector);
     if (!e->IsOk())
-      return Completion(Completion::THROW, new ErrorObject(e), u"");
+      return Completion(Completion::THROW, ErrorObject::New(e), u"");
     if (b) {
       found_in_b = true;
       Completion R = EvalStatementList(C.stmts);
@@ -588,10 +588,10 @@ Completion EvalSwitchStatement(AST* ast) {
   Switch* switch_stmt = static_cast<Switch*>(ast);
   JSValue* expr_ref = EvalExpression(e, switch_stmt->expr());
   if (!e->IsOk())
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   JSValue* expr_val = GetValue(e, expr_ref);
   if (!e->IsOk())
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   Runtime::TopContext()->EnterSwitch();
   Completion R = EvalCaseBlock(switch_stmt, expr_val);
   Runtime::TopContext()->ExitSwitch();
@@ -610,10 +610,10 @@ Completion EvalThrowStatement(AST* ast) {
   Throw* throw_stmt = static_cast<Throw*>(ast);
   JSValue* exp_ref = EvalExpression(e, throw_stmt->expr());
   if (!e->Ok())
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   JSValue* val = GetValue(e, exp_ref);
   if (!e->Ok())
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   return Completion(Completion::THROW, val, u"");
 }
 
@@ -622,15 +622,16 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   Error* e = Error::Ok();
   LexicalEnvironment* old_env = Runtime::TopLexicalEnv();
   LexicalEnvironment* catch_env = LexicalEnvironment::NewDeclarativeEnvironment(old_env);
-  catch_env->env_rec()->CreateMutableBinding(e, try_stmt->catch_ident(), false);  // 4
+  String* ident_str = String::New(try_stmt->catch_ident());
+  catch_env->env_rec()->CreateMutableBinding(e, ident_str, false);  // 4
   if (!e->IsOk()) {
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
-  catch_env->env_rec()->SetMutableBinding(e, try_stmt->catch_ident(), C.value, false);  // 5
+  catch_env->env_rec()->SetMutableBinding(e, ident_str, C.value, false);  // 5
   if (!e->IsOk()) {
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
   Runtime::TopContext()->SetLexicalEnv(catch_env);
   Completion B = EvalBlockStatement(try_stmt->catch_block());
@@ -668,7 +669,7 @@ Completion EvalExpressionStatement(AST* ast) {
   Error* e = Error::Ok();
   JSValue* val = EvalExpression(e, ast);
   if (!e->IsOk())
-    return Completion(Completion::THROW, new ErrorObject(e), u"");
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
   return Completion(Completion::NORMAL, val, u"");
 }
 
@@ -746,7 +747,7 @@ JSValue* EvalPrimaryExpression(Error* e, AST* ast) {
       break;
     case AST::AST_EXPR_REGEXP: {
       RegExpLiteral* literal = static_cast<RegExpLiteral*>(ast);
-      val = new RegExpObject(literal->pattern(), literal->flag());
+      val = RegExpObject::New(String::New(literal->pattern()), String::New(literal->flag()));
       break;
     }
     default:
@@ -760,7 +761,7 @@ Reference* IdentifierResolution(std::u16string name) {
   // 10.3.1 Identifier Resolution
   LexicalEnvironment* env = Runtime::TopLexicalEnv();
   bool strict = Runtime::TopContext()->strict();
-  return env->GetIdentifierReference(name, strict);
+  return env->GetIdentifierReference(String::New(name), strict);
 }
 
 Reference* EvalIdentifier(AST* ast) {
@@ -797,7 +798,7 @@ Number* EvalNumber(std::u16string source) {
         }
         if (!sign)
           exp = -exp;
-        return new Number(val * pow(10.0, exp));
+        return Number::New(val * pow(10.0, exp));
       }
       case u'x':
       case u'X': {
@@ -809,7 +810,7 @@ Number* EvalNumber(std::u16string source) {
           val += character::Digit(c);
           pos++;
         }
-        return new Number(val);
+        return Number::New(val);
       }
       default:
         if (dot) {
@@ -822,7 +823,7 @@ Number* EvalNumber(std::u16string source) {
     }
     pos++;
   }
-  return new Number(val);
+  return Number::New(val);
 }
 
 Number* EvalNumber(AST* ast) {
@@ -915,9 +916,9 @@ String* EvalString(std::u16string source) {
   if (vals.size() == 0) {
     return String::Empty();
   } else if (vals.size() == 1) {
-    return new String(vals[0]);
+    return String::New(vals[0]);
   }
-  return new String(StrCat(vals));
+  return String::New(StrCat(vals));
 }
 
 String* EvalString(AST* ast) {
@@ -933,9 +934,9 @@ std::u16string EvalPropertyName(Error* e, Token token) {
     case Token::TK_FUTURE:
       return token.source();
     case Token::TK_NUMBER:
-      return ToString(e, EvalNumber(token.source()));
+      return ToU16String(e, EvalNumber(token.source()));
     case Token::TK_STRING:
-      return ToString(e, EvalString(token.source()));
+      return ToU16String(e, EvalString(token.source()));
     default:
       assert(false);
   }
@@ -945,15 +946,17 @@ Object* EvalObject(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_OBJ);
   ObjectLiteral* obj_ast = static_cast<ObjectLiteral*>(ast);
   bool strict = Runtime::TopContext()->strict();
-  Object* obj = new Object();
+  Object* obj = Object::New();
   // PropertyName : AssignmentExpression
   for (auto property : obj_ast->properties()) {
     std::u16string prop_name = EvalPropertyName(e, property.key);
-    PropertyDescriptor* desc = new PropertyDescriptor();
+    PropertyDescriptor* desc = PropertyDescriptor::New();
     switch (property.type) {
       case ObjectLiteral::Property::NORMAL: {
         JSValue* expr_value = EvalAssignmentExpression(e, property.value);
+        if (!e->IsOk()) return nullptr;
         JSValue* prop_value = GetValue(e, expr_value);
+        if (!e->IsOk()) return nullptr;
         desc->SetDataDescriptor(prop_value, true, true, true);
         break;
       }
@@ -969,7 +972,7 @@ Object* EvalObject(Error* e, AST* ast) {
             }
           }
         }
-        FunctionObject* closure = new FunctionObject(
+        FunctionObject* closure = FunctionObject::New(
           func_ast->params(), func_ast->body(),
           Runtime::TopLexicalEnv()
         );
@@ -983,7 +986,8 @@ Object* EvalObject(Error* e, AST* ast) {
         break;
       }
     }
-    auto previous = obj->GetOwnProperty(prop_name);  // 3
+    String* prop_name_str = String::New(prop_name);
+    auto previous = obj->GetOwnProperty(prop_name_str);  // 3
     if (!previous->IsUndefined()) {  // 4
       PropertyDescriptor* previous_desc = static_cast<PropertyDescriptor*>(previous);
       if (strict &&
@@ -1002,7 +1006,7 @@ Object* EvalObject(Error* e, AST* ast) {
         return nullptr;
       }
     }
-    obj->DefineOwnProperty(e, prop_name, desc, false);
+    obj->DefineOwnProperty(e, prop_name_str, desc, false);
   }
   return obj;
 }
@@ -1011,7 +1015,7 @@ ArrayObject* EvalArray(Error* e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_ARRAY);
   ArrayLiteral* array_ast = static_cast<ArrayLiteral*>(ast);
   
-  ArrayObject* arr = new ArrayObject(array_ast->length());
+  ArrayObject* arr = ArrayObject::New(array_ast->length());
   for (auto pair : array_ast->elements()) {
     JSValue* init_result = EvalAssignmentExpression(e, pair.second);
     if (!e->IsOk()) return nullptr;
@@ -1038,7 +1042,7 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
     if (expr->IsReference()) {
       Reference* ref = static_cast<Reference*>(expr);
       if (ref->IsStrictReference() && ref->GetBase()->IsEnvironmentRecord() &&
-          (ref->GetReferencedName() == u"eval" || ref->GetReferencedName() == u"arguments")) {
+          (ref->GetReferencedName()->data() == u"eval" || ref->GetReferencedName()->data() == u"arguments")) {
         *e = *Error::SyntaxError(u"cannot inc or dec on eval or arguments");
         return nullptr;
       }
@@ -1049,9 +1053,9 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
     if (!e->IsOk()) return nullptr;
     JSValue* new_value;
     if (op == u"++") {
-      new_value = new Number(num + 1);
+      new_value = Number::New(num + 1);
     } else {
-      new_value = new Number(num - 1);
+      new_value = Number::New(num - 1);
     }
     PutValue(e, expr, new_value);
     if (!e->IsOk()) return nullptr;
@@ -1066,7 +1070,7 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
     Reference* ref = static_cast<Reference*>(expr);
     if (ref->IsUnresolvableReference()) {  // 3
       if (ref->IsStrictReference()) {
-        *e = *Error::SyntaxError(u"delete not exist variable " + ref->GetReferencedName());
+        *e = *Error::SyntaxError(u"delete not exist variable " + ref->GetReferencedName()->data());
         return Bool::False();
       }
       return Bool::True();
@@ -1095,15 +1099,15 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
       case JSValue::JS_UNDEFINED:
         return String::Undefined();
       case JSValue::JS_NULL:
-        return new String(u"object");
+        return String::New(u"object");
       case JSValue::JS_NUMBER:
-        return new String(u"number");
+        return String::New(u"number");
       case JSValue::JS_STRING:
-        return new String(u"string");
+        return String::New(u"string");
       default:
         if (val->IsCallable())
-          return new String(u"function");
-        return new String(u"object");
+          return String::New(u"function");
+        return String::New(u"object");
     }
   } else {  // +, -, ~, !, void
     JSValue* val = GetValue(e, expr);
@@ -1112,17 +1116,17 @@ JSValue* EvalUnaryOperator(Error* e, AST* ast) {
     if (op == u"+") {
       double num = ToNumber(e, val);
       if (!e->IsOk()) return nullptr;
-      return new Number(num);
+      return Number::New(num);
     } else if (op == u"-") {
       double num = ToNumber(e, val);
       if (!e->IsOk()) return nullptr;
       if (isnan(num))
         return Number::NaN();
-      return new Number(-num);
+      return Number::New(-num);
     } else if (op == u"~") {
       int32_t num = ToInt32(e, val);
       if (!e->IsOk()) return nullptr;
-      return new Number(~num);
+      return Number::New(~num);
     } else if (op == u"!") {
       bool b = ToBoolean(val);
       return Bool::Wrap(!b);
@@ -1199,13 +1203,13 @@ JSValue* EvalArithmeticOperator(Error* e, std::u16string op, JSValue* lval, JSVa
   if (!e->IsOk()) return nullptr;
   switch (op[0]) {
     case u'*':
-      return new Number(lnum * rnum);
+      return Number::New(lnum * rnum);
     case u'/':
-      return new Number(lnum / rnum);
+      return Number::New(lnum / rnum);
     case u'%':
-      return new Number(fmod(lnum, rnum));
+      return Number::New(fmod(lnum, rnum));
     case u'-':
-      return new Number(lnum - rnum);
+      return Number::New(lnum - rnum);
     default:
       assert(false);
   }
@@ -1219,18 +1223,18 @@ JSValue* EvalAddOperator(Error* e, JSValue* lval, JSValue* rval) {
   if (!e->IsOk()) return nullptr;
 
   if (lprim->IsString() || rprim->IsString()) {
-    std::u16string lstr = ToString(e, lprim);
+    std::u16string lstr = ToU16String(e, lprim);
     if (!e->IsOk()) return nullptr;
-    std::u16string rstr = ToString(e, rprim);
+    std::u16string rstr = ToU16String(e, rprim);
     if (!e->IsOk()) return nullptr;
-    return new String(lstr + rstr);
+    return String::New(lstr + rstr);
   }
 
   double lnum = ToNumber(e, lprim);
   if (!e->IsOk()) return nullptr;
   double rnum = ToNumber(e, rprim);
   if (!e->IsOk()) return nullptr;
-  return new Number(lnum + rnum);
+  return Number::New(lnum + rnum);
 }
 
 // 11.7 Bitwise Shift Operators
@@ -1241,12 +1245,12 @@ JSValue* EvalBitwiseShiftOperator(Error* e, std::u16string op, JSValue* lval, JS
   if (!e->IsOk()) return nullptr;
   uint32_t shift_count = rnum & 0x1F;
   if (op == u"<<") {
-    return new Number(lnum << shift_count);
+    return Number::New(lnum << shift_count);
   } else if (op == u">>") {
-    return new Number(lnum >> shift_count);
+    return Number::New(lnum >> shift_count);
   } else if (op == u">>>") {
     uint32_t lnum = ToUint32(e, lval);
-    return new Number(lnum >> rnum);
+    return Number::New(lnum >> rnum);
   }
   assert(false);
 }
@@ -1317,11 +1321,11 @@ JSValue* EvalBitwiseOperator(Error* e, std::u16string op, JSValue* lval, JSValue
   if (!e->IsOk()) return nullptr;
   switch (op[0]) {
     case u'&':
-      return new Number(lnum & rnum);
+      return Number::New(lnum & rnum);
     case u'^':
-      return new Number(lnum ^ rnum);
+      return Number::New(lnum ^ rnum);
     case u'|':
-      return new Number(lnum | rnum);
+      return Number::New(lnum | rnum);
     default:
       assert(false);
   }
@@ -1344,16 +1348,16 @@ JSValue* EvalLogicalOperator(Error* e, std::u16string op, AST* lhs, AST* rhs) {
 
 // 11.13.1 Simple Assignment ( = )
 JSValue* EvalSimpleAssignment(Error* e, JSValue* lref, JSValue* rval) {
-  if (lref->type() == JSValue::JS_REF) {
+  if (lref->IsReference()) {
     Reference* ref = static_cast<Reference*>(lref);
     // NOTE in 11.13.1.
     // TODO(zhuzilin) not sure how to implement the type error part of the note.
     if (ref->IsStrictReference() && ref->IsUnresolvableReference()) {
-      *e = *Error::ReferenceError(ref->GetReferencedName() + u" is not defined");
+      *e = *Error::ReferenceError(ref->GetReferencedName()->data() + u" is not defined");
       return nullptr;
     }
     if (ref->IsStrictReference() && ref->GetBase()->type() == JSValue::JS_ENV_REC &&
-        (ref->GetReferencedName() == u"eval" || ref->GetReferencedName() == u"arguments")) {
+        (ref->GetReferencedName()->data() == u"eval" || ref->GetReferencedName()->data() == u"arguments")) {
       *e = *Error::SyntaxError(u"cannot assign on eval or arguments");
       return nullptr;
     }
@@ -1435,7 +1439,7 @@ JSValue* EvalLeftHandSideExpression(Error* e, AST* ast) {
       }
       case LHS::PostfixType::PROP: {
         auto prop = lhs->prop_name_list()[pair.first];
-        base = EvalIndexExpression(e, base, prop, guard);
+        base = EvalIndexExpression(e, base, String::New(prop), guard);
         if (!e->IsOk()) return nullptr;
         break;
       }
@@ -1501,7 +1505,7 @@ JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_li
     this_value = Undefined::Instance();
   }
   // indirect 
-  if (ref->IsReference() && static_cast<Reference*>(ref)->GetReferencedName() == u"eval") {
+  if (ref->IsReference() && static_cast<Reference*>(ref)->GetReferencedName()->data() == u"eval") {
     DirectEvalGuard guard;
     return obj->Call(e, this_value, arg_list);
   } else {
@@ -1510,7 +1514,7 @@ JSValue* EvalCallExpression(Error* e, JSValue* ref, std::vector<JSValue*> arg_li
 }
 
 // 11.2.1 Property Accessors
-JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, std::u16string identifier_name, ValueGuard& guard) {
+JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, String* identifier_name, ValueGuard& guard) {
   JSValue* base_value = GetValue(e, base_ref);
   if (!e->IsOk())
     return nullptr;
@@ -1519,7 +1523,7 @@ JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, std::u16string identif
   if (!e->IsOk())
     return nullptr;
   bool strict = Runtime::TopContext()->strict();
-  return new Reference(base_value, identifier_name, strict);
+  return Reference::New(base_value, identifier_name, strict);
 }
 
 JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, AST* expr, ValueGuard& guard) {
@@ -1529,7 +1533,7 @@ JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, AST* expr, ValueGuard&
   JSValue* property_name_value = GetValue(e, property_name_ref);
   if (!e->IsOk())
     return nullptr;
-  std::u16string property_name_str = ToString(e, property_name_value);
+  String* property_name_str = ToString(e, property_name_value);
   if (!e->IsOk())
     return nullptr;
   return EvalIndexExpression(e, base_ref, property_name_str, guard);

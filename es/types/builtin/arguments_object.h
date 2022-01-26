@@ -12,22 +12,27 @@ namespace es {
 // 10.6 Arguments Object
 class ArgumentsObject : public JSObject {
  public:
-  ArgumentsObject(JSObject* parameter_map, size_t len) :
-    JSObject(OBJ_OBJECT, u"Arguments", true, nullptr, false, false),
-    parameter_map_(parameter_map) {
-    SetPrototype(ObjectProto::Instance());
-    AddValueProperty(u"length", new Number(len), true, false, true);
+  static ArgumentsObject* New(JSObject* parameter_map, size_t len) {
+    JSObject* jsobj = JSObject::New(
+      OBJ_OBJECT, u"Arguments", true, nullptr, false, false, nullptr,
+      kParameterMapOffset + kPtrSize - kJSObjectOffset
+    );
+    SET_VALUE(jsobj, kParameterMapOffset, parameter_map, JSObject*);
+    ArgumentsObject* obj = new (jsobj) ArgumentsObject();
+    obj->SetPrototype(ObjectProto::Instance());
+    obj->AddValueProperty(String::Length(), Number::New(len), true, false, true);
+    return obj;
   }
 
-  JSObject* ParameterMap() {return parameter_map_; }
+  JSObject* ParameterMap() { return READ_VALUE(this, kParameterMapOffset, JSObject*); }
 
-  JSValue* Get(Error* e, std::u16string P) override {
+  JSValue* Get(Error* e, String* P) override {
     JSObject* map = ParameterMap();
     JSValue* is_mapped = map->GetOwnProperty(P);
     if (is_mapped->IsUndefined()) {  // 3
       JSValue* v = JSObject::Get(e, P);
       if (!e->IsOk()) return nullptr;
-      if (P == u"caller") {
+      if (P->data() == u"caller") {
         if (v->IsObject()) {
           JSObject* obj = static_cast<JSObject*>(v);
           if (obj->IsFunction()) {
@@ -44,7 +49,7 @@ class ArgumentsObject : public JSObject {
     return map->Get(e, P);
   }
 
-  JSValue* GetOwnProperty(std::u16string P) override {
+  JSValue* GetOwnProperty(String* P) override {
     JSValue* val = JSObject::GetOwnProperty(P);
     if (val->IsUndefined())
       return val;
@@ -57,13 +62,13 @@ class ArgumentsObject : public JSObject {
     return desc;
   }
 
-  bool DefineOwnProperty(Error* e, std::u16string P, PropertyDescriptor* desc, bool throw_flag) override {
+  bool DefineOwnProperty(Error* e, String* P, PropertyDescriptor* desc, bool throw_flag) override {
     JSObject* map = ParameterMap();
     JSValue* is_mapped = map->GetOwnProperty(P);
     bool allowed = JSObject::DefineOwnProperty(e, P, desc, false);
     if (!allowed) {
       if (throw_flag) {
-        *e = *Error::TypeError(u"DefineOwnProperty " + P + u" failed");
+        *e = *Error::TypeError(u"DefineOwnProperty " + P->data() + u" failed");
       }
       return false;
     }
@@ -82,7 +87,7 @@ class ArgumentsObject : public JSObject {
     return true;
   }
 
-  bool Delete(Error* e, std::u16string P, bool throw_flag) override {
+  bool Delete(Error* e, String* P, bool throw_flag) override {
     JSObject* map = ParameterMap();
     JSValue* is_mapped = map->GetOwnProperty(P);
     bool result = JSObject::Delete(e, P, throw_flag);
@@ -96,7 +101,7 @@ class ArgumentsObject : public JSObject {
   inline std::string ToString() override { return "ArgumentsObject"; }
 
  private:
-  JSObject* parameter_map_;
+  static constexpr size_t kParameterMapOffset = kJSObjectOffset;
 };
 
 }  // namespace es

@@ -161,13 +161,13 @@ class ValueGuard {
 
 // TODO(zhuzilin) move this method to a better place
 JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
-  std::u16string first, second;
+  String* first, *second;
   if (hint == u"String" || hint == u"" && obj_type() == OBJ_DATE) {
-    first = u"toString";
-    second = u"valueOf";
+    first = String::New(u"toString");
+    second = String::New(u"valueOf");
   } else if (hint == u"Number" || hint == u"" && obj_type() != OBJ_DATE) {
-    first = u"valueOf";
-    second = u"toString";
+    first = String::New(u"valueOf");
+    second = String::New(u"toString");
   } else {
     assert(false);
   }

@@ -10,7 +10,7 @@ double ToNumber(Error* e, JSValue* input);
 class Math : public JSObject {
  public:
   static Math* Instance() {
-  static Math* singleton = new Math();
+  static Math* singleton = Math::New();
     return singleton;
   }
 
@@ -23,7 +23,7 @@ class Math : public JSObject {
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    return new String(u"Math");
+    return String::New(u"Math");
   }
 
   static JSValue* max(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -41,14 +41,17 @@ class Math : public JSObject {
     if (value1 == 0 && value2 == 0 && (!signbit(value1) || !signbit(value2)))
       return Number::Zero();
     else if (value1 >= value2)
-      return new Number(value1);
+      return Number::New(value1);
     else
-      return new Number(value2);
+      return Number::New(value2);
   }
 
  private:
-   Math() :
-    JSObject(OBJ_MATH, u"Math", true, nullptr, true, true) {}
+  static Math* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_FUNC, u"Math", true, nullptr, true, true, nullptr, 0);
+    return new (jsobj) Math();
+  }
 };
 
 void InitMath() {

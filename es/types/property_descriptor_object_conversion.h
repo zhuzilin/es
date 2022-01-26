@@ -9,45 +9,22 @@ namespace es {
 
 bool ToBoolean(JSValue* input);
 
-JSValue* FromPropertyDescriptor(Error* e, JSValue* value) {
+JSValue* FromPropertyDescriptor(JSValue* value) {
   if (value->IsUndefined()) {
     return Undefined::Instance();
   }
   PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(value);
-  JSObject* obj = new Object();
+  JSObject* obj = Object::New();
   if (desc->IsDataDescriptor()) {
-    PropertyDescriptor* value_desc = new PropertyDescriptor();
-    value_desc->SetDataDescriptor(desc->Value(), true, true, true);
-    obj->DefineOwnProperty(e, u"value", value_desc, false);
-    if (!e->IsOk()) return nullptr;
-
-    PropertyDescriptor* writable_desc = new PropertyDescriptor();
-    writable_desc->SetDataDescriptor(Bool::Wrap(desc->Writable()), true, true, true);
-    obj->DefineOwnProperty(e, u"writable", writable_desc, false);
-    if (!e->IsOk()) return nullptr;
+    obj->AddValueProperty(String::Value(), desc->Value(), true, true, true);
+    obj->AddValueProperty(String::Writable(), Bool::Wrap(desc->Writable()), true, true, true);
   } else {
     assert(desc->IsAccessorDescriptor());
-    PropertyDescriptor* get_desc = new PropertyDescriptor();
-    get_desc->SetDataDescriptor(desc->Get(), true, true, true);
-    obj->DefineOwnProperty(e, u"get", get_desc, false);
-    if (!e->IsOk()) return nullptr;
-
-    PropertyDescriptor* set_desc = new PropertyDescriptor();
-    set_desc->SetDataDescriptor(desc->Set(), true, true, true);
-    obj->DefineOwnProperty(e, u"set", set_desc, false);
-    if (!e->IsOk()) return nullptr;
+    obj->AddValueProperty(String::Get(), desc->Get(), true, true, true);
+    obj->AddValueProperty(String::Set(), desc->Set(), true, true, true);
   }
-
-  PropertyDescriptor* enumerable_desc = new PropertyDescriptor();
-  enumerable_desc->SetDataDescriptor(Bool::Wrap(desc->Enumerable()), true, true, true);
-  obj->DefineOwnProperty(e, u"get", enumerable_desc, false);
-  if (!e->IsOk()) return nullptr;
-
-  PropertyDescriptor* configurable_desc = new PropertyDescriptor();
-  configurable_desc->SetDataDescriptor(Bool::Wrap(desc->Configurable()), true, true, true);
-  obj->DefineOwnProperty(e, u"set", configurable_desc, false);
-  if (!e->IsOk()) return nullptr;
-
+  obj->AddValueProperty(String::Enumerable(), Bool::Wrap(desc->Enumerable()), true, true, true);
+  obj->AddValueProperty(String::Configurable(), Bool::Wrap(desc->Configurable()), true, true, true);
   return obj;
 }
 
@@ -57,32 +34,32 @@ PropertyDescriptor* ToPropertyDescriptor(Error* e, JSValue* val) {
     return nullptr;
   }
   JSObject* obj = static_cast<JSObject*>(val);
-  PropertyDescriptor* desc = new PropertyDescriptor();
-  if (obj->HasProperty(u"enumerable")) {
-    JSValue* value = obj->Get(e, u"enumerable");
+  PropertyDescriptor* desc = PropertyDescriptor::New();
+  if (obj->HasProperty(String::Enumerable())) {
+    JSValue* value = obj->Get(e, String::Enumerable());
     desc->SetEnumerable(ToBoolean(value));
   }
-  if (obj->HasProperty(u"configurable")) {
-    JSValue* value = obj->Get(e, u"configurable");
+  if (obj->HasProperty(String::Configurable())) {
+    JSValue* value = obj->Get(e, String::Configurable());
     desc->SetConfigurable(ToBoolean(value));
   }
-  if (obj->HasProperty(u"value")) {
-    JSValue* value = obj->Get(e, u"value");
+  if (obj->HasProperty(String::Value())) {
+    JSValue* value = obj->Get(e, String::Value());
     desc->SetValue(value);
   }
-  if (obj->HasProperty(u"writable")) {
-    JSValue* value = obj->Get(e, u"writable");
+  if (obj->HasProperty(String::Writable())) {
+    JSValue* value = obj->Get(e, String::Writable());
     desc->SetWritable(ToBoolean(value));
   }
-  if (obj->HasProperty(u"get")) {
-    JSValue* value = obj->Get(e, u"get");
+  if (obj->HasProperty(String::Get())) {
+    JSValue* value = obj->Get(e, String::Get());
     if (!value->IsCallable() && !value->IsUndefined()) {
       *e = *Error::TypeError(u"getter not callable.");
     }
     desc->SetGet(value);
   }
-  if (obj->HasProperty(u"set")) {
-    JSValue* value = obj->Get(e, u"set");
+  if (obj->HasProperty(String::Set())) {
+    JSValue* value = obj->Get(e, String::Set());
     if (!value->IsCallable() && !value->IsUndefined()) {
       *e = *Error::TypeError(u"setter not callable.");
     }

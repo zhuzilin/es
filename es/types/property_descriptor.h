@@ -10,17 +10,24 @@ namespace es {
 
 class PropertyDescriptor : public JSValue {
  public:
-  PropertyDescriptor(
-  ) : JSValue(JS_PROP_DESC), bitmask_(0), value_(Undefined::Instance()),
-      getter_(Undefined::Instance()), setter_(Undefined::Instance()),
-      writable_(false), enumerable_(false), configurable_(false) {}
+  static PropertyDescriptor* New() {
+    JSValue* jsval = JSValue::New(JS_PROP_DESC, kConfigurableOffset + kBoolSize - kBitmapOffset);
+    SET_VALUE(jsval, kBitmapOffset, 0, char);
+    SET_VALUE(jsval, kValueOffset, Undefined::Instance(), JSValue*);
+    SET_VALUE(jsval, kGetOffset, Undefined::Instance(), JSValue*);
+    SET_VALUE(jsval, kSetOffset, Undefined::Instance(), JSValue*);
+    SET_VALUE(jsval, kWritableOffset, false, bool);
+    SET_VALUE(jsval, kEnumerableOffset, false, bool);
+    SET_VALUE(jsval, kConfigurableOffset, false, bool);
+    return new (jsval) PropertyDescriptor();
+  }
 
   inline bool IsAccessorDescriptor() {
-    return (bitmask_ & GET) && (bitmask_ & SET);
+    return (bitmask() & (GET | SET)) == (GET | SET);
   }
 
   inline bool IsDataDescriptor() {
-    return (bitmask_ & VALUE) && (bitmask_ & WRITABLE);
+    return (bitmask() & (VALUE | WRITABLE)) == (VALUE | WRITABLE);
   }
 
   inline bool IsGenericDescriptor() {
@@ -28,29 +35,47 @@ class PropertyDescriptor : public JSValue {
   }
 
   // TODO(zhuzilin) May be check the member variable is initialized?
-  inline bool HasValue() { return bitmask_ & VALUE; }
-  inline JSValue* Value() { return value_; }
-  inline void SetValue(JSValue* value) { bitmask_ |= VALUE; value_ = value; }
+  inline bool HasValue() { return bitmask() & VALUE; }
+  inline JSValue* Value() { return READ_VALUE(this, kValueOffset, JSValue*); }
+  inline void SetValue(JSValue* value) {
+    SET_VALUE(this, kBitmapOffset, bitmask() | VALUE, char);
+    SET_VALUE(this, kValueOffset, value, JSValue*);
+  }
 
-  inline bool HasWritable() { return bitmask_ & WRITABLE; }
-  inline bool Writable() { return writable_; }
-  inline void SetWritable(bool writable) { bitmask_ |= WRITABLE; writable_ = writable; }
+  inline bool HasWritable() {return bitmask() & WRITABLE; }
+  inline bool Writable() { return READ_VALUE(this, kWritableOffset, bool); }
+  inline void SetWritable(bool writable) {
+    SET_VALUE(this, kBitmapOffset, bitmask() | WRITABLE, char);
+    SET_VALUE(this, kWritableOffset, writable, bool);
+  }
 
-  inline bool HasGet() { return bitmask_ & GET; }
-  inline JSValue* Get() { return getter_; }
-  inline void SetGet(JSValue* getter) { bitmask_ |= GET; getter_ = getter; }
+  inline bool HasGet() {return bitmask() & GET; }
+  inline JSValue* Get() { return READ_VALUE(this, kGetOffset, JSValue*); }
+  inline void SetGet(JSValue* getter) {
+    SET_VALUE(this, kBitmapOffset, bitmask() | GET, char);
+    SET_VALUE(this, kGetOffset, getter, JSValue*);
+  }
 
-  inline bool HasSet() { return bitmask_ & SET; }
-  inline JSValue* Set() { return setter_; }
-  inline void SetSet(JSValue* setter) { bitmask_ |= SET; setter_ = setter; }
+  inline bool HasSet() { return bitmask() & SET; }
+  inline JSValue* Set() { return READ_VALUE(this, kSetOffset, JSValue*); }
+  inline void SetSet(JSValue* setter) {
+    SET_VALUE(this, kBitmapOffset, bitmask() | SET, char);
+    SET_VALUE(this, kSetOffset, setter, JSValue*);
+  }
 
-  inline bool HasEnumerable() { return bitmask_ & ENUMERABLE; }
-  inline bool Enumerable() { return enumerable_; }
-  inline void SetEnumerable(bool enumerable) { bitmask_ |= ENUMERABLE; enumerable_ = enumerable; }
+  inline bool HasEnumerable() { return bitmask() & ENUMERABLE; }
+  inline bool Enumerable() { return READ_VALUE(this, kEnumerableOffset, bool); }
+  inline void SetEnumerable(bool enumerable) {
+    SET_VALUE(this, kBitmapOffset, bitmask() | ENUMERABLE, char);
+    SET_VALUE(this, kEnumerableOffset, enumerable, bool);
+  }
 
-  inline bool HasConfigurable() { return bitmask_ & CONFIGURABLE; }
-  inline bool Configurable() { return configurable_; }
-  inline void SetConfigurable(bool configurable) { bitmask_ |= CONFIGURABLE; configurable_ = configurable; }
+  inline bool HasConfigurable() { return bitmask() & CONFIGURABLE; }
+  inline bool Configurable() { return READ_VALUE(this, kConfigurableOffset, bool); }
+  inline void SetConfigurable(bool configurable) {
+    SET_VALUE(this, kBitmapOffset, bitmask() | CONFIGURABLE, char);
+    SET_VALUE(this, kConfigurableOffset, configurable, bool);
+  }
 
   inline void SetDataDescriptor(
     JSValue* value, bool writable, bool enumerable, bool configurable
@@ -86,30 +111,34 @@ class PropertyDescriptor : public JSValue {
       SetEnumerable(other->Enumerable());
   }
 
-  char bitmask() { return bitmask_; }
-  void SetBitMask(char bitmask) { bitmask_ = bitmask; }
+  char bitmask() { return READ_VALUE(this, kBitmapOffset, char); }
+  void SetBitMask(char bitmask) { SET_VALUE(this, kBitmapOffset, bitmask, char); }
 
   std::string ToString() override { 
     std::string res = "PropertyDescriptor{";
-    if (HasValue()) res += "v: " + value_->ToString() + ", ";
-    if (HasWritable()) res += "w: " + log::ToString(writable_) + ", ";
-    if (HasGet()) res += "get: " + getter_->ToString() + ", ";
-    if (HasSet()) res += "set: " + setter_->ToString() + ", ";
-    if (HasEnumerable()) res += "e: " + log::ToString(enumerable_) + ", ";
-    if (HasConfigurable()) res += "c: " + log::ToString(configurable_);
+    if (HasValue()) res += "v: " + Value()->ToString() + ", ";
+    if (HasWritable()) res += "w: " + log::ToString(Writable()) + ", ";
+    if (HasGet()) res += "get: " + Get()->ToString() + ", ";
+    if (HasSet()) res += "set: " + Set()->ToString() + ", ";
+    if (HasEnumerable()) res += "e: " + log::ToString(Enumerable()) + ", ";
+    if (HasConfigurable()) res += "c: " + log::ToString(Configurable());
     res += '}';
     return res;
   }
 
   std::vector<void*> Pointers() override {
-    std::vector<void*> pointers;
-    if (HasValue()) pointers.emplace_back(&value_);
-    if (HasGet()) pointers.emplace_back(&getter_);
-    if (HasSet()) pointers.emplace_back(&setter_);
-    return pointers;
+    assert(false);
   }
 
  private:
+  static constexpr size_t kBitmapOffset = kJSValueOffset;
+  static constexpr size_t kValueOffset = kBitmapOffset + kCharSize;
+  static constexpr size_t kGetOffset = kValueOffset + kPtrSize;
+  static constexpr size_t kSetOffset = kGetOffset + kPtrSize;
+  static constexpr size_t kWritableOffset = kSetOffset + kPtrSize;
+  static constexpr size_t kEnumerableOffset = kWritableOffset + kBoolSize;
+  static constexpr size_t kConfigurableOffset = kEnumerableOffset + kBoolSize;
+
   enum Field {
     VALUE        = 1 << 0,
     WRITABLE     = 1 << 1,
@@ -118,15 +147,6 @@ class PropertyDescriptor : public JSValue {
     ENUMERABLE   = 1 << 4,
     CONFIGURABLE = 1 << 5,
   };
-
-  char bitmask_;
-
-  JSValue* value_;
-  bool writable_;
-  JSValue* getter_;
-  JSValue* setter_;
-  bool enumerable_;
-  bool configurable_;
 };
 
 }  // namespace es

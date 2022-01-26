@@ -8,7 +8,7 @@ namespace es {
 class DateProto : public JSObject {
  public:
   static DateProto* Instance() {
-    static DateProto* singleton = new DateProto();
+    static DateProto* singleton = DateProto::New();
     return singleton;
   }
 
@@ -189,15 +189,22 @@ class DateProto : public JSObject {
   }
 
  private:
-   DateProto() :
-    JSObject(OBJ_DATE, u"Date", true, nullptr, false, true) {}
+  static DateProto* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_DATE, u"Date", true, nullptr, false, false, nullptr, 0);
+    return new (jsobj) DateProto();
+  }
 };
 
 class DateObject : public JSObject {
  public:
-  DateObject() :
-    JSObject(OBJ_DATE, u"Date", true, nullptr, false, false) {
-    SetPrototype(DateProto::Instance());
+  static DateObject* New(JSValue* primitive_value) {
+    JSObject* jsobj = JSObject::New(
+      OBJ_DATE, u"Date", true, nullptr, false, false, nullptr, 0
+    );
+    DateObject* obj = new (jsobj) DateObject();
+    obj->SetPrototype(DateProto::Instance());
+    return obj;
   }
 
   std::string ToString() { return "Date"; }
@@ -206,7 +213,7 @@ class DateObject : public JSObject {
 class DateConstructor : public JSObject {
  public:
   static DateConstructor* Instance() {
-    static DateConstructor* singleton = new DateConstructor();
+    static DateConstructor* singleton = DateConstructor::New();
     return singleton;
   }
 
@@ -219,7 +226,7 @@ class DateConstructor : public JSObject {
   }
 
   static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    return new String(u"function Date() { [native code] }");
+    return String::New(u"function Date() { [native code] }");
   }
 
   static JSValue* parse(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
@@ -235,8 +242,11 @@ class DateConstructor : public JSObject {
   }
 
  private:
-   DateConstructor() :
-    JSObject(OBJ_OTHER, u"Date", true, nullptr, true, true) {}
+  static DateConstructor* New() {
+    JSObject* jsobj = JSObject::New(
+      OBJ_OTHER, u"Date", true, nullptr, true, true, nullptr, 0);
+    return new (jsobj) DateConstructor();
+  }
 };
 
 }  // namespace es

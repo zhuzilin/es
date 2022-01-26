@@ -9,53 +9,52 @@ namespace es {
 
 class LexicalEnvironment : public JSValue {
  public:
-  LexicalEnvironment(LexicalEnvironment* outer, EnvironmentRecord* env_rec) :
-    JSValue(JS_LEX_ENV), outer_(outer), env_rec_(env_rec) {}
+  static LexicalEnvironment* New(LexicalEnvironment* outer, EnvironmentRecord* env_rec) {
+    JSValue* jsval = JSValue::New(JS_LEX_ENV, 2 * kPtrSize);
+    SET_VALUE(jsval, kOuterOffset, outer, LexicalEnvironment*);
+    SET_VALUE(jsval, kEnvRecOffset, env_rec, EnvironmentRecord*);
+    return new (jsval) LexicalEnvironment();
+  }
+
+  LexicalEnvironment* outer() { return READ_VALUE(this, kOuterOffset, LexicalEnvironment*); }
+  EnvironmentRecord* env_rec() { return READ_VALUE(this, kEnvRecOffset, EnvironmentRecord*); }
 
   static LexicalEnvironment* Global() {
-    static LexicalEnvironment* singleton = new LexicalEnvironment(
-      nullptr, new ObjectEnvironmentRecord(GlobalObject::Instance()));
+    static LexicalEnvironment* singleton = LexicalEnvironment::New(
+      nullptr, ObjectEnvironmentRecord::New(GlobalObject::Instance()));
     return singleton;
   }
 
-  Reference* GetIdentifierReference(std::u16string name, bool strict) {
-    bool exists = env_rec_->HasBinding(name);
+  Reference* GetIdentifierReference(String* name, bool strict) {
+    bool exists = env_rec()->HasBinding(name);
     if (exists) {
-      return new Reference(env_rec_, name, strict);
+      return Reference::New(env_rec(), name, strict);
     }
-    if (outer_ == nullptr) {
-      return new Reference(Undefined::Instance(), name, strict);
+    if (outer() == nullptr) {
+      return Reference::New(Undefined::Instance(), name, strict);
     }
-    LexicalEnvironment* outer = static_cast<LexicalEnvironment*>(outer_);
-    return outer->GetIdentifierReference(name, strict);
+    return outer()->GetIdentifierReference(name, strict);
   }
 
   static LexicalEnvironment* NewDeclarativeEnvironment(LexicalEnvironment* lex) {
-    DeclarativeEnvironmentRecord* env_rec = new DeclarativeEnvironmentRecord();
-    return new LexicalEnvironment(lex, env_rec);
+    DeclarativeEnvironmentRecord* env_rec = DeclarativeEnvironmentRecord::New();
+    return LexicalEnvironment::New(lex, env_rec);
   }
 
   static LexicalEnvironment* NewObjectEnvironment(JSObject* obj, LexicalEnvironment* lex, bool provide_this = false) {
-    ObjectEnvironmentRecord* env_rec = new ObjectEnvironmentRecord(obj, provide_this);
-    return new LexicalEnvironment(lex, env_rec);
+    ObjectEnvironmentRecord* env_rec = ObjectEnvironmentRecord::New(obj, provide_this);
+    return LexicalEnvironment::New(lex, env_rec);
   }
-
-  LexicalEnvironment* outer() { return outer_; }
-  EnvironmentRecord* env_rec() { return env_rec_; }
 
   std::string ToString() override { return "LexicalEnvironment"; }
 
   std::vector<void*> Pointers() override {
-    std::vector<void*> pointers;
-    if (outer_ != nullptr)
-      pointers.emplace_back(&outer_);
-    pointers.emplace_back(&env_rec_);
-    return pointers;
+    assert(false);
   }
 
  private:
-  LexicalEnvironment* outer_;  // not owned
-  EnvironmentRecord* env_rec_;
+  static constexpr size_t kOuterOffset = kJSValueOffset;
+  static constexpr size_t kEnvRecOffset = kOuterOffset + kPtrSize;
 };
 
 }  // namespace es

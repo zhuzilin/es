@@ -41,11 +41,11 @@ JSValue* LessThan(Error* e, JSValue* x, JSValue* y, bool left_first = true) {
       return Bool::True();
     return Bool::Wrap(nx < ny);
   } else {  // 4
-    std::u16string sx = ToString(e, px);
+    String* sx = ToString(e, px);
     if (!e->IsOk()) return Undefined::Instance();
-    std::u16string sy = ToString(e, py);
+    String* sy = ToString(e, py);
     if (!e->IsOk()) return Undefined::Instance();
-    return Bool::Wrap(sx < sy);
+    return Bool::Wrap(*sx < *sy);
   }
 }
 
@@ -77,19 +77,19 @@ bool Equal(Error* e, JSValue* x, JSValue* y) {
   } else if (x->IsNumber() && y->IsString()) {  // 4
     double numy = ToNumber(e, y);
     if (!e->IsOk()) return false;
-    return Equal(e, x, new Number(numy));
+    return Equal(e, x, Number::New(numy));
   } else if (x->IsString() && y->IsNumber()) {  // 5
     double numx = ToNumber(e, x);
     if (!e->IsOk()) return false;
-    return Equal(e, new Number(numx), y);
+    return Equal(e, Number::New(numx), y);
   } else if (x->IsBool()) {  // 6
     double numx = ToNumber(e, x);
     if (!e->IsOk()) return false;
-    return Equal(e, new Number(numx), y);
+    return Equal(e, Number::New(numx), y);
   } else if (y->IsBool()) {  // 7
     double numy = ToNumber(e, x);
     if (!e->IsOk()) return false;
-    return Equal(e, x, new Number(numy));
+    return Equal(e, x, Number::New(numy));
   } else if ((x->IsNumber() || x->IsString()) && y->IsObject()) {  // 8
     JSValue* primy = ToPrimitive(e, y, u"");
     if (!e->IsOk()) return false;

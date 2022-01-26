@@ -36,14 +36,14 @@ TEST(TestPrimitiveConversion, ToPrimitive) {
   }
 
   for (auto inner : {1.0, 2.2, 3.5}) {
-    val = ToPrimitive(e, new Number(inner), u"");
+    val = ToPrimitive(e, Number::New(inner), u"");
     EXPECT_EQ(JSValue::JS_NUMBER, val->type());
     auto outer = static_cast<Number*>(val);
     EXPECT_EQ(inner, outer->data());
   }
 
   for (auto inner : {u"abc", u"\n", u"你好", u"😎"}) {
-    val = ToPrimitive(e, new String(inner), u"");
+    val = ToPrimitive(e, String::New(inner), u"");
     EXPECT_EQ(JSValue::JS_STRING, val->type());
     auto outer = static_cast<String*>(val);
     EXPECT_EQ(inner, outer->data());
@@ -61,22 +61,22 @@ TEST(TestPrimitiveConversion, ToBoolean) {
 
   // Number
   for (double num : {0.0, -0.0, nan("")}) {
-    b = ToBoolean(new Number(num));
+    b = ToBoolean(Number::New(num));
     EXPECT_EQ(false, b);
   }
   b = ToBoolean(Number::NaN());
   EXPECT_EQ(false, b);
 
   for (auto num : {1.0, -1.0}) {
-    b = ToBoolean(new Number(num));
+    b = ToBoolean(Number::New(num));
     EXPECT_EQ(true, b);
   }
 
   // String
-  b = ToBoolean(new String(u""));
+  b = ToBoolean(String::New(u""));
   EXPECT_EQ(false, b);
 
-  b = ToBoolean(new String(u"abc"));
+  b = ToBoolean(String::New(u"abc"));
   EXPECT_EQ(true, b);
 }
 
@@ -105,7 +105,7 @@ TEST(TestPrimitiveConversion, ToNumber) {
       {u"\n0xAB ", 0xAB}
     };
     for (auto pair : vals) {
-      num = ToNumber(e, new String(pair.first));
+      num = ToNumber(e, String::New(pair.first));
       EXPECT_EQ(pair.second, num);
     }
   }
@@ -115,7 +115,7 @@ TEST(TestPrimitiveConversion, ToNumber) {
       u"", u"+", u"+0xAB", u"0x", u"3e", u"\n+ 10",
     };
     for (auto val : vals) {
-      num = ToNumber(e, new String(val));
+      num = ToNumber(e, String::New(val));
       EXPECT_EQ(true, isnan(num));
     }
   }
@@ -125,7 +125,7 @@ TEST(TestPrimitiveConversion, ToNumber) {
       u"  Infinity\n ", u"\t +Infinity", u"-Infinity",
     };
     for (auto val : vals) {
-      num = ToNumber(e, new String(val));
+      num = ToNumber(e, String::New(val));
       EXPECT_EQ(true, isinf(num));
     }
   }
@@ -140,7 +140,7 @@ TEST(TestPrimitiveConversion, ToInteger) {
       {4.2, 4}, {-4.2, -4},
     };
     for (auto pair : vals) {
-      num = ToInteger(e, new Number(pair.first));
+      num = ToInteger(e, Number::New(pair.first));
       EXPECT_EQ(pair.second, num);
     }
   }
@@ -160,10 +160,10 @@ TEST(TestPrimitiveConversion, ToInt32) {
       {4.2, 4}, {-4.2, -4}, {pow(2, 31) + 2, 2 - pow(2, 31)}, {pow(2, 33), 0}
     };
     for (auto pair : vals) {
-      num = ToInt32(e, new Number(pair.first));
+      num = ToInt32(e, Number::New(pair.first));
       EXPECT_EQ(pair.second, num);
       // idempotent
-      num1 = ToInt32(e, new Number(num));
+      num1 = ToInt32(e, Number::New(num));
       EXPECT_EQ(num, num1);
     }
   }
@@ -183,10 +183,10 @@ TEST(TestPrimitiveConversion, ToUint32) {
       {4.2, 4}, {-4.2, -4 + pow(2, 32)}, {pow(2, 31) + 2, pow(2, 31) + 2}, {pow(2, 33), 0}
     };
     for (auto pair : vals) {
-      num = ToUint32(e, new Number(pair.first));
+      num = ToUint32(e, Number::New(pair.first));
       EXPECT_EQ(pair.second, num);
       // idempotent
-      num1 = ToUint32(e, new Number(num));
+      num1 = ToUint32(e, Number::New(num));
       EXPECT_EQ(num, num1);
     }
   }
@@ -199,7 +199,7 @@ TEST(TestPrimitiveConversion, ToUint32) {
 }
 
 TEST(TestPrimitiveConversion, ToString) {
-  string str;
+  String* str;
   Error* e = Error::Ok();
   // String
   {
@@ -211,8 +211,8 @@ TEST(TestPrimitiveConversion, ToString) {
       // {3e50, u"3e+50"}
     };
     for (auto pair : vals) {
-      str = ToString(e, new Number(pair.first));
-      EXPECT_EQ(pair.second, str);
+      str = ToString(e, Number::New(pair.first));
+      EXPECT_EQ(pair.second, str->data());
     }
   }
 }
