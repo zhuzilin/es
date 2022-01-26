@@ -135,8 +135,6 @@ class GlobalObject : public JSObject {
   }
 
   static constexpr size_t kDirectEvalOffset = kJSObjectOffset;
-
-  bool direct_eval_;
 };
 
 class DirectEvalGuard {

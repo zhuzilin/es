@@ -91,6 +91,7 @@ class HashMap : public HeapObject {
       } else if (LessThan(key, head->next()->key())) {
         return;
       }
+      head = head->next();
     }
   }
 
