@@ -147,8 +147,17 @@ class FunctionObject : public JSObject {
     return obj;
   }
 
+  std::vector<void*> Pointers() override {
+    std::vector<void*> pointers = JSObject::Pointers();
+    pointers.emplace_back(HEAP_PTR(kFormalParametersOffset));
+    pointers.emplace_back(HEAP_PTR(kScopeOffset));
+    return pointers;
+  }
+
   virtual LexicalEnvironment* Scope() { return READ_VALUE(this, kScopeOffset, LexicalEnvironment*); };
-  virtual FixedArray<String>* FormalParameters() { return READ_VALUE(this, kFormalParametersOffset, FixedArray<String>*); };
+  virtual FixedArray<String>* FormalParameters() {
+    return READ_VALUE(this, kFormalParametersOffset, FixedArray<String>*);
+  };
   virtual ProgramOrFunctionBody* Code() { return READ_VALUE(this, kCodeOffset, ProgramOrFunctionBody*); }
   virtual bool strict() { return READ_VALUE(this, kStrictOffset, bool); }
   bool from_bind() { return READ_VALUE(this, kFromBindOffset, bool); }
@@ -278,6 +287,14 @@ class BindFunctionObject : public FunctionObject {
     SET_VALUE(func, kBoundThisOffset, bound_this, JSValue*);
     SET_VALUE(func, kBoundArgsOffset, FixedArray<JSValue>::New(bound_args), FixedArray<JSValue>*);
     return new (func) BindFunctionObject();
+  }
+
+  std::vector<void*> Pointers() override {
+    std::vector<void*> pointers = JSObject::Pointers();
+    pointers.emplace_back(HEAP_PTR(kTargetFunctionOffset));
+    pointers.emplace_back(HEAP_PTR(kBoundThisOffset));
+    pointers.emplace_back(HEAP_PTR(kBoundArgsOffset));
+    return pointers;
   }
 
   LexicalEnvironment* Scope() override { assert(false); };

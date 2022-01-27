@@ -13,6 +13,7 @@ namespace es {
 class ArgumentsObject : public JSObject {
  public:
   static ArgumentsObject* New(JSObject* parameter_map, size_t len) {
+    std::cout << "ArgumentsObject::New" << std::endl;
     JSObject* jsobj = JSObject::New(
       OBJ_OBJECT, u"Arguments", true, nullptr, false, false, nullptr,
       kParameterMapOffset + kPtrSize - kJSObjectOffset
@@ -22,6 +23,12 @@ class ArgumentsObject : public JSObject {
     obj->SetPrototype(ObjectProto::Instance());
     obj->AddValueProperty(String::Length(), Number::New(len), true, false, true);
     return obj;
+  }
+
+  std::vector<void*> Pointers() override {
+    std::vector<void*> pointers = JSObject::Pointers();
+    pointers.emplace_back(HEAP_PTR(kParameterMapOffset));
+    return pointers;
   }
 
   JSObject* ParameterMap() { return READ_VALUE(this, kParameterMapOffset, JSObject*); }

@@ -45,7 +45,9 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     bool can_delete() { return READ_VALUE(this, kCanDeleteOffset, bool); }
     bool is_mutable() { return READ_VALUE(this, kIsMutableOffset, bool); }
 
-    std::vector<void*> Pointers() override { return {}; }
+    std::vector<void*> Pointers() override { return {HEAP_PTR(kValueOffset)}; }
+
+    std::string ToString() override { return "Binding(" + value()->ToString() + ")"; }
 
    private:
     static constexpr size_t kValueOffset = kHeapObjectOffset;
@@ -59,6 +61,8 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     SET_VALUE(env_rec, kBindingsOffset, HashMap<Binding>::New(), HashMap<Binding>*);
     return new (env_rec) DeclarativeEnvironmentRecord();
   }
+
+  std::vector<void*> Pointers() override { return {HEAP_PTR(kBindingsOffset)}; }
 
   HashMap<Binding>* bindings() { return READ_VALUE(this, kBindingsOffset, HashMap<Binding>*); }
 
@@ -130,10 +134,6 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     return "DeclarativeEnvRec(" + log::ToString(this) + ")";
   }
 
-  std::vector<void*> Pointers() override {
-    assert(false);
-  }
-
  private:
   static constexpr size_t kBindingsOffset = kEnvironmentRecordOffset;
 };
@@ -146,6 +146,8 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
     SET_VALUE(env_rec, kProvideThisOffset, provide_this, bool);
     return new (env_rec) ObjectEnvironmentRecord();
   }
+
+  std::vector<void*> Pointers() override { return {HEAP_PTR(kBindingsOffset)}; }
 
   JSObject* bindings() { return READ_VALUE(this, kBindingsOffset, JSObject*); }
   bool provide_this() { return READ_VALUE(this, kProvideThisOffset, bool); }
@@ -193,10 +195,6 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
   }
 
   virtual std::string ToString() override { return "ObjectEnvRec(" + log::ToString(this) + ")"; }
-
-  std::vector<void*> Pointers() override {
-    assert(false);
-  }
 
  private:
   static constexpr size_t kBindingsOffset = kEnvironmentRecordOffset;

@@ -22,6 +22,10 @@ class PropertyDescriptor : public JSValue {
     return new (jsval) PropertyDescriptor();
   }
 
+  std::vector<void*> Pointers() override {
+    return {HEAP_PTR(kValueOffset), HEAP_PTR(kGetOffset), HEAP_PTR(kSetOffset)};
+  }
+
   inline bool IsAccessorDescriptor() {
     return (bitmask() & (GET | SET)) == (GET | SET);
   }
@@ -124,10 +128,6 @@ class PropertyDescriptor : public JSValue {
     if (HasConfigurable()) res += "c: " + log::ToString(Configurable());
     res += '}';
     return res;
-  }
-
-  std::vector<void*> Pointers() override {
-    assert(false);
   }
 
  private:

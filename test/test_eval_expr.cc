@@ -10,6 +10,7 @@
 #include <es/enter_code.h>
 #include <es/types/property_descriptor_object_conversion.h>
 #include <es/utils/helper.h>
+#include <es/gc/heap.h>
 
 using namespace es;
 

@@ -71,6 +71,13 @@ class RegExpObject : public JSObject {
     return obj;
   }
 
+  std::vector<void*> Pointers() override {
+    std::vector<void*> pointers = JSObject::Pointers();
+    pointers.emplace_back(HEAP_PTR(kPatternOffset));
+    pointers.emplace_back(HEAP_PTR(kFlagOffset));
+    return pointers;
+  }
+
   static constexpr size_t kPatternOffset = kJSObjectOffset;
   static constexpr size_t kFlagOffset = kPatternOffset + kPtrSize;
   static constexpr size_t kGlobalOffset = kFlagOffset + kPtrSize;
@@ -84,7 +91,7 @@ class RegExpObject : public JSObject {
   bool ignore_case() { return READ_VALUE(this, kIgnoreCaseOffset, bool); }
   bool multiline() { return READ_VALUE(this, kMultilineOffset, bool); }
 
-  std::string ToString() { return "/" + log::ToString(pattern()) + "/" + log::ToString(flag()); }
+  std::string ToString() override { return "/" + log::ToString(pattern()) + "/" + log::ToString(flag()); }
 };
 
 class RegExpConstructor : public JSObject {

@@ -11,6 +11,7 @@
 #include <es/types/conversion.h>
 #include <es/types/property_descriptor_object_conversion.h>
 #include <es/utils/helper.h>
+#include <es/gc/heap.h>
 
 using namespace es;
 

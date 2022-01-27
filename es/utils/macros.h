@@ -16,12 +16,18 @@ constexpr size_t kFuncPtrSize = sizeof(void* (*));
   (reinterpret_cast<char*>(ptr) + offset)
 #define TYPED_PTR(ptr, offset, type) \
   reinterpret_cast<type*>((reinterpret_cast<char*>(ptr) + offset))
+#define HEAP_PTR(offset) \
+  reinterpret_cast<void*>((reinterpret_cast<char*>(this) + offset))
 
 #define SET_VALUE(ptr, offset, val, type) \
   *reinterpret_cast<type*>(PTR(ptr, offset)) = val
 #define READ_VALUE(ptr, offset, type) \
   *reinterpret_cast<type*>(PTR(ptr, offset))
 
+enum GCFlag {
+  CONST = 1,
+  BIG   = 1 << 1,
+};
 
 }  // namespace es
 

@@ -32,13 +32,14 @@ class JSValue : public HeapObject {
     NUM_TYPES,
   };
 
-  static JSValue* New(Type type, size_t size) {
-    void* mem = HeapObject::New(kIntSize + size);
+  static JSValue* New(Type type, size_t size, uint8_t flag = 0) {
+    void* mem = HeapObject::New(kIntSize + size, flag);
     SET_VALUE(mem, kTypeOffset, type, Type);
     return static_cast<JSValue*>(mem);
   }
 
   inline Type type() { return READ_VALUE(this, kTypeOffset, Type); }
+  inline bool IsJSValue() override { return true; }
   inline bool IsLanguageType() { return type() < LANG_TO_SPEC; }
   inline bool IsSpecificationType() { return type() > LANG_TO_SPEC; }
   inline bool IsPrimitive() { return type() < JS_OBJECT; }
@@ -61,8 +62,6 @@ class JSValue : public HeapObject {
   inline bool IsLexicalEnvironment() { return type() == JS_LEX_ENV; }
 
   inline bool IsPrototype() { return IsNull() || IsObject(); }
-
-  virtual std::string ToString() = 0;
 
   void CheckObjectCoercible(Error* e) {
     if (IsUndefined() || IsNull()) {
@@ -89,7 +88,7 @@ class JSValue : public HeapObject {
 class Undefined : public JSValue {
  public:
   static Undefined* Instance() {
-    static Undefined* singleton = Undefined::New();
+    static Undefined* singleton = Undefined::New(GCFlag::CONST);
     return singleton;
   }
 
@@ -97,8 +96,8 @@ class Undefined : public JSValue {
   inline std::vector<void*> Pointers() override { return {}; }
 
  private:
-  static Undefined* New() {
-    JSValue* jsval = JSValue::New(JS_UNDEFINED, 0);
+  static Undefined* New(uint8_t flag) {
+    JSValue* jsval = JSValue::New(JS_UNDEFINED, 0, flag);
     return new (jsval) Undefined();
   }
 };
@@ -106,7 +105,7 @@ class Undefined : public JSValue {
 class Null : public JSValue {
  public:
   static Null* Instance() {
-    static Null* singleton = Null::New();
+    static Null* singleton = Null::New(GCFlag::CONST);
     return singleton;
   }
 
@@ -114,8 +113,8 @@ class Null : public JSValue {
   inline std::vector<void*> Pointers() override { return {}; }
 
  private:
-  static Null* New() {
-    JSValue* jsval = JSValue::New(JS_NULL, 0);
+  static Null* New(uint8_t flag) {
+    JSValue* jsval = JSValue::New(JS_NULL, 0, flag);
     return new (jsval) Null();
   }
 };
@@ -123,11 +122,11 @@ class Null : public JSValue {
 class Bool : public JSValue {
  public:
   static Bool* True() {
-    static Bool* singleton = Bool::New(true);
+    static Bool* singleton = Bool::New(true, GCFlag::CONST);
     return singleton;
   }
   static Bool* False() {
-    static Bool* singleton = Bool::New(false);
+    static Bool* singleton = Bool::New(false, GCFlag::CONST);
     return singleton;
   }
 
@@ -141,8 +140,8 @@ class Bool : public JSValue {
   inline std::vector<void*> Pointers() override { return {}; }
 
  private:
-  static Bool* New(bool val) {
-    JSValue* jsval = JSValue::New(JS_BOOL, kBoolSize);
+  static Bool* New(bool val, uint8_t flag) {
+    JSValue* jsval = JSValue::New(JS_BOOL, kBoolSize, flag);
     SET_VALUE(jsval, kJSValueOffset, val, bool);
     return new (jsval) Bool();
   }
@@ -150,16 +149,18 @@ class Bool : public JSValue {
 
 class String : public JSValue {
  public:
-  static String* New(std::u16string data) {
-    JSValue* jsval = JSValue::New(JS_STRING, kSizeTSize + data.size() * kChar16Size);
+  static String* New(std::u16string data, uint8_t flag = 0) {
+    std::cout << "String::New" << std::endl;
+    JSValue* jsval = JSValue::New(JS_STRING, kSizeTSize + data.size() * kChar16Size, flag);
     SET_VALUE(jsval, kLengthOffset, data.size(), size_t);
     memcpy(PTR(jsval, kStringDataOffset), data.data(), data.size() * kChar16Size);
     return new (jsval) String();
   }
 
-  static String* New(char16_t* data) {
+  static String* New(char16_t* data, uint8_t flag = 0) {
+    std::cout << "String::New" << std::endl;
     size_t size = std::char_traits<char16_t>::length(data);
-    JSValue* jsval = JSValue::New(JS_STRING, kSizeTSize + size * kChar16Size);
+    JSValue* jsval = JSValue::New(JS_STRING, kSizeTSize + size * kChar16Size, flag);
     SET_VALUE(jsval, kLengthOffset, size, size_t);
     memcpy(PTR(jsval, kStringDataOffset), data, size * kChar16Size);
     return new (jsval) String();
@@ -193,87 +194,87 @@ class String : public JSValue {
   }
 
   static String* Empty() {
-    static String* singleton = String::New(u"");
+    static String* singleton = String::New(u"", GCFlag::CONST);
     return singleton;
   }
 
   static String* Undefined() {
-    static String* singleton = String::New(u"undefined");
+    static String* singleton = String::New(u"undefined", GCFlag::CONST);
     return singleton;
   }
 
   static String* Null() {
-    static String* singleton = String::New(u"null");
+    static String* singleton = String::New(u"null", GCFlag::CONST);
     return singleton;
   }
 
   static String* True() {
-    static String* singleton = String::New(u"true");
+    static String* singleton = String::New(u"true", GCFlag::CONST);
     return singleton;
   }
 
   static String* False() {
-    static String* singleton = String::New(u"false");
+    static String* singleton = String::New(u"false", GCFlag::CONST);
     return singleton;
   }
 
   static String* NaN() {
-    static String* singleton = String::New(u"NaN");
+    static String* singleton = String::New(u"NaN", GCFlag::CONST);
     return singleton;
   }
 
   static String* Zero() {
-    static String* singleton = String::New(u"0");
+    static String* singleton = String::New(u"0", GCFlag::CONST);
     return singleton;
   }
 
   static String* Infinity() {
-    static String* singleton = String::New(u"Infinity");
+    static String* singleton = String::New(u"Infinity", GCFlag::CONST);
     return singleton;
   }
 
   static String* Prototype() {
-    static String* singleton = String::New(u"prototype");
+    static String* singleton = String::New(u"prototype", GCFlag::CONST);
     return singleton;
   }
 
   static String* Length() {
-    static String* singleton = String::New(u"length");
+    static String* singleton = String::New(u"length", GCFlag::CONST);
     return singleton;
   }
 
   static String* Value() {
-    static String* singleton = String::New(u"value");
+    static String* singleton = String::New(u"value", GCFlag::CONST);
     return singleton;
   }
 
   static String* Writable() {
-    static String* singleton = String::New(u"writable");
+    static String* singleton = String::New(u"writable", GCFlag::CONST);
     return singleton;
   }
 
   static String* Get() {
-    static String* singleton = String::New(u"get");
+    static String* singleton = String::New(u"get", GCFlag::CONST);
     return singleton;
   }
 
   static String* Set() {
-    static String* singleton = String::New(u"set");
+    static String* singleton = String::New(u"set", GCFlag::CONST);
     return singleton;
   }
 
   static String* Arguments() {
-    static String* singleton = String::New(u"arguments");
+    static String* singleton = String::New(u"arguments", GCFlag::CONST);
     return singleton;
   }
 
   static String* Enumerable() {
-    static String* singleton = String::New(u"enumerable");
+    static String* singleton = String::New(u"enumerable", GCFlag::CONST);
     return singleton;
   }
 
   static String* Configurable() {
-    static String* singleton = String::New(u"configurable");
+    static String* singleton = String::New(u"configurable", GCFlag::CONST);
     return singleton;
   }
 
@@ -313,39 +314,40 @@ bool operator <(String& a, String& b) {
 
 class Number : public JSValue {
  public:
-  static Number* New(double data) {
-    JSValue* jsval = JSValue::New(JS_NUMBER, kDoubleSize);
+  static Number* New(double data, uint8_t flag = 0) {
+    std::cout << "Number::New" << std::endl;
+    JSValue* jsval = JSValue::New(JS_NUMBER, kDoubleSize, flag);
     SET_VALUE(jsval, kJSValueOffset, data, double);
     return new (jsval) Number();
   }
 
   static Number* NaN() {
-    static Number* singleton = Number::New(nan(""));
+    static Number* singleton = Number::New(nan(""), GCFlag::CONST);
     return singleton;
   }
 
   static Number* PositiveInfinity() {
-    static Number* singleton = Number::New(std::numeric_limits<double>::infinity());
+    static Number* singleton = Number::New(std::numeric_limits<double>::infinity(), GCFlag::CONST);
     return singleton;
   }
 
   static Number* NegativeInfinity() {
-    static Number* singleton = Number::New(-std::numeric_limits<double>::infinity());
+    static Number* singleton = Number::New(-std::numeric_limits<double>::infinity(), GCFlag::CONST);
     return singleton;
   }
 
   static Number* Zero() {
-    static Number* singleton = Number::New(0.0);
+    static Number* singleton = Number::New(0.0, GCFlag::CONST);
     return singleton;
   }
 
   static Number* NegativeZero() {
-    static Number* singleton = Number::New(-0.0);
+    static Number* singleton = Number::New(-0.0, GCFlag::CONST);
     return singleton;
   }
 
   static Number* One() {
-    static Number* singleton = Number::New(1.0);
+    static Number* singleton = Number::New(1.0, GCFlag::CONST);
     return singleton;
   }
 

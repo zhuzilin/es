@@ -16,6 +16,10 @@ class LexicalEnvironment : public JSValue {
     return new (jsval) LexicalEnvironment();
   }
 
+  std::vector<void*> Pointers() override {
+    return {HEAP_PTR(kOuterOffset), HEAP_PTR(kEnvRecOffset)};
+  }
+
   LexicalEnvironment* outer() { return READ_VALUE(this, kOuterOffset, LexicalEnvironment*); }
   EnvironmentRecord* env_rec() { return READ_VALUE(this, kEnvRecOffset, EnvironmentRecord*); }
 
@@ -47,10 +51,6 @@ class LexicalEnvironment : public JSValue {
   }
 
   std::string ToString() override { return "LexicalEnvironment"; }
-
-  std::vector<void*> Pointers() override {
-    assert(false);
-  }
 
  private:
   static constexpr size_t kOuterOffset = kJSValueOffset;

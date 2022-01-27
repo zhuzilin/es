@@ -50,6 +50,7 @@ class JSObject : public JSValue {
     inner_func callable,
     size_t size
   ) {
+    std::cout << "JSObject::New" << std::endl;
     JSValue* jsval = JSValue::New(JS_OBJECT, kJSObjectOffset - kJSValueOffset + size);
     SET_VALUE(jsval, kObjTypeOffset, obj_type, ObjType);
     SET_VALUE(jsval, kClassOffset, String::New(klass), String*);
@@ -61,7 +62,18 @@ class JSObject : public JSValue {
     TYPED_PTR(jsval, kCallableOffset, inner_func)[0] = callable;
     SET_VALUE(jsval, kPrototypeOffset, Null::Instance(), JSValue*);
     SET_VALUE(jsval, kNamedPropertiesOffset, HashMap<PropertyDescriptor>::New(), HashMap<PropertyDescriptor>*);
-    return new (jsval) JSObject();
+    JSObject* jsobj = new (jsval) JSObject();
+    std::cout << jsobj->Class()->ToString() << " vs " << log::ToString(klass) << std::endl;
+    return jsobj;
+  }
+
+  std::vector<void*> Pointers() override {
+    return {
+      HEAP_PTR(kClassOffset),
+      HEAP_PTR(kPrimitiveValueOffset),
+      HEAP_PTR(kPrototypeOffset),
+      HEAP_PTR(kNamedPropertiesOffset) 
+    };
   }
 
   ObjType obj_type() { return READ_VALUE(this, kObjTypeOffset, ObjType); }
@@ -176,10 +188,6 @@ class JSObject : public JSValue {
   }
 
   virtual std::string ToString() override { return log::ToString(Class()->data()); }
-
-  std::vector<void*> Pointers() override {
-    assert(false);
-  }
 
  protected:
   static constexpr size_t kObjTypeOffset = kJSValueOffset;
