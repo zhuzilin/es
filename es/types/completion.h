@@ -18,16 +18,16 @@ struct Completion {
     THROW,
   };
 
-  Completion() : Completion(NORMAL, nullptr, u"") {}
+  Completion() : Completion(NORMAL, Handle<JSValue>(), u"") {}
 
-  Completion(Type type, JSValue* value, std::u16string target) :
+  Completion(Type type, Handle<JSValue> value, std::u16string target) :
     type(type), value(value), target(target) {}
 
   bool IsAbruptCompletion() { return type != NORMAL; }
   bool IsThrow() { return type == THROW; }
 
   Type type;
-  JSValue* value;
+  Handle<JSValue> value;
   std::u16string target;
 };
 

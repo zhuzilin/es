@@ -21,33 +21,33 @@ typedef std::pair<string,string> pair_string;
 typedef std::vector<std::pair<string,string>> vec_pair_string;
 
 TEST(TestPrimitiveConversion, ToPrimitive) {
-  JSValue* val;
+  Handle<JSValue> val;
   Error* e = Error::Ok();
   val = ToPrimitive(e, Undefined::Instance(), u"");
-  EXPECT_EQ(JSValue::JS_UNDEFINED, val->type());
+  EXPECT_EQ(JSValue::JS_UNDEFINED, val.val()->type());
 
   val = ToPrimitive(e, Null::Instance(), u"");
-  EXPECT_EQ(JSValue::JS_NULL, val->type());
+  EXPECT_EQ(JSValue::JS_NULL, val.val()->type());
 
   for (auto inner : {true, false}) {
     val = ToPrimitive(e, Bool::Wrap(inner), u"");
-    EXPECT_EQ(JSValue::JS_BOOL, val->type());
-    auto outer = static_cast<Bool*>(val);
-    EXPECT_EQ(inner, outer->data());
+    EXPECT_EQ(JSValue::JS_BOOL, val.val()->type());
+    auto outer = static_cast<Handle<Bool>>(val);
+    EXPECT_EQ(inner, outer.val()->data());
   }
 
   for (auto inner : {1.0, 2.2, 3.5}) {
     val = ToPrimitive(e, Number::New(inner), u"");
-    EXPECT_EQ(JSValue::JS_NUMBER, val->type());
-    auto outer = static_cast<Number*>(val);
-    EXPECT_EQ(inner, outer->data());
+    EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+    auto outer = static_cast<Handle<Number>>(val);
+    EXPECT_EQ(inner, outer.val()->data());
   }
 
   for (auto inner : {u"abc", u"\n", u"你好", u"😎"}) {
     val = ToPrimitive(e, String::New(inner), u"");
-    EXPECT_EQ(JSValue::JS_STRING, val->type());
-    auto outer = static_cast<String*>(val);
-    EXPECT_EQ(inner, outer->data());
+    EXPECT_EQ(JSValue::JS_STRING, val.val()->type());
+    auto outer = static_cast<Handle<String>>(val);
+    EXPECT_EQ(inner, outer.val()->data());
   }
 }
 
@@ -200,7 +200,7 @@ TEST(TestPrimitiveConversion, ToUint32) {
 }
 
 TEST(TestPrimitiveConversion, ToString) {
-  String* str;
+  Handle<String> str;
   Error* e = Error::Ok();
   // String
   {
@@ -213,7 +213,7 @@ TEST(TestPrimitiveConversion, ToString) {
     };
     for (auto pair : vals) {
       str = ToString(e, Number::New(pair.first));
-      EXPECT_EQ(pair.second, str->data());
+      EXPECT_EQ(pair.second, str.val()->data());
     }
   }
 }

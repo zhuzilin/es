@@ -68,11 +68,11 @@ int main(int argc, char* argv[]) {
   switch (res.type) {
     case es::Completion::THROW: {
       std::cout << "\033[1;31m" << "Uncaught ";
-      if (res.value->IsObject()) {
-        es::JSObject* obj = static_cast<es::JSObject*>(res.value);
-        if (obj->obj_type() == es::JSObject::OBJ_ERROR) {
-          es::ErrorObject* error = static_cast<es::ErrorObject*>(obj);
-          switch (error->ErrorType()) {
+      if (res.value.val()->IsObject()) {
+        es::Handle<es::JSObject> obj = static_cast<es::Handle<es::JSObject>>(res.value);
+        if (obj.val()->IsErrorObject()) {
+          es::Handle<es::ErrorObject> error = static_cast<es::Handle<es::ErrorObject>>(obj);
+          switch (error.val()->ErrorType()) {
             case es::Error::E_EVAL:
               std::cout << "Eval";
               break;
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
           }
         }
       }
-      std::cout << "Error: " << res.value->ToString() << "\033[0m" << std::endl;
+      std::cout << "Error: " << res.value.val()->ToString() << "\033[0m" << std::endl;
       break;
     }
     default:

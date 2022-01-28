@@ -8,38 +8,39 @@ namespace es {
 template<typename T>
 class FixedArray : public HeapObject {
  public:
-  static FixedArray<T>* New(std::vector<T*> elements) {
+  static Handle<FixedArray<T>> New(std::vector<Handle<T>> elements) {
     std::cout << "FixedArray::New" << std::endl;
     size_t n = elements.size();
-    HeapObject* heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
-    SET_VALUE(heap_obj, kSizeOffset, n, size_t);
+    Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
+    SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);
     for (size_t i = 0; i < n; i++) {
-      SET_VALUE(heap_obj, kElementOffset + i * kPtrSize, elements[i], T*);
+      SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, elements[i], T);
     }
-    return new (heap_obj) FixedArray<T>();
+    new (heap_obj.val()) FixedArray<T>();
+    return Handle<FixedArray<T>>(heap_obj);
   }
 
-  std::vector<void*> Pointers() override {
+  std::vector<HeapObject**> Pointers() override {
     size_t n = size();
-    std::vector<void*> pointers(n);
+    std::vector<HeapObject**> pointers(n);
     for (size_t i = 0; i < n; i++) {
       pointers[i] = HEAP_PTR(kElementOffset + i * kPtrSize);
     }
     return pointers;
   }
 
-  static FixedArray<T>* New(size_t n) {
-    HeapObject* heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
-    SET_VALUE(heap_obj, kSizeOffset, n, size_t);
+  static Handle<FixedArray<T>> New(size_t n) {
+    Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
+    SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);
     for (size_t i = 0; i < n; i++) {
-      SET_VALUE(heap_obj, kElementOffset + i * kPtrSize, nullptr, T*);
+      SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, Handle<T>(), T);
     }
-    return new (heap_obj) FixedArray<T>();
+    return Handle<FixedArray<T>>(new (heap_obj.val()) FixedArray<T>());
   }
 
   size_t size() { return READ_VALUE(this, kSizeOffset, size_t); }
-  T* Get(size_t i) { return READ_VALUE(this, kElementOffset + i * kPtrSize, T*); }
-  void Set(size_t i, T* val) { SET_VALUE(this, kElementOffset + i * kPtrSize, val, T*); }
+  Handle<T> Get(size_t i) { return READ_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, T); }
+  void Set(size_t i, Handle<T> val) { SET_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, val, T); }
 
   std::string ToString() override { return "FixedArray(" + std::to_string(size()) + ")"; }
 

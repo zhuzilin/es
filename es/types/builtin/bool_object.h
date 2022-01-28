@@ -5,51 +5,51 @@
 
 namespace es {
 
-bool ToBoolean(JSValue*);
+bool ToBoolean(Handle<JSValue>);
 
 class BoolProto : public JSObject {
  public:
-  static BoolProto* Instance() {
-    static BoolProto* singleton = BoolProto::New();
+  static Handle<BoolProto> Instance() {
+    static Handle<BoolProto> singleton = BoolProto::New();
     return singleton;
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return ToBoolean(this_arg) ? String::True() : String::False();
   }
 
-  static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> valueOf(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
  private:
-  static BoolProto* New() {
-    JSObject* jsobj = JSObject::New(
+  static Handle<BoolProto> New() {
+    Handle<JSObject> jsobj = JSObject::New(
       OBJ_BOOL, u"Boolean", true, Bool::False(), false, false, nullptr, 0);
-    return new (jsobj) BoolProto();
+    return Handle<BoolProto>(new (jsobj.val()) BoolProto());
   }
 };
 
 class BoolObject : public JSObject {
  public:
-  static BoolObject* New(JSValue* primitive_value) {
-    JSObject* jsobj = JSObject::New(
+  static Handle<BoolObject> New(Handle<JSValue> primitive_value) {
+    Handle<JSObject> jsobj = JSObject::New(
       OBJ_BOOL, u"Boolean", true, primitive_value, false, false, nullptr, 0
     );
-    BoolObject* obj = new (jsobj) BoolObject();
-    obj->SetPrototype(BoolProto::Instance());
+    Handle<BoolObject> obj(new (jsobj.val()) BoolObject());
+    obj.val()->SetPrototype(BoolProto::Instance());
     return obj;
   }
 };
 
 class BoolConstructor : public JSObject {
  public:
-  static BoolConstructor* Instance() {
-    static BoolConstructor* singleton = BoolConstructor::New();
+  static Handle<BoolConstructor> Instance() {
+    static Handle<BoolConstructor> singleton = BoolConstructor::New();
     return singleton;
   }
 
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
+  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
     bool b;
     if (arguments.size() == 0)
       b = ToBoolean(Undefined::Instance());
@@ -58,7 +58,7 @@ class BoolConstructor : public JSObject {
     return Bool::Wrap(b);
   }
 
-  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
+  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     bool b;
     if (arguments.size() == 0)
       b = ToBoolean(Undefined::Instance());
@@ -67,15 +67,15 @@ class BoolConstructor : public JSObject {
     return BoolObject::New(Bool::Wrap(b));
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function Bool() { [native code] }");
   }
 
  private:
-  static BoolConstructor* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_OTHER, u"Boolean", true, nullptr, true, true, nullptr, 0);
-    return new (jsobj) BoolConstructor();
+  static Handle<BoolConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_OTHER, u"Boolean", true, Handle<JSValue>(), true, true, nullptr, 0);
+    return Handle<BoolConstructor>(new (jsobj.val()) BoolConstructor());
   }
 };
 

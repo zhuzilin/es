@@ -7,33 +7,33 @@ namespace es {
 
 class ErrorProto : public JSObject {
  public:
-  static ErrorProto* Instance() {
-    static ErrorProto* singleton = ErrorProto::New();
+  static Handle<ErrorProto> Instance() {
+    static Handle<ErrorProto> singleton = ErrorProto::New();
     return singleton;
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
  private:
-  static ErrorProto* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_ERROR, u"Error", true, nullptr, false, false, nullptr, 0);
-    return new (jsobj) ErrorProto();
+  static Handle<ErrorProto> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_ERROR, u"Error", true, Handle<JSValue>(), false, false, nullptr, 0);
+    return Handle<ErrorProto>(new (jsobj.val()) ErrorProto());
   }
 };
 
 class ErrorObject : public JSObject {
  public:
-  static ErrorObject* New(Error* e) {
-    JSObject* jsobj = JSObject::New(
-      OBJ_ERROR, u"Error", true, nullptr, false, false, nullptr, kPtrSize
+  static Handle<ErrorObject> New(Error* e) {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_ERROR, u"Error", true, Handle<JSValue>(), false, false, nullptr, kPtrSize
     );
-    SET_VALUE(jsobj, kErrorOffset, e, Error*);
-    ErrorObject* obj = new (jsobj) ErrorObject();
-    obj->SetPrototype(ErrorProto::Instance());
-    obj->AddValueProperty(u"message", String::New(e->message()), true, false, false);
+    SET_VALUE(jsobj.val(), kErrorOffset, e, Error*);
+    Handle<ErrorObject> obj(new (jsobj.val()) ErrorObject());
+    obj.val()->SetPrototype(ErrorProto::Instance());
+    obj.val()->AddValueProperty(u"message", String::New(e->message()), true, false, false);
     return obj;
   }
 
@@ -49,33 +49,33 @@ class ErrorObject : public JSObject {
 
 class ErrorConstructor : public JSObject {
  public:
-  static ErrorConstructor* Instance() {
-    static ErrorConstructor* singleton = ErrorConstructor::New();
+  static Handle<ErrorConstructor> Instance() {
+    static Handle<ErrorConstructor> singleton = ErrorConstructor::New();
     return singleton;
   }
 
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
+  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
     return Construct(e, arguments);
   }
 
-  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
-    if (arguments.size() == 0 || arguments[0]->IsUndefined())
+  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
+    if (arguments.size() == 0 || arguments[0].val()->IsUndefined())
       return ErrorObject::New(Error::NativeError(ToU16String(nullptr, Undefined::Instance())));
     std::u16string s = ToU16String(e, arguments[0]);
     if (!e->IsOk())
-      return nullptr;
+      return Handle<JSValue>();
     return ErrorObject::New(Error::NativeError(s));
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function Error() { [native code] }");
   }
 
  private:
-  static ErrorConstructor* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_OTHER, u"Error", true, nullptr, true, true, nullptr, 0);
-    return new (jsobj) ErrorConstructor();
+  static Handle<ErrorConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_OTHER, u"Error", true, Handle<JSValue>(), true, true, nullptr, 0);
+    return Handle<ErrorConstructor>(new (jsobj.val()) ErrorConstructor());
   }
 };
 

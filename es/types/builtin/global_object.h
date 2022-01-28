@@ -5,15 +5,15 @@
 
 namespace es {
 
-std::u16string ToU16String(Error* e, JSValue* input);
-double ToInt32(Error* e, JSValue* input);
+std::u16string ToU16String(Error* e, Handle<JSValue> input);
+double ToInt32(Error* e, Handle<JSValue> input);
 double StringToNumber(std::u16string source);
 
 // 15.1 The Global Object
 class GlobalObject : public JSObject {
  public:
-  static GlobalObject* Instance() {
-    static GlobalObject* singleton = GlobalObject::New();
+  static Handle<GlobalObject> Instance() {
+    static Handle<GlobalObject> singleton = GlobalObject::New();
     return singleton;
   }
 
@@ -23,23 +23,23 @@ class GlobalObject : public JSObject {
   }
 
   // 15.1.2.1 eval(X)
-  static JSValue* eval(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
+  static Handle<JSValue> eval(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
 
   // 15.1.2.2 parseInt (string , radix)
-  static JSValue* parseInt(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> parseInt(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     // TODO(zhuzilin) use parseFloat at the moment. fix later
-    if (vals.size() == 0 || vals[0]->IsUndefined()) {
+    if (vals.size() == 0 || vals[0].val()->IsUndefined()) {
       *e = *Error::TypeError(u"parseInt called with undefined string");
-      return nullptr;
+      return Handle<JSValue>();
     }
     std::u16string input_string = ToU16String(e, vals[0]);
     size_t len = input_string.size();
-    if (!e->IsOk()) return nullptr;
+    if (!e->IsOk()) return Handle<JSValue>();
     double R = 10;
     bool strip_prefix = true;
-    if (vals.size() >= 2 && !vals[1]->IsUndefined()) {
+    if (vals.size() >= 2 && !vals[1].val()->IsUndefined()) {
       R = ToInt32(e, vals[0]);
-      if (!e->IsOk()) return nullptr;
+      if (!e->IsOk()) return Handle<JSValue>();
       if (R < 2 || R > 36)
         return Number::NaN();
       if (R != 0 && R != 16)
@@ -80,7 +80,7 @@ class GlobalObject : public JSObject {
   }
 
   // 15.1.2.3 parseFloat (string)
-  static JSValue* parseFloat(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> parseFloat(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size() == 0)
       return Number::NaN();
     std::u16string input_string = es::ToU16String(e, vals[0]);
@@ -106,20 +106,20 @@ class GlobalObject : public JSObject {
   }
 
   // 15.1.2.4 isNaN (number)
-  static JSValue* isNaN(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> isNaN(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
   // 15.1.2.5 isFinite (number)
-  static JSValue* isFinite(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> isFinite(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
   inline std::string ToString() override { return "GlobalObject"; }
 
  private:
-  static GlobalObject* New() {
-    JSObject* jsobj = JSObject::New(
+  static Handle<GlobalObject> New() {
+    Handle<JSObject> jsobj = JSObject::New(
       OBJ_GLOBAL,
       // 15.1 The values of the [[Prototype]] and [[Class]]
       // of the global object are implementation-dependent.
@@ -127,11 +127,10 @@ class GlobalObject : public JSObject {
       // NOTE(zhuzilin) global object need to have [[Extensible]] as true,
       // otherwise we cannot define variable in global code, as global varaibles
       // are the property of global object.
-      true, nullptr, false, false, nullptr, kBoolSize
+      true, Handle<JSValue>(), false, false, nullptr, kBoolSize
     );
-    SET_VALUE(jsobj, kDirectEvalOffset, false, bool);
-    GlobalObject* obj = new (jsobj) GlobalObject();
-    return obj;
+    SET_VALUE(jsobj.val(), kDirectEvalOffset, false, bool);
+    return Handle<GlobalObject>(new (jsobj.val()) GlobalObject());
   }
 
   static constexpr size_t kDirectEvalOffset = kJSObjectOffset;
@@ -140,11 +139,11 @@ class GlobalObject : public JSObject {
 class DirectEvalGuard {
   public:
     DirectEvalGuard() {
-      GlobalObject::Instance()->SetDirectEval(true);
+      GlobalObject::Instance().val()->SetDirectEval(true);
     }
 
     ~DirectEvalGuard() {
-      GlobalObject::Instance()->SetDirectEval(false);
+      GlobalObject::Instance().val()->SetDirectEval(false);
     }
 };
 

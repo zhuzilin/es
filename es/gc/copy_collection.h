@@ -34,7 +34,7 @@ class CopyCollection : public GC {
     if (newfree > top_)
       return nullptr;
     free_ = newfree;
-    std::cout << "allocated: " << free_ - tospace_ << std::endl;
+    std::cout << "allocated: " << size << ", now: " << free_ - tospace_ << std::endl;
     return result;
   }
 
@@ -45,8 +45,8 @@ class CopyCollection : public GC {
     auto root_pointers = Runtime::Global()->Pointers();
     assert(root_pointers.size() > 0);
     std::cout << "root_pointers size: " << root_pointers.size() << std::endl;
-    for (void* fld : root_pointers) {
-      Process(static_cast<HeapObject**>(fld));
+    for (HeapObject** fld : root_pointers) {
+      Process(fld);
     }
     while (!IsEmpty(worklist_)) {
       void* ref = Remove(worklist_);
@@ -70,8 +70,8 @@ class CopyCollection : public GC {
     assert(heap_ref != nullptr);
     std::cout << "Scanning: " << heap_ref->ToString() << std::endl;
     auto ref_pointers = heap_ref->Pointers();
-    for (void* fld : ref_pointers) {
-      Process(static_cast<HeapObject**>(fld));
+    for (HeapObject** fld : ref_pointers) {
+      Process(fld);
     }
     std::cout << "exit Scan" << std::endl;
   }

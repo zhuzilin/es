@@ -12,39 +12,39 @@ namespace es {
 // 10.6 Arguments Object
 class ArgumentsObject : public JSObject {
  public:
-  static ArgumentsObject* New(JSObject* parameter_map, size_t len) {
+  static Handle<ArgumentsObject> New(Handle<JSObject> parameter_map, size_t len) {
     std::cout << "ArgumentsObject::New" << std::endl;
-    JSObject* jsobj = JSObject::New(
-      OBJ_OBJECT, u"Arguments", true, nullptr, false, false, nullptr,
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_OBJECT, u"Arguments", true, Handle<JSValue>(), false, false, nullptr,
       kParameterMapOffset + kPtrSize - kJSObjectOffset
     );
-    SET_VALUE(jsobj, kParameterMapOffset, parameter_map, JSObject*);
-    ArgumentsObject* obj = new (jsobj) ArgumentsObject();
-    obj->SetPrototype(ObjectProto::Instance());
-    obj->AddValueProperty(String::Length(), Number::New(len), true, false, true);
+    SET_HANDLE_VALUE(jsobj.val(), kParameterMapOffset, parameter_map, JSObject);
+    Handle<ArgumentsObject> obj(new (jsobj.val()) ArgumentsObject());
+    obj.val()->SetPrototype(ObjectProto::Instance());
+    obj.val()->AddValueProperty(String::Length(), Number::New(len), true, false, true);
     return obj;
   }
 
-  std::vector<void*> Pointers() override {
-    std::vector<void*> pointers = JSObject::Pointers();
+  std::vector<HeapObject**> Pointers() override {
+    std::vector<HeapObject**> pointers = JSObject::Pointers();
     pointers.emplace_back(HEAP_PTR(kParameterMapOffset));
     return pointers;
   }
 
-  JSObject* ParameterMap() { return READ_VALUE(this, kParameterMapOffset, JSObject*); }
+  Handle<JSObject> ParameterMap() { return READ_HANDLE_VALUE(this, kParameterMapOffset, JSObject); }
 
-  JSValue* Get(Error* e, String* P) override {
-    JSObject* map = ParameterMap();
-    JSValue* is_mapped = map->GetOwnProperty(P);
-    if (is_mapped->IsUndefined()) {  // 3
-      JSValue* v = JSObject::Get(e, P);
-      if (!e->IsOk()) return nullptr;
-      if (P->data() == u"caller") {
-        if (v->IsObject()) {
-          JSObject* obj = static_cast<JSObject*>(v);
-          if (obj->IsFunction()) {
-            FunctionObject* func = static_cast<FunctionObject*>(obj);
-            if (func->strict()) {
+  Handle<JSValue> Get(Error* e, Handle<String> P) override {
+    Handle<JSObject> map = ParameterMap();
+    Handle<JSValue> is_mapped = map.val()->GetOwnProperty(P);
+    if (is_mapped.val()->IsUndefined()) {  // 3
+      Handle<JSValue> v = JSObject::Get(e, P);
+      if (!e->IsOk()) return Handle<JSValue>();
+      if (P.val()->data() == u"caller") {
+        if (v.val()->IsObject()) {
+          Handle<JSObject> obj = static_cast<Handle<JSObject>>(v);
+          if (obj.val()->IsFunction()) {
+            Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(obj);
+            if (func.val()->strict()) {
               *e = *Error::TypeError(u"caller could not be function object");
             }
           }
@@ -53,54 +53,54 @@ class ArgumentsObject : public JSObject {
       return v;
     }
     // 4
-    return map->Get(e, P);
+    return map.val()->Get(e, P);
   }
 
-  JSValue* GetOwnProperty(String* P) override {
-    JSValue* val = JSObject::GetOwnProperty(P);
-    if (val->IsUndefined())
+  Handle<JSValue> GetOwnProperty(Handle<String> P) override {
+    Handle<JSValue> val = JSObject::GetOwnProperty(P);
+    if (val.val()->IsUndefined())
       return val;
-    PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(val);
-    JSObject* map = ParameterMap();
-    JSValue* is_mapped = map->GetOwnProperty(P);
-    if (!is_mapped->IsUndefined()) {  // 5
-      desc->SetValue(map->Get(nullptr, P));
+    Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(val);
+    Handle<JSObject> map = ParameterMap();
+    Handle<JSValue> is_mapped = map.val()->GetOwnProperty(P);
+    if (!is_mapped.val()->IsUndefined()) {  // 5
+      desc.val()->SetValue(map.val()->Get(nullptr, P));
     }
     return desc;
   }
 
-  bool DefineOwnProperty(Error* e, String* P, PropertyDescriptor* desc, bool throw_flag) override {
-    JSObject* map = ParameterMap();
-    JSValue* is_mapped = map->GetOwnProperty(P);
+  bool DefineOwnProperty(Error* e, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag) override {
+    Handle<JSObject> map = ParameterMap();
+    Handle<JSValue> is_mapped = map.val()->GetOwnProperty(P);
     bool allowed = JSObject::DefineOwnProperty(e, P, desc, false);
     if (!allowed) {
       if (throw_flag) {
-        *e = *Error::TypeError(u"DefineOwnProperty " + P->data() + u" failed");
+        *e = *Error::TypeError(u"DefineOwnProperty " + P.val()->data() + u" failed");
       }
       return false;
     }
-    if (!is_mapped->IsUndefined()) {  // 5
-      if (desc->IsAccessorDescriptor()) {
-        map->Delete(e, P, false);
+    if (!is_mapped.val()->IsUndefined()) {  // 5
+      if (desc.val()->IsAccessorDescriptor()) {
+        map.val()->Delete(e, P, false);
       } else {
-        if (desc->HasValue()) {
-          map->Put(e, P, desc->Value(), false);
+        if (desc.val()->HasValue()) {
+          map.val()->Put(e, P, desc.val()->Value(), false);
         }
-        if (desc->HasWritable() && !desc->Writable()) {
-          map->Delete(e, P, false);
+        if (desc.val()->HasWritable() && !desc.val()->Writable()) {
+          map.val()->Delete(e, P, false);
         }
       }
     }
     return true;
   }
 
-  bool Delete(Error* e, String* P, bool throw_flag) override {
-    JSObject* map = ParameterMap();
-    JSValue* is_mapped = map->GetOwnProperty(P);
+  bool Delete(Error* e, Handle<String> P, bool throw_flag) override {
+    Handle<JSObject> map = ParameterMap();
+    Handle<JSValue> is_mapped = map.val()->GetOwnProperty(P);
     bool result = JSObject::Delete(e, P, throw_flag);
     if (!e->IsOk()) return false;
-    if (result && !is_mapped->IsUndefined()) {
-      map->Delete(e, P, false);
+    if (result && !is_mapped.val()->IsUndefined()) {
+      map.val()->Delete(e, P, false);
     }
     return result;
   }

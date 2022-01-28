@@ -6,32 +6,32 @@
 
 namespace es {
 
-bool ToBoolean(JSValue*);
+bool ToBoolean(Handle<JSValue>);
 
 class Console : public JSObject {
  public:
-  static  Console* Instance() {
-    static Console* singleton = Console::New();
+  static  Handle<Console> Instance() {
+    static Handle<Console> singleton = Console::New();
     return singleton;
   }
 
-  static JSValue* log(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> log(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size())
-      std::cout << vals[0]->ToString();
+      std::cout << vals[0].ToString();
     for (size_t i = 1; i < vals.size(); i++) {
-      std::cout << " " << vals[i]->ToString();
+      std::cout << " " << vals[i].ToString();
     }
     std::cout << std::endl;
     return Number::Zero();
   }
 
  private:
-  static Console* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_HOST, u"Console", true, nullptr, false, false, nullptr, 0
+  static Handle<Console> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_HOST, u"Console", true, Handle<JSValue>(), false, false, nullptr, 0
     );
-    Console* obj = new (jsobj) Console();
-    obj->AddFuncProperty(u"log", log, false, false, false);
+    Handle<Console> obj(new (jsobj.val()) Console());
+    obj.val()->AddFuncProperty(u"log", log, false, false, false);
     return obj;
   }
 };

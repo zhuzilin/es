@@ -7,203 +7,203 @@ namespace es {
 
 class DateProto : public JSObject {
  public:
-  static DateProto* Instance() {
-    static DateProto* singleton = DateProto::New();
+  static Handle<DateProto> Instance() {
+    static Handle<DateProto> singleton = DateProto::New();
     return singleton;
   }
 
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
+  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
     return Undefined::Instance();
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* toDateString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toDateString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* toTimeString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toTimeString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* toLocaleString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toLocaleString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* toLocaleDateString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toLocaleDateString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* toLocaleTimeString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toLocaleTimeString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> valueOf(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getTime(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getTime(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getFullYear(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getFullYear(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getUTCFullYear(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getUTCFullYear(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getMonth(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getMonth(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getUTCMonth(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getUTCMonth(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getDate(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getDate(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getUTCDate(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getUTCDate(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getDay(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getDay(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getUTCDay(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getUTCDay(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getHours(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getHours(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getUTCHours(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getUTCHours(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getMinutes(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getMinutes(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getUTCMinutes(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getUTCMinutes(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getSeconds(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getSeconds(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getUTCSeconds(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getUTCSeconds(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getMilliseconds(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getMilliseconds(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getUTCMilliseconds(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getUTCMilliseconds(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getTimezoneOffset(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getTimezoneOffset(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setTime(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setTime(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setMilliseconds(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setMilliseconds(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setUTCMilliseconds(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setUTCMilliseconds(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setSeconds(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setSeconds(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setUTCSeconds(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setUTCSeconds(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setMinutes(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setMinutes(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setUTCMinutes(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setUTCMinutes(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setHours(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setHours(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setUTCHours(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setUTCHours(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setDate(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setDate(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setUTCDate(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setUTCDate(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setMonth(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setMonth(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setUTCMonth(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setUTCMonth(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setFullYear(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setFullYear(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* setUTCFullYear(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setUTCFullYear(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* toUTCString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toUTCString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* toISOString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toISOString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* toJSON(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toJSON(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
  private:
-  static DateProto* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_DATE, u"Date", true, nullptr, false, false, nullptr, 0);
-    return new (jsobj) DateProto();
+  static Handle<DateProto> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_DATE, u"Date", true, Handle<JSValue>(), false, false, nullptr, 0);
+    return Handle<DateProto>(new (jsobj.val()) DateProto());
   }
 };
 
 class DateObject : public JSObject {
  public:
-  static DateObject* New(JSValue* primitive_value) {
-    JSObject* jsobj = JSObject::New(
-      OBJ_DATE, u"Date", true, nullptr, false, false, nullptr, 0
+  static Handle<DateObject> New(Handle<JSValue> primitive_value) {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_DATE, u"Date", true, Handle<JSValue>(), false, false, nullptr, 0
     );
-    DateObject* obj = new (jsobj) DateObject();
-    obj->SetPrototype(DateProto::Instance());
+    Handle<DateObject> obj(new (jsobj.val()) DateObject());
+    obj.val()->SetPrototype(DateProto::Instance());
     return obj;
   }
 
@@ -212,40 +212,40 @@ class DateObject : public JSObject {
 
 class DateConstructor : public JSObject {
  public:
-  static DateConstructor* Instance() {
-    static DateConstructor* singleton = DateConstructor::New();
+  static Handle<DateConstructor> Instance() {
+    static Handle<DateConstructor> singleton = DateConstructor::New();
     return singleton;
   }
 
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
+  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
     return Construct(e, arguments);
   }
 
-  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
+  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     assert(false);
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function Date() { [native code] }");
   }
 
-  static JSValue* parse(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> parse(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* UTC(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> UTC(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* now(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> now(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
  private:
-  static DateConstructor* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_OTHER, u"Date", true, nullptr, true, true, nullptr, 0);
-    return new (jsobj) DateConstructor();
+  static Handle<DateConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_OTHER, u"Date", true, Handle<JSValue>(), true, true, nullptr, 0);
+    return Handle<DateConstructor>(new (jsobj.val()) DateConstructor());
   }
 };
 

@@ -27,9 +27,9 @@ TEST(TestProgram, SimpleAssign0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_REF, res.value->type());
-    Number* num = static_cast<Number*>(GetValue(e, static_cast<Reference*>(res.value)));
-    EXPECT_EQ(1, num->data());
+    EXPECT_EQ(JSValue::JS_REF, res.value.val()->type());
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, static_cast<Handle<Reference>>(res.value)));
+    EXPECT_EQ(1, num.val()->data());
     EXPECT_EQ(true, e->IsOk());
   }
 }
@@ -42,10 +42,10 @@ TEST(TestProgram, SimpleAssign1) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_REF, res.value->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(2, num->data());
+    EXPECT_EQ(JSValue::JS_REF, res.value.val()->type());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(2, num.val()->data());
     EXPECT_EQ(true, e->IsOk());
   }
 }
@@ -58,10 +58,10 @@ TEST(TestProgram, CompoundAssign0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_REF, res.value->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(2, num->data());
+    EXPECT_EQ(JSValue::JS_REF, res.value.val()->type());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(2, num.val()->data());
     EXPECT_EQ(true, e->IsOk());
   }
 }
@@ -74,9 +74,9 @@ TEST(TestProgram, Call0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_NUMBER, res.value->type());
-    Number* num = static_cast<Number*>(res.value);
-    EXPECT_EQ(3, num->data());
+    EXPECT_EQ(JSValue::JS_NUMBER, res.value.val()->type());
+    Handle<Number> num = static_cast<Handle<Number>>(res.value);
+    EXPECT_EQ(3, num.val()->data());
     EXPECT_EQ(true, e->IsOk());
   }
 }
@@ -89,9 +89,9 @@ TEST(TestProgram, Call1) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_NUMBER, res.value->type());
-    Number* num = static_cast<Number*>(res.value);
-    EXPECT_EQ(3, num->data());
+    EXPECT_EQ(JSValue::JS_NUMBER, res.value.val()->type());
+    Handle<Number> num = static_cast<Handle<Number>>(res.value);
+    EXPECT_EQ(3, num.val()->data());
     EXPECT_EQ(true, e->IsOk());
   }
 }
@@ -104,9 +104,9 @@ TEST(TestProgram, Call2) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_NUMBER, res.value->type());
-    Number* num = static_cast<Number*>(res.value);
-    EXPECT_EQ(1, num->data());
+    EXPECT_EQ(JSValue::JS_NUMBER, res.value.val()->type());
+    Handle<Number> num = static_cast<Handle<Number>>(res.value);
+    EXPECT_EQ(1, num.val()->data());
     EXPECT_EQ(true, e->IsOk());
   }
 }
@@ -119,9 +119,9 @@ TEST(TestProgram, Call3) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_NUMBER, res.value->type());
-    Number* num = static_cast<Number*>(res.value);
-    EXPECT_EQ(10, num->data());
+    EXPECT_EQ(JSValue::JS_NUMBER, res.value.val()->type());
+    Handle<Number> num = static_cast<Handle<Number>>(res.value);
+    EXPECT_EQ(10, num.val()->data());
     EXPECT_EQ(true, e->IsOk());
   }
 }
@@ -135,9 +135,9 @@ TEST(TestProgram, CallFunctionContructor) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e->IsOk());
-    EXPECT_EQ(JSValue::JS_NUMBER, res.value->type());
-    Number* num = static_cast<Number*>(res.value);
-    EXPECT_EQ(5, num->data());
+    EXPECT_EQ(JSValue::JS_NUMBER, res.value.val()->type());
+    Handle<Number> num = static_cast<Handle<Number>>(res.value);
+    EXPECT_EQ(5, num.val()->data());
   }
 }
 
@@ -150,10 +150,10 @@ TEST(TestProgram, Object0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(1, num->data());
+    EXPECT_EQ(JSValue::JS_REF, res.value.val()->type());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(1, num.val()->data());
   }
 }
 
@@ -166,10 +166,10 @@ TEST(TestProgram, Object1) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(10, num->data());
+    EXPECT_EQ(JSValue::JS_REF, res.value.val()->type());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(10, num.val()->data());
   }
 }
 
@@ -182,10 +182,10 @@ TEST(TestProgram, Object2) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(5, num->data());
+    EXPECT_EQ(JSValue::JS_REF, res.value.val()->type());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(5, num.val()->data());
   }
 }
 
@@ -198,10 +198,10 @@ TEST(TestProgram, Object3) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(5, num->data());
+    EXPECT_EQ(JSValue::JS_REF, res.value.val()->type());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(5, num.val()->data());
   }
 }
 
@@ -220,10 +220,10 @@ TEST(TestProgram, New0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(23456, num->data());
+    EXPECT_EQ(JSValue::JS_REF, res.value.val()->type());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(23456, num.val()->data());
   }
 }
 
@@ -239,10 +239,10 @@ TEST(TestProgram, New1) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    String* str = static_cast<String*>(GetValue(e, ref));
-    EXPECT_EQ(u"abc", str->data());
+    EXPECT_EQ(JSValue::JS_REF, res.value.val()->type());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<String> str = static_cast<Handle<String>>(GetValue(e, ref));
+    EXPECT_EQ(u"abc", str.val()->data());
   }
 }
 
@@ -261,10 +261,10 @@ TEST(TestProgram, If) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(2, num->data());
+    EXPECT_EQ(JSValue::JS_REF, res.value.val()->type());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(2, num.val()->data());
   }
 }
 
@@ -280,7 +280,7 @@ TEST(TestProgram, Strict0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Completion::THROW, res.type);
-    EXPECT_EQ(Error::E_REFERENCE, static_cast<ErrorObject*>(res.value)->ErrorType());
+    EXPECT_EQ(Error::E_REFERENCE, static_cast<Handle<ErrorObject>>(res.value).val()->ErrorType());
   }
 }
 
@@ -297,9 +297,9 @@ TEST(TestProgram, Strict1) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(235, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(235, num.val()->data());
   }
 }
 
@@ -314,9 +314,9 @@ TEST(TestProgram, Var0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(147, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(147, num.val()->data());
   }
 }
 
@@ -336,9 +336,9 @@ TEST(TestProgram, While0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(8, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(8, num.val()->data());
   }
 }
 
@@ -359,9 +359,9 @@ TEST(TestProgram, While1) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(2, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(2, num.val()->data());
   }
 }
 
@@ -383,9 +383,9 @@ TEST(TestProgram, While2) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(8, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(8, num.val()->data());
   }
 }
 
@@ -405,9 +405,9 @@ TEST(TestProgram, DoWhile0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(20, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(20, num.val()->data());
   }
 }
 
@@ -428,9 +428,9 @@ TEST(TestProgram, DoWhile1) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(2, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(2, num.val()->data());
   }
 }
 
@@ -452,9 +452,9 @@ TEST(TestProgram, DoWhile2) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(8, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(8, num.val()->data());
   }
 }
 
@@ -473,9 +473,9 @@ TEST(TestProgram, For0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(6, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(6, num.val()->data());
   }
 }
 
@@ -494,9 +494,9 @@ TEST(TestProgram, For1) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(3, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(3, num.val()->data());
   }
 }
 
@@ -516,9 +516,9 @@ TEST(TestProgram, ForIn0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(6, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(6, num.val()->data());
   }
 }
 
@@ -538,9 +538,9 @@ TEST(TestProgram, ForIn1) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(6, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(6, num.val()->data());
   }
 }
 
@@ -561,9 +561,9 @@ TEST(TestProgram, Try0) {
     EnterGlobalCode(e, ast);
     EXPECT_EQ(Error::E_OK, e->type());
     Completion res = EvalProgram(ast);
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(10, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(10, num.val()->data());
   }
 }
 
@@ -584,9 +584,9 @@ TEST(TestProgram, Try1) {
     EnterGlobalCode(e, ast);
     EXPECT_EQ(Error::E_OK, e->type());
     Completion res = EvalProgram(ast);
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(4, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(4, num.val()->data());
   }
 }
 
@@ -609,9 +609,9 @@ TEST(TestProgram, Switch0) {
     EnterGlobalCode(e, ast);
     EXPECT_EQ(Error::E_OK, e->type());
     Completion res = EvalProgram(ast);
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(1, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(1, num.val()->data());
   }
 }
 
@@ -636,9 +636,9 @@ TEST(TestProgram, Switch1) {
     EnterGlobalCode(e, ast);
     EXPECT_EQ(Error::E_OK, e->type());
     Completion res = EvalProgram(ast);
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(3, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(3, num.val()->data());
   }
 }
 
@@ -661,9 +661,9 @@ TEST(TestProgram, Label0) {
     EnterGlobalCode(e, ast);
     EXPECT_EQ(Error::E_OK, e->type());
     Completion res = EvalProgram(ast);
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(2, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(2, num.val()->data());
   }
 }
 
@@ -687,9 +687,9 @@ TEST(TestProgram, Fib0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(55, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(55, num.val()->data());
   }
 }
 
@@ -714,9 +714,9 @@ TEST(TestProgram, Fib1) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(55, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(55, num.val()->data());
   }
 }
 
@@ -734,8 +734,8 @@ TEST(TestProgram, Eval0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(Error::E_OK, e->type());
-    Reference* ref = static_cast<Reference*>(res.value);
-    Number* num = static_cast<Number*>(GetValue(e, ref));
-    EXPECT_EQ(6, num->data());
+    Handle<Reference> ref = static_cast<Handle<Reference>>(res.value);
+    Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
+    EXPECT_EQ(6, num.val()->data());
   }
 }

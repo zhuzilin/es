@@ -9,8 +9,8 @@ namespace es {
 
 // 11.8.5 The Abstract Relational Comparison Algorithm
 // x < y
-JSValue* LessThan(Error* e, JSValue* x, JSValue* y, bool left_first = true) {
-  JSValue* px, *py;
+Handle<JSValue> LessThan(Error* e, Handle<JSValue> x, Handle<JSValue> y, bool left_first = true) {
+  Handle<JSValue> px, py;
   if (left_first) {
     px = ToPrimitive(e, x, u"Number");
     if (!e->IsOk()) return Undefined::Instance();
@@ -22,7 +22,7 @@ JSValue* LessThan(Error* e, JSValue* x, JSValue* y, bool left_first = true) {
     px = ToPrimitive(e, x, u"Number");
     if (!e->IsOk()) return Undefined::Instance();
   }
-  if (!(px->IsString() && py->IsString())) {  // 3
+  if (!(px.val()->IsString() && py.val()->IsString())) {  // 3
     double nx = ToNumber(e, px);
     if (!e->IsOk()) return Undefined::Instance();
     double ny = ToNumber(e, py);
@@ -41,61 +41,61 @@ JSValue* LessThan(Error* e, JSValue* x, JSValue* y, bool left_first = true) {
       return Bool::True();
     return Bool::Wrap(nx < ny);
   } else {  // 4
-    String* sx = ToString(e, px);
+    Handle<String> sx = ToString(e, px);
     if (!e->IsOk()) return Undefined::Instance();
-    String* sy = ToString(e, py);
+    Handle<String> sy = ToString(e, py);
     if (!e->IsOk()) return Undefined::Instance();
-    return Bool::Wrap(*sx < *sy);
+    return Bool::Wrap(*sx.val() < *sy.val());
   }
 }
 
 // 11.9.3 The Abstract Equality Comparison Algorithm
 // x == y
-bool Equal(Error* e, JSValue* x, JSValue* y) {
-  if (x->type() == y->type()) {
-    if (x->IsUndefined()) {
+bool Equal(Error* e, Handle<JSValue> x, Handle<JSValue> y) {
+  if (x.val()->type() == y.val()->type()) {
+    if (x.val()->IsUndefined()) {
       return true;
-    } else if (x->IsNull()) {
+    } else if (x.val()->IsNull()) {
       return true;
-    } else if (x->IsNumber()) {
-      Number* numx = static_cast<Number*>(x);
-      Number* numy = static_cast<Number*>(y);
-      if (numx->IsNaN() || numy->IsNaN())
+    } else if (x.val()->IsNumber()) {
+      Handle<Number> numx = static_cast<Handle<Number>>(x);
+      Handle<Number> numy = static_cast<Handle<Number>>(y);
+      if (numx.val()->IsNaN() || numy.val()->IsNaN())
         return false;
-      return numx->data() == numy->data();
-    } else if (x->IsString()) {
-      String* sx = static_cast<String*>(x);
-      String* sy = static_cast<String*>(y);
-      return sx->data() == sy->data();
+      return numx.val()->data() == numy.val()->data();
+    } else if (x.val()->IsString()) {
+      Handle<String> sx = static_cast<Handle<String>>(x);
+      Handle<String> sy = static_cast<Handle<String>>(y);
+      return sx.val()->data() == sy.val()->data();
     }
-    return x == y;
+    return x.val() == y.val();
   }
-  if (x->IsNull() && y->IsUndefined()) {  // 2
+  if (x.val()->IsNull() && y.val()->IsUndefined()) {  // 2
     return true;
-  } else if (x->IsUndefined() && y->IsNull()) {  // 3
+  } else if (x.val()->IsUndefined() && y.val()->IsNull()) {  // 3
     return true;
-  } else if (x->IsNumber() && y->IsString()) {  // 4
+  } else if (x.val()->IsNumber() && y.val()->IsString()) {  // 4
     double numy = ToNumber(e, y);
     if (!e->IsOk()) return false;
     return Equal(e, x, Number::New(numy));
-  } else if (x->IsString() && y->IsNumber()) {  // 5
+  } else if (x.val()->IsString() && y.val()->IsNumber()) {  // 5
     double numx = ToNumber(e, x);
     if (!e->IsOk()) return false;
     return Equal(e, Number::New(numx), y);
-  } else if (x->IsBool()) {  // 6
+  } else if (x.val()->IsBool()) {  // 6
     double numx = ToNumber(e, x);
     if (!e->IsOk()) return false;
     return Equal(e, Number::New(numx), y);
-  } else if (y->IsBool()) {  // 7
+  } else if (y.val()->IsBool()) {  // 7
     double numy = ToNumber(e, x);
     if (!e->IsOk()) return false;
     return Equal(e, x, Number::New(numy));
-  } else if ((x->IsNumber() || x->IsString()) && y->IsObject()) {  // 8
-    JSValue* primy = ToPrimitive(e, y, u"");
+  } else if ((x.val()->IsNumber() || x.val()->IsString()) && y.val()->IsObject()) {  // 8
+    Handle<JSValue> primy = ToPrimitive(e, y, u"");
     if (!e->IsOk()) return false;
     return Equal(e, x, primy);
-  } else if (x->IsObject() && (y->IsNumber() || y->IsString())) {  // 9
-    JSValue* primx = ToPrimitive(e, y, u"");
+  } else if (x.val()->IsObject() && (y.val()->IsNumber() || y.val()->IsString())) {  // 9
+    Handle<JSValue> primx = ToPrimitive(e, y, u"");
     if (!e->IsOk()) return false;
     return Equal(e, primx, y);
   }
@@ -104,35 +104,35 @@ bool Equal(Error* e, JSValue* x, JSValue* y) {
 
 // 11.9.6 The Strict Equality Comparison Algorithm
 // x === y
-bool StrictEqual(Error* e, JSValue* x, JSValue* y) {
-  if (x->type() != y->type())
+bool StrictEqual(Error* e, Handle<JSValue> x, Handle<JSValue> y) {
+  if (x.val()->type() != y.val()->type())
     return false;
-  switch (x->type()) {
+  switch (x.val()->type()) {
     case JSValue::JS_UNDEFINED:
       return true;
     case JSValue::JS_NULL:
       return true;
     case JSValue::JS_NUMBER: {
-      Number* num_x = static_cast<Number*>(x);
-      Number* num_y = static_cast<Number*>(y);
-      if (num_x->IsNaN() || num_y->IsNaN())
+      Handle<Number> num_x = static_cast<Handle<Number>>(x);
+      Handle<Number> num_y = static_cast<Handle<Number>>(y);
+      if (num_x.val()->IsNaN() || num_y.val()->IsNaN())
         return false;
-      double dx = num_x->data();
-      double dy = num_y->data();
+      double dx = num_x.val()->data();
+      double dy = num_y.val()->data();
       return dx == dy;
     }
     case JSValue::JS_STRING: {
-      String* str_x = static_cast<String*>(x);
-      String* str_y = static_cast<String*>(y);
-      return str_x->data() == str_y->data();
+      Handle<String> str_x = static_cast<Handle<String>>(x);
+      Handle<String> str_y = static_cast<Handle<String>>(y);
+      return str_x.val()->data() == str_y.val()->data();
     }
     case JSValue::JS_BOOL: {
-      Bool* b_x = static_cast<Bool*>(x);
-      Bool* b_y = static_cast<Bool*>(y);
-      return b_x->data() == b_y->data();
+      Handle<Bool> b_x = static_cast<Handle<Bool>>(x);
+      Handle<Bool> b_y = static_cast<Handle<Bool>>(y);
+      return b_x.val()->data() == b_y.val()->data();
     }
     default:
-      return x == y;
+      return x.val() == y.val();
   }
 }
 

@@ -13,20 +13,20 @@ namespace es {
 class ExecutionContext {
  public: 
   ExecutionContext(
-    LexicalEnvironment* variable_env,
-    LexicalEnvironment* lexical_env,
-    JSValue* this_binding,
+    Handle<LexicalEnvironment> variable_env,
+    Handle<LexicalEnvironment> lexical_env,
+    Handle<JSValue> this_binding,
     bool strict
   ) : variable_env_(variable_env), lexical_env_(lexical_env),
       this_binding_(this_binding), strict_(strict),
       iteration_layers_(0), switch_layers_(0) {}
 
-  LexicalEnvironment* variable_env() { return variable_env_; }
-  LexicalEnvironment* lexical_env() { return lexical_env_; }
-  JSValue* this_binding() { return this_binding_; }
+  Handle<LexicalEnvironment> variable_env() { return variable_env_; }
+  Handle<LexicalEnvironment> lexical_env() { return lexical_env_; }
+  Handle<JSValue> this_binding() { return this_binding_; }
   bool strict() { return strict_; }
 
-  void SetLexicalEnv(LexicalEnvironment* lexical_env) { lexical_env_ = lexical_env; }
+  void SetLexicalEnv(Handle<LexicalEnvironment> lexical_env) { lexical_env_ = lexical_env; }
 
   bool HasLabel(std::u16string label) {
     if (label == u"")
@@ -59,18 +59,18 @@ class ExecutionContext {
   }
   bool InSwitch() { return switch_layers_ != 0; }
 
-  std::vector<void*> Pointers() {
-    std::vector<void*> pointers;
-    pointers.emplace_back(&lexical_env_);
-    pointers.emplace_back(&variable_env_);
-    pointers.emplace_back(&this_binding_);
+  std::vector<HeapObject**> Pointers() {
+    std::vector<HeapObject**> pointers;
+    pointers.emplace_back(reinterpret_cast<HeapObject**>(lexical_env_.ptr()));
+    pointers.emplace_back(reinterpret_cast<HeapObject**>(variable_env_.ptr()));
+    pointers.emplace_back(reinterpret_cast<HeapObject**>(this_binding_.ptr()));
     return pointers;
   }
 
  private:
-  LexicalEnvironment* variable_env_;
-  LexicalEnvironment* lexical_env_;
-  JSValue* this_binding_;
+  Handle<LexicalEnvironment> variable_env_;
+  Handle<LexicalEnvironment> lexical_env_;
+  Handle<JSValue> this_binding_;
   bool strict_;
   std::stack<std::u16string> label_stack_;
   size_t iteration_layers_;
@@ -92,7 +92,7 @@ class Runtime {
     return Runtime::Global()->context_stack_.back();
   }
 
-  static LexicalEnvironment* TopLexicalEnv() {
+  static Handle<LexicalEnvironment> TopLexicalEnv() {
     return Runtime::TopContext()->lexical_env();
   }
 
@@ -102,11 +102,11 @@ class Runtime {
     delete top;
   }
 
-  static JSValue* TopValue() {
+  static Handle<JSValue> TopValue() {
     return Runtime::Global()->value_stack_.back();
   }
 
-  void AddValue(JSValue* val) {
+  void AddValue(Handle<JSValue> val) {
     value_stack_.emplace_back(val);
   }
 
@@ -119,11 +119,15 @@ class Runtime {
     return sources_[sources_.size() - 1];
   }
 
-  std::vector<void*> Pointers() {
-    std::vector<void*> pointers;
+  std::vector<HeapObject**> Pointers() {
+    std::vector<HeapObject**> pointers;
     for (ExecutionContext* context : context_stack_) {
-      auto context_pointer = context->Pointers();
-      pointers.insert(pointers.end(), context_pointer.begin(), context_pointer.end());
+      auto context_pointers = context->Pointers();
+      pointers.insert(pointers.end(), context_pointers.begin(), context_pointers.end());
+    }
+    for (HandleScope* scope : HandleScope::Stack()) {
+      auto scope_pointers = scope->Pointers();
+      pointers.insert(pointers.end(), scope_pointers.begin(), scope_pointers.end());
     }
     return pointers;
   }
@@ -136,7 +140,7 @@ class Runtime {
   std::vector<ExecutionContext*> context_stack_;
   // This is to make sure builtin function like `array.push()`
   // can visit `array`.
-  std::vector<JSValue*> value_stack_;
+  std::vector<Handle<JSValue>> value_stack_;
   std::vector<std::u16string> sources_;
 };
 
@@ -150,7 +154,7 @@ class ValueGuard {
     }
   }
 
-  void AddValue(JSValue* val) {
+  void AddValue(Handle<JSValue> val) {
     Runtime::Global()->AddValue(val);
     count_++;
   }
@@ -160,8 +164,8 @@ class ValueGuard {
 };
 
 // TODO(zhuzilin) move this method to a better place
-JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
-  String* first, *second;
+Handle<JSValue> JSObject::DefaultValue(Error* e, std::u16string hint) {
+  Handle<String> first, second;
   if (hint == u"String" || hint == u"" && obj_type() == OBJ_DATE) {
     first = String::New(u"toString");
     second = String::New(u"valueOf");
@@ -173,30 +177,30 @@ JSValue* JSObject::DefaultValue(Error* e, std::u16string hint) {
   }
 
   ValueGuard guard;
-  guard.AddValue(this);
+  guard.AddValue(Handle<JSObject>(this));
 
-  JSValue* to_string = Get(e, first);
-  if (!e->IsOk()) return nullptr;
-  if (to_string->IsCallable()) {
-    JSObject* to_string_obj = static_cast<JSObject*>(to_string);
-    JSValue* str = to_string_obj->Call(e, this);
-    if (!e->IsOk()) return nullptr;
-    if (str->IsPrimitive()) {
+  Handle<JSValue> to_string = Get(e, first);
+  if (!e->IsOk()) return Handle<JSValue>();
+  if (to_string.val()->IsCallable()) {
+    Handle<JSObject> to_string_obj = static_cast<Handle<JSObject>>(to_string);
+    Handle<JSValue> str = to_string_obj.val()->Call(e, Handle<JSObject>(this));
+    if (!e->IsOk()) return Handle<JSValue>();
+    if (str.val()->IsPrimitive()) {
       return str;
     }
   }
-  JSValue* value_of = Get(e, second);
-  if (!e->IsOk()) return nullptr;
-  if (value_of->IsCallable()) {
-    JSObject* value_of_obj = static_cast<JSObject*>(value_of);
-    JSValue* val = value_of_obj->Call(e, this);
-    if (!e->IsOk()) return nullptr;
-    if (val->IsPrimitive()) {
+  Handle<JSValue> value_of = Get(e, second);
+  if (!e->IsOk()) return Handle<JSValue>();
+  if (value_of.val()->IsCallable()) {
+    Handle<JSObject> value_of_obj = static_cast<Handle<JSObject>>(value_of);
+    Handle<JSValue> val = value_of_obj.val()->Call(e, Handle<JSObject>(this));
+    if (!e->IsOk()) return Handle<JSValue>();
+    if (val.val()->IsPrimitive()) {
       return val;
     }
   }
   *e = *Error::TypeError(u"failed to get [[DefaultValue]]");
-  return nullptr;
+  return Handle<JSValue>();
 }
 
 }  // namespace es

@@ -31,8 +31,8 @@ TEST(TestEvalExpr, Number) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParsePrimaryExpression();
-      Number* num = EvalNumber(ast);
-      EXPECT_EQ(pair.second, num->data());
+      Handle<Number> num = EvalNumber(ast);
+      EXPECT_EQ(pair.second, num.val()->data());
     }
   }
 }
@@ -54,10 +54,10 @@ TEST(TestEvalExpr, Arithmetic) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
-      JSValue* val = EvalBinaryExpression(e, ast);
-      EXPECT_EQ(JSValue::JS_NUMBER, val->type());
-      Number* num = static_cast<Number*>(val);
-      EXPECT_EQ(pair.second, num->data());
+      Handle<JSValue> val = EvalBinaryExpression(e, ast);
+      EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+      Handle<Number> num = static_cast<Handle<Number>>(val);
+      EXPECT_EQ(pair.second, num.val()->data());
     }
   }
 
@@ -73,10 +73,10 @@ TEST(TestEvalExpr, Arithmetic) {
     for (auto source : sources) {
       Parser parser(source);
       AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
-      JSValue* val = EvalBinaryExpression(e, ast);
-      EXPECT_EQ(JSValue::JS_NUMBER, val->type());
-      Number* num = static_cast<Number*>(val);
-      EXPECT_EQ(true, isnan(num->data()));
+      Handle<JSValue> val = EvalBinaryExpression(e, ast);
+      EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+      Handle<Number> num = static_cast<Handle<Number>>(val);
+      EXPECT_EQ(true, isnan(num.val()->data()));
     }
   }
 
@@ -93,11 +93,11 @@ TEST(TestEvalExpr, Arithmetic) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
-      JSValue* val = EvalBinaryExpression(e, ast);
-      EXPECT_EQ(JSValue::JS_NUMBER, val->type());
-      Number* num = static_cast<Number*>(val);
-      EXPECT_EQ(true, isinf(num->data()));
-      EXPECT_EQ(pair.second, signbit(num->data()));
+      Handle<JSValue> val = EvalBinaryExpression(e, ast);
+      EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+      Handle<Number> num = static_cast<Handle<Number>>(val);
+      EXPECT_EQ(true, isinf(num.val()->data()));
+      EXPECT_EQ(pair.second, signbit(num.val()->data()));
     }
   }
 
@@ -111,11 +111,11 @@ TEST(TestEvalExpr, Arithmetic) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
-      JSValue* val = EvalBinaryExpression(e, ast);
-      EXPECT_EQ(JSValue::JS_NUMBER, val->type());
-      Number* num = static_cast<Number*>(val);
-      EXPECT_EQ(0, num->data());
-      EXPECT_EQ(pair.second, signbit(num->data()));
+      Handle<JSValue> val = EvalBinaryExpression(e, ast);
+      EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+      Handle<Number> num = static_cast<Handle<Number>>(val);
+      EXPECT_EQ(0, num.val()->data());
+      EXPECT_EQ(pair.second, signbit(num.val()->data()));
     }
   }
 }
@@ -133,8 +133,8 @@ TEST(TestEvalExpr, String) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParsePrimaryExpression();
-      String* str = EvalString(ast);
-      EXPECT_EQ(pair.second, str->data());
+      Handle<String> str = EvalString(ast);
+      EXPECT_EQ(pair.second, str.val()->data());
     }
   }
 
@@ -147,10 +147,10 @@ TEST(TestEvalExpr, String) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
-      JSValue* val = EvalBinaryExpression(e, ast);
-      EXPECT_EQ(JSValue::JS_STRING, val->type());
-      String* str = static_cast<String*>(val);
-      EXPECT_EQ(pair.second, str->data());
+      Handle<JSValue> val = EvalBinaryExpression(e, ast);
+      EXPECT_EQ(JSValue::JS_STRING, val.val()->type());
+      Handle<String> str = static_cast<Handle<String>>(val);
+      EXPECT_EQ(pair.second, str.val()->data());
     }
   }
 }
@@ -162,8 +162,8 @@ TEST(TestEvalExpr, Identifier) {
     Parser parser(u"a");
     AST* ast = parser.ParsePrimaryExpression();
     EnterGlobalCode(e, ast);
-    Reference* ref = EvalIdentifier(ast);
-    EXPECT_EQ(nullptr, GetValue(e, ref));
+    Handle<Reference> ref = EvalIdentifier(ast);
+    EXPECT_EQ(true, GetValue(e, ref).IsNullptr());
   }
 }
 
@@ -174,10 +174,10 @@ TEST(TestEvalExpr, SimpleAssign) {
     Parser parser(u"a = 1");
     AST* ast = parser.ParseAssignmentExpression(false);
     EnterGlobalCode(e, ast);
-    JSValue* val = EvalBinaryExpression(e, ast);
-    EXPECT_EQ(JSValue::JS_NUMBER, val->type());
-    Number* num = static_cast<Number*>(val);
-    EXPECT_EQ(1, num->data());
+    Handle<JSValue> val = EvalBinaryExpression(e, ast);
+    EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+    Handle<Number> num = static_cast<Handle<Number>>(val);
+    EXPECT_EQ(1, num.val()->data());
   }
 }
 
@@ -188,19 +188,19 @@ TEST(TestEvalExpr, Function) {
     Parser parser(u"function (b) { return b; }");
     AST* ast = parser.ParseFunction(false);
     EnterGlobalCode(e, ast);
-    JSValue* val = EvalFunction(e, ast);
-    EXPECT_EQ(JSValue::JS_OBJECT, val->type());
-    FunctionObject* func = static_cast<FunctionObject*>(val);
-    EXPECT_EQ(1, func->FormalParameters()->size());
+    Handle<JSValue> val = EvalFunction(e, ast);
+    EXPECT_EQ(JSValue::JS_OBJECT, val.val()->type());
+    Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(val);
+    EXPECT_EQ(1, func.val()->FormalParameters().val()->size());
   }
 
   {
     Parser parser(u"function a(b) { return b; }");
     AST* ast = parser.ParseFunction(false);
-    JSValue* val = EvalFunction(e, ast);
-    EXPECT_EQ(JSValue::JS_OBJECT, val->type());
-    FunctionObject* func = static_cast<FunctionObject*>(val);
-    EXPECT_EQ(1, func->FormalParameters()->size());
+    Handle<JSValue> val = EvalFunction(e, ast);
+    EXPECT_EQ(JSValue::JS_OBJECT, val.val()->type());
+    Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(val);
+    EXPECT_EQ(1, func.val()->FormalParameters().val()->size());
   }
 }
 
@@ -210,10 +210,10 @@ TEST(TestEvalExpr, Object) {
     Parser parser(u"{a: 1, \"b\": 123, a: \"c\"}");
     AST* ast = parser.ParseObjectLiteral();
     EnterGlobalCode(e, ast);
-    JSValue* val = EvalObject(e, ast);
-    EXPECT_EQ(JSValue::JS_OBJECT, val->type());
-    Object* obj = static_cast<Object*>(val);
-    EXPECT_EQ(2, obj->AllEnumerableProperties().size());
+    Handle<JSValue> val = EvalObject(e, ast);
+    EXPECT_EQ(JSValue::JS_OBJECT, val.val()->type());
+    Handle<Object> obj = static_cast<Handle<Object>>(val);
+    EXPECT_EQ(2, obj.val()->AllEnumerableProperties().size());
   }
 }
 
@@ -227,10 +227,10 @@ TEST(TestEvalExpr, Array) {
     for (auto pair : sources) {
       Parser parser(pair.first);
       AST* ast = parser.ParseArrayLiteral();
-      JSValue* val = EvalArray(e, ast);
-      EXPECT_EQ(JSValue::JS_OBJECT, val->type());
-      ArrayObject* arr = static_cast<ArrayObject*>(val);
-      EXPECT_EQ(pair.second, static_cast<Number*>(arr->Get(e, String::Length()))->data());
+      Handle<JSValue> val = EvalArray(e, ast);
+      EXPECT_EQ(JSValue::JS_OBJECT, val.val()->type());
+      Handle<ArrayObject> arr = static_cast<Handle<ArrayObject>>(val);
+      EXPECT_EQ(pair.second, static_cast<Handle<Number>>(arr.val()->Get(e, String::Length())).val()->data());
     }
     
   }

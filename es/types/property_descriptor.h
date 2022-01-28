@@ -10,19 +10,20 @@ namespace es {
 
 class PropertyDescriptor : public JSValue {
  public:
-  static PropertyDescriptor* New() {
-    JSValue* jsval = JSValue::New(JS_PROP_DESC, kConfigurableOffset + kBoolSize - kBitmapOffset);
-    SET_VALUE(jsval, kBitmapOffset, 0, char);
-    SET_VALUE(jsval, kValueOffset, Undefined::Instance(), JSValue*);
-    SET_VALUE(jsval, kGetOffset, Undefined::Instance(), JSValue*);
-    SET_VALUE(jsval, kSetOffset, Undefined::Instance(), JSValue*);
-    SET_VALUE(jsval, kWritableOffset, false, bool);
-    SET_VALUE(jsval, kEnumerableOffset, false, bool);
-    SET_VALUE(jsval, kConfigurableOffset, false, bool);
-    return new (jsval) PropertyDescriptor();
+  static Handle<PropertyDescriptor> New() {
+    Handle<JSValue> jsval = JSValue::New(JS_PROP_DESC, kConfigurableOffset + kBoolSize - kBitmapOffset);
+    SET_VALUE(jsval.val(), kBitmapOffset, 0, char);
+    SET_HANDLE_VALUE(jsval.val(), kValueOffset, Undefined::Instance(), JSValue);
+    SET_HANDLE_VALUE(jsval.val(), kGetOffset, Undefined::Instance(), JSValue);
+    SET_HANDLE_VALUE(jsval.val(), kSetOffset, Undefined::Instance(), JSValue);
+    SET_VALUE(jsval.val(), kWritableOffset, false, bool);
+    SET_VALUE(jsval.val(), kEnumerableOffset, false, bool);
+    SET_VALUE(jsval.val(), kConfigurableOffset, false, bool);
+    new (jsval.val()) PropertyDescriptor();
+    return Handle<PropertyDescriptor>(jsval);
   }
 
-  std::vector<void*> Pointers() override {
+  std::vector<HeapObject**> Pointers() override {
     return {HEAP_PTR(kValueOffset), HEAP_PTR(kGetOffset), HEAP_PTR(kSetOffset)};
   }
 
@@ -40,10 +41,10 @@ class PropertyDescriptor : public JSValue {
 
   // TODO(zhuzilin) May be check the member variable is initialized?
   inline bool HasValue() { return bitmask() & VALUE; }
-  inline JSValue* Value() { return READ_VALUE(this, kValueOffset, JSValue*); }
-  inline void SetValue(JSValue* value) {
+  inline Handle<JSValue> Value() { return READ_HANDLE_VALUE(this, kValueOffset, JSValue); }
+  inline void SetValue(Handle<JSValue> value) {
     SET_VALUE(this, kBitmapOffset, bitmask() | VALUE, char);
-    SET_VALUE(this, kValueOffset, value, JSValue*);
+    SET_HANDLE_VALUE(this, kValueOffset, value, JSValue);
   }
 
   inline bool HasWritable() {return bitmask() & WRITABLE; }
@@ -54,17 +55,17 @@ class PropertyDescriptor : public JSValue {
   }
 
   inline bool HasGet() {return bitmask() & GET; }
-  inline JSValue* Get() { return READ_VALUE(this, kGetOffset, JSValue*); }
-  inline void SetGet(JSValue* getter) {
+  inline Handle<JSValue> Get() { return READ_HANDLE_VALUE(this, kGetOffset, JSValue); }
+  inline void SetGet(Handle<JSValue> getter) {
     SET_VALUE(this, kBitmapOffset, bitmask() | GET, char);
-    SET_VALUE(this, kGetOffset, getter, JSValue*);
+    SET_HANDLE_VALUE(this, kGetOffset, getter, JSValue);
   }
 
   inline bool HasSet() { return bitmask() & SET; }
-  inline JSValue* Set() { return READ_VALUE(this, kSetOffset, JSValue*); }
-  inline void SetSet(JSValue* setter) {
+  inline Handle<JSValue> Set() { return READ_HANDLE_VALUE(this, kSetOffset, JSValue); }
+  inline void SetSet(Handle<JSValue> setter) {
     SET_VALUE(this, kBitmapOffset, bitmask() | SET, char);
-    SET_VALUE(this, kSetOffset, setter, JSValue*);
+    SET_HANDLE_VALUE(this, kSetOffset, setter, JSValue);
   }
 
   inline bool HasEnumerable() { return bitmask() & ENUMERABLE; }
@@ -82,7 +83,7 @@ class PropertyDescriptor : public JSValue {
   }
 
   inline void SetDataDescriptor(
-    JSValue* value, bool writable, bool enumerable, bool configurable
+    Handle<JSValue> value, bool writable, bool enumerable, bool configurable
   ) {
     SetValue(value);
     SetWritable(writable);
@@ -91,7 +92,7 @@ class PropertyDescriptor : public JSValue {
   }
 
   inline void SetAccessorDescriptor(
-    JSValue* getter, JSValue* setter, bool enumerable, bool configurable
+    Handle<JSValue> getter, Handle<JSValue> setter, bool enumerable, bool configurable
   ) {
     SetGet(getter);
     SetSet(setter);
@@ -100,19 +101,19 @@ class PropertyDescriptor : public JSValue {
   }
 
   // Set the value to `this` if `other` has.
-  inline void Set(PropertyDescriptor* other) {
-    if (other->HasValue())
-      SetValue(other->Value());
-    if (other->HasWritable())
-      SetWritable(other->Writable());
-    if (other->HasGet())
-      SetGet(other->Get());
-    if (other->HasSet())
-      SetSet(other->Set());
-    if (other->HasConfigurable())
-      SetConfigurable(other->Configurable());
-    if (other->HasEnumerable())
-      SetEnumerable(other->Enumerable());
+  inline void Set(Handle<PropertyDescriptor> other) {
+    if (other.val()->HasValue())
+      SetValue(other.val()->Value());
+    if (other.val()->HasWritable())
+      SetWritable(other.val()->Writable());
+    if (other.val()->HasGet())
+      SetGet(other.val()->Get());
+    if (other.val()->HasSet())
+      SetSet(other.val()->Set());
+    if (other.val()->HasConfigurable())
+      SetConfigurable(other.val()->Configurable());
+    if (other.val()->HasEnumerable())
+      SetEnumerable(other.val()->Enumerable());
   }
 
   char bitmask() { return READ_VALUE(this, kBitmapOffset, char); }
@@ -120,10 +121,10 @@ class PropertyDescriptor : public JSValue {
 
   std::string ToString() override { 
     std::string res = "PropertyDescriptor{";
-    if (HasValue()) res += "v: " + Value()->ToString() + ", ";
+    if (HasValue()) res += "v: " + Value().ToString() + ", ";
     if (HasWritable()) res += "w: " + log::ToString(Writable()) + ", ";
-    if (HasGet()) res += "get: " + Get()->ToString() + ", ";
-    if (HasSet()) res += "set: " + Set()->ToString() + ", ";
+    if (HasGet()) res += "get: " + Get().ToString() + ", ";
+    if (HasSet()) res += "set: " + Set().ToString() + ", ";
     if (HasEnumerable()) res += "e: " + log::ToString(Enumerable()) + ", ";
     if (HasConfigurable()) res += "c: " + log::ToString(Configurable());
     res += '}';

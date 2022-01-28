@@ -8,24 +8,25 @@
 
 namespace es {
 
-// NOTE(zhuzilin) For now, the key type will be String*.
+// NOTE(zhuzilin) For now, the key type will be Handle<String>.
 template<typename T>
 class HashMap : public HeapObject {
  public:
-  static HashMap<T>* New(size_t num_bucket = kDefaultHashMapSize) {
+  static Handle<HashMap<T>> New(size_t num_bucket = kDefaultHashMapSize) {
     std::cout << "HashMap::New" << std::endl;
-    HeapObject* heap_obj = HeapObject::New(2 * kSizeTSize + num_bucket * kPtrSize);
-    SET_VALUE(heap_obj, kNumBucketOffset, num_bucket, size_t);
-    SET_VALUE(heap_obj, kSizeOffset, 0, size_t);
+    Handle<HeapObject> heap_obj = HeapObject::New(2 * kSizeTSize + num_bucket * kPtrSize);
+    SET_VALUE(heap_obj.val(), kNumBucketOffset, num_bucket, size_t);
+    SET_VALUE(heap_obj.val(), kSizeOffset, 0, size_t);
     for (size_t i = 0; i < num_bucket; i++) {
-      SET_VALUE(heap_obj, kElementOffset + i * kPtrSize, nullptr, ListNode*);
+      SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, Handle<ListNode>(), ListNode);
     }
-    return new (heap_obj) HashMap<T>();
+    new (heap_obj.val()) HashMap<T>();
+    return Handle<HashMap<T>>(heap_obj);
   }
 
-  std::vector<void*> Pointers() override {
+  std::vector<HeapObject**> Pointers() override {
     size_t n = num_bucket();
-    std::vector<void*> pointers(n);
+    std::vector<HeapObject**> pointers(n);
     for (size_t i = 0; i < n; i++) {
       pointers[i] = HEAP_PTR(kElementOffset + i * kPtrSize);
     }
@@ -36,93 +37,93 @@ class HashMap : public HeapObject {
   void SetSize(size_t s) { SET_VALUE(this, kSizeOffset, s, size_t); }
   size_t num_bucket() { return READ_VALUE(this, kNumBucketOffset, size_t); }
 
-  void Set(String* key, T* val) {
+  void Set(Handle<String> key, Handle<T> val) {
     size_t offset = ListHeadOffset(key);
-    ListNode* head = GetListHead(offset);
-    if (head == nullptr || LessThan(key, head->key())) {
-      ListNode* new_head = ListNode::New(key, val);
-      new_head->SetNext(head);
+    Handle<ListNode> head = GetListHead(offset);
+    if (head.IsNullptr() || LessThan(key.val(), head.val()->key().val())) {
+      Handle<ListNode> new_head = ListNode::New(key, val);
+      new_head.val()->SetNext(head);
       SetListHead(offset, new_head);
       SetSize(size() + 1);
       return;
-    } else if (*key == *(head->key())) {
-      head->SetVal(val);
+    } else if (*key.val() == *(head.val()->key().val())) {
+      head.val()->SetVal(val);
       return;
     }
-    while (head->next() != nullptr) {
-      String* next_key = head->next()->key();
-      if (*key == *next_key) {
-        head->next()->SetVal(val);
+    while (!head.val()->next().IsNullptr()) {
+      Handle<String> next_key = head.val()->next().val()->key();
+      if (*key.val() == *next_key.val()) {
+        head.val()->next().val()->SetVal(val);
         return;
-      } else if (LessThan(key, next_key)) {
-        ListNode* node = ListNode::New(key, val);
-        node->SetNext(head->next());
-        head->SetNext(node);
+      } else if (LessThan(key.val(), next_key.val())) {
+        Handle<ListNode> node = ListNode::New(key, val);
+        node.val()->SetNext(head.val()->next());
+        head.val()->SetNext(node);
         SetSize(size() + 1);
         return;
       }
-      head = head->next();
+      head = head.val()->next();
     }
-    head->SetNext(ListNode::New(key, val));
+    head.val()->SetNext(ListNode::New(key, val));
     SetSize(size() + 1);
   }
 
-  T* Get(String* key) {
+  Handle<T> Get(Handle<String> key) {
     size_t offset = ListHeadOffset(key);
-    ListNode* head = GetListHead(offset);
-    if (head == nullptr)
-      return nullptr;
-    while (head != nullptr) {
-      if (*key == *(head->key())) {
-        return head->val();
-      } else if (LessThan(key, head->key())) {
-        return nullptr;
+    Handle<ListNode> head = GetListHead(offset);
+    if (head.IsNullptr())
+      return Handle<T>();
+    while (!head.IsNullptr()) {
+      if (*key.val() == *(head.val()->key().val())) {
+        return head.val()->val();
+      } else if (LessThan(key.val(), head.val()->key().val())) {
+        return Handle<T>();
       }
-      head = head->next();
+      head = head.val()->next();
     }
-    return nullptr;
+    return Handle<T>();
   }
 
-  void Delete(String* key) {
+  void Delete(Handle<String> key) {
     size_t offset = ListHeadOffset(key);
-    ListNode* head = GetListHead(offset);
-    if (head == nullptr)
+    Handle<ListNode> head = GetListHead(offset);
+    if (head.IsNullptr())
       return;
-    if (*(head->key()) == *key) {
-      SetListHead(offset, head->next());
+    if (*(head.val()->key().val()) == *key.val()) {
+      SetListHead(offset, head.val()->next());
       SetSize(size() - 1);
       return;
     }
-    while (head->next() != nullptr) {
-      if (*key == *(head->next()->key())) {
-        head->SetNext(head->next()->next());
+    while (!head.val()->next().IsNullptr()) {
+      if (*key.val() == *(head.val()->next().val()->key().val())) {
+        head.val()->SetNext(head.val()->next().val()->next());
         SetSize(size() - 1);
         return;
-      } else if (LessThan(key, head->next()->key())) {
+      } else if (LessThan(key.val(), head.val()->next().val()->key().val())) {
         return;
       }
-      head = head->next();
+      head = head.val()->next();
     }
   }
 
-  std::vector<std::pair<String*, T*>> SortedKeyValPairs(bool (*filter)(T*)) {
-    std::priority_queue<ListNode*, std::vector<ListNode*>, CompareListNode> pq;
+  std::vector<std::pair<Handle<String>, Handle<T>>> SortedKeyValPairs(bool (*filter)(Handle<T>)) {
+    std::priority_queue<Handle<ListNode>, std::vector<Handle<ListNode>>, CompareListNode> pq;
     for (size_t i = 0; i < num_bucket(); i++) {
       size_t offset = kElementOffset + i * kPtrSize;
-      ListNode* head = GetListHead(offset);
-      if (head != nullptr) {
+      Handle<ListNode> head = GetListHead(offset);
+      if (!head.IsNullptr()) {
         pq.push(head);
       }
     }
-    std::vector<std::pair<String*, T*>> result;
+    std::vector<std::pair<Handle<String>, Handle<T>>> result;
     while (!pq.empty()) {
-      ListNode* node = pq.top();
+      Handle<ListNode> node = pq.top();
       pq.pop();
-      if (filter(node->val())) {
-        result.emplace_back(std::make_pair(node->key(), node->val()));
+      if (filter(node.val()->val())) {
+        result.emplace_back(std::make_pair(node.val()->key(), node.val()->val()));
       }
-      if (node->next() != nullptr) {
-        pq.push(node->next());
+      if (!node.val()->next().IsNullptr()) {
+        pq.push(node.val()->next());
       }
     }
     return result;
@@ -133,25 +134,25 @@ class HashMap : public HeapObject {
  private:
   class ListNode : public HeapObject {
    public:
-    static ListNode* New(String* key, T* val) {
-      HeapObject* heap_obj = HeapObject::New(3 * kPtrSize);
-      SET_VALUE(heap_obj, kKeyOffset, key, String*);
-      SET_VALUE(heap_obj, kValOffset, val, T*);
-      SET_VALUE(heap_obj, kNextOffset, nullptr, ListNode*);
-      return new (heap_obj) ListNode();
+    static Handle<ListNode> New(Handle<String> key, Handle<T> val) {
+      Handle<HeapObject> heap_obj = HeapObject::New(3 * kPtrSize);
+      SET_HANDLE_VALUE(heap_obj.val(), kKeyOffset, key, String);
+      SET_HANDLE_VALUE(heap_obj.val(), kValOffset, val, T);
+      SET_HANDLE_VALUE(heap_obj.val(), kNextOffset, Handle<ListNode>(), ListNode);
+      return Handle<ListNode>(new (heap_obj.val()) ListNode());
     }
 
-    std::vector<void*> Pointers() override {
+    std::vector<HeapObject**> Pointers() override {
       return {HEAP_PTR(kKeyOffset), HEAP_PTR(kValOffset), HEAP_PTR(kNextOffset)};
     }
 
-    String* key() { return READ_VALUE(this, kKeyOffset, String*); }
-    T* val() { return READ_VALUE(this, kValOffset, T*); }
-    void SetVal(T* val) { SET_VALUE(this, kValOffset, val, T*); }
-    ListNode* next() { return READ_VALUE(this, kNextOffset, ListNode*); }
-    void SetNext(ListNode* next) { SET_VALUE(this, kNextOffset, next, ListNode*); }
+    Handle<String> key() { return READ_HANDLE_VALUE(this, kKeyOffset, String); }
+    Handle<T> val() { return READ_HANDLE_VALUE(this, kValOffset, T); }
+    void SetVal(Handle<T> val) { SET_HANDLE_VALUE(this, kValOffset, val, T); }
+    Handle<ListNode> next() { return READ_HANDLE_VALUE(this, kNextOffset, ListNode); }
+    void SetNext(Handle<ListNode> next) { SET_HANDLE_VALUE(this, kNextOffset, next, ListNode); }
 
-    std::string ToString() override { return "ListNode(" + key()->ToString() + ")"; }
+    std::string ToString() override { return "ListNode(" + key().ToString() + ")"; }
 
    private:
     static constexpr size_t kKeyOffset = kHeapObjectOffset;
@@ -186,21 +187,21 @@ class HashMap : public HeapObject {
   }
 
   struct CompareListNode {
-    bool operator()(ListNode* x, ListNode* y) {
-      return !LessThan(x->key(), y->key());
+    bool operator()(Handle<ListNode> x, Handle<ListNode> y) {
+      return !LessThan(x.val()->key().val(), y.val()->key().val());
     }
   };
 
-  ListNode* GetListHead(size_t offset) {
-    return READ_VALUE(this, offset, ListNode*);
+  Handle<ListNode> GetListHead(size_t offset) {
+    return READ_HANDLE_VALUE(this, offset, ListNode);
   }
 
-  void SetListHead(size_t offset, ListNode* head) {
-    SET_VALUE(this, offset, head, ListNode*);
+  void SetListHead(size_t offset, Handle<ListNode> head) {
+    SET_HANDLE_VALUE(this, offset, head, ListNode);
   }
 
-  inline size_t ListHeadOffset(String* key) {
-    return kElementOffset + U16Hash(key->data()) % num_bucket() * kPtrSize;
+  inline size_t ListHeadOffset(Handle<String> key) {
+    return kElementOffset + U16Hash(key.val()->data()) % num_bucket() * kPtrSize;
   }
 
   static constexpr size_t kNumBucketOffset = kHeapObjectOffset;

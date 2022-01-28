@@ -12,33 +12,33 @@
 
 namespace es {
 
-JSValue* ToPrimitive(Error* e, JSValue* input, std::u16string preferred_type) {
-  assert(input->IsLanguageType());
-  if (input->IsPrimitive()) {
+Handle<JSValue> ToPrimitive(Error* e, Handle<JSValue> input, std::u16string preferred_type) {
+  assert(input.val()->IsLanguageType());
+  if (input.val()->IsPrimitive()) {
     return input;
   }
-  JSObject* obj = static_cast<JSObject*>(input);
-  return obj->DefaultValue(e, preferred_type);
+  Handle<JSObject> obj = static_cast<Handle<JSObject>>(input);
+  return obj.val()->DefaultValue(e, preferred_type);
 }
 
-bool ToBoolean(JSValue* input) {
-  assert(input->IsLanguageType());
-  switch (input->type()) {
+bool ToBoolean(Handle<JSValue> input) {
+  assert(input.val()->IsLanguageType());
+  switch (input.val()->type()) {
     case JSValue::JS_UNDEFINED:
     case JSValue::JS_NULL:
       return false;
     case JSValue::JS_BOOL:
-      return static_cast<Bool*>(input)->data();
+      return static_cast<Handle<Bool>>(input).val()->data();
     case JSValue::JS_NUMBER: {
-      Number* num = static_cast<Number*>(input);
-      if (num->data() == 0.0 || num->data() == -0.0 || num->IsNaN()) {
+      Handle<Number> num = static_cast<Handle<Number>>(input);
+      if (num.val()->data() == 0.0 || num.val()->data() == -0.0 || num.val()->IsNaN()) {
         return false;
       }
       return true;
     }
     case JSValue::JS_STRING: {
-      String* str = static_cast<String*>(input);
-      return str->data() != u"";
+      Handle<String> str = static_cast<Handle<String>>(input);
+      return str.val()->data() != u"";
     } 
     case JSValue::JS_OBJECT:
       return true;
@@ -89,7 +89,7 @@ double StringToNumber(std::u16string source) {
     goto error;
 
   if (source.substr(start, end - start) == u"Infinity") {
-    return positive ? Number::PositiveInfinity()->data() : Number::NegativeInfinity()->data();
+    return positive ? Number::PositiveInfinity().val()->data() : Number::NegativeInfinity().val()->data();
   }
 
   while (start < end) {
@@ -150,25 +150,25 @@ error:
   return nan("");
 }
 
-double StringToNumber(String* str) {
-  return StringToNumber(str->data());
+double StringToNumber(Handle<String> str) {
+  return StringToNumber(str.val()->data());
 }
 
-double ToNumber(Error* e, JSValue* input) {
-  assert(input->IsLanguageType());
-  switch (input->type()) {
+double ToNumber(Error* e, Handle<JSValue> input) {
+  assert(input.val()->IsLanguageType());
+  switch (input.val()->type()) {
     case JSValue::JS_UNDEFINED:
       return nan("");
     case JSValue::JS_NULL:
       return 0.0;
     case JSValue::JS_BOOL:
-      return static_cast<Bool*>(input)->data() ? 1.0 : 0.0;
+      return static_cast<Handle<Bool>>(input).val()->data() ? 1.0 : 0.0;
     case JSValue::JS_NUMBER:
-      return static_cast<Number*>(input)->data();
+      return static_cast<Handle<Number>>(input).val()->data();
     case JSValue::JS_STRING:
-      return StringToNumber(static_cast<String*>(input));
+      return StringToNumber(static_cast<Handle<String>>(input));
     case JSValue::JS_OBJECT: {
-      JSValue* prim_value = ToPrimitive(e, input, u"Number");
+      Handle<JSValue> prim_value = ToPrimitive(e, input, u"Number");
       if (!e->IsOk()) return 0.0;
       return ToNumber(e, prim_value);
     }
@@ -177,7 +177,7 @@ double ToNumber(Error* e, JSValue* input) {
   }
 }
 
-double ToInteger(Error* e, JSValue* input) {
+double ToInteger(Error* e, Handle<JSValue> input) {
   double num = ToNumber(e, input);
   if (!e->IsOk()) return 0.0;
   if (isnan(num)) {
@@ -189,7 +189,7 @@ double ToInteger(Error* e, JSValue* input) {
   return num > 0 ? floor(abs(num)) : -(floor(abs(-num)));
 }
 
-double ToInt32(Error* e, JSValue* input) {
+double ToInt32(Error* e, Handle<JSValue> input) {
   double num = ToNumber(e, input);
   if (!e->IsOk())
     return 0;
@@ -208,7 +208,7 @@ double ToInt32(Error* e, JSValue* input) {
   }
 }
 
-double ToUint(Error* e, JSValue* input, char bits) {
+double ToUint(Error* e, Handle<JSValue> input, char bits) {
   double num = ToNumber(e, input);
   if (!e->IsOk()) return 0.0;
   if (isnan(num) || isinf(num) || num == 0) {
@@ -221,11 +221,11 @@ double ToUint(Error* e, JSValue* input, char bits) {
   return int_bit;
 }
 
-double ToUint32(Error* e, JSValue* input) {
+double ToUint32(Error* e, Handle<JSValue> input) {
   return ToUint(e, input, 32);
 }
 
-double ToUint16(Error* e, JSValue* input) {
+double ToUint16(Error* e, Handle<JSValue> input) {
   return ToUint(e, input, 16);
 }
 
@@ -327,7 +327,7 @@ std::u16string NumberToU16String(double m) {
   return sign + res;
 }
 
-String* NumberToString(double m) {
+Handle<String> NumberToString(double m) {
   if (isnan(m))
     return String::NaN();
   if (m == 0)
@@ -335,29 +335,29 @@ String* NumberToString(double m) {
   return String::New(NumberToU16String(m));
 }
 
-String* NumberToString(Number* num) {
-  if (num->IsNaN())
+Handle<String> NumberToString(Handle<Number> num) {
+  if (num.val()->IsNaN())
     return String::NaN();
-  if (num->IsInfinity())
+  if (num.val()->IsInfinity())
     return String::Infinity();
-  return NumberToString(num->data());
+  return NumberToString(num.val()->data());
 }
 
-String* ToString(Error* e, JSValue* input) {
-  assert(input->IsLanguageType());
-  switch (input->type()) {
+Handle<String> ToString(Error* e, Handle<JSValue> input) {
+  assert(input.val()->IsLanguageType());
+  switch (input.val()->type()) {
     case JSValue::JS_UNDEFINED:
       return String::Undefined();
     case JSValue::JS_NULL:
       return String::Null();
     case JSValue::JS_BOOL:
-      return static_cast<Bool*>(input)->data() ? String::True() : String::False();
+      return static_cast<Handle<Bool>>(input).val()->data() ? String::True() : String::False();
     case JSValue::JS_NUMBER:
-      return NumberToString(static_cast<Number*>(input));
+      return NumberToString(static_cast<Handle<Number>>(input));
     case JSValue::JS_STRING:
-      return static_cast<String*>(input);
+      return static_cast<Handle<String>>(input);
     case JSValue::JS_OBJECT: {
-      JSValue* prim_value = ToPrimitive(e, input, u"String");
+      Handle<JSValue> prim_value = ToPrimitive(e, input, u"String");
       if (!e->IsOk()) return String::Empty();
       return ToString(e, prim_value);
     }
@@ -366,23 +366,23 @@ String* ToString(Error* e, JSValue* input) {
   }
 }
 
-std::u16string ToU16String(Error* e, JSValue* input) {
-  assert(input->IsLanguageType());
-  switch (input->type()) {
+std::u16string ToU16String(Error* e, Handle<JSValue> input) {
+  assert(input.val()->IsLanguageType());
+  switch (input.val()->type()) {
     case JSValue::JS_NUMBER:
-      return NumberToU16String(static_cast<Number*>(input)->data());
+      return NumberToU16String(static_cast<Handle<Number>>(input).val()->data());
     default:
-      return ToString(e, input)->data();
+      return ToString(e, input).val()->data();
   }
 }
 
-JSObject* ToObject(Error* e, JSValue* input) {
-  assert(input->IsLanguageType());
-  switch (input->type()) {
+Handle<JSObject> ToObject(Error* e, Handle<JSValue> input) {
+  assert(input.val()->IsLanguageType());
+  switch (input.val()->type()) {
     case JSValue::JS_UNDEFINED:
     case JSValue::JS_NULL:
       *e = *Error::TypeError(u"Cannot convert undefined or null to object");
-      return nullptr;
+      return Handle<JSObject>();
     case JSValue::JS_BOOL:
       return BoolObject::New(input);
     case JSValue::JS_NUMBER:
@@ -390,7 +390,7 @@ JSObject* ToObject(Error* e, JSValue* input) {
     case JSValue::JS_STRING:
       return StringObject::New(input);
     case JSValue::JS_OBJECT:
-      return static_cast<JSObject*>(input);
+      return static_cast<Handle<JSObject>>(input);
     default:
       assert(false);
 }

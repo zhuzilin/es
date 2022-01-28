@@ -6,44 +6,44 @@
 
 namespace es {
 
-String* ToString(Error* e, JSValue* input);
+Handle<String> ToString(Error* e, Handle<JSValue> input);
 
 class RegExpProto : public JSObject {
  public:
-  static RegExpProto* Instance() {
-    static RegExpProto* singleton = RegExpProto::New();
+  static Handle<RegExpProto> Instance() {
+    static Handle<RegExpProto> singleton = RegExpProto::New();
     return singleton;
   }
 
-  static JSValue* exec(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> exec(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* test(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> test(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
+  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
 
  private:
-  static RegExpProto* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_REGEXP, u"RegExp", true, nullptr, false, false, nullptr, 0);
-    return new (jsobj) RegExpProto();
+  static Handle<RegExpProto> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_REGEXP, u"RegExp", true, Handle<JSValue>(), false, false, nullptr, 0);
+    return Handle<RegExpProto>(new (jsobj.val()) RegExpProto());
   }
 };
 
 class RegExpObject : public JSObject {
  public:
-  static RegExpObject* New(String* pattern, String* flag) {
-    JSObject* jsobj = JSObject::New(
-      OBJ_REGEXP, u"RegExp", true, nullptr, false, false, nullptr,
+  static Handle<RegExpObject> New(Handle<String> pattern, Handle<String> flag) {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_REGEXP, u"RegExp", true, Handle<JSValue>(), false, false, nullptr,
       kRegExpObjectOffset - kJSObjectOffset
     );
-    SET_VALUE(jsobj, kPatternOffset, pattern, String*);
-    SET_VALUE(jsobj, kFlagOffset, flag, String*);
+    SET_HANDLE_VALUE(jsobj.val(), kPatternOffset, pattern, String);
+    SET_HANDLE_VALUE(jsobj.val(), kFlagOffset, flag, String);
     bool global = false, ignore_case = false, multiline = false;
-    for (auto c : flag->data()) {
+    for (auto c : flag.val()->data()) {
       switch (c) {
         case u'g':
           global = true;
@@ -56,23 +56,23 @@ class RegExpObject : public JSObject {
           break;
       }
     }
-    SET_VALUE(jsobj, kGlobalOffset, global, bool);
-    SET_VALUE(jsobj, kIgnoreCaseOffset, ignore_case, bool);
-    SET_VALUE(jsobj, kMultilineOffset, multiline, bool);
+    SET_VALUE(jsobj.val(), kGlobalOffset, global, bool);
+    SET_VALUE(jsobj.val(), kIgnoreCaseOffset, ignore_case, bool);
+    SET_VALUE(jsobj.val(), kMultilineOffset, multiline, bool);
 
-    RegExpObject* obj = new (jsobj) RegExpObject();
-    obj->SetPrototype(RegExpProto::Instance());
-    obj->AddValueProperty(u"source", pattern, false, false, false);
-    obj->AddValueProperty(u"global", Bool::Wrap(global), false, false, false);
-    obj->AddValueProperty(u"ignoreCase", Bool::Wrap(ignore_case), false, false, false);
-    obj->AddValueProperty(u"multiline", Bool::Wrap(multiline), false, false, false);
+    Handle<RegExpObject> obj = Handle<RegExpObject>(new (jsobj.val()) RegExpObject());
+    obj.val()->SetPrototype(RegExpProto::Instance());
+    obj.val()->AddValueProperty(u"source", pattern, false, false, false);
+    obj.val()->AddValueProperty(u"global", Bool::Wrap(global), false, false, false);
+    obj.val()->AddValueProperty(u"ignoreCase", Bool::Wrap(ignore_case), false, false, false);
+    obj.val()->AddValueProperty(u"multiline", Bool::Wrap(multiline), false, false, false);
     // TODO(zhuzilin) Not sure if this should be initialized to 0.
-    obj->AddValueProperty(u"lastIndex", Number::Zero(), false, false, false);
+    obj.val()->AddValueProperty(u"lastIndex", Number::Zero(), false, false, false);
     return obj;
   }
 
-  std::vector<void*> Pointers() override {
-    std::vector<void*> pointers = JSObject::Pointers();
+  std::vector<HeapObject**> Pointers() override {
+    std::vector<HeapObject**> pointers = JSObject::Pointers();
     pointers.emplace_back(HEAP_PTR(kPatternOffset));
     pointers.emplace_back(HEAP_PTR(kFlagOffset));
     return pointers;
@@ -85,60 +85,60 @@ class RegExpObject : public JSObject {
   static constexpr size_t kMultilineOffset = kIgnoreCaseOffset + kBoolSize;
   static constexpr size_t kRegExpObjectOffset = kMultilineOffset + kBoolSize;
 
-  String* pattern() { return READ_VALUE(this, kPatternOffset, String*); }
-  String* flag() { return READ_VALUE(this, kFlagOffset, String*); }
+  Handle<String> pattern() { return READ_HANDLE_VALUE(this, kPatternOffset, String); }
+  Handle<String> flag() { return READ_HANDLE_VALUE(this, kFlagOffset, String); }
   bool global() { return READ_VALUE(this, kGlobalOffset, bool); }
   bool ignore_case() { return READ_VALUE(this, kIgnoreCaseOffset, bool); }
   bool multiline() { return READ_VALUE(this, kMultilineOffset, bool); }
 
-  std::string ToString() override { return "/" + log::ToString(pattern()) + "/" + log::ToString(flag()); }
+  std::string ToString() override { return "/" + log::ToString(pattern().val()) + "/" + log::ToString(flag().val()); }
 };
 
 class RegExpConstructor : public JSObject {
  public:
-  static RegExpConstructor* Instance() {
-    static RegExpConstructor* singleton = RegExpConstructor::New();
+  static Handle<RegExpConstructor> Instance() {
+    static Handle<RegExpConstructor> singleton = RegExpConstructor::New();
     return singleton;
   }
 
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
+  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
     if (arguments.size() == 0) {
       *e = *Error::TypeError(u"RegExp called with 0 parameters");
-      return nullptr;
+      return Handle<JSValue>();
     }
-    if ((arguments.size() == 1 || arguments[1]->IsUndefined()) && arguments[0]->IsRegExpObject()) {
+    if ((arguments.size() == 1 || arguments[1].val()->IsUndefined()) && arguments[0].val()->IsRegExpObject()) {
         return arguments[0];
     }
     return Construct(e, arguments);
   }
 
-  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
-    String* P, *F;
+  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
+    Handle<String> P, F;
     if (arguments.size() == 0) {
       P = String::Empty();
-    } else if (arguments[0]->IsRegExpObject()) {
-      if (arguments.size() > 1 && !arguments[1]->IsUndefined()) {
-        RegExpObject* R = static_cast<RegExpObject*>(arguments[0]);
-        P = R->pattern();
-        F = R->flag();
+    } else if (arguments[0].val()->IsRegExpObject()) {
+      if (arguments.size() > 1 && !arguments[1].val()->IsUndefined()) {
+        Handle<RegExpObject> R = static_cast<Handle<RegExpObject>>(arguments[0]);
+        P = R.val()->pattern();
+        F = R.val()->flag();
       } else {
         *e = *Error::TypeError(u"new RegExp called with RegExp object and flag.");
-        return nullptr;
+        return Handle<JSValue>();
       }
     } else {
       P = ::es::ToString(e, arguments[0]);
-      if (!e->IsOk()) return nullptr;
+      if (!e->IsOk()) return Handle<JSValue>();
     }
-    if (arguments.size() < 2 || arguments[1]->IsUndefined()) {
+    if (arguments.size() < 2 || arguments[1].val()->IsUndefined()) {
       F = String::Empty();
     } else {
       F = ::es::ToString(e, arguments[1]);
-      if (!e->IsOk()) return nullptr;
+      if (!e->IsOk()) return Handle<JSValue>();
     }
     // Check is flag is valid
     std::unordered_map<char16_t, size_t> count;
     bool valid_flag = true;
-    for (auto c : F->data()) {
+    for (auto c : F.val()->data()) {
       if (c != u'g' && c != u'i' && c != u'm') {
         valid_flag = false;
         break;
@@ -150,36 +150,36 @@ class RegExpConstructor : public JSObject {
       count[c]++;
     }
     if (!valid_flag) {
-      *e = *Error::SyntaxError(u"invalid RegExp flag: " + F->data());
-      return nullptr;
+      *e = *Error::SyntaxError(u"invalid RegExp flag: " + F.val()->data());
+      return Handle<JSValue>();
     }
     return RegExpObject::New(P, F);
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function RegExp() { [native code] }");
   }
 
  private:
-  static RegExpConstructor* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_OTHER, u"RegExp", true, nullptr, true, true, nullptr, 0);
-    return new (jsobj) RegExpConstructor();
+  static Handle<RegExpConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_OTHER, u"RegExp", true, Handle<JSValue>(), true, true, nullptr, 0);
+    return Handle<RegExpConstructor>(new (jsobj.val()) RegExpConstructor());
   }
 };
 
-JSValue* RegExpProto::toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-  JSValue* val = Runtime::TopValue();
-  if (!val->IsRegExpObject()) {
+Handle<JSValue> RegExpProto::toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  Handle<JSValue> val = Runtime::TopValue();
+  if (!val.val()->IsRegExpObject()) {
     *e = *Error::TypeError(u"RegExp.prototype.toString called by non-regex");
-    return nullptr;
+    return Handle<JSValue>();
   }
-  RegExpObject* regexp = static_cast<RegExpObject*>(val);
+  Handle<RegExpObject> regexp = static_cast<Handle<RegExpObject>>(val);
   return String::New(
-    u"/" + regexp->pattern()->data() + u"/" +
-    (regexp->global() ? u"g" : u"") +
-    (regexp->ignore_case() ? u"i" : u"") +
-    (regexp->multiline() ? u"m" : u"")
+    u"/" + regexp.val()->pattern().val()->data() + u"/" +
+    (regexp.val()->global() ? u"g" : u"") +
+    (regexp.val()->ignore_case() ? u"i" : u"") +
+    (regexp.val()->multiline() ? u"m" : u"")
   );
 }
 

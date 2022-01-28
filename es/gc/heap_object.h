@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <es/utils/macros.h>
+#include <es/gc/handle.h>
 
 namespace es {
 
@@ -14,11 +15,11 @@ void* Allocate(size_t size, uint8_t flag);
 
 class HeapObject {
  public:
-  static HeapObject* New(size_t size, uint8_t flag = 0) {
-    return static_cast<HeapObject*>(Allocate(size + kPtrSize, flag));
+  static Handle<HeapObject> New(size_t size, uint8_t flag = 0) {
+    return Handle<HeapObject>(static_cast<HeapObject*>(Allocate(size + kPtrSize, flag)));
   }
 
-  virtual std::vector<void*> Pointers() = 0;
+  virtual std::vector<HeapObject**> Pointers() = 0;
 
   virtual inline bool IsJSValue() { return false; }
 

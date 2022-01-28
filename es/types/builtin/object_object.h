@@ -6,92 +6,92 @@
 
 namespace es {
 
-String* ToString(Error* e, JSValue* input);
-PropertyDescriptor* ToPropertyDescriptor(Error* e, JSValue* obj);
+Handle<String> ToString(Error* e, Handle<JSValue> input);
+Handle<PropertyDescriptor> ToPropertyDescriptor(Error* e, Handle<JSValue> obj);
 
 class ObjectProto : public JSObject {
  public:
-  static ObjectProto* Instance() {
-    static ObjectProto* singleton = ObjectProto::New();
+  static Handle<ObjectProto> Instance() {
+    static Handle<ObjectProto> singleton = ObjectProto::New();
     return singleton;
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = Runtime::TopValue();
-    if (val->IsUndefined())
+  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    Handle<JSValue> val = Runtime::TopValue();
+    if (val.val()->IsUndefined())
       return String::New(u"[object Undefined]");
-    if (val->IsNull())
+    if (val.val()->IsNull())
       return String::New(u"[object Null]");
-    JSObject* obj = ToObject(e, val);
-    return String::New(u"[object " + obj->Class()->data() + u"]");
+    Handle<JSObject> obj = ToObject(e, val);
+    return String::New(u"[object " + obj.val()->Class().val()->data() + u"]");
   }
 
-  static JSValue* toLocaleString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toLocaleString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* valueOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    JSValue* val = Runtime::TopValue();
-    JSObject* O = ToObject(e, val);
-    if (!e->IsOk()) return nullptr;
+  static Handle<JSValue> valueOf(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    Handle<JSValue> val = Runtime::TopValue();
+    Handle<JSObject> O = ToObject(e, val);
+    if (!e->IsOk()) return Handle<JSValue>();
     // TODO(zhuzilin) Host object
     return O;
   }
 
-  static JSValue* hasOwnProperty(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> hasOwnProperty(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* isPrototypeOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> isPrototypeOf(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* propertyIsEnumerable(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> propertyIsEnumerable(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
  private:
-  static ObjectProto* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_OBJECT, u"Object", true, nullptr, false, false, nullptr, 0);
-    return new (jsobj) ObjectProto();
+  static Handle<ObjectProto> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_OBJECT, u"Object", true, Handle<JSValue>(), false, false, nullptr, 0);
+    return Handle<ObjectProto>(new (jsobj.val()) ObjectProto());
   }
 };
 
 class Object : public JSObject {
  public:
-  static Object* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_OBJECT, u"Object", true, nullptr, false, false, nullptr, 0
+  static Handle<Object> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_OBJECT, u"Object", true, Handle<JSValue>(), false, false, nullptr, 0
     );
-    Object* obj = new (jsobj) Object();
-    obj->SetPrototype(ObjectProto::Instance());
+    Handle<Object> obj = Handle<Object>(new (jsobj.val()) Object());
+    obj.val()->SetPrototype(ObjectProto::Instance());
     return obj;
   }
 };
 
 class ObjectConstructor : public JSObject {
  public:
-  static ObjectConstructor* Instance() {
-    static ObjectConstructor* singleton = ObjectConstructor::New();
+  static Handle<ObjectConstructor> Instance() {
+    static Handle<ObjectConstructor> singleton = ObjectConstructor::New();
     return singleton;
   }
 
   // 15.2.1 The Object Constructor Called as a Function
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
-    if (arguments.size() == 0 || arguments[0]->IsNull() || arguments[0]->IsUndefined())
+  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
+    if (arguments.size() == 0 || arguments[0].val()->IsNull() || arguments[0].val()->IsUndefined())
       return Construct(e, arguments);
     return ToObject(e, arguments[0]);
   }
 
   // 15.2.2 The Object Constructor
-  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
+  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     if (arguments.size() > 0) {  // 1
-      JSValue* value = arguments[0];
-      switch (value->type()) {
+      Handle<JSValue> value = arguments[0];
+      switch (value.val()->type()) {
         case JSValue::JS_OBJECT:
           // TODO(zhuzilin) deal with host object.
-          return static_cast<JSObject*>(value);
+          return static_cast<Handle<JSObject>>(value);
         case JSValue::JS_STRING:
         case JSValue::JS_BOOL:
         case JSValue::JS_NUMBER:
@@ -100,130 +100,130 @@ class ObjectConstructor : public JSObject {
           break;
       }
     }
-    assert(arguments.size() == 0 || arguments[0]->IsNull() || arguments[0]->IsUndefined());
-    JSObject* obj = Object::New();
+    assert(arguments.size() == 0 || arguments[0].val()->IsNull() || arguments[0].val()->IsUndefined());
+    Handle<JSObject> obj = Object::New();
     return obj;
   }
 
   // 15.2.3.2 Object.getPrototypeOf ( O )
-  static JSValue* getPrototypeOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    if (vals.size() < 1 || !vals[0]->IsObject()) {
+  static Handle<JSValue> getPrototypeOf(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() < 1 || !vals[0].val()->IsObject()) {
       *e = *Error::TypeError();
-      return nullptr;
+      return Handle<JSValue>();
     }
-    return static_cast<JSObject*>(vals[0])->Prototype();
+    return static_cast<Handle<JSObject>>(vals[0]).val()->Prototype();
   }
 
   // 15.2.3.3 Object.getOwnPropertyDescriptor ( O, P )
-  static JSValue* getOwnPropertyDescriptor(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getOwnPropertyDescriptor(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* getOwnPropertyNames(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> getOwnPropertyNames(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* create(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    if (vals.size() < 1 || (!vals[0]->IsObject() && !vals[0]->IsNull())) {
+  static Handle<JSValue> create(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() < 1 || (!vals[0].val()->IsObject() && !vals[0].val()->IsNull())) {
       *e = *Error::TypeError(u"Object.create called on non-object");
-      return nullptr;
+      return Handle<JSValue>();
     }
-    Object* obj = Object::New();
-    obj->SetPrototype(vals[0]);
-    if (vals.size() > 1 && !vals[1]->IsUndefined()) {
+    Handle<Object> obj = Object::New();
+    obj.val()->SetPrototype(vals[0]);
+    if (vals.size() > 1 && !vals[1].val()->IsUndefined()) {
       ObjectConstructor::defineProperties(e, this_arg, vals);
-      if (!e->IsOk()) return nullptr;
+      if (!e->IsOk()) return Handle<JSValue>();
     }
     return obj;
   }
 
-  static JSValue* defineProperty(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    if (vals.size() < 1 || !vals[0]->IsObject()) {
+  static Handle<JSValue> defineProperty(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() < 1 || !vals[0].val()->IsObject()) {
       *e = *Error::TypeError(u"Object.defineProperty called on non-object");
-      return nullptr;
+      return Handle<JSValue>();
     }
-    JSObject* O = static_cast<JSObject*>(vals[0]);
+    Handle<JSObject> O = static_cast<Handle<JSObject>>(vals[0]);
     if (vals.size() < 2) {
       *e = *Error::TypeError(u"Object.defineProperty need 3 arguments");
-      return nullptr;
+      return Handle<JSValue>();
     }
-    String* name = ::es::ToString(e, vals[1]);
-    if (!e->IsOk()) return nullptr;
-    PropertyDescriptor* desc = ToPropertyDescriptor(e, vals[2]);
-    if (!e->IsOk()) return nullptr;
-    O->DefineOwnProperty(e, name, desc, true);
+    Handle<String> name = ::es::ToString(e, vals[1]);
+    if (!e->IsOk()) return Handle<JSValue>();
+    Handle<PropertyDescriptor> desc = ToPropertyDescriptor(e, vals[2]);
+    if (!e->IsOk()) return Handle<JSValue>();
+    O.val()->DefineOwnProperty(e, name, desc, true);
     return O;
   }
 
-  static JSValue* defineProperties(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> defineProperties(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* seal(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> seal(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* freeze(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> freeze(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* preventExtensions(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    if (vals.size() == 0 || !vals[0]->IsObject()) {
+  static Handle<JSValue> preventExtensions(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() == 0 || !vals[0].val()->IsObject()) {
       *e = *Error::TypeError(u"Object.preventExtensions called on non-object");
-      return nullptr;
+      return Handle<JSValue>();
     }
-    JSObject* obj = static_cast<JSObject*>(vals[0]);
-    obj->SetExtensible(false);
+    Handle<JSObject> obj = static_cast<Handle<JSObject>>(vals[0]);
+    obj.val()->SetExtensible(false);
     return obj;
   }
 
-  static JSValue* isSealed(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> isSealed(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* isFrozen(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> isFrozen(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static JSValue* isExtensible(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
-    if (vals.size() < 1 || !vals[0]->IsObject()) {
+  static Handle<JSValue> isExtensible(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() < 1 || !vals[0].val()->IsObject()) {
       *e = *Error::TypeError(u"Object.isExtensible called on non-object");
-      return nullptr;
+      return Handle<JSValue>();
     }
-    JSObject* obj = static_cast<JSObject*>(vals[0]);
-    return Bool::Wrap(obj->Extensible());
+    Handle<JSObject> obj = static_cast<Handle<JSObject>>(vals[0]);
+    return Bool::Wrap(obj.val()->Extensible());
   }
 
-  static JSValue* keys(Error* e, JSValue* this_arg, std::vector<JSValue*> vals);
+  static Handle<JSValue> keys(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
 
   // ES6
-  static JSValue* setPrototypeOf(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> setPrototypeOf(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size() < 2) {
       *e = *Error::TypeError(u"Object.preventExtensions need 2 arguments");
-      return nullptr; 
+      return Handle<JSValue>(); 
     }
-    vals[0]->CheckObjectCoercible(e);
-    if (!e->IsOk()) return nullptr;
-    if (!(vals[1]->IsNull() || vals[1]->IsObject())) {
+    vals[0].val()->CheckObjectCoercible(e);
+    if (!e->IsOk()) return Handle<JSValue>();
+    if (!(vals[1].val()->IsNull() || vals[1].val()->IsObject())) {
       *e = *Error::TypeError(u"");
-      return nullptr;
+      return Handle<JSValue>();
     }
-    if (!vals[0]->IsObject()) {
+    if (!vals[0].val()->IsObject()) {
       return vals[0];
     }
-    static_cast<JSObject*>(vals[0])->SetPrototype(vals[1]);
+    static_cast<Handle<JSObject>>(vals[0]).val()->SetPrototype(vals[1]);
     return vals[0];
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function Object() { [native code] }");
   }
 
  private:
-  static ObjectConstructor* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_OTHER, u"Object", true, nullptr, true, true, nullptr, 0);
-    return new (jsobj) ObjectConstructor();
+  static Handle<ObjectConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_OTHER, u"Object", true, Handle<JSValue>(), true, true, nullptr, 0);
+    return Handle<ObjectConstructor>(new (jsobj.val()) ObjectConstructor());
   }
 };
 

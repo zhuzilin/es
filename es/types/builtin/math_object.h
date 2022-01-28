@@ -5,36 +5,36 @@
 
 namespace es {
 
-double ToNumber(Error* e, JSValue* input);
+double ToNumber(Error* e, Handle<JSValue> input);
 
 class Math : public JSObject {
  public:
-  static Math* Instance() {
-  static Math* singleton = Math::New();
+  static Handle<Math> Instance() {
+  static Handle<Math> singleton = Math::New();
     return singleton;
   }
 
-  JSValue* Call(Error* e, JSValue* this_arg, std::vector<JSValue*> arguments = {}) override {
+  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
     return Construct(e, arguments);
   }
 
-  JSObject* Construct(Error* e, std::vector<JSValue*> arguments) override {
+  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     assert(false);
   }
 
-  static JSValue* toString(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"Math");
   }
 
-  static JSValue* max(Error* e, JSValue* this_arg, std::vector<JSValue*> vals) {
+  static Handle<JSValue> max(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size() == 0)
       return Number::NegativeInfinity();
     double value1 = ToNumber(e, vals[0]);
-    if (!e->IsOk()) return nullptr;
+    if (!e->IsOk()) return Handle<JSValue>();
     double value2;
     if (vals.size() < 2) {
       value2 = ToNumber(e, vals[1]);
-      if (!e->IsOk()) return nullptr;
+      if (!e->IsOk()) return Handle<JSValue>();
     }
     if (isnan(value1) || isnan(value2))
       return Number::NaN();
@@ -47,16 +47,16 @@ class Math : public JSObject {
   }
 
  private:
-  static Math* New() {
-    JSObject* jsobj = JSObject::New(
-      OBJ_FUNC, u"Math", true, nullptr, true, true, nullptr, 0);
-    return new (jsobj) Math();
+  static Handle<Math> New() {
+    Handle<JSObject> jsobj = JSObject::New(
+      OBJ_FUNC, u"Math", true, Handle<JSValue>(), true, true, nullptr, 0);
+    return Handle<Math>(new (jsobj.val()) Math());
   }
 };
 
 void InitMath() {
-  JSObject* math = Math::Instance();
-  math->AddFuncProperty(u"max", Math::max, false, false, false);
+  Handle<JSObject> math = Math::Instance();
+  math.val()->AddFuncProperty(u"max", Math::max, false, false, false);
 }
 
 }  // namespace es
