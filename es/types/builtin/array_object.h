@@ -209,6 +209,7 @@ class ArrayProto : public JSObject {
   static Handle<ArrayProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_OTHER, u"Array", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+
     return Handle<ArrayProto>(new (jsobj.val()) ArrayProto());
   }
 };
@@ -219,6 +220,7 @@ class ArrayObject : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_ARRAY, u"Array", true, Handle<JSValue>(), false, false, nullptr, 0
     );
+
     Handle<ArrayObject> obj(new (jsobj.val()) ArrayObject());
     obj.val()->SetPrototype(ArrayProto::Instance());
     Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
@@ -256,6 +258,7 @@ class ArrayConstructor : public JSObject {
   static Handle<ArrayConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_ARRAY_CONSTRUCTOR, u"Array", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+
     return Handle<ArrayConstructor>(new (jsobj.val()) ArrayConstructor());
   }
 };

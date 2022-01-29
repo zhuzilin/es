@@ -17,7 +17,9 @@ class ArgumentsObject : public JSObject {
       OBJ_ARGUMENTS, u"Arguments", true, Handle<JSValue>(), false, false, nullptr,
       kParameterMapOffset + kPtrSize - kJSObjectOffset
     );
+
     SET_HANDLE_VALUE(jsobj.val(), kParameterMapOffset, parameter_map, JSObject);
+
     Handle<ArgumentsObject> obj(new (jsobj.val()) ArgumentsObject());
     obj.val()->SetPrototype(ObjectProto::Instance());
     AddValueProperty(obj, String::Length(), Number::New(len), true, false, true);

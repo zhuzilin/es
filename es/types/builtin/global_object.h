@@ -129,7 +129,9 @@ class GlobalObject : public JSObject {
       // are the property of global object.
       true, Handle<JSValue>(), false, false, nullptr, kBoolSize, flag
     );
+
     SET_VALUE(jsobj.val(), kDirectEvalOffset, false, bool);
+
     return Handle<GlobalObject>(new (jsobj.val()) GlobalObject());
   }
 

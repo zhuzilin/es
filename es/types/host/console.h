@@ -30,6 +30,7 @@ class Console : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_HOST, u"Console", true, Handle<JSValue>(), false, false, nullptr, 0, flag
     );
+
     Handle<Console> obj(new (jsobj.val()) Console());
     AddFuncProperty(obj, u"log", log, false, false, false);
     return obj;

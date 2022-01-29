@@ -12,6 +12,7 @@ class PropertyDescriptor : public JSValue {
  public:
   static Handle<PropertyDescriptor> New() {
     Handle<JSValue> jsval = JSValue::New(JS_PROP_DESC, kConfigurableOffset + kBoolSize - kBitmapOffset);
+
     SET_VALUE(jsval.val(), kBitmapOffset, 0, char);
     SET_HANDLE_VALUE(jsval.val(), kValueOffset, Undefined::Instance(), JSValue);
     SET_HANDLE_VALUE(jsval.val(), kGetOffset, Undefined::Instance(), JSValue);
@@ -19,6 +20,7 @@ class PropertyDescriptor : public JSValue {
     SET_VALUE(jsval.val(), kWritableOffset, false, bool);
     SET_VALUE(jsval.val(), kEnumerableOffset, false, bool);
     SET_VALUE(jsval.val(), kConfigurableOffset, false, bool);
+
     new (jsval.val()) PropertyDescriptor();
     return Handle<PropertyDescriptor>(jsval);
   }

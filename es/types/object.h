@@ -70,8 +70,14 @@ class JSObject : public JSValue {
       std::cout << "JSObject::New " << log::ToString(klass) << std::endl;
 #endif
     Handle<JSValue> jsval = JSValue::New(JS_OBJECT, kJSObjectOffset - kJSValueOffset + size, flag);
+    // NOTE(zhuzilin) We need to put the operation that may need memory allocation to
+    // the front, because the jsval is not initialized with JSObject vptr and therefore
+    // could not forward the pointers.
+    auto class_str = String::New(klass);
+    auto property_map = HashMap<PropertyDescriptor>::New();
+
     SET_VALUE(jsval.val(), kObjTypeOffset, obj_type, ObjType);
-    SET_HANDLE_VALUE(jsval.val(), kClassOffset, String::New(klass), String);
+    SET_HANDLE_VALUE(jsval.val(), kClassOffset, class_str, String);
     SET_VALUE(jsval.val(), kExtensibleOffset, extensible, bool);
     SET_HANDLE_VALUE(jsval.val(), kPrimitiveValueOffset, primitive_value, JSValue);
     SET_VALUE(jsval.val(), kIsConstructorOffset, is_constructor, bool);
@@ -79,7 +85,8 @@ class JSObject : public JSValue {
     // NOTE(zhuzilin) function pointer is different.
     TYPED_PTR(jsval.val(), kCallableOffset, inner_func)[0] = callable;
     SET_HANDLE_VALUE(jsval.val(), kPrototypeOffset, Null::Instance(), JSValue);
-    SET_HANDLE_VALUE(jsval.val(), kNamedPropertiesOffset, HashMap<PropertyDescriptor>::New(), HashMap<PropertyDescriptor>);
+    SET_HANDLE_VALUE(jsval.val(), kNamedPropertiesOffset, property_map, HashMap<PropertyDescriptor>);
+
     new (jsval.val()) JSObject();
     return Handle<JSObject>(jsval);
   }

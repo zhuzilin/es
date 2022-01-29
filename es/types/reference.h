@@ -17,14 +17,12 @@ class Reference : public JSValue {
     Handle<String> reference_name,
     bool strict_reference
   ) {
-    if (reference_name.ToString() == "_super") {
-      log::Tracker::TurnOn();
-      std::cout << "turn on tracker" << std::endl;
-    }
     Handle<JSValue> jsval = JSValue::New(JS_REF, kStrictReferenceOffset + kBoolSize - kJSValueOffset);
+
     SET_HANDLE_VALUE(jsval.val(), kBaseOffset, base, JSValue);
     SET_HANDLE_VALUE(jsval.val(), kReferenceNameOffset, reference_name, String);
     SET_VALUE(jsval.val(), kStrictReferenceOffset, strict_reference, bool);
+
     new (jsval.val()) Reference();
     return Handle<Reference>(jsval);
   }

@@ -20,7 +20,9 @@ class EnvironmentRecord : public JSValue {
 
   static Handle<EnvironmentRecord> New(EnvRecType type, size_t size) {
     Handle<JSValue> jsval = JSValue::New(JS_ENV_REC, size + kIntSize);
+
     SET_VALUE(jsval.val(), kEnvRecTypeOffset, type, EnvRecType);
+
     return static_cast<Handle<EnvironmentRecord>>(jsval);
   }
 
@@ -43,9 +45,11 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
         std::cout << "Binding::New" << std::endl;
 #endif
       Handle<HeapObject> heap_obj = HeapObject::New(kBindingOffset - kHeapObjectOffset);
+
       SET_HANDLE_VALUE(heap_obj.val(), kValueOffset, value, JSValue);
       SET_VALUE(heap_obj.val(), kCanDeleteOffset, can_delete, bool);
       SET_VALUE(heap_obj.val(), kIsMutableOffset, is_mutable, bool);
+
       new (heap_obj.val()) Binding();
       return Handle<Binding>(heap_obj);
     }
@@ -68,7 +72,10 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
 
   static Handle<DeclarativeEnvironmentRecord> New() {
     Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New(ENV_DECL, kPtrSize);
-    SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, HashMap<Binding>::New(), HashMap<Binding>);
+    auto bindings = HashMap<Binding>::New();
+
+    SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, bindings, HashMap<Binding>);
+
     new (env_rec.val()) DeclarativeEnvironmentRecord();
     return Handle<DeclarativeEnvironmentRecord>(env_rec);
   }
@@ -89,8 +96,10 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
  public:
   static Handle<ObjectEnvironmentRecord> New(Handle<JSObject> obj, bool provide_this = false) {
     Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New(ENV_OBJ ,kPtrSize + kBoolSize);
+
     SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, obj, JSObject);
     SET_VALUE(env_rec.val(), kProvideThisOffset, provide_this, bool);
+
     new (env_rec.val()) ObjectEnvironmentRecord();
     return Handle<ObjectEnvironmentRecord>(env_rec);
   }

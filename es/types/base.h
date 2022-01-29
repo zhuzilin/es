@@ -38,7 +38,9 @@ class JSValue : public HeapObject {
       std::cout << "JSValue::New " << type << " " << size << " " << std::endl;
 #endif
     Handle<HeapObject> mem = HeapObject::New(kIntSize + size, flag);
+
     SET_VALUE(mem.val(), kTypeOffset, type, Type);
+
     return Handle<JSValue>(mem);
   }
 
@@ -114,6 +116,7 @@ class Undefined : public JSValue {
  private:
   static Handle<Undefined> New(flag_t flag) {
     Handle<JSValue> jsval = JSValue::New(JS_UNDEFINED, 0, flag);
+
     new (jsval.val()) Undefined();
     return Handle<Undefined>(jsval);
   }
@@ -132,6 +135,7 @@ class Null : public JSValue {
  private:
   static Handle<Null> New(flag_t flag) {
     Handle<JSValue> jsval = JSValue::New(JS_NULL, 0, flag);
+
     new (jsval.val()) Null();
     return Handle<Null>(jsval);
   }
@@ -160,7 +164,9 @@ class Bool : public JSValue {
  private:
   static Handle<Bool> New(bool val, flag_t flag) {
     Handle<JSValue> jsval = JSValue::New(JS_BOOL, kBoolSize, flag);
+
     SET_VALUE(jsval.val(), kJSValueOffset, val, bool);
+
     new (jsval.val()) Bool();
     return Handle<Bool>(jsval);
   }
@@ -170,8 +176,10 @@ class String : public JSValue {
  public:
   static Handle<String> New(std::u16string data, flag_t flag = 0) {
     Handle<JSValue> jsval = JSValue::New(JS_STRING, kSizeTSize + data.size() * kChar16Size, flag);
+
     SET_VALUE(jsval.val(), kLengthOffset, data.size(), size_t);
     memcpy(PTR(jsval.val(), kStringDataOffset), data.data(), data.size() * kChar16Size);
+
     new (jsval.val()) String();
     return Handle<String>(jsval);
   }
@@ -179,15 +187,19 @@ class String : public JSValue {
   static Handle<String> New(char16_t* data, flag_t flag = 0) {
     size_t size = std::char_traits<char16_t>::length(data);
     Handle<JSValue> jsval = JSValue::New(JS_STRING, kSizeTSize + size * kChar16Size, flag);
+
     SET_VALUE(jsval.val(), kLengthOffset, size, size_t);
     memcpy(PTR(jsval.val(), kStringDataOffset), data, size * kChar16Size);
+
     new (jsval.val()) String();
     return Handle<String>(jsval);
   }
 
   static Handle<String> New(size_t n) {
     Handle<JSValue> jsval = JSValue::New(JS_STRING, kSizeTSize + n * kChar16Size);
+
     SET_VALUE(jsval.val(), kLengthOffset, n, int);
+
     new (jsval.val()) String();
     return Handle<String>(jsval);
   }
@@ -345,7 +357,9 @@ class Number : public JSValue {
  public:
   static Handle<Number> New(double data, flag_t flag = 0) {
     Handle<JSValue> jsval = JSValue::New(JS_NUMBER, kDoubleSize, flag);
+
     SET_VALUE(jsval.val(), kJSValueOffset, data, double);
+
     new (jsval.val()) Number();
     return Handle<Number>(jsval);
   }

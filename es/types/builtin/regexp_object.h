@@ -29,6 +29,7 @@ class RegExpProto : public JSObject {
   static Handle<RegExpProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_REGEXP, u"RegExp", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+
     return Handle<RegExpProto>(new (jsobj.val()) RegExpProto());
   }
 };
@@ -40,6 +41,7 @@ class RegExpObject : public JSObject {
       OBJ_REGEXP, u"RegExp", true, Handle<JSValue>(), false, false, nullptr,
       kRegExpObjectOffset - kJSObjectOffset
     );
+
     SET_HANDLE_VALUE(jsobj.val(), kPatternOffset, pattern, String);
     SET_HANDLE_VALUE(jsobj.val(), kFlagOffset, flag, String);
     bool global = false, ignore_case = false, multiline = false;
@@ -109,6 +111,7 @@ class RegExpConstructor : public JSObject {
   static Handle<RegExpConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_REGEXP_CONSTRUCTOR, u"RegExp", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+
     return Handle<RegExpConstructor>(new (jsobj.val()) RegExpConstructor());
   }
 };

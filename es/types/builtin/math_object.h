@@ -42,6 +42,7 @@ class Math : public JSObject {
   static Handle<Math> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_FUNC, u"Math", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+
     return Handle<Math>(new (jsobj.val()) Math());
   }
 };

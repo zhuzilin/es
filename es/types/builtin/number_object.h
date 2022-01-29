@@ -78,6 +78,7 @@ class NumberProto : public JSObject {
   static Handle<NumberProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_NUMBER, u"Number", true, Number::Zero(), false, false, nullptr, 0, flag);
+
     return Handle<NumberProto>(new (jsobj.val()) NumberProto());
   }
 };
@@ -88,6 +89,7 @@ class NumberObject : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_NUMBER, u"Number", true, primitive_value, false, false, nullptr, 0
     );
+
     Handle<NumberObject> obj = Handle<NumberObject>(new (jsobj.val()) NumberObject());
     obj.val()->SetPrototype(NumberProto::Instance());
     return obj;
@@ -109,6 +111,7 @@ class NumberConstructor : public JSObject {
   static Handle<NumberConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_NUMBER_CONSTRUCTOR, u"Number", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+
     return Handle<NumberConstructor>(new (jsobj.val()) NumberConstructor());
   }
 };

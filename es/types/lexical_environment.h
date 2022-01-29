@@ -11,8 +11,10 @@ class LexicalEnvironment : public JSValue {
  public:
   static Handle<LexicalEnvironment> New(Handle<LexicalEnvironment> outer, Handle<EnvironmentRecord> env_rec) {
     Handle<JSValue> jsval = JSValue::New(JS_LEX_ENV, 2 * kPtrSize);
+
     SET_HANDLE_VALUE(jsval.val(), kOuterOffset, outer, LexicalEnvironment);
     SET_HANDLE_VALUE(jsval.val(), kEnvRecOffset, env_rec, EnvironmentRecord);
+
     return Handle<LexicalEnvironment>(new (jsval.val()) LexicalEnvironment());
   }
 

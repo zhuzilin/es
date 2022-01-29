@@ -18,11 +18,13 @@ class HashMap : public HeapObject {
       std::cout << "HashMap::New" << std::endl;
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(2 * kSizeTSize + num_bucket * kPtrSize);
+
     SET_VALUE(heap_obj.val(), kNumBucketOffset, num_bucket, size_t);
     SET_VALUE(heap_obj.val(), kSizeOffset, 0, size_t);
     for (size_t i = 0; i < num_bucket; i++) {
       SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, Handle<ListNode>(), ListNode);
     }
+
     new (heap_obj.val()) HashMap<T>();
     return Handle<HashMap<T>>(heap_obj);
   }
@@ -139,9 +141,11 @@ class HashMap : public HeapObject {
         std::cout << "ListNode::New" << std::endl;
 #endif
       Handle<HeapObject> heap_obj = HeapObject::New(3 * kPtrSize);
+
       SET_HANDLE_VALUE(heap_obj.val(), kKeyOffset, key, String);
       SET_HANDLE_VALUE(heap_obj.val(), kValOffset, val, T);
       SET_HANDLE_VALUE(heap_obj.val(), kNextOffset, Handle<ListNode>(), ListNode);
+
       return Handle<ListNode>(new (heap_obj.val()) ListNode());
     }
 

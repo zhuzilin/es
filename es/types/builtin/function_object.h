@@ -17,7 +17,7 @@ Handle<String> NumberToString(double m);
 Completion EvalProgram(AST* ast);
 
 void EnterFunctionCode(
-  Error* e, Handle<JSObject> f, ProgramOrFunctionBody* body,
+  Error* e, Handle<JSObject> F, ProgramOrFunctionBody* body,
   Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict
 );
 
@@ -70,9 +70,6 @@ class FunctionProto : public JSObject {
   }
 
   static Handle<JSValue> call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    if (log::Tracker::On()) {
-      std::cout << "enter call" << std::endl;
-    }
     Handle<JSValue> val = Runtime::TopValue();
     if (!val.val()->IsObject()) {
       *e = *Error::TypeError(u"Function.prototype.call called on non-object");
@@ -97,6 +94,7 @@ class FunctionProto : public JSObject {
   static Handle<FunctionProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_FUNC_PROTO, u"Function", true, Handle<JSValue>(), false, true, nullptr, 0, flag);
+
     return Handle<FunctionProto>(new (jsobj.val()) FunctionProto());
   }
 };
@@ -114,6 +112,7 @@ class FunctionObject : public JSObject {
     for (size_t i = 0; i < names.size(); i++) {
       formal_parameter.val()->Set(i, String::New(names[i]));
     }
+
     SET_HANDLE_VALUE(jsobj.val(), kFormalParametersOffset, formal_parameter, FixedArray<String>);
     bool strict = Runtime::TopContext()->strict();
     if (body != nullptr) {
@@ -124,7 +123,6 @@ class FunctionObject : public JSObject {
     } else {
       SET_VALUE(jsobj.val(), kCodeOffset, nullptr, ProgramOrFunctionBody*);
     }
-    
     SET_HANDLE_VALUE(jsobj.val(), kScopeOffset, scope, LexicalEnvironment);
     SET_VALUE(jsobj.val(), kFromBindOffset, from_bind, bool);
     SET_VALUE(jsobj.val(), kStrictOffset, strict, bool);
@@ -193,9 +191,11 @@ class BindFunctionObject : public FunctionObject {
     Handle<FunctionObject> func = FunctionObject::New(
       {}, nullptr, Handle<JSValue>(), true,
       kBindFunctionObjectOffset - kFunctionObjectOffset);
+
     SET_HANDLE_VALUE(func.val(), kTargetFunctionOffset, target_function, JSObject);
     SET_HANDLE_VALUE(func.val(), kBoundThisOffset, bound_this, JSValue);
     SET_HANDLE_VALUE(func.val(), kBoundArgsOffset, FixedArray<JSValue>::New(bound_args), FixedArray<JSValue>);
+
     return Handle<BindFunctionObject>(new (func.val()) BindFunctionObject());
   }
 
@@ -242,6 +242,7 @@ class FunctionConstructor : public JSObject {
   static Handle<FunctionConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_FUNC_CONSTRUCTOR, u"Function", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+
     return Handle<FunctionConstructor>(new (jsobj.val()) FunctionConstructor());
   }
 };

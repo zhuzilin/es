@@ -6,7 +6,7 @@
 
 namespace es {
 
-constexpr size_t kNewSpaceSize = 30 * 1024 * 1024;  // 20MB
+constexpr size_t kNewSpaceSize = 20 * 1024 * 1024;  // 20MB
 constexpr size_t kConstantSegmentSize = 10 * 1024 * 1024;  // 10MB
 constexpr size_t kBigObjectSegmentSize = 1024 * 1024 * 1024;  // 1GB
 constexpr size_t kBigObjectThres = 10 * 1024 * 1024;  // 10MB

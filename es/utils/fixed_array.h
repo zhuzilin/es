@@ -15,10 +15,12 @@ class FixedArray : public HeapObject {
       std::cout << "FixedArray::New " << n << std::endl;
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
+
     SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);
     for (size_t i = 0; i < n; i++) {
       SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, elements[i], T);
     }
+
     new (heap_obj.val()) FixedArray<T>();
     return Handle<FixedArray<T>>(heap_obj);
   }
@@ -38,10 +40,12 @@ class FixedArray : public HeapObject {
       std::cout << "FixedArray::New " << n << std::endl;
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
+
     SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);
     for (size_t i = 0; i < n; i++) {
       SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, Handle<T>(), T);
     }
+
     return Handle<FixedArray<T>>(new (heap_obj.val()) FixedArray<T>());
   }
 

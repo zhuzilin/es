@@ -73,12 +73,6 @@ class CopyCollection : public GC {
     top_ = tospace_ + extent_;
     free_ = tospace_;
     memset(tospace_, 0, extent_);
-#ifdef GC_DEBUG
-    if (log::Debugger::On()) {
-      std::cout << "Flip new top: " << top_ - heap_start_ << std::endl;
-      std::cout << "Flip new free: " << free_ - heap_start_ << std::endl;
-    }
-#endif
   }
 
   void Scan(void* ref) {

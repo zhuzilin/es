@@ -351,11 +351,11 @@ Handle<JSValue> GlobalObject::eval(Error* e, Handle<JSValue> this_arg, std::vect
 
 // 10.4.3
 void EnterFunctionCode(
-  Error* e, Handle<JSObject> f, ProgramOrFunctionBody* body,
+  Error* e, Handle<JSObject> F, ProgramOrFunctionBody* body,
   Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict
 ) {
-  assert(f.val()->obj_type() == JSObject::OBJ_FUNC);
-  Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(f);
+  assert(F.val()->obj_type() == JSObject::OBJ_FUNC);
+  Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(F);
   Handle<JSValue> this_binding;
   if (strict) {  // 1
     this_binding = this_arg;

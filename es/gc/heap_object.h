@@ -20,6 +20,7 @@ class HeapObject {
     if (log::Debugger::On())
       std::cout << "HeapObject::New " << std::endl;
 #endif
+
     return Handle<HeapObject>(new (Allocate(size + kPtrSize, flag)) HeapObject());
   }
 
