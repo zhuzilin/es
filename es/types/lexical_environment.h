@@ -20,8 +20,8 @@ class LexicalEnvironment : public JSValue {
     return {HEAP_PTR(kOuterOffset), HEAP_PTR(kEnvRecOffset)};
   }
 
-  Handle<LexicalEnvironment> outer() { return READ_HANDLE_VALUE(this, kOuterOffset, LexicalEnvironment); }
-  Handle<EnvironmentRecord> env_rec() { return READ_HANDLE_VALUE(this, kEnvRecOffset, EnvironmentRecord); }
+  LexicalEnvironment* outer() { return READ_VALUE(this, kOuterOffset, LexicalEnvironment*); }
+  EnvironmentRecord* env_rec() { return READ_VALUE(this, kEnvRecOffset, EnvironmentRecord*); }
 
   static Handle<LexicalEnvironment> Global() {
     static Handle<LexicalEnvironment> singleton = LexicalEnvironment::New(
@@ -30,14 +30,14 @@ class LexicalEnvironment : public JSValue {
   }
 
   Handle<Reference> GetIdentifierReference(Handle<String> name, bool strict) {
-    bool exists = env_rec().val()->HasBinding(name);
+    bool exists = env_rec()->HasBinding(name);
     if (exists) {
-      return Reference::New(env_rec(), name, strict);
+      return Reference::New(Handle<EnvironmentRecord>(env_rec()), name, strict);
     }
-    if (outer().IsNullptr()) {
+    if (outer() == nullptr) {
       return Reference::New(Undefined::Instance(), name, strict);
     }
-    return outer().val()->GetIdentifierReference(name, strict);
+    return outer()->GetIdentifierReference(name, strict);
   }
 
   static Handle<LexicalEnvironment> NewDeclarativeEnvironment(Handle<LexicalEnvironment> lex) {

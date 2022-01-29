@@ -89,6 +89,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     } else if (S) {
       *e = *Error::TypeError();
     }
+    std::cout << "return from SetMutableBinding" << std::endl;
   }
 
   Handle<JSValue> GetBindingValue(Error* e, Handle<String> N, bool S) override {
@@ -157,7 +158,8 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
   bool provide_this() { return READ_VALUE(this, kProvideThisOffset, bool); }
 
   bool HasBinding(Handle<String> N) override {
-    return bindings().val()->HasProperty(N);
+    std::cout << "enter has binding" << std::endl;
+    return HasProperty(bindings(), N);
   }
 
   // 10.2.1.2.2 CreateMutableBinding (N, D)
@@ -165,13 +167,13 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
     assert(!HasBinding(N));
     Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
     desc.val()->SetDataDescriptor(Undefined::Instance(), true, true, D);
-    bindings().val()->DefineOwnProperty(e, N, desc, true);
+    DefineOwnProperty(e, bindings(), N, desc, true);
   }
 
   void SetMutableBinding(Error* e, Handle<String> N, Handle<JSValue> V, bool S) override {
     log::PrintSource("enter SetMutableBinding " + N.ToString() + " to " + V.ToString());
     assert(V.val()->IsLanguageType());
-    bindings().val()->Put(e, N, V, S);
+    Put(e, bindings(), N, V, S);
   }
 
   Handle<JSValue> GetBindingValue(Error* e, Handle<String> N, bool S) override {
@@ -184,11 +186,11 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
         return Undefined::Instance();
       }
     }
-    return bindings().val()->Get(e, N);
+    return Get(e, bindings(), N);
   }
 
   bool DeleteBinding(Error* e, Handle<String> N) override {
-    return bindings().val()->Delete(e, N, false);
+    return Delete(e, bindings(), N, false);
   }
 
   Handle<JSValue> ImplicitThisValue() override {

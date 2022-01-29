@@ -6,7 +6,7 @@
 
 namespace es {
 
-constexpr size_t kNewSpaceSize = 1000 * 1000 * 1000;  // 256MB
+constexpr size_t kNewSpaceSize = 1024 * 1024 * 1024;
 constexpr size_t kConstantSegmentSize = 10 * 1024 * 1024;  // 10MB
 constexpr size_t kBigObjectSegmentSize = 1024 * 1024 * 1024;  // 1GB
 constexpr size_t kBigObjectThres = 10 * 1024 * 1024;  // 10MB
@@ -18,7 +18,7 @@ class Heap {
     return &singleton;
   }
 
-  void* Allocate(size_t size, uint8_t flag) {
+  void* Allocate(size_t size, flag_t flag) {
     if (flag & GCFlag::CONST)
       return constant_space_.New(size, flag);
     if (size > kBigObjectThres) {
@@ -39,7 +39,7 @@ class Heap {
   NoCollection big_object_space_;
 };
 
-void* Allocate(size_t size, uint8_t flag) {
+void* Allocate(size_t size, flag_t flag) {
   return Heap::Global()->Allocate(size, flag);
 }
 

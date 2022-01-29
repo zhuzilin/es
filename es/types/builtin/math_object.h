@@ -10,7 +10,7 @@ double ToNumber(Error* e, Handle<JSValue> input);
 class Math : public JSObject {
  public:
   static Handle<Math> Instance() {
-  static Handle<Math> singleton = Math::New();
+  static Handle<Math> singleton = Math::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -47,17 +47,12 @@ class Math : public JSObject {
   }
 
  private:
-  static Handle<Math> New() {
+  static Handle<Math> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_FUNC, u"Math", true, Handle<JSValue>(), true, true, nullptr, 0);
+      OBJ_FUNC, u"Math", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<Math>(new (jsobj.val()) Math());
   }
 };
-
-void InitMath() {
-  Handle<JSObject> math = Math::Instance();
-  math.val()->AddFuncProperty(u"max", Math::max, false, false, false);
-}
 
 }  // namespace es
 

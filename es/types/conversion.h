@@ -18,7 +18,7 @@ Handle<JSValue> ToPrimitive(Error* e, Handle<JSValue> input, std::u16string pref
     return input;
   }
   Handle<JSObject> obj = static_cast<Handle<JSObject>>(input);
-  return obj.val()->DefaultValue(e, preferred_type);
+  return DefaultValue(e, obj, preferred_type);
 }
 
 bool ToBoolean(Handle<JSValue> input) {

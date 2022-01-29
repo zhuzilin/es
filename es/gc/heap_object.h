@@ -11,11 +11,11 @@
 
 namespace es {
 
-void* Allocate(size_t size, uint8_t flag);
+void* Allocate(size_t size, flag_t flag);
 
 class HeapObject {
  public:
-  static Handle<HeapObject> New(size_t size, uint8_t flag = 0) {
+  static Handle<HeapObject> New(size_t size, flag_t flag = 0) {
     return Handle<HeapObject>(static_cast<HeapObject*>(Allocate(size + kPtrSize, flag)));
   }
 

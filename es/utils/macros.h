@@ -33,11 +33,6 @@ constexpr size_t kFuncPtrSize = sizeof(void* (*));
 #define SET_VALUE(ptr, offset, val, type) \
   *reinterpret_cast<type*>(PTR(ptr, offset)) = val
 
-enum GCFlag {
-  CONST = 1,
-  BIG   = 1 << 1,
-};
-
 }  // namespace es
 
 #endif  // ES_UTILS_MACROS_H

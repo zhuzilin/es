@@ -125,10 +125,8 @@ class Runtime {
       auto context_pointers = context->Pointers();
       pointers.insert(pointers.end(), context_pointers.begin(), context_pointers.end());
     }
-    for (HandleScope* scope : HandleScope::Stack()) {
-      auto scope_pointers = scope->Pointers();
-      pointers.insert(pointers.end(), scope_pointers.begin(), scope_pointers.end());
-    }
+    auto scope_pointers = HandleScope::AllPointers();
+    pointers.insert(pointers.end(), scope_pointers.begin(), scope_pointers.end());
     return pointers;
   }
 
@@ -162,46 +160,6 @@ class ValueGuard {
  private:
   size_t count_;
 };
-
-// TODO(zhuzilin) move this method to a better place
-Handle<JSValue> JSObject::DefaultValue(Error* e, std::u16string hint) {
-  Handle<String> first, second;
-  if (hint == u"String" || hint == u"" && obj_type() == OBJ_DATE) {
-    first = String::New(u"toString");
-    second = String::New(u"valueOf");
-  } else if (hint == u"Number" || hint == u"" && obj_type() != OBJ_DATE) {
-    first = String::New(u"valueOf");
-    second = String::New(u"toString");
-  } else {
-    assert(false);
-  }
-
-  ValueGuard guard;
-  guard.AddValue(Handle<JSObject>(this));
-
-  Handle<JSValue> to_string = Get(e, first);
-  if (!e->IsOk()) return Handle<JSValue>();
-  if (to_string.val()->IsCallable()) {
-    Handle<JSObject> to_string_obj = static_cast<Handle<JSObject>>(to_string);
-    Handle<JSValue> str = to_string_obj.val()->Call(e, Handle<JSObject>(this));
-    if (!e->IsOk()) return Handle<JSValue>();
-    if (str.val()->IsPrimitive()) {
-      return str;
-    }
-  }
-  Handle<JSValue> value_of = Get(e, second);
-  if (!e->IsOk()) return Handle<JSValue>();
-  if (value_of.val()->IsCallable()) {
-    Handle<JSObject> value_of_obj = static_cast<Handle<JSObject>>(value_of);
-    Handle<JSValue> val = value_of_obj.val()->Call(e, Handle<JSObject>(this));
-    if (!e->IsOk()) return Handle<JSValue>();
-    if (val.val()->IsPrimitive()) {
-      return val;
-    }
-  }
-  *e = *Error::TypeError(u"failed to get [[DefaultValue]]");
-  return Handle<JSValue>();
-}
 
 }  // namespace es
 

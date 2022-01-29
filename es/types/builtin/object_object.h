@@ -12,7 +12,7 @@ Handle<PropertyDescriptor> ToPropertyDescriptor(Error* e, Handle<JSValue> obj);
 class ObjectProto : public JSObject {
  public:
   static Handle<ObjectProto> Instance() {
-    static Handle<ObjectProto> singleton = ObjectProto::New();
+    static Handle<ObjectProto> singleton = ObjectProto::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -23,7 +23,7 @@ class ObjectProto : public JSObject {
     if (val.val()->IsNull())
       return String::New(u"[object Null]");
     Handle<JSObject> obj = ToObject(e, val);
-    return String::New(u"[object " + obj.val()->Class().val()->data() + u"]");
+    return String::New(u"[object " + obj.val()->Class() + u"]");
   }
 
   static Handle<JSValue> toLocaleString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
@@ -51,9 +51,9 @@ class ObjectProto : public JSObject {
   }
 
  private:
-  static Handle<ObjectProto> New() {
+  static Handle<ObjectProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OBJECT, u"Object", true, Handle<JSValue>(), false, false, nullptr, 0);
+      OBJ_OBJECT, u"Object", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
     return Handle<ObjectProto>(new (jsobj.val()) ObjectProto());
   }
 };
@@ -73,7 +73,7 @@ class Object : public JSObject {
 class ObjectConstructor : public JSObject {
  public:
   static Handle<ObjectConstructor> Instance() {
-    static Handle<ObjectConstructor> singleton = ObjectConstructor::New();
+    static Handle<ObjectConstructor> singleton = ObjectConstructor::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -151,7 +151,7 @@ class ObjectConstructor : public JSObject {
     if (!e->IsOk()) return Handle<JSValue>();
     Handle<PropertyDescriptor> desc = ToPropertyDescriptor(e, vals[2]);
     if (!e->IsOk()) return Handle<JSValue>();
-    O.val()->DefineOwnProperty(e, name, desc, true);
+    DefineOwnProperty(e, O, name, desc, true);
     return O;
   }
 
@@ -220,9 +220,9 @@ class ObjectConstructor : public JSObject {
   }
 
  private:
-  static Handle<ObjectConstructor> New() {
+  static Handle<ObjectConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Object", true, Handle<JSValue>(), true, true, nullptr, 0);
+      OBJ_OTHER, u"Object", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<ObjectConstructor>(new (jsobj.val()) ObjectConstructor());
   }
 };

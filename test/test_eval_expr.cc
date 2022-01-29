@@ -11,6 +11,9 @@
 #include <es/types/property_descriptor_object_conversion.h>
 #include <es/utils/helper.h>
 #include <es/gc/heap.h>
+#include <es/impl.h>
+#include <es/eval.h>
+#include <es/enter_code.h>
 
 using namespace es;
 
@@ -230,7 +233,7 @@ TEST(TestEvalExpr, Array) {
       Handle<JSValue> val = EvalArray(e, ast);
       EXPECT_EQ(JSValue::JS_OBJECT, val.val()->type());
       Handle<ArrayObject> arr = static_cast<Handle<ArrayObject>>(val);
-      EXPECT_EQ(pair.second, static_cast<Handle<Number>>(arr.val()->Get(e, String::Length())).val()->data());
+      EXPECT_EQ(pair.second, static_cast<Handle<Number>>(Get(e, arr, String::Length())).val()->data());
     }
     
   }

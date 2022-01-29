@@ -103,6 +103,7 @@ Completion EvalProgram(AST* ast) {
 }
 
 Completion EvalStatement(AST* ast) {
+  HandleScope scope;
   switch(ast->type()) {
     case AST::AST_STMT_BLOCK:
       return EvalBlockStatement(ast);
@@ -623,13 +624,13 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
   Handle<LexicalEnvironment> catch_env = LexicalEnvironment::NewDeclarativeEnvironment(old_env);
   Handle<String> ident_str = String::New(try_stmt->catch_ident());
-  catch_env.val()->env_rec().val()->CreateMutableBinding(e, ident_str, false);  // 4
+  catch_env.val()->env_rec()->CreateMutableBinding(e, ident_str, false);  // 4
   if (!e->IsOk()) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
-  catch_env.val()->env_rec().val()->SetMutableBinding(e, ident_str, C.value, false);  // 5
+  catch_env.val()->env_rec()->SetMutableBinding(e, ident_str, C.value, false);  // 5
   if (!e->IsOk()) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
@@ -760,8 +761,9 @@ Handle<JSValue> EvalPrimaryExpression(Error* e, AST* ast) {
 Handle<Reference> IdentifierResolution(std::u16string name) {
   // 10.3.1 Identifier Resolution
   Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
+  Handle<String> ref_name = String::New(name);
   bool strict = Runtime::TopContext()->strict();
-  return env.val()->GetIdentifierReference(String::New(name), strict);
+  return env.val()->GetIdentifierReference(ref_name, strict);
 }
 
 Handle<Reference> EvalIdentifier(AST* ast) {
@@ -987,7 +989,7 @@ Handle<Object> EvalObject(Error* e, AST* ast) {
       }
     }
     Handle<String> prop_name_str = String::New(prop_name);
-    auto previous = obj.val()->GetOwnProperty(prop_name_str);  // 3
+    auto previous = GetOwnProperty(obj, prop_name_str);  // 3
     if (!previous.val()->IsUndefined()) {  // 4
       Handle<PropertyDescriptor> previous_desc = static_cast<Handle<PropertyDescriptor>>(previous);
       if (strict &&
@@ -1006,7 +1008,7 @@ Handle<Object> EvalObject(Error* e, AST* ast) {
         return Handle<JSValue>();
       }
     }
-    obj.val()->DefineOwnProperty(e, prop_name_str, desc, false);
+    DefineOwnProperty(e, obj, prop_name_str, desc, false);
   }
   return obj;
 }
@@ -1021,7 +1023,7 @@ Handle<ArrayObject> EvalArray(Error* e, AST* ast) {
     if (!e->IsOk()) return Handle<JSValue>();
     Handle<JSValue> init_value = GetValue(e, init_result);
     if (!e->IsOk()) return Handle<JSValue>();
-    arr.val()->AddValueProperty(NumberToString(pair.first), init_value, true, true, true);
+    AddValueProperty(arr, NumberToString(pair.first), init_value, true, true, true);
   }
   return arr;
 }
@@ -1078,7 +1080,7 @@ Handle<JSValue> EvalUnaryOperator(Error* e, AST* ast) {
     if (ref.val()->IsPropertyReference()) {  // 4
       Handle<JSObject> obj = ToObject(e, ref.val()->GetBase());
       if (!e->IsOk()) return Handle<JSValue>();
-      return Bool::Wrap(obj.val()->Delete(e, ref.val()->GetReferencedName(), ref.val()->IsStrictReference()));
+      return Bool::Wrap(Delete(e, obj, ref.val()->GetReferencedName(), ref.val()->IsStrictReference()));
     } else {
       if (ref.val()->IsStrictReference()) {
         *e = *Error::SyntaxError(u"cannot delete environment record in strict mode");
@@ -1293,14 +1295,14 @@ Handle<JSValue> EvalRelationalOperator(Error* e, std::u16string op, Handle<JSVal
       return Handle<JSValue>();
     }
     Handle<JSObject> obj = static_cast<Handle<JSObject>>(rval);
-    return Bool::Wrap(obj.val()->HasInstance(e, lval));
+    return Bool::Wrap(HasInstance(e, obj, lval));
   } else if (op == u"in") {
     if (!rval.val()->IsObject()) {
       *e = *Error::TypeError(u"in called on non-object");
       return Handle<JSValue>();
     }
     Handle<JSObject> obj = static_cast<Handle<JSObject>>(rval);
-    return Bool::Wrap(obj.val()->HasProperty(ToString(e, lval)));
+    return Bool::Wrap(HasProperty(obj, ToString(e, lval)));
   }
   assert(false);
 }

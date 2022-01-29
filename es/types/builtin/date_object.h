@@ -8,7 +8,7 @@ namespace es {
 class DateProto : public JSObject {
  public:
   static Handle<DateProto> Instance() {
-    static Handle<DateProto> singleton = DateProto::New();
+    static Handle<DateProto> singleton = DateProto::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -189,9 +189,9 @@ class DateProto : public JSObject {
   }
 
  private:
-  static Handle<DateProto> New() {
+  static Handle<DateProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_DATE, u"Date", true, Handle<JSValue>(), false, false, nullptr, 0);
+      OBJ_DATE, u"Date", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
     return Handle<DateProto>(new (jsobj.val()) DateProto());
   }
 };
@@ -213,7 +213,7 @@ class DateObject : public JSObject {
 class DateConstructor : public JSObject {
  public:
   static Handle<DateConstructor> Instance() {
-    static Handle<DateConstructor> singleton = DateConstructor::New();
+    static Handle<DateConstructor> singleton = DateConstructor::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -242,9 +242,9 @@ class DateConstructor : public JSObject {
   }
 
  private:
-  static Handle<DateConstructor> New() {
+  static Handle<DateConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Date", true, Handle<JSValue>(), true, true, nullptr, 0);
+      OBJ_OTHER, u"Date", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<DateConstructor>(new (jsobj.val()) DateConstructor());
   }
 };

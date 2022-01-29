@@ -13,7 +13,7 @@ double StringToNumber(std::u16string source);
 class GlobalObject : public JSObject {
  public:
   static Handle<GlobalObject> Instance() {
-    static Handle<GlobalObject> singleton = GlobalObject::New();
+    static Handle<GlobalObject> singleton(GlobalObject::New(GCFlag::SINGLE));
     return singleton;
   }
 
@@ -118,7 +118,7 @@ class GlobalObject : public JSObject {
   inline std::string ToString() override { return "GlobalObject"; }
 
  private:
-  static Handle<GlobalObject> New() {
+  static Handle<GlobalObject> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_GLOBAL,
       // 15.1 The values of the [[Prototype]] and [[Class]]
@@ -127,7 +127,7 @@ class GlobalObject : public JSObject {
       // NOTE(zhuzilin) global object need to have [[Extensible]] as true,
       // otherwise we cannot define variable in global code, as global varaibles
       // are the property of global object.
-      true, Handle<JSValue>(), false, false, nullptr, kBoolSize
+      true, Handle<JSValue>(), false, false, nullptr, kBoolSize, flag
     );
     SET_VALUE(jsobj.val(), kDirectEvalOffset, false, bool);
     return Handle<GlobalObject>(new (jsobj.val()) GlobalObject());

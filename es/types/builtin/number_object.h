@@ -14,7 +14,7 @@ Handle<String> NumberToString(double m);
 class NumberProto : public JSObject {
  public:
   static Handle<NumberProto> Instance() {
-    static Handle<NumberProto> singleton = NumberProto::New();
+    static Handle<NumberProto> singleton = NumberProto::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -75,9 +75,9 @@ class NumberProto : public JSObject {
   }
 
  private:
-  static Handle<NumberProto> New() {
+  static Handle<NumberProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_NUMBER, u"Number", true, Number::Zero(), false, false, nullptr, 0);
+      OBJ_NUMBER, u"Number", true, Number::Zero(), false, false, nullptr, 0, flag);
     return Handle<NumberProto>(new (jsobj.val()) NumberProto());
   }
 };
@@ -97,7 +97,7 @@ class NumberObject : public JSObject {
 class NumberConstructor : public JSObject {
  public:
   static  Handle<NumberConstructor> Instance() {
-    static  Handle<NumberConstructor> singleton = NumberConstructor::New();
+    static  Handle<NumberConstructor> singleton = NumberConstructor::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -131,9 +131,9 @@ class NumberConstructor : public JSObject {
   }
 
  private:
-  static Handle<NumberConstructor> New() {
+  static Handle<NumberConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Number", true, Handle<JSValue>(), true, true, nullptr, 0);
+      OBJ_OTHER, u"Number", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<NumberConstructor>(new (jsobj.val()) NumberConstructor());
   }
 };

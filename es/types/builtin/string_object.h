@@ -16,7 +16,7 @@ Handle<String> NumberToString(double m);
 class StringProto : public JSObject {
  public:
   static Handle<StringProto> Instance() {
-    static Handle<StringProto> singleton = StringProto::New();
+    static Handle<StringProto> singleton = StringProto::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -238,9 +238,9 @@ class StringProto : public JSObject {
   }
 
  private:
-  static Handle<StringProto> New() {
+  static Handle<StringProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"String", true, String::Empty(), false, false, nullptr, 0);
+      OBJ_OTHER, u"String", true, String::Empty(), false, false, nullptr, 0, flag);
     return Handle<StringProto>(new (jsobj.val()) StringProto());
   }
 };
@@ -255,33 +255,15 @@ class StringObject : public JSObject {
     obj.val()->SetPrototype(StringProto::Instance());
     assert(primitive_value.val()->IsString());
     double length = static_cast<Handle<String>>(primitive_value).val()->size();
-    obj.val()->AddValueProperty(String::Length(), Number::New(length), false, false, false);
+    AddValueProperty(obj, String::Length(), Number::New(length), false, false, false);
     return obj;
   }
-
-  Handle<JSValue> GetOwnProperty(Handle<String> P) override {
-    Handle<JSValue> val = JSObject::GetOwnProperty(P);
-    if (!val.val()->IsUndefined())
-      return val;
-    Error* e = Error::Ok();
-    int index = ToInteger(e, P);  // this will never has error.
-    if (*NumberToString(fabs(index)).val() != *P.val())
-      return Undefined::Instance();
-    std::u16string str = static_cast<Handle<String>>(PrimitiveValue()).val()->data();
-    int len = str.size();
-    if (len <= index)
-      return Undefined::Instance();
-    Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
-    desc.val()->SetDataDescriptor(String::New(str.substr(index, 1)), true, false, false);
-    return desc;
-  }
-
 };
 
 class StringConstructor : public JSObject {
  public:
   static Handle<StringConstructor> Instance() {
-    static Handle<StringConstructor> singleton = StringConstructor::New();
+    static Handle<StringConstructor> singleton = StringConstructor::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -316,12 +298,14 @@ class StringConstructor : public JSObject {
   }
 
  private:
-  static Handle<StringConstructor> New() {
+  static Handle<StringConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"String", true, Handle<JSValue>(), true, true, nullptr, 0);
+      OBJ_OTHER, u"String", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<StringConstructor>(new (jsobj.val()) StringConstructor());
   }
 };
+
+Handle<JSValue> GetOwnProperty__String(Handle<StringObject> O, Handle<String> P);
 
 }  // namespace es
 

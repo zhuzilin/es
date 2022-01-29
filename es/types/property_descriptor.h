@@ -121,10 +121,10 @@ class PropertyDescriptor : public JSValue {
 
   std::string ToString() override { 
     std::string res = "PropertyDescriptor{";
-    if (HasValue()) res += "v: " + Value().ToString() + ", ";
+    if (HasValue()) res += "v: " + (READ_VALUE(this, kValueOffset, JSValue*))->ToString() + ", ";
     if (HasWritable()) res += "w: " + log::ToString(Writable()) + ", ";
-    if (HasGet()) res += "get: " + Get().ToString() + ", ";
-    if (HasSet()) res += "set: " + Set().ToString() + ", ";
+    if (HasGet()) res += "get: " + (READ_VALUE(this, kGetOffset, JSValue*))->ToString() + ", ";
+    if (HasSet()) res += "set: " + (READ_VALUE(this, kSetOffset, JSValue*))->ToString() + ", ";
     if (HasEnumerable()) res += "e: " + log::ToString(Enumerable()) + ", ";
     if (HasConfigurable()) res += "c: " + log::ToString(Configurable());
     res += '}';

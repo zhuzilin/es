@@ -12,6 +12,9 @@
 #include <es/types/property_descriptor_object_conversion.h>
 #include <es/utils/helper.h>
 #include <es/gc/heap.h>
+#include <es/impl.h>
+#include <es/eval.h>
+#include <es/enter_code.h>
 
 using namespace es;
 

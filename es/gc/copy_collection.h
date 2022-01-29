@@ -34,7 +34,6 @@ class CopyCollection : public GC {
     if (newfree > top_)
       return nullptr;
     free_ = newfree;
-    std::cout << "allocated: " << size << ", now: " << free_ - tospace_ << std::endl;
     return result;
   }
 
@@ -48,6 +47,7 @@ class CopyCollection : public GC {
     for (HeapObject** fld : root_pointers) {
       Process(fld);
     }
+    std::cout << "finish root_pointers" << std::endl;
     while (!IsEmpty(worklist_)) {
       void* ref = Remove(worklist_);
       Scan(ref);
@@ -68,7 +68,7 @@ class CopyCollection : public GC {
   void Scan(void* ref) {
     HeapObject* heap_ref = static_cast<HeapObject*>(ref);
     assert(heap_ref != nullptr);
-    std::cout << "Scanning: " << heap_ref->ToString() << std::endl;
+    std::cout << "Scanning: " << heap_ref->ToString() << " " << ref << std::endl;
     auto ref_pointers = heap_ref->Pointers();
     for (HeapObject** fld : ref_pointers) {
       Process(fld);
@@ -77,9 +77,13 @@ class CopyCollection : public GC {
   }
 
   void Process(HeapObject** fld) {
-    if (*fld == nullptr || Flag(*fld))
+    if (*fld == nullptr || (Flag(*fld) & GCFlag::CONST))
       return;
     HeapObject* from_ref = *fld;
+    if (tospace_ < (void*)from_ref && (void*)from_ref < tospace_ + extent_) {
+      return;
+    }
+    assert(fromspace_ < (char*)from_ref && (char*)from_ref < fromspace_ + extent_);
     std::cout << "Processing: " << from_ref->ToString() << std::endl;
     *fld = static_cast<HeapObject*>(Forward(from_ref));
     std::cout << "exit Process" << std::endl;
@@ -97,6 +101,7 @@ class CopyCollection : public GC {
     assert(fromspace_ < from_ref && from_ref < fromspace_ + extent_);
     char* to_ref = free_ + sizeof(Header);
     size_t size = Size(from_ref);
+    std::cout << "copy to free: " << free_ - tospace_ << std::endl;
     free_ += size;
     SetForwardAddress(from_ref, nullptr);
     memcpy(H(to_ref), H(from_ref), size);

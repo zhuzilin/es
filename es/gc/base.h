@@ -7,15 +7,9 @@
 
 namespace es {
 
-struct Header {
-  uint8_t flag = 0;
-  uint32_t size = 0;
-  void* forward_address_ = nullptr;
-};
-
 class GC {
  public:
-  void* New(size_t size, uint8_t flag) {
+  void* New(size_t size, flag_t flag) {
     size_t size_with_header = size + sizeof(Header);
     if (size_with_header % 8 != 0) {
       size_with_header += 8 - size_with_header % 8;
@@ -25,7 +19,7 @@ class GC {
       Collect();
       ref = Allocate(size_with_header);
       if (ref == nullptr) {
-        throw "Out of memory";
+        throw std::runtime_error("Out of memory");
       }
     }
     Header* header = static_cast<Header*>(ref);
@@ -34,14 +28,6 @@ class GC {
     header->forward_address_ = nullptr;
     void* body = static_cast<Header*>(ref) + 1;
     return body;
-  }
-
-  Header* H(void* ref) { return static_cast<Header*>(ref) - 1; }
-  uint8_t Flag(void* ref) { return H(ref)->flag; }
-
-  size_t Size(void* ref) {
-    Header* header = H(ref);
-    return static_cast<Header*>(header)->size;
   }
 
   void* ForwardAddress(void* ref) {

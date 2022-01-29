@@ -36,7 +36,10 @@ class Reference : public JSValue {
   }
   bool IsUnresolvableReference() { return GetBase().val()->IsUndefined(); }
 
-  std::string ToString() override { return "ref(" + GetReferencedName().ToString() + ")"; }
+  std::string ToString() override {
+    String* name = READ_VALUE(this, kReferenceNameOffset, String*);
+    return "ref(" + name->ToString() + ")";
+  }
 
   std::vector<HeapObject**> Pointers() override {
     return {HEAP_PTR(kBaseOffset), HEAP_PTR(kReferenceNameOffset)};
@@ -64,11 +67,11 @@ Handle<JSValue> GetValue(Error* e, Handle<JSValue> V) {
     if (!ref.val()->HasPrimitiveBase()) {
       assert(base.val()->IsObject());
       Handle<JSObject> obj = static_cast<Handle<JSObject>>(base);
-      return obj.val()->Get(e, ref.val()->GetReferencedName());
+      return Get(e, obj, ref.val()->GetReferencedName());
     } else {  // special [[Get]]
       Handle<JSObject> O = ToObject(e, base);
       if (!e->IsOk()) return Handle<JSValue>();
-      Handle<JSValue> tmp = O.val()->GetProperty(ref.val()->GetReferencedName());
+      Handle<JSValue> tmp = GetProperty(O, ref.val()->GetReferencedName());
       if (tmp.val()->IsUndefined())
         return Undefined::Instance();
       Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(tmp);
@@ -104,22 +107,22 @@ void PutValue(Error* e, Handle<JSValue> V, Handle<JSValue> W) {
       *e = *Error::ReferenceError();
       return;
     }
-    GlobalObject::Instance().val()->Put(e, ref.val()->GetReferencedName(), W, false);  // 3.b
+    Put(e, GlobalObject::Instance(), ref.val()->GetReferencedName(), W, false);  // 3.b
   } else if (ref.val()->IsPropertyReference()) {
     bool throw_flag = ref.val()->IsStrictReference();
     Handle<String> P = ref.val()->GetReferencedName();
     if (!ref.val()->HasPrimitiveBase()) {
       assert(base.val()->IsObject());
       Handle<JSObject> base_obj = static_cast<Handle<JSObject>>(base);
-      base_obj.val()->Put(e, P, W, throw_flag);
+      Put(e, base_obj, P, W, throw_flag);
     } else {  // special [[Put]]
       Handle<JSObject> O = ToObject(e, base);
-      if (!O.val()->CanPut(P)) {  // 2
+      if (!CanPut(O, P)) {  // 2
         if (throw_flag)
           *e = *Error::TypeError();
         return;
       }
-      Handle<JSValue> tmp = O.val()->GetOwnProperty(P);  // 3
+      Handle<JSValue> tmp = GetOwnProperty(O, P);  // 3
       if(!tmp.val()->IsUndefined()) {
         Handle<PropertyDescriptor> own_desc = static_cast<Handle<PropertyDescriptor>>(tmp);
         if (own_desc.val()->IsDataDescriptor()) {  // 4
@@ -128,7 +131,7 @@ void PutValue(Error* e, Handle<JSValue> V, Handle<JSValue> W) {
           return;
         }
       }
-      tmp = O.val()->GetProperty(P);
+      tmp = GetProperty(O, P);
       if (!tmp.val()->IsUndefined()) {
         Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(tmp);
         if (desc.val()->IsAccessorDescriptor()) {  // 4

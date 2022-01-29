@@ -11,7 +11,7 @@ Handle<String> ToString(Error* e, Handle<JSValue> input);
 class RegExpProto : public JSObject {
  public:
   static Handle<RegExpProto> Instance() {
-    static Handle<RegExpProto> singleton = RegExpProto::New();
+    static Handle<RegExpProto> singleton = RegExpProto::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -26,9 +26,9 @@ class RegExpProto : public JSObject {
   static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
 
  private:
-  static Handle<RegExpProto> New() {
+  static Handle<RegExpProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_REGEXP, u"RegExp", true, Handle<JSValue>(), false, false, nullptr, 0);
+      OBJ_REGEXP, u"RegExp", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
     return Handle<RegExpProto>(new (jsobj.val()) RegExpProto());
   }
 };
@@ -62,12 +62,12 @@ class RegExpObject : public JSObject {
 
     Handle<RegExpObject> obj = Handle<RegExpObject>(new (jsobj.val()) RegExpObject());
     obj.val()->SetPrototype(RegExpProto::Instance());
-    obj.val()->AddValueProperty(u"source", pattern, false, false, false);
-    obj.val()->AddValueProperty(u"global", Bool::Wrap(global), false, false, false);
-    obj.val()->AddValueProperty(u"ignoreCase", Bool::Wrap(ignore_case), false, false, false);
-    obj.val()->AddValueProperty(u"multiline", Bool::Wrap(multiline), false, false, false);
+    AddValueProperty(obj, u"source", pattern, false, false, false);
+    AddValueProperty(obj, u"global", Bool::Wrap(global), false, false, false);
+    AddValueProperty(obj, u"ignoreCase", Bool::Wrap(ignore_case), false, false, false);
+    AddValueProperty(obj, u"multiline", Bool::Wrap(multiline), false, false, false);
     // TODO(zhuzilin) Not sure if this should be initialized to 0.
-    obj.val()->AddValueProperty(u"lastIndex", Number::Zero(), false, false, false);
+    AddValueProperty(obj, u"lastIndex", Number::Zero(), false, false, false);
     return obj;
   }
 
@@ -97,7 +97,7 @@ class RegExpObject : public JSObject {
 class RegExpConstructor : public JSObject {
  public:
   static Handle<RegExpConstructor> Instance() {
-    static Handle<RegExpConstructor> singleton = RegExpConstructor::New();
+    static Handle<RegExpConstructor> singleton = RegExpConstructor::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -161,9 +161,9 @@ class RegExpConstructor : public JSObject {
   }
 
  private:
-  static Handle<RegExpConstructor> New() {
+  static Handle<RegExpConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"RegExp", true, Handle<JSValue>(), true, true, nullptr, 0);
+      OBJ_OTHER, u"RegExp", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<RegExpConstructor>(new (jsobj.val()) RegExpConstructor());
   }
 };

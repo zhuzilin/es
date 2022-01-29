@@ -11,6 +11,7 @@
 #include <es/eval.h>
 #include <es/utils/helper.h>
 #include <es/gc/heap.h>
+#include <es/impl.h>
 
 // NOTE(zhuzilin) There are some copy and paste from stackoverflow...
 std::u16string ReadUTF8FileToUTF16String(std::string filename) {

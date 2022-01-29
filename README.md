@@ -40,5 +40,5 @@ The quickjs tests pass if there is no output.
 
 ## Acknowledgement
 
-I've learned a lot from [Constellation/iv](https://github.com/Constellation/iv) and thanks a lot for 
+I've learned a lot from [Constellation/iv](https://github.com/Constellation/iv), [V8](https://v8.dev/) and thanks a lot for 
 [Annotated ECMAScript 5.1](https://es5.github.io/#x15.3.5.3).

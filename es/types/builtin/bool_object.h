@@ -10,12 +10,12 @@ bool ToBoolean(Handle<JSValue>);
 class BoolProto : public JSObject {
  public:
   static Handle<BoolProto> Instance() {
-    static Handle<BoolProto> singleton = BoolProto::New();
+    static Handle<BoolProto> singleton = BoolProto::New(GCFlag::SINGLE);
     return singleton;
   }
 
   static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    return ToBoolean(this_arg) ? String::True() : String::False();
+    return ToBoolean(Runtime::TopValue()) ? String::True() : String::False();
   }
 
   static Handle<JSValue> valueOf(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
@@ -23,9 +23,9 @@ class BoolProto : public JSObject {
   }
 
  private:
-  static Handle<BoolProto> New() {
+  static Handle<BoolProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_BOOL, u"Boolean", true, Bool::False(), false, false, nullptr, 0);
+      OBJ_BOOL, u"Boolean", true, Bool::False(), false, false, nullptr, 0, flag);
     return Handle<BoolProto>(new (jsobj.val()) BoolProto());
   }
 };
@@ -45,7 +45,7 @@ class BoolObject : public JSObject {
 class BoolConstructor : public JSObject {
  public:
   static Handle<BoolConstructor> Instance() {
-    static Handle<BoolConstructor> singleton = BoolConstructor::New();
+    static Handle<BoolConstructor> singleton = BoolConstructor::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -72,9 +72,9 @@ class BoolConstructor : public JSObject {
   }
 
  private:
-  static Handle<BoolConstructor> New() {
+  static Handle<BoolConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Boolean", true, Handle<JSValue>(), true, true, nullptr, 0);
+      OBJ_OTHER, u"Boolean", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<BoolConstructor>(new (jsobj.val()) BoolConstructor());
   }
 };

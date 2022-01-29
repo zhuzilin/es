@@ -8,7 +8,7 @@ namespace es {
 class ErrorProto : public JSObject {
  public:
   static Handle<ErrorProto> Instance() {
-    static Handle<ErrorProto> singleton = ErrorProto::New();
+    static Handle<ErrorProto> singleton = ErrorProto::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -17,9 +17,9 @@ class ErrorProto : public JSObject {
   }
 
  private:
-  static Handle<ErrorProto> New() {
+  static Handle<ErrorProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_ERROR, u"Error", true, Handle<JSValue>(), false, false, nullptr, 0);
+      OBJ_ERROR, u"Error", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
     return Handle<ErrorProto>(new (jsobj.val()) ErrorProto());
   }
 };
@@ -33,7 +33,7 @@ class ErrorObject : public JSObject {
     SET_VALUE(jsobj.val(), kErrorOffset, e, Error*);
     Handle<ErrorObject> obj(new (jsobj.val()) ErrorObject());
     obj.val()->SetPrototype(ErrorProto::Instance());
-    obj.val()->AddValueProperty(u"message", String::New(e->message()), true, false, false);
+    AddValueProperty(obj, u"message", String::New(e->message()), true, false, false);
     return obj;
   }
 
@@ -50,7 +50,7 @@ class ErrorObject : public JSObject {
 class ErrorConstructor : public JSObject {
  public:
   static Handle<ErrorConstructor> Instance() {
-    static Handle<ErrorConstructor> singleton = ErrorConstructor::New();
+    static Handle<ErrorConstructor> singleton = ErrorConstructor::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -72,9 +72,9 @@ class ErrorConstructor : public JSObject {
   }
 
  private:
-  static Handle<ErrorConstructor> New() {
+  static Handle<ErrorConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Error", true, Handle<JSValue>(), true, true, nullptr, 0);
+      OBJ_OTHER, u"Error", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<ErrorConstructor>(new (jsobj.val()) ErrorConstructor());
   }
 };

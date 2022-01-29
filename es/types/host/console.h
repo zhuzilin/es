@@ -11,7 +11,7 @@ bool ToBoolean(Handle<JSValue>);
 class Console : public JSObject {
  public:
   static  Handle<Console> Instance() {
-    static Handle<Console> singleton = Console::New();
+    static Handle<Console> singleton = Console::New(GCFlag::SINGLE);
     return singleton;
   }
 
@@ -26,12 +26,12 @@ class Console : public JSObject {
   }
 
  private:
-  static Handle<Console> New() {
+  static Handle<Console> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_HOST, u"Console", true, Handle<JSValue>(), false, false, nullptr, 0
+      OBJ_HOST, u"Console", true, Handle<JSValue>(), false, false, nullptr, 0, flag
     );
     Handle<Console> obj(new (jsobj.val()) Console());
-    obj.val()->AddFuncProperty(u"log", log, false, false, false);
+    AddFuncProperty(obj, u"log", log, false, false, false);
     return obj;
   }
 };

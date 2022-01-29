@@ -16,15 +16,15 @@ Handle<JSValue> FromPropertyDescriptor(Handle<JSValue> value) {
   Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(value);
   Handle<JSObject> obj = Object::New();
   if (desc.val()->IsDataDescriptor()) {
-    obj.val()->AddValueProperty(String::Value(), desc.val()->Value(), true, true, true);
-    obj.val()->AddValueProperty(String::Writable(), Bool::Wrap(desc.val()->Writable()), true, true, true);
+    AddValueProperty(obj, String::Value(), desc.val()->Value(), true, true, true);
+    AddValueProperty(obj, String::Writable(), Bool::Wrap(desc.val()->Writable()), true, true, true);
   } else {
     assert(desc.val()->IsAccessorDescriptor());
-    obj.val()->AddValueProperty(String::Get(), desc.val()->Get(), true, true, true);
-    obj.val()->AddValueProperty(String::Set(), desc.val()->Set(), true, true, true);
+    AddValueProperty(obj, String::Get(), desc.val()->Get(), true, true, true);
+    AddValueProperty(obj, String::Set(), desc.val()->Set(), true, true, true);
   }
-  obj.val()->AddValueProperty(String::Enumerable(), Bool::Wrap(desc.val()->Enumerable()), true, true, true);
-  obj.val()->AddValueProperty(String::Configurable(), Bool::Wrap(desc.val()->Configurable()), true, true, true);
+  AddValueProperty(obj, String::Enumerable(), Bool::Wrap(desc.val()->Enumerable()), true, true, true);
+  AddValueProperty(obj, String::Configurable(), Bool::Wrap(desc.val()->Configurable()), true, true, true);
   return obj;
 }
 
@@ -35,31 +35,31 @@ Handle<PropertyDescriptor> ToPropertyDescriptor(Error* e, Handle<JSValue> val) {
   }
   Handle<JSObject> obj = static_cast<Handle<JSObject>>(val);
   Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
-  if (obj.val()->HasProperty(String::Enumerable())) {
-    Handle<JSValue> value = obj.val()->Get(e, String::Enumerable());
+  if (HasProperty(obj, String::Enumerable())) {
+    Handle<JSValue> value = Get(e, obj, String::Enumerable());
     desc.val()->SetEnumerable(ToBoolean(value));
   }
-  if (obj.val()->HasProperty(String::Configurable())) {
-    Handle<JSValue> value = obj.val()->Get(e, String::Configurable());
+  if (HasProperty(obj, String::Configurable())) {
+    Handle<JSValue> value = Get(e, obj, String::Configurable());
     desc.val()->SetConfigurable(ToBoolean(value));
   }
-  if (obj.val()->HasProperty(String::Value())) {
-    Handle<JSValue> value = obj.val()->Get(e, String::Value());
+  if (HasProperty(obj, String::Value())) {
+    Handle<JSValue> value = Get(e, obj, String::Value());
     desc.val()->SetValue(value);
   }
-  if (obj.val()->HasProperty(String::Writable())) {
-    Handle<JSValue> value = obj.val()->Get(e, String::Writable());
+  if (HasProperty(obj, String::Writable())) {
+    Handle<JSValue> value = Get(e, obj, String::Writable());
     desc.val()->SetWritable(ToBoolean(value));
   }
-  if (obj.val()->HasProperty(String::Get())) {
-    Handle<JSValue> value = obj.val()->Get(e, String::Get());
+  if (HasProperty(obj, String::Get())) {
+    Handle<JSValue> value = Get(e, obj, String::Get());
     if (!value.val()->IsCallable() && !value.val()->IsUndefined()) {
       *e = *Error::TypeError(u"getter not callable.");
     }
     desc.val()->SetGet(value);
   }
-  if (obj.val()->HasProperty(String::Set())) {
-    Handle<JSValue> value = obj.val()->Get(e, String::Set());
+  if (HasProperty(obj, String::Set())) {
+    Handle<JSValue> value = Get(e, obj, String::Set());
     if (!value.val()->IsCallable() && !value.val()->IsUndefined()) {
       *e = *Error::TypeError(u"setter not callable.");
     }
