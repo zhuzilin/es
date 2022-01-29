@@ -177,25 +177,26 @@ class FunctionObject : public JSObject {
     Runtime::Global()->PopContext();   // 3
 
     log::PrintSource("exit FunctionObject::Call", Code()->source().substr(0, 100));
-    switch (result.type) {
+    switch (result.type()) {
       case Completion::RETURN:
         log::PrintSource("exit FunctionObject::Call RETURN");
-        return result.value;
+        return result.value();
       case Completion::THROW: {
         log::PrintSource("exit FunctionObject::Call THROW");
-        if (result.value.val()->IsErrorObject()) {
-          *e = *(static_cast<Handle<ErrorObject>>(result.value).val()->e());
+        Handle<JSValue> throw_value = result.value();
+        if (throw_value.val()->IsErrorObject()) {
+          *e = *(static_cast<Handle<ErrorObject>>(throw_value).val()->e());
           log::PrintSource("message: ", e->message());
           return Handle<JSValue>();
         }
-        std::u16string message = ToU16String(e, result.value);
+        std::u16string message = ToU16String(e, throw_value);
         log::PrintSource("message: ", message);
         *e = *Error::NativeError(message);
         return Handle<JSValue>();
       }
       default:
         log::PrintSource("exit FunctionObject::Call NORMAL");
-        assert(result.type == Completion::NORMAL);
+        assert(result.type() == Completion::NORMAL);
         return Undefined::Instance();
     }
   }

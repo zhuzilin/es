@@ -47,6 +47,7 @@ bool ToBoolean(Handle<JSValue> input) {
   }
 }
 
+// 9.3.1 ToNumber Applied to the String Type
 double StringToNumber(std::u16string source) {
   size_t start = 0;
   size_t end = source.size();
@@ -64,8 +65,9 @@ double StringToNumber(std::u16string source) {
       break;
     end--;
   }
+  // The MV of [empty] is 0
   if (start == end) {
-    goto error;
+    return 0;
   } else if (source[start] == u'-') {
     positive = false;
     start++;

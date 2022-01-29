@@ -89,7 +89,6 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     } else if (S) {
       *e = *Error::TypeError();
     }
-    std::cout << "return from SetMutableBinding" << std::endl;
   }
 
   Handle<JSValue> GetBindingValue(Error* e, Handle<String> N, bool S) override {
@@ -158,7 +157,6 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
   bool provide_this() { return READ_VALUE(this, kProvideThisOffset, bool); }
 
   bool HasBinding(Handle<String> N) override {
-    std::cout << "enter has binding" << std::endl;
     return HasProperty(bindings(), N);
   }
 

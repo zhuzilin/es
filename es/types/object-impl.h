@@ -200,13 +200,9 @@ void Put(Error* e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool
   if (!value.val()->IsUndefined()) {
     Handle<PropertyDescriptor> own_desc = static_cast<Handle<PropertyDescriptor>>(value);  // 2
     if (own_desc.val()->IsDataDescriptor()) {  // 3
-      std::cout << "this value" << O.ToString() << std::endl;
       Handle<PropertyDescriptor> value_desc = PropertyDescriptor::New();
       value_desc.val()->SetValue(V);
-      std::cout << "after value" << std::endl;
       log::PrintSource("Overwrite the old desc with " + value_desc.ToString());
-      std::cout << "own_desc: " << own_desc.ToString() << std::endl;;
-      std::cout << "this value" << O.ToString() << std::endl;
       DefineOwnProperty(e, O, P, value_desc, throw_flag);
       return;
     }
@@ -343,7 +339,6 @@ bool DefineOwnProperty__Base(
     return true;
   }
   current_desc = static_cast<Handle<PropertyDescriptor>>(current);
-  std::cout << "current_desc: " << current_desc.ToString() << std::endl;
   if ((desc.val()->bitmask() & current_desc.val()->bitmask()) == desc.val()->bitmask()) {
     bool same = true;
     if (desc.val()->HasValue())

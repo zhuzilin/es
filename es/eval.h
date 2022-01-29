@@ -94,9 +94,9 @@ Completion EvalProgram(AST* ast) {
     if (tail_result.IsThrow())
       return tail_result;
     head_result = Completion(
-      tail_result.type,
-      tail_result.value.IsNullptr() ? head_result.value : tail_result.value,
-      tail_result.target
+      tail_result.type(),
+      tail_result.IsEmpty() ? head_result.value() : tail_result.value(),
+      tail_result.target()
     );
   }
   return head_result;
@@ -151,7 +151,7 @@ Completion EvalStatementList(std::vector<AST*> statements) {
     Completion s = EvalStatement(stmt);
     if (s.IsThrow())
       return s;
-    sl = Completion(s.type, s.value.IsNullptr() ? sl.value : s.value, s.target);
+    sl = Completion(s.type(), s.IsEmpty() ? sl.value() : s.value(), s.target());
     if (sl.IsAbruptCompletion())
       return sl;
   }
@@ -225,11 +225,11 @@ Completion EvalDoWhileStatement(AST* ast) {
   bool has_label;
   while (true) {
     stmt = EvalStatement(loop_stmt->stmt());
-    if (!stmt.value.IsNullptr())  // 3.b
-      V = stmt.value;
-    has_label = stmt.target == ast->label() || stmt.target == u"";
-    if (stmt.type != Completion::CONTINUE || !has_label) {
-      if (stmt.type == Completion::BREAK && has_label) {
+    if (!stmt.IsEmpty())  // 3.b
+      V = stmt.value();
+    has_label = stmt.target() == ast->label() || stmt.target() == u"";
+    if (stmt.type() != Completion::CONTINUE || !has_label) {
+      if (stmt.type() == Completion::BREAK && has_label) {
         Runtime::TopContext()->ExitIteration();
         return Completion(Completion::NORMAL, V, u"");
       }
@@ -273,11 +273,11 @@ Completion EvalWhileStatement(AST* ast) {
       break;
 
     stmt = EvalStatement(loop_stmt->stmt());
-    if (!stmt.value.IsNullptr())  // 3.b
-      V = stmt.value;
-    has_label = stmt.target == ast->label() || stmt.target == u"";
-    if (stmt.type != Completion::CONTINUE || !has_label) {
-      if (stmt.type == Completion::BREAK && has_label) {
+    if (!stmt.IsEmpty())  // 3.b
+      V = stmt.value();
+    has_label = stmt.target() == ast->label() || stmt.target() == u"";
+    if (stmt.type() != Completion::CONTINUE || !has_label) {
+      if (stmt.type() == Completion::BREAK && has_label) {
         Runtime::TopContext()->ExitIteration();
         return Completion(Completion::NORMAL, V, u"");
       }
@@ -325,11 +325,11 @@ Completion EvalForStatement(AST* ast) {
     }
 
     stmt = EvalStatement(for_stmt->statement());
-    if (!stmt.value.IsNullptr())  // 3.b
-      V = stmt.value;
-    has_label = stmt.target == ast->label() || stmt.target == u"";
-    if (stmt.type != Completion::CONTINUE || !has_label) {
-      if (stmt.type == Completion::BREAK && has_label) {
+    if (!stmt.IsEmpty())  // 3.b
+      V = stmt.value();
+    has_label = stmt.target() == ast->label() || stmt.target() == u"";
+    if (stmt.type() != Completion::CONTINUE || !has_label) {
+      if (stmt.type() == Completion::BREAK && has_label) {
         Runtime::TopContext()->ExitIteration();
         return Completion(Completion::NORMAL, V, u"");
       }
@@ -387,11 +387,11 @@ Completion EvalForInStatement(AST* ast) {
       if (!e->IsOk()) goto error;
 
       stmt = EvalStatement(for_in_stmt->statement());
-      if (!stmt.value.IsNullptr())
-        V = stmt.value;
-      has_label = stmt.target == ast->label() || stmt.target == u"";
-      if (stmt.type != Completion::CONTINUE || !has_label) {
-        if (stmt.type == Completion::BREAK && has_label) {
+      if (!stmt.IsEmpty())
+        V = stmt.value();
+      has_label = stmt.target() == ast->label() || stmt.target() == u"";
+      if (stmt.type() != Completion::CONTINUE || !has_label) {
+        if (stmt.type() == Completion::BREAK && has_label) {
           Runtime::TopContext()->ExitIteration();
           return Completion(Completion::NORMAL, V, u"");
         }
@@ -421,11 +421,11 @@ Completion EvalForInStatement(AST* ast) {
       if (!e->IsOk()) goto error;
 
       stmt = EvalStatement(for_in_stmt->statement());
-      if (!stmt.value.IsNullptr())
-        V = stmt.value;
-      has_label = stmt.target == ast->label() || stmt.target == u"";
-      if (stmt.type != Completion::CONTINUE || !has_label) {
-        if (stmt.type == Completion::BREAK && has_label) {
+      if (!stmt.IsEmpty())
+        V = stmt.value();
+      has_label = stmt.target() == ast->label() || stmt.target() == u"";
+      if (stmt.type() != Completion::CONTINUE || !has_label) {
+        if (stmt.type() == Completion::BREAK && has_label) {
           Runtime::TopContext()->ExitIteration();
           return Completion(Completion::NORMAL, V, u"");
         }
@@ -472,7 +472,7 @@ Completion EvalReturnStatement(AST* ast) {
   if (return_stmt->expr() == nullptr) {
     return Completion(Completion::RETURN, Undefined::Instance(), u"");
   }
-  auto exp_ref = EvalExpression(e, return_stmt->expr());
+  Handle<JSValue> exp_ref = EvalExpression(e, return_stmt->expr());
   if (!e->IsOk()) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
@@ -484,8 +484,8 @@ Completion EvalLabelledStatement(AST* ast) {
   LabelledStmt* label_stmt = static_cast<LabelledStmt*>(ast);
   label_stmt->statement()->SetLabel(label_stmt->label());
   Completion R = EvalStatement(label_stmt->statement());
-  if (R.type == Completion::BREAK && R.target == label_stmt->label()) {
-    return Completion(Completion::NORMAL, R.value, u"");
+  if (R.type() == Completion::BREAK && R.target() == label_stmt->label()) {
+    return Completion(Completion::NORMAL, R.value(), u"");
   }
   return R;
 }
@@ -540,10 +540,10 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
     }
     if (found) {  // 5.b
       Completion R = EvalStatementList(C.stmts);
-      if (!R.value.IsNullptr())
-        V = R.value;
+      if (!R.IsEmpty())
+        V = R.value();
       if (R.IsAbruptCompletion())
-        return Completion(R.type, V, R.target);
+        return Completion(R.type(), V, R.target());
     }
   }
   bool found_in_b = false;
@@ -557,27 +557,27 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
     if (b) {
       found_in_b = true;
       Completion R = EvalStatementList(C.stmts);
-      if (!R.value.IsNullptr())
-        V = R.value;
+      if (!R.IsEmpty())
+        V = R.value();
       if (R.IsAbruptCompletion())
-        return Completion(R.type, V, R.target);
+        return Completion(R.type(), V, R.target());
     }
   }
   if (!found_in_b && switch_stmt->has_default_clause()) {  // 8
     Completion R = EvalStatementList(switch_stmt->default_clause().stmts);
-    if (!R.value.IsNullptr())
-      V = R.value;
+    if (!R.IsEmpty())
+      V = R.value();
     if (R.IsAbruptCompletion())
-      return Completion(R.type, V, R.target);
+      return Completion(R.type(), V, R.target());
   }
   for (i = 0; i < switch_stmt->after_default_case_clauses().size(); i++) {
     auto C = switch_stmt->after_default_case_clauses()[i];
     Handle<JSValue> clause_selector = EvalCaseClause(e, C);
     Completion R = EvalStatementList(C.stmts);
-    if (!R.value.IsNullptr())
-      V = R.value;
+    if (!R.IsEmpty())
+      V = R.value();
     if (R.IsAbruptCompletion())
-      return Completion(R.type, V, R.target);
+      return Completion(R.type(), V, R.target());
   }
   return Completion(Completion::NORMAL, V, u"");
 }
@@ -598,9 +598,9 @@ Completion EvalSwitchStatement(AST* ast) {
   Runtime::TopContext()->ExitSwitch();
   if (R.IsThrow())
     return R;
-  bool has_label = ast->label() == R.target;
-  if (R.type == Completion::BREAK && has_label)
-    return Completion(Completion::NORMAL, R.value, u"");
+  bool has_label = ast->label() == R.target();
+  if (R.type() == Completion::BREAK && has_label)
+    return Completion(Completion::NORMAL, R.value(), u"");
   return R;
 }
 
@@ -630,7 +630,7 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   }
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
-  catch_env.val()->env_rec()->SetMutableBinding(e, ident_str, C.value, false);  // 5
+  catch_env.val()->env_rec()->SetMutableBinding(e, ident_str, C.value(), false);  // 5
   if (!e->IsOk()) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
@@ -646,21 +646,21 @@ Completion EvalTryStatement(AST* ast) {
   Try* try_stmt = static_cast<Try*>(ast);
   Completion B = EvalBlockStatement(try_stmt->try_block());
   if (try_stmt->finally_block() == nullptr) {  // try Block Catch
-    if (B.type != Completion::THROW)
+    if (B.type() != Completion::THROW)
       return B;
     return EvalCatch(try_stmt, B);
   } else if (try_stmt->catch_block() == nullptr) {  // try Block Finally
     Completion F = EvalBlockStatement(try_stmt->finally_block());
-    if (F.type == Completion::NORMAL)
+    if (F.type() == Completion::NORMAL)
       return B;
     return F;
   } else {  // try Block Catch Finally
     Completion C = B;
-    if (B.type == Completion::THROW) {
+    if (B.type() == Completion::THROW) {
       C = EvalCatch(try_stmt, B);
     }
     Completion F = EvalBlockStatement(try_stmt->finally_block());
-    if (F.type == Completion::NORMAL)
+    if (F.type() == Completion::NORMAL)
       return C;
     return F;
   }
@@ -1064,7 +1064,8 @@ Handle<JSValue> EvalUnaryOperator(Error* e, AST* ast) {
     if (u->prefix()) {
       return new_value;
     } else {
-      return old_val;
+      // a = true; r = a++; r will be 1 instead of true.
+      return Number::New(num);
     }
   } else if (op == u"delete") {  // 11.4.1 The delete Operator
     if (!expr.val()->IsReference())  // 2

@@ -13,12 +13,10 @@ class HeapObject;
 class HandleScope {
  public:
   HandleScope() {
-    std::cout << "enter HandleScope() " << this << std::endl;
     pointers_ = new HeapObject*[kHandleScopeSize];
     HandleScope::Stack().emplace_back(this);
   }
   ~HandleScope() { 
-    std::cout << "enter ~HandleScope() " << this << std::endl;
     delete[] pointers_;
     HandleScope::Stack().pop_back();
   }
@@ -133,7 +131,10 @@ template<typename T>
 class Handle {
  public:
   explicit Handle(T* value) {
-    ptr_ = reinterpret_cast<T**>(HandleScope::Add(value));
+    if (value != nullptr)
+      ptr_ = reinterpret_cast<T**>(HandleScope::Add(value));
+    else
+      ptr_ = nullptr;
   }
 
   explicit Handle() : ptr_(nullptr) {}

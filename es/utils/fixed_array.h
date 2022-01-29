@@ -9,7 +9,6 @@ template<typename T>
 class FixedArray : public HeapObject {
  public:
   static Handle<FixedArray<T>> New(std::vector<Handle<T>> elements) {
-    std::cout << "FixedArray::New" << std::endl;
     size_t n = elements.size();
     Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
     SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);

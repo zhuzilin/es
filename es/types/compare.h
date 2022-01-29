@@ -95,7 +95,7 @@ bool Equal(Error* e, Handle<JSValue> x, Handle<JSValue> y) {
     if (!e->IsOk()) return false;
     return Equal(e, x, primy);
   } else if (x.val()->IsObject() && (y.val()->IsNumber() || y.val()->IsString())) {  // 9
-    Handle<JSValue> primx = ToPrimitive(e, y, u"");
+    Handle<JSValue> primx = ToPrimitive(e, x, u"");
     if (!e->IsOk()) return false;
     return Equal(e, primx, y);
   }

@@ -13,7 +13,6 @@ namespace es {
 class ArgumentsObject : public JSObject {
  public:
   static Handle<ArgumentsObject> New(Handle<JSObject> parameter_map, size_t len) {
-    std::cout << "ArgumentsObject::New" << std::endl;
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_ARGUMENTS, u"Arguments", true, Handle<JSValue>(), false, false, nullptr,
       kParameterMapOffset + kPtrSize - kJSObjectOffset

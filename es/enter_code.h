@@ -328,22 +328,23 @@ Handle<JSValue> GlobalObject::eval(Error* e, Handle<JSValue> this_arg, std::vect
   Completion result = EvalProgram(program);
   Runtime::Global()->PopContext();
 
-  switch (result.type) {
+  switch (result.type()) {
     case Completion::NORMAL:
-      if (!result.value.IsNullptr())
-        return result.value;
+      if (!result.IsEmpty())
+        return result.value();
       else
         return Undefined::Instance();
     default: {
-      assert(result.type == Completion::THROW);
+      assert(result.type() == Completion::THROW);
       std::u16string message;
-      if (result.value.val()->IsErrorObject()) {
-        message = static_cast<Handle<ErrorObject>>(result.value).val()->ErrorMessage();
+      Handle<JSValue> return_value = result.value();
+      if (return_value.val()->IsErrorObject()) {
+        message = static_cast<Handle<ErrorObject>>(return_value).val()->ErrorMessage();
       } else {
-        message = ToU16String(e, result.value);
+        message = ToU16String(e, return_value);
       }
       *e = *Error::NativeError(message);
-      return result.value;
+      return return_value;
     }
   }
 }
@@ -443,7 +444,6 @@ void InitObject() {
 void InitFunction() {
   HandleScope scope;
   Handle<FunctionConstructor> constructor = FunctionConstructor::Instance();
-  std::cout <<"FunctionConstructor set proto: " << FunctionProto::Instance().ToString() << std::endl;
   constructor.val()->SetPrototype(FunctionProto::Instance());
   // 15.3.3 Properties of the Function Constructor
   AddValueProperty(constructor, String::Prototype(), FunctionProto::Instance(), false, false, false);
@@ -451,15 +451,11 @@ void InitFunction() {
   AddFuncProperty(constructor, u"toString", FunctionConstructor::toString, true, false, false);
 
   Handle<FunctionProto> proto = FunctionProto::Instance();
-  std::cout <<"FunctionProto set proto: " << ObjectProto::Instance().ToString() << std::endl;
   proto.val()->SetPrototype(ObjectProto::Instance());
   // 15.2.4 Properties of the Function Prototype Function
   AddValueProperty(proto, String::Constructor(), FunctionConstructor::Instance(), false, false, false);
-  std::cout << "before toString" << std::endl;
   AddFuncProperty(proto, u"toString", FunctionProto::toString, true, false, false);
-  std::cout << "before apply" << std::endl;
   AddFuncProperty(proto, u"apply", FunctionProto::apply, true, false, false);
-  std::cout << "before call" << std::endl;
   AddFuncProperty(proto, u"call", FunctionProto::call, true, false, false);
   AddFuncProperty(proto, u"bind", FunctionProto::bind, true, false, false);
 }

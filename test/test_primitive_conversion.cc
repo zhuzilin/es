@@ -106,7 +106,7 @@ TEST(TestPrimitiveConversion, ToNumber) {
     // valid
     std::vector<std::pair<string, double>> vals = {
       {u" 0 ", 0}, {u" -42  ", -42}, {u"1.98", 1.98}, {u"4.e5 \t", 4.e5},
-      {u"\n0xAB ", 0xAB}
+      {u"\n0xAB ", 0xAB}, {u"", 0}
     };
     for (auto pair : vals) {
       num = ToNumber(e, String::New(pair.first));
@@ -116,7 +116,7 @@ TEST(TestPrimitiveConversion, ToNumber) {
   // NaN
   {
     vec_string vals = {
-      u"", u"+", u"+0xAB", u"0x", u"3e", u"\n+ 10",
+      u"+", u"+0xAB", u"0x", u"3e", u"\n+ 10",
     };
     for (auto val : vals) {
       num = ToNumber(e, String::New(val));

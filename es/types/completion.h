@@ -9,7 +9,8 @@ namespace es {
 // the evaluation result of the statement.
 // It won't interact with other types, so does not need to
 // inherit JSValue.
-struct Completion {
+class Completion {
+ public:
   enum Type {
     NORMAL,
     BREAK,
@@ -21,14 +22,20 @@ struct Completion {
   Completion() : Completion(NORMAL, Handle<JSValue>(), u"") {}
 
   Completion(Type type, Handle<JSValue> value, std::u16string target) :
-    type(type), value(value), target(target) {}
+    type_(type), value_(value.val()), target_(target) {}
 
-  bool IsAbruptCompletion() { return type != NORMAL; }
-  bool IsThrow() { return type == THROW; }
+  Type type() { return type_; }
+  Handle<JSValue> value() { return Handle<JSValue>(value_); }
+  std::u16string target() { return target_; }
 
-  Type type;
-  Handle<JSValue> value;
-  std::u16string target;
+  bool IsAbruptCompletion() { return type_ != NORMAL; }
+  bool IsThrow() { return type_ == THROW; }
+  bool IsEmpty() { return value_ == nullptr; }
+
+ private:
+  Type type_;
+  JSValue* value_;
+  std::u16string target_;
 };
 
 }  // namespace es
