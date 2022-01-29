@@ -126,7 +126,7 @@ class Runtime {
       pointers.insert(pointers.end(), context_pointers.begin(), context_pointers.end());
     }
     auto scope_pointers = HandleScope::AllPointers();
-    pointers.insert(pointers.end(), scope_pointers.begin(), scope_pointers.end());
+    pointers.insert(pointers.end(), scope_pointers.begin(), scope_pointers.end());    
     return pointers;
   }
 

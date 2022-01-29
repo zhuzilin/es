@@ -176,6 +176,7 @@ class FunctionObject : public JSObject {
     }
     Runtime::Global()->PopContext();   // 3
 
+    std::cout << "Code source: " << Code() << std::endl;
     log::PrintSource("exit FunctionObject::Call", Code()->source().substr(0, 100));
     switch (result.type()) {
       case Completion::RETURN:
@@ -221,10 +222,11 @@ class FunctionObject : public JSObject {
 
   virtual std::string ToString() override {
     std::string result = "Function(";
-    if (FormalParameters().val()->size() > 0) {
-      result += log::ToString(FormalParameters().val()->Get(0).val());
-      for (size_t i = 1; i < FormalParameters().val()->size(); i++) {
-        result += "," + log::ToString(FormalParameters().val()->Get(i).val());
+    FixedArray<String>* params = READ_VALUE(this, kFormalParametersOffset, FixedArray<String>*);
+    if (params->size() > 0) {
+      result += params->GetRaw(0)->ToString();
+      for (size_t i = 1; i < params->size(); i++) {
+        result += "," + params->GetRaw(i)->ToString();
       }
     }
     result += ")";

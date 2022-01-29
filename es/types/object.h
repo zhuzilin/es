@@ -53,6 +53,7 @@ class JSObject : public JSValue {
     size_t size,
     flag_t flag = 0
   ) {
+    std::cout << "JSObject::New " << log::ToString(klass) << std::endl;
     Handle<JSValue> jsval = JSValue::New(JS_OBJECT, kJSObjectOffset - kJSValueOffset + size, flag);
     SET_VALUE(jsval.val(), kObjTypeOffset, obj_type, ObjType);
     SET_HANDLE_VALUE(jsval.val(), kClassOffset, String::New(klass), String);

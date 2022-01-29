@@ -80,6 +80,8 @@ class CopyCollection : public GC {
     if (*fld == nullptr || (Flag(*fld) & GCFlag::CONST))
       return;
     HeapObject* from_ref = *fld;
+    assert(from_ref != nullptr);
+    std::cout << "from_ref: " << from_ref << std::endl;
     if (tospace_ < (void*)from_ref && (void*)from_ref < tospace_ + extent_) {
       return;
     }

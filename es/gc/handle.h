@@ -50,8 +50,8 @@ class HandleScope {
       return ptr;
     }
     HandleScope* current = HandleScope::Stack().back();
-    size_t count_ = current->count_;
-    HeapObject** ptr = current->pointers_ + count_;
+    size_t count = current->count_;
+    HeapObject** ptr = current->pointers_ + count;
     current->count_ += 1;
     *ptr = val;
     if (current->count_ >= kHandleScopeSize) {
@@ -131,10 +131,13 @@ template<typename T>
 class Handle {
  public:
   explicit Handle(T* value) {
-    if (value != nullptr)
+    if (value != nullptr) {
+      Handle<T> tmp;
+      std::cout << "Add " << typeid(tmp).name() << std::endl;
       ptr_ = reinterpret_cast<T**>(HandleScope::Add(value));
-    else
+    } else {
       ptr_ = nullptr;
+    }
   }
 
   explicit Handle() : ptr_(nullptr) {}

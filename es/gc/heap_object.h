@@ -16,10 +16,11 @@ void* Allocate(size_t size, flag_t flag);
 class HeapObject {
  public:
   static Handle<HeapObject> New(size_t size, flag_t flag = 0) {
-    return Handle<HeapObject>(static_cast<HeapObject*>(Allocate(size + kPtrSize, flag)));
+    std::cout << "HeapObject::New " << std::endl;
+    return Handle<HeapObject>(new (Allocate(size + kPtrSize, flag)) HeapObject());
   }
 
-  virtual std::vector<HeapObject**> Pointers() = 0;
+  virtual std::vector<HeapObject**> Pointers() { return {}; }
 
   virtual inline bool IsJSValue() { return false; }
 
@@ -32,7 +33,9 @@ class HeapObject {
     return ptr;
   }
 
-  virtual std::string ToString() = 0;
+  virtual std::string ToString() {
+    return "Unitialized HeapObject";
+  }
 
  protected:
   static constexpr size_t kVPtrOffset = 0;

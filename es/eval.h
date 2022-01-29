@@ -88,8 +88,11 @@ Completion EvalProgram(AST* ast) {
   if (statements.size() == 0)
     return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
   for (auto stmt : prog->statements()) {
+    std::cout << "program stmt: " << log::ToString(stmt->source()) << std::endl;
+    std::cout << "head_result: " << head_result.type() << std::endl;
     if (head_result.IsAbruptCompletion())
       break;
+    std::cout << "before eval stmt: " << log::ToString(stmt->source()) << std::endl;
     Completion tail_result = EvalStatement(stmt);
     if (tail_result.IsThrow())
       return tail_result;
@@ -103,6 +106,7 @@ Completion EvalProgram(AST* ast) {
 }
 
 Completion EvalStatement(AST* ast) {
+  std::cout << "eval statement: " << log::ToString(ast->source()) << std::endl;
   HandleScope scope;
   switch(ast->type()) {
     case AST::AST_STMT_BLOCK:
@@ -195,10 +199,12 @@ error:
 }
 
 Completion EvalIfStatement(AST* ast) {
+  std::cout << "enter if statement" << std::endl;
   assert(ast->type() == AST::AST_STMT_IF);
   Error* e = Error::Ok();
   If* if_stmt = static_cast<If*>(ast);
   Handle<JSValue> expr_ref = EvalExpression(e, if_stmt->cond());
+  std::cout << "expr_ref: " << expr_ref.ToString() << std::endl;
   if (!e->IsOk())
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   Handle<JSValue> expr = GetValue(e, expr_ref);

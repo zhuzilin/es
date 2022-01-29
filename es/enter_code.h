@@ -42,7 +42,7 @@ Handle<JSValue> MakeArgSetter(std::u16string name, Handle<LexicalEnvironment> en
 }
 
 // 10.6 Arguments Object
-Handle<JSObject> CreateArgumentsObject(
+Handle<ArgumentsObject> CreateArgumentsObject(
   Handle<FunctionObject> func, std::vector<Handle<JSValue>>& args,
   Handle<LexicalEnvironment> env, bool strict
 ) {
@@ -257,6 +257,7 @@ void DeclarationBindingInstantiation(
       if (!e->IsOk()) return;
     }
   }
+  std::cout << "exit DeclarationBindingInstantiation" << std::endl;
 }
 
 // 10.4.1

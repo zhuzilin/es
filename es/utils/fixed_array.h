@@ -10,6 +10,7 @@ class FixedArray : public HeapObject {
  public:
   static Handle<FixedArray<T>> New(std::vector<Handle<T>> elements) {
     size_t n = elements.size();
+    std::cout << "FixedArray::New " << n << std::endl;
     Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
     SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);
     for (size_t i = 0; i < n; i++) {
@@ -29,6 +30,7 @@ class FixedArray : public HeapObject {
   }
 
   static Handle<FixedArray<T>> New(size_t n) {
+    std::cout << "FixedArray::New " << n << std::endl;
     Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
     SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);
     for (size_t i = 0; i < n; i++) {
@@ -39,6 +41,7 @@ class FixedArray : public HeapObject {
 
   size_t size() { return READ_VALUE(this, kSizeOffset, size_t); }
   Handle<T> Get(size_t i) { return READ_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, T); }
+  T* GetRaw(size_t i) { return READ_VALUE(this, kElementOffset + i * kPtrSize, T*); }
   void Set(size_t i, Handle<T> val) { SET_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, val, T); }
 
   std::string ToString() override { return "FixedArray(" + std::to_string(size()) + ")"; }

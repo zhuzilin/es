@@ -33,6 +33,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   class Binding : public HeapObject {
    public:
     static Handle<Binding> New(Handle<JSValue> value, bool can_delete, bool is_mutable) {
+      std::cout << "Binding::New" << std::endl;
       Handle<HeapObject> heap_obj = HeapObject::New(kBindingOffset - kHeapObjectOffset);
       SET_HANDLE_VALUE(heap_obj.val(), kValueOffset, value, JSValue);
       SET_VALUE(heap_obj.val(), kCanDeleteOffset, can_delete, bool);
@@ -48,7 +49,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
 
     std::vector<HeapObject**> Pointers() override { return {HEAP_PTR(kValueOffset)}; }
 
-    std::string ToString() override { return "Binding(" + value().ToString() + ")"; }
+    std::string ToString() override { return "Binding(" + (READ_VALUE(this, kValueOffset, JSValue*))->ToString() + ")"; }
 
    private:
     static constexpr size_t kValueOffset = kHeapObjectOffset;
@@ -66,16 +67,16 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
 
   std::vector<HeapObject**> Pointers() override { return {HEAP_PTR(kBindingsOffset)}; }
 
-  Handle<HashMap<Binding>> bindings() { return READ_HANDLE_VALUE(this, kBindingsOffset, HashMap<Binding>); }
+  HashMap<Binding>* bindings() { return READ_VALUE(this, kBindingsOffset, HashMap<Binding>*); }
 
   bool HasBinding(Handle<String> N) override {
-    return !bindings().val()->Get(N).IsNullptr();
+    return bindings()->GetRaw(N) != nullptr;
   }
 
   void CreateMutableBinding(Error* e, Handle<String> N, bool D) override {
     assert(!HasBinding(N));
     Handle<Binding> b = Binding::New(Undefined::Instance(), D, true);
-    bindings().val()->Set(N, b);
+    bindings()->Set(N, b);
   }
 
   void SetMutableBinding(Error* e, Handle<String> N, Handle<JSValue> V, bool S) override {
@@ -84,8 +85,8 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     assert(HasBinding(N));
     // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,
     // the value stored in bindings_ won't change.
-    if (bindings().val()->Get(N).val()->is_mutable()) {
-      bindings().val()->Get(N).val()->SetValue(V);
+    if (bindings()->GetRaw(N)->is_mutable()) {
+      bindings()->GetRaw(N)->SetValue(V);
     } else if (S) {
       *e = *Error::TypeError();
     }
@@ -93,8 +94,8 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
 
   Handle<JSValue> GetBindingValue(Error* e, Handle<String> N, bool S) override {
     assert(HasBinding(N));
-    Handle<Binding> b = bindings().val()->Get(N);
-    if (b.val()->value().val()->IsUndefined() && !b.val()->is_mutable()) {
+    Binding* b = bindings()->GetRaw(N);
+    if (b->value().val()->IsUndefined() && !b->is_mutable()) {
       if (S) {
         *e = *Error::ReferenceError(N.val()->data() + u" is not defined");
         return Handle<JSValue>();
@@ -103,16 +104,16 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
         return Undefined::Instance();
       }
     }
-    log::PrintSource("GetBindingValue ", N.val()->data(), " " + b.val()->value().ToString());
-    return b.val()->value();
+    log::PrintSource("GetBindingValue ", N.val()->data(), " " + b->value().ToString());
+    return b->value();
   }
 
   bool DeleteBinding(Error* e, Handle<String> N) override {
     if (!HasBinding(N)) return true;
-    if (!bindings().val()->Get(N).val()->can_delete()) {
+    if (!bindings()->GetRaw(N)->can_delete()) {
       return false;
     }
-    bindings().val()->Delete(N);
+    bindings()->Delete(N);
     return true;
   }
 
@@ -123,14 +124,14 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   void CreateImmutableBinding(Handle<String> N) {
     assert(!HasBinding(N));
     Handle<Binding> b = Binding::New(Undefined::Instance(), false, false);
-    bindings().val()->Set(N, b);
+    bindings()->Set(N, b);
   }
 
   void InitializeImmutableBinding(Handle<String> N, Handle<JSValue> V) {
     assert(HasBinding(N));
-    assert(!bindings().val()->Get(N).val()->is_mutable() &&
-           bindings().val()->Get(N).val()->value().val()->IsUndefined());
-    bindings().val()->Get(N).val()->SetValue(V);
+    assert(!bindings()->GetRaw(N)->is_mutable() &&
+           bindings()->GetRaw(N)->value().val()->IsUndefined());
+    bindings()->GetRaw(N)->SetValue(V);
   }
 
   std::string ToString() override {

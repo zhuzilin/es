@@ -83,6 +83,22 @@ class HashMap : public HeapObject {
     return Handle<T>();
   }
 
+  T* GetRaw(Handle<String> key) {
+    size_t offset = ListHeadOffset(key.val());
+    ListNode* head = GetListHead(offset);
+    if (head == nullptr)
+      return nullptr;
+    while (head != nullptr) {
+      if (*key.val() == *(head->key())) {
+        return head->val();
+      } else if (LessThan(key.val(), head->key())) {
+        return nullptr;
+      }
+      head = head->next();
+    }
+    return nullptr;
+  }
+
   void Delete(Handle<String> key) {
     size_t offset = ListHeadOffset(key.val());
     ListNode* head = GetListHead(offset);

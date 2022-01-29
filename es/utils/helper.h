@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 #include <codecvt>
+#include <locale>
 
 namespace es {
 namespace log {
@@ -40,10 +41,8 @@ void PrintSource(std::string comment, std::u16string str = u"", std::string post
 }
 
 std::string ToString(std::u16string str) {
-  std::string result(str.size(), ' ');
-  for (size_t i = 0; i < str.size(); i++)
-    result[i] = str[i];
-  return result;
+  static std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+  return convert.to_bytes(str);
 }
 
 std::string ToString(bool b) {
