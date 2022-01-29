@@ -22,15 +22,16 @@ std::string ReadFile(const std::string& filename)
     return buffer.str();
 }
 
-void print_result(const es::Completion&)
+void print_result(const es::Completion& c)
 {
+    auto v = c.value;
 }
 
 bool execute(const std::string& code, es::Completion& res)
 {
     es::Error* e;
-    es::AST* ast;
-    es::Parser parser(code);
+    es::Parsing::AST* ast;
+    es::Parsing::Parser parser(code);
     ast = parser.ParseProgram();
     if(ast->IsIllegal())
     {

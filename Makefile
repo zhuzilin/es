@@ -3,8 +3,8 @@ INCFLAGS =
 
 CXX = clang++ -std=c++20 -fno-rtti
 # ricing intensifies
-CFLAGS = $(INCFLAGS) -Ofast -march=native -flto -ffast-math -funroll-loops
-#CFLAGS = $(INCFLAGS) -Og -g3 -ggdb3
+#CFLAGS = $(INCFLAGS) -Ofast -march=native -flto -ffast-math -funroll-loops
+CFLAGS = $(INCFLAGS) -Og -g3 -ggdb3
 CXXFLAGS = $(CFLAGS) -Wall -Wextra
 LDFLAGS = -flto -ldl -lm  -lreadline
 target = run

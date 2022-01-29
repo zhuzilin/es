@@ -29,6 +29,8 @@
 
 namespace es
 {
+    class /**/JSValue;
+
     namespace character
     {
         namespace unicode
@@ -133,7 +135,7 @@ namespace es
 
     namespace log
     {
-        inline void PrintSource(const std::string& comment, const std::string& str = "", const std::string& postfix = "")
+        inline void PrintSource(std::string_view comment, std::string_view str = "", std::string_view postfix = "")
         {
             (void)comment;
             (void)str;
@@ -146,7 +148,7 @@ namespace es
 #endif
         }
 
-        inline std::string ToString(const std::string& str)
+        inline std::string ToString(std::string_view str)
         {
             std::string result(str.size(), ' ');
             for(size_t i = 0; i < str.size(); i++)
@@ -401,589 +403,580 @@ namespace es
         }
     }// namespace character
 
-    class Token
+    namespace Parsing
     {
-        public:
-            // Order by section 7.5, 7.6, 7.7, 7.8
-            enum Type
-            {
-                // Identifier
-                TK_IDENT = 0,
 
-                // Keywords
-                TK_KEYWORD,
+        static const auto kKeywords =
+        std::to_array<std::string>({
+            "break",   "do",     "instanceof", "typeof",   "case",  "else",   "new",   "var",      "catch",
+            "finally", "return", "void",       "continue", "for",   "switch", "while", "debugger", "function",
+            "this",    "with",   "default",    "if",       "throw", "delete", "in",    "try",
+        });
 
-                // Future Reserved Words
-                TK_FUTURE,
+        static const auto kFutureReservedWords = std::to_array<std::string>(
+        {
+            "class", "enum", "extends", "super", "const", "export", "import",
+        });
 
-                // Punctuator
-                TK_LBRACE,// {
-                TK_RBRACE,// }
-                TK_LPAREN,// (
-                TK_RPAREN,// )
-                TK_LBRACK,// [
-                TK_RBRACK,// ]
+        static const auto kStrictModeFutureReservedWords = std::to_array<std::string>(
+        {
+            "implements",
+            "let",
+            "private",
+            "public",
+            "yield"
+            "interface",
+            "package",
+            "protected",
+            "static"
+        });
 
-                TK_DOT,// .
-                TK_SEMICOLON,// ;
-                TK_COMMA,// ,
-                TK_QUESTION,// ?
-                TK_COLON,// :
-
-                TK_LT,// <
-                TK_GT,// >
-                TK_LE,// <=
-                TK_GE,// >=
-                TK_EQ,// ==
-                TK_NE,// !=
-                TK_EQ3,// ===
-                TK_NE3,// !==
-
-                TK_ADD,// +
-                TK_SUB,// -
-                TK_MUL,// *
-                TK_MOD,// %
-                TK_INC,// ++
-                TK_DEC,// --
-
-                TK_BIT_LSH,// <<
-                TK_BIT_RSH,// >>
-                TK_BIT_URSH,// >>>, unsigned right shift
-
-                TK_BIT_AND,// &
-                TK_BIT_OR,// |
-                TK_BIT_XOR,// ^
-                TK_BIT_NOT,// ~
-
-                TK_LOGICAL_AND,// &&
-                TK_LOGICAL_OR,// ||
-                TK_LOGICAL_NOT,// !
-
-                TK_ASSIGN,// =
-                TK_ADD_ASSIGN,// +=
-                TK_SUB_ASSIGN,// -=
-                TK_MUL_ASSIGN,// *=
-                TK_MOD_ASSIGN,// %=
-
-                TK_BIT_LSH_ASSIGN,// <<=
-                TK_BIT_RSH_ASSIGN,// >>=
-                TK_BIT_URSH_ASSIGN,// >>>=
-                TK_BIT_AND_ASSIGN,// &=
-                TK_BIT_OR_ASSIGN,// |=
-                TK_BIT_XOR_ASSIGN,// ^=
-
-                // DivPunctuator
-                TK_DIV,// /
-                TK_DIV_ASSIGN,// /=
-
-                // Null Literal
-                TK_NULL,// null
-
-                // Bool Literal
-                TK_BOOL,// true & false
-
-                // Number Literal
-                TK_NUMBER,
-
-                // String Literal
-                TK_STRING,
-
-                // Regular Expression Literal
-                TK_REGEX,
-
-                TK_LINE_TERM,
-
-                TK_EOS,
-                TK_NOT_FOUND,
-                TK_ILLEGAL,
-            };
-
-        private:
-            Type m_type;
-            std::string m_source;
-
-        public:
-            Token(Type type, const std::string& source) : m_type(type), m_source(source)
-            {
-            }
-
-            inline bool IsAssignmentOperator()
-            {
-                switch(m_type)
+        class Token
+        {
+            public:
+                // Order by section 7.5, 7.6, 7.7, 7.8
+                enum Type
                 {
-                    case TK_ASSIGN:// =
-                    case TK_ADD_ASSIGN:// +=
-                    case TK_SUB_ASSIGN:// -=
-                    case TK_MUL_ASSIGN:// *=
-                    case TK_MOD_ASSIGN:// %=
-                    case TK_DIV_ASSIGN:// /=
+                    // Identifier
+                    TK_IDENT = 0,
 
-                    case TK_BIT_LSH_ASSIGN:// <<=
-                    case TK_BIT_RSH_ASSIGN:// >>=
-                    case TK_BIT_URSH_ASSIGN:// >>>=
-                    case TK_BIT_AND_ASSIGN:// &=
-                    case TK_BIT_OR_ASSIGN:// |=
-                    case TK_BIT_XOR_ASSIGN:// ^=
-                        return true;
-                    default:
-                        return false;
+                    // Keywords
+                    TK_KEYWORD,
+
+                    // Future Reserved Words
+                    TK_FUTURE,
+
+                    // Punctuator
+                    TK_LBRACE,// {
+                    TK_RBRACE,// }
+                    TK_LPAREN,// (
+                    TK_RPAREN,// )
+                    TK_LBRACK,// [
+                    TK_RBRACK,// ]
+
+                    TK_DOT,// .
+                    TK_SEMICOLON,// ;
+                    TK_COMMA,// ,
+                    TK_QUESTION,// ?
+                    TK_COLON,// :
+
+                    TK_LT,// <
+                    TK_GT,// >
+                    TK_LE,// <=
+                    TK_GE,// >=
+                    TK_EQ,// ==
+                    TK_NE,// !=
+                    TK_EQ3,// ===
+                    TK_NE3,// !==
+
+                    TK_ADD,// +
+                    TK_SUB,// -
+                    TK_MUL,// *
+                    TK_MOD,// %
+                    TK_INC,// ++
+                    TK_DEC,// --
+
+                    TK_BIT_LSH,// <<
+                    TK_BIT_RSH,// >>
+                    TK_BIT_URSH,// >>>, unsigned right shift
+
+                    TK_BIT_AND,// &
+                    TK_BIT_OR,// |
+                    TK_BIT_XOR,// ^
+                    TK_BIT_NOT,// ~
+
+                    TK_LOGICAL_AND,// &&
+                    TK_LOGICAL_OR,// ||
+                    TK_LOGICAL_NOT,// !
+
+                    TK_ASSIGN,// =
+                    TK_ADD_ASSIGN,// +=
+                    TK_SUB_ASSIGN,// -=
+                    TK_MUL_ASSIGN,// *=
+                    TK_MOD_ASSIGN,// %=
+
+                    TK_BIT_LSH_ASSIGN,// <<=
+                    TK_BIT_RSH_ASSIGN,// >>=
+                    TK_BIT_URSH_ASSIGN,// >>>=
+                    TK_BIT_AND_ASSIGN,// &=
+                    TK_BIT_OR_ASSIGN,// |=
+                    TK_BIT_XOR_ASSIGN,// ^=
+
+                    // DivPunctuator
+                    TK_DIV,// /
+                    TK_DIV_ASSIGN,// /=
+
+                    // Null Literal
+                    TK_NULL,// null
+
+                    // Bool Literal
+                    TK_BOOL,// true & false
+
+                    // Number Literal
+                    TK_NUMBER,
+
+                    // String Literal
+                    TK_STRING,
+
+                    // Regular Expression Literal
+                    TK_REGEX,
+
+                    TK_LINE_TERM,
+
+                    TK_EOS,
+                    TK_NOT_FOUND,
+                    TK_ILLEGAL,
+                };
+
+            private:
+                Type m_type;
+                std::string m_source;
+
+            public:
+                Token(Type type, const std::string& source) : m_type(type), m_source(source)
+                {
                 }
-            }
 
-            inline bool IsLineTerminator()
-            {
-                return m_type == TK_LINE_TERM;
-            }
-
-            inline bool IsIdentifierName()
-            {
-                return m_type == TK_IDENT || m_type == TK_KEYWORD || m_type == TK_FUTURE;
-            }
-
-            inline bool IsPropertyName()
-            {
-                return IsIdentifierName() || m_type == TK_STRING || m_type == TK_NUMBER;
-            }
-
-            inline bool IsSemiColon()
-            {
-                return m_type == TK_SEMICOLON;
-            }
-
-            inline bool IsIdentifier()
-            {
-                return m_type == TK_IDENT;
-            }
-
-            inline int BinaryPriority(bool no_in)
-            {
-                switch(m_type)
+                inline bool IsAssignmentOperator()
                 {
-                    // Binary
-                    case TK_LOGICAL_OR:// ||
-                        return 2;
-                    case TK_LOGICAL_AND:// &&
-                        return 3;
-                    case TK_BIT_OR:// |
-                        return 4;
-                    case TK_BIT_XOR:// ^
-                        return 5;
-                    case TK_BIT_AND:// &
-                        return 6;
-                    case TK_EQ:// ==
-                    case TK_NE:// !=
-                    case TK_EQ3:// ===
-                    case TK_NE3:// !==
-                        return 7;
-                    case TK_LT:// <
-                    case TK_GT:// >
-                    case TK_LE:// <=
-                    case TK_GE:// >=
-                        return 8;
-                    case TK_BIT_LSH:// <<
-                    case TK_BIT_RSH:// >>
-                    case TK_BIT_URSH:// >>>
-                        return 9;
-                    case TK_ADD:
-                    case TK_SUB:
-                        return 10;
-                    case TK_MUL:
-                    case TK_DIV:
-                    case TK_MOD:
-                        return 11;
-
-                    case TK_KEYWORD:
-                        if(m_source == "instanceof")
-                        {
-                            return 8;
-                            // To prevent parsing for(a in b).
-                        }
-                        else if(!no_in && m_source == "in")
-                        {
-                            return 8;
-                        }
-                    default:
-                        return -1;
-                }
-            }
-
-            inline int UnaryPrefixPriority()
-            {
-                switch(m_type)
-                {
-                    // Prefix
-                    case TK_INC:
-                    case TK_DEC:
-                    case TK_ADD:
-                    case TK_SUB:
-                    case TK_BIT_NOT:
-                    case TK_LOGICAL_NOT:
-                        return 100;// UnaryExpresion always have higher priority.
-
-                    case TK_KEYWORD:
-                        if(m_source == "delete" || m_source == "void" || m_source == "typeof")
-                        {
-                            return 100;
-                        }
-                    default:
-                        return -1;
-                }
-            }
-
-            inline int UnaryPostfixPriority()
-            {
-                switch(m_type)
-                {
-                    // Prefix
-                    case TK_INC:
-                    case TK_DEC:
-                        return 200;// UnaryExpresion always have higher priority.
-                    default:
-                        return -1;
-                }
-            }
-
-            Type type()
-            {
-                return m_type;
-            }
-            std::string source()
-            {
-                return m_source;
-            }
-    };
-
-    static const auto kKeywords =
-    std::to_array<std::string>({
-        "break",   "do",     "instanceof", "typeof",   "case",  "else",   "new",   "var",      "catch",
-        "finally", "return", "void",       "continue", "for",   "switch", "while", "debugger", "function",
-        "this",    "with",   "default",    "if",       "throw", "delete", "in",    "try",
-    });
-
-    static const auto kFutureReservedWords = std::to_array<std::string>(
-    {
-        "class", "enum", "extends", "super", "const", "export", "import",
-    });
-
-    static const auto kStrictModeFutureReservedWords = std::to_array<std::string>(
-    {
-        "implements",
-        "let",
-        "private",
-        "public",
-        "yield"
-        "interface",
-        "package",
-        "protected",
-        "static"
-    });
-
-    class Lexer
-    {
-        private:
-            int c_;
-            std::string m_source;
-            size_t pos_;
-            size_t end_;
-            Token token_;
-
-        private:
-            inline int LookAhead()
-            {
-                if(pos_ + 1 >= end_)
-                {
-                    return character::CH_EOS;
-                }
-                return m_source[pos_ + 1];
-            }
-
-            inline void Advance()
-            {
-                if(pos_ < end_)
-                {
-                    pos_++;
-                }
-                UpdateC();
-            }
-
-            inline void UpdateC()
-            {
-                if(pos_ < end_)
-                {
-                    c_ = m_source[pos_];
-                }
-                else
-                {
-                    c_ = character::CH_EOS;
-                }
-            }
-
-            bool SkipRegularExpressionBackslashSequence()
-            {
-                assert(c_ == u'\\');
-                Advance();
-                if(character::IsLineTerminator(c_))
-                {
-                    return false;
-                }
-                Advance();
-                return true;
-            }
-
-            void SkipRegularExpressionChars()
-            {
-                while(c_ != character::CH_EOS && character::IsRegularExpressionChar(c_))
-                {
-                    Advance();
-                }
-            }
-
-            bool SkipRegularExpressionClass()
-            {
-                assert(c_ == u'[');
-                Advance();
-                while(c_ != character::CH_EOS && character::IsRegularExpressionClassChar(c_))
-                {
-                    switch(c_)
+                    switch(m_type)
                     {
-                        case u'\\':
-                        {
-                            if(!SkipRegularExpressionBackslashSequence())
-                            {
-                                return false;
-                            }
-                            break;
-                        }
+                        case TK_ASSIGN:// =
+                        case TK_ADD_ASSIGN:// +=
+                        case TK_SUB_ASSIGN:// -=
+                        case TK_MUL_ASSIGN:// *=
+                        case TK_MOD_ASSIGN:// %=
+                        case TK_DIV_ASSIGN:// /=
+
+                        case TK_BIT_LSH_ASSIGN:// <<=
+                        case TK_BIT_RSH_ASSIGN:// >>=
+                        case TK_BIT_URSH_ASSIGN:// >>>=
+                        case TK_BIT_AND_ASSIGN:// &=
+                        case TK_BIT_OR_ASSIGN:// |=
+                        case TK_BIT_XOR_ASSIGN:// ^=
+                            return true;
                         default:
-                            Advance();
+                            return false;
                     }
                 }
-                return c_ == u']';
-            }
 
-            void SkipMultiLineComment()
-            {
-                while(c_ != character::CH_EOS)
+                inline bool IsLineTerminator()
                 {
-                    if(c_ == u'*')
+                    return m_type == TK_LINE_TERM;
+                }
+
+                inline bool IsIdentifierName()
+                {
+                    return m_type == TK_IDENT || m_type == TK_KEYWORD || m_type == TK_FUTURE;
+                }
+
+                inline bool IsPropertyName()
+                {
+                    return IsIdentifierName() || m_type == TK_STRING || m_type == TK_NUMBER;
+                }
+
+                inline bool IsSemiColon()
+                {
+                    return m_type == TK_SEMICOLON;
+                }
+
+                inline bool IsIdentifier()
+                {
+                    return m_type == TK_IDENT;
+                }
+
+                inline int BinaryPriority(bool no_in)
+                {
+                    switch(m_type)
+                    {
+                        // Binary
+                        case TK_LOGICAL_OR:// ||
+                            return 2;
+                        case TK_LOGICAL_AND:// &&
+                            return 3;
+                        case TK_BIT_OR:// |
+                            return 4;
+                        case TK_BIT_XOR:// ^
+                            return 5;
+                        case TK_BIT_AND:// &
+                            return 6;
+                        case TK_EQ:// ==
+                        case TK_NE:// !=
+                        case TK_EQ3:// ===
+                        case TK_NE3:// !==
+                            return 7;
+                        case TK_LT:// <
+                        case TK_GT:// >
+                        case TK_LE:// <=
+                        case TK_GE:// >=
+                            return 8;
+                        case TK_BIT_LSH:// <<
+                        case TK_BIT_RSH:// >>
+                        case TK_BIT_URSH:// >>>
+                            return 9;
+                        case TK_ADD:
+                        case TK_SUB:
+                            return 10;
+                        case TK_MUL:
+                        case TK_DIV:
+                        case TK_MOD:
+                            return 11;
+
+                        case TK_KEYWORD:
+                            if(m_source == "instanceof")
+                            {
+                                return 8;
+                                // To prevent parsing for(a in b).
+                            }
+                            else if(!no_in && m_source == "in")
+                            {
+                                return 8;
+                            }
+                        default:
+                            return -1;
+                    }
+                }
+
+                inline int UnaryPrefixPriority()
+                {
+                    switch(m_type)
+                    {
+                        // Prefix
+                        case TK_INC:
+                        case TK_DEC:
+                        case TK_ADD:
+                        case TK_SUB:
+                        case TK_BIT_NOT:
+                        case TK_LOGICAL_NOT:
+                            return 100;// UnaryExpresion always have higher priority.
+
+                        case TK_KEYWORD:
+                            if(m_source == "delete" || m_source == "void" || m_source == "typeof")
+                            {
+                                return 100;
+                            }
+                        default:
+                            return -1;
+                    }
+                }
+
+                inline int UnaryPostfixPriority()
+                {
+                    switch(m_type)
+                    {
+                        // Prefix
+                        case TK_INC:
+                        case TK_DEC:
+                            return 200;// UnaryExpresion always have higher priority.
+                        default:
+                            return -1;
+                    }
+                }
+
+                Type type()
+                {
+                    return m_type;
+                }
+                std::string source()
+                {
+                    return m_source;
+                }
+        };
+
+        class Lexer
+        {
+            private:
+                int c_;
+                std::string m_source;
+                size_t pos_;
+                size_t end_;
+                Token token_;
+
+            private:
+                inline int LookAhead()
+                {
+                    if(pos_ + 1 >= end_)
+                    {
+                        return character::CH_EOS;
+                    }
+                    return m_source[pos_ + 1];
+                }
+
+                inline void Advance()
+                {
+                    if(pos_ < end_)
+                    {
+                        pos_++;
+                    }
+                    UpdateC();
+                }
+
+                inline void UpdateC()
+                {
+                    if(pos_ < end_)
+                    {
+                        c_ = m_source[pos_];
+                    }
+                    else
+                    {
+                        c_ = character::CH_EOS;
+                    }
+                }
+
+                bool SkipRegularExpressionBackslashSequence()
+                {
+                    assert(c_ == u'\\');
+                    Advance();
+                    if(character::IsLineTerminator(c_))
+                    {
+                        return false;
+                    }
+                    Advance();
+                    return true;
+                }
+
+                void SkipRegularExpressionChars()
+                {
+                    while(c_ != character::CH_EOS && character::IsRegularExpressionChar(c_))
                     {
                         Advance();
-                        if(c_ == u'/')
+                    }
+                }
+
+                bool SkipRegularExpressionClass()
+                {
+                    assert(c_ == u'[');
+                    Advance();
+                    while(c_ != character::CH_EOS && character::IsRegularExpressionClassChar(c_))
+                    {
+                        switch(c_)
+                        {
+                            case u'\\':
+                            {
+                                if(!SkipRegularExpressionBackslashSequence())
+                                {
+                                    return false;
+                                }
+                                break;
+                            }
+                            default:
+                                Advance();
+                        }
+                    }
+                    return c_ == u']';
+                }
+
+                void SkipMultiLineComment()
+                {
+                    while(c_ != character::CH_EOS)
+                    {
+                        if(c_ == u'*')
                         {
                             Advance();
-                            break;
+                            if(c_ == u'/')
+                            {
+                                Advance();
+                                break;
+                            }
                         }
+                        else
+                        {
+                            Advance();
+                        }
+                    }
+                }
+
+                void SkipSingleLineComment()
+                {
+                    // This will not skip line terminators.
+                    while(c_ != character::CH_EOS && !character::IsLineTerminator(c_))
+                    {
+                        Advance();
+                    }
+                }
+
+                void SkipWhiteSpace()
+                {
+                    while(character::IsWhiteSpace(c_))
+                    {
+                        Advance();
+                    }
+                }
+
+                Token ScanLineTerminatorSequence()
+                {
+                    assert(character::IsLineTerminator(c_));
+                    size_t start = pos_;
+                    if(c_ == character::CH_CR && LookAhead() == character::CH_LF)
+                    {
+                        Advance();
+                        Advance();
+                    }
+                    else
+                    {
+                        Advance();
+                    }
+                    return Token(Token::TK_LINE_TERM, m_source.substr(start, pos_ - start));
+                }
+
+                void SkipLineTerminatorSequence()
+                {
+                    assert(character::IsLineTerminator(c_));
+                    if(c_ == character::CH_CR && LookAhead() == character::CH_LF)
+                    {
+                        Advance();
+                        Advance();
                     }
                     else
                     {
                         Advance();
                     }
                 }
-            }
 
-            void SkipSingleLineComment()
-            {
-                // This will not skip line terminators.
-                while(c_ != character::CH_EOS && !character::IsLineTerminator(c_))
+                Token ScanStringLiteral()
                 {
+                    int quote = c_;
+                    size_t start = pos_;
                     Advance();
-                }
-            }
-
-            void SkipWhiteSpace()
-            {
-                while(character::IsWhiteSpace(c_))
-                {
-                    Advance();
-                }
-            }
-
-            Token ScanLineTerminatorSequence()
-            {
-                assert(character::IsLineTerminator(c_));
-                size_t start = pos_;
-                if(c_ == character::CH_CR && LookAhead() == character::CH_LF)
-                {
-                    Advance();
-                    Advance();
-                }
-                else
-                {
-                    Advance();
-                }
-                return Token(Token::TK_LINE_TERM, m_source.substr(start, pos_ - start));
-            }
-
-            void SkipLineTerminatorSequence()
-            {
-                assert(character::IsLineTerminator(c_));
-                if(c_ == character::CH_CR && LookAhead() == character::CH_LF)
-                {
-                    Advance();
-                    Advance();
-                }
-                else
-                {
-                    Advance();
-                }
-            }
-
-            Token ScanStringLiteral()
-            {
-                int quote = c_;
-                size_t start = pos_;
-                Advance();
-                while(c_ != character::CH_EOS && c_ != quote && !character::IsLineTerminator(c_))
-                {
-                    switch(c_)
+                    while(c_ != character::CH_EOS && c_ != quote && !character::IsLineTerminator(c_))
                     {
-                        case u'\\':
+                        switch(c_)
                         {
-                            Advance();
-                            // TODO(zhuzilin) Find out if "\1" will trigger error.
-                            switch(c_)
+                            case u'\\':
                             {
-                                case u'0':
+                                Advance();
+                                // TODO(zhuzilin) Find out if "\1" will trigger error.
+                                switch(c_)
                                 {
-                                    Advance();
-                                    if(character::IsDecimalDigit(LookAhead()))
+                                    case u'0':
                                     {
                                         Advance();
-                                        goto error;
-                                    }
-                                    break;
-                                }
-                                case u'x':
-                                {// HexEscapeSequence
-                                    Advance();
-                                    for(size_t i = 0; i < 2; i++)
-                                    {
-                                        if(!character::IsHexDigit(c_))
+                                        if(character::IsDecimalDigit(LookAhead()))
                                         {
                                             Advance();
                                             goto error;
                                         }
-                                        Advance();
+                                        break;
                                     }
+                                    case u'x':
+                                    {// HexEscapeSequence
+                                        Advance();
+                                        for(size_t i = 0; i < 2; i++)
+                                        {
+                                            if(!character::IsHexDigit(c_))
+                                            {
+                                                Advance();
+                                                goto error;
+                                            }
+                                            Advance();
+                                        }
+                                        break;
+                                    }
+                                    case u'u':
+                                    {// UnicodeEscapeSequence
+                                        if(!SkipUnicodeEscapeSequence())
+                                        {
+                                            Advance();
+                                            goto error;
+                                        }
+                                        break;
+                                    }
+                                    default:
+                                        if(character::IsLineTerminator(c_))
+                                        {
+                                            SkipLineTerminatorSequence();
+                                        }
+                                        else if(character::IsCharacterEscapeSequence(c_))
+                                        {
+                                            Advance();
+                                        }
+                                        else
+                                        {
+                                            Advance();
+                                            goto error;
+                                        }
+                                }
+                                break;
+                            }
+                            default:
+                                Advance();
+                        }
+                    }
+
+                    if(c_ == quote)
+                    {
+                        Advance();
+                        return Token(Token::Type::TK_STRING, m_source.substr(start, pos_ - start));
+                    }
+                error:
+                    return Token(Token::Type::TK_ILLEGAL, m_source.substr(start, pos_ - start));
+                }
+
+                bool SkipAtLeastOneDecimalDigit()
+                {
+                    if(!character::IsDecimalDigit(c_))
+                    {
+                        return false;
+                    }
+                    while(character::IsDecimalDigit(c_))
+                    {
+                        Advance();
+                    }
+                    return true;
+                }
+
+                bool SkipAtLeastOneHexDigit()
+                {
+                    if(!character::IsHexDigit(c_))
+                    {
+                        return false;
+                    }
+                    while(character::IsHexDigit(c_))
+                    {
+                        Advance();
+                    }
+                    return true;
+                }
+
+                Token ScanNumericLiteral()
+                {
+                    assert(c_ == u'.' || character::IsDecimalDigit(c_));
+                    size_t start = pos_;
+
+                    bool is_hex = false;
+                    switch(c_)
+                    {
+                        case u'0':
+                        {
+                            Advance();
+                            switch(c_)
+                            {
+                                case u'x':
+                                case u'X':
+                                {// HexIntegerLiteral
+                                    Advance();
+                                    if(!SkipAtLeastOneHexDigit())
+                                    {
+                                        Advance();
+                                        goto error;
+                                    }
+                                    is_hex = true;
                                     break;
                                 }
-                                case u'u':
-                                {// UnicodeEscapeSequence
-                                    if(!SkipUnicodeEscapeSequence())
+                                case u'.':
+                                {
+                                    Advance();
+                                    if(!SkipAtLeastOneDecimalDigit())
                                     {
                                         Advance();
                                         goto error;
                                     }
                                     break;
                                 }
-                                default:
-                                    if(character::IsLineTerminator(c_))
-                                    {
-                                        SkipLineTerminatorSequence();
-                                    }
-                                    else if(character::IsCharacterEscapeSequence(c_))
-                                    {
-                                        Advance();
-                                    }
-                                    else
-                                    {
-                                        Advance();
-                                        goto error;
-                                    }
                             }
                             break;
                         }
-                        default:
-                            Advance();
-                    }
-                }
-
-                if(c_ == quote)
-                {
-                    Advance();
-                    return Token(Token::Type::TK_STRING, m_source.substr(start, pos_ - start));
-                }
-            error:
-                return Token(Token::Type::TK_ILLEGAL, m_source.substr(start, pos_ - start));
-            }
-
-            bool SkipAtLeastOneDecimalDigit()
-            {
-                if(!character::IsDecimalDigit(c_))
-                {
-                    return false;
-                }
-                while(character::IsDecimalDigit(c_))
-                {
-                    Advance();
-                }
-                return true;
-            }
-
-            bool SkipAtLeastOneHexDigit()
-            {
-                if(!character::IsHexDigit(c_))
-                {
-                    return false;
-                }
-                while(character::IsHexDigit(c_))
-                {
-                    Advance();
-                }
-                return true;
-            }
-
-            Token ScanNumericLiteral()
-            {
-                assert(c_ == u'.' || character::IsDecimalDigit(c_));
-                size_t start = pos_;
-
-                bool is_hex = false;
-                switch(c_)
-                {
-                    case u'0':
-                    {
-                        Advance();
-                        switch(c_)
-                        {
-                            case u'x':
-                            case u'X':
-                            {// HexIntegerLiteral
-                                Advance();
-                                if(!SkipAtLeastOneHexDigit())
-                                {
-                                    Advance();
-                                    goto error;
-                                }
-                                is_hex = true;
-                                break;
-                            }
-                            case u'.':
-                            {
-                                Advance();
-                                if(!SkipAtLeastOneDecimalDigit())
-                                {
-                                    Advance();
-                                    goto error;
-                                }
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                    case u'.':
-                    {
-                        Advance();
-                        if(!SkipAtLeastOneDecimalDigit())
-                        {
-                            Advance();
-                            goto error;
-                        }
-                        break;
-                    }
-                    default:// NonZeroDigit
-                        SkipAtLeastOneDecimalDigit();
-                        if(c_ == u'.')
+                        case u'.':
                         {
                             Advance();
                             if(!SkipAtLeastOneDecimalDigit())
@@ -991,77 +984,73 @@ namespace es
                                 Advance();
                                 goto error;
                             }
+                            break;
                         }
-                }
+                        default:// NonZeroDigit
+                            SkipAtLeastOneDecimalDigit();
+                            if(c_ == u'.')
+                            {
+                                Advance();
+                                if(!SkipAtLeastOneDecimalDigit())
+                                {
+                                    Advance();
+                                    goto error;
+                                }
+                            }
+                    }
 
-                if(!is_hex)
-                {// ExponentPart
-                    if(c_ == u'e' || c_ == u'E')
-                    {
-                        Advance();
-                        if(c_ == u'+' || c_ == u'-')
+                    if(!is_hex)
+                    {// ExponentPart
+                        if(c_ == u'e' || c_ == u'E')
                         {
                             Advance();
-                        }
-                        if(!SkipAtLeastOneDecimalDigit())
-                        {
-                            Advance();
-                            goto error;
+                            if(c_ == u'+' || c_ == u'-')
+                            {
+                                Advance();
+                            }
+                            if(!SkipAtLeastOneDecimalDigit())
+                            {
+                                Advance();
+                                goto error;
+                            }
                         }
                     }
-                }
 
-                // The source character immediately following a NumericLiteral must not
-                // be an IdentifierStart or DecimalDigit.
-                if(character::IsIdentifierStart(c_) || character::IsDecimalDigit(c_))
-                {
-                    Advance();
-                    goto error;
-                }
-                return Token(Token::Type::TK_NUMBER, m_source.substr(start, pos_ - start));
-            error:
-                return Token(Token::Type::TK_ILLEGAL, m_source.substr(start, pos_ - start));
-            }
-
-            bool SkipUnicodeEscapeSequence()
-            {
-                if(c_ != u'u')
-                {
-                    return false;
-                }
-                Advance();
-                for(size_t i = 0; i < 4; i++)
-                {
-                    if(!character::IsHexDigit(c_))
-                    {
-                        return false;
-                    }
-                    Advance();
-                }
-                return true;
-            }
-
-            Token ScanIdentifier()
-            {
-                assert(character::IsIdentifierStart(c_));
-                size_t start = pos_;
-                std::string source;
-                if(c_ == u'\\')
-                {
-                    Advance();
-                    if(!SkipUnicodeEscapeSequence())
+                    // The source character immediately following a NumericLiteral must not
+                    // be an IdentifierStart or DecimalDigit.
+                    if(character::IsIdentifierStart(c_) || character::IsDecimalDigit(c_))
                     {
                         Advance();
                         goto error;
                     }
-                }
-                else
-                {
-                    Advance();
+                    return Token(Token::Type::TK_NUMBER, m_source.substr(start, pos_ - start));
+                error:
+                    return Token(Token::Type::TK_ILLEGAL, m_source.substr(start, pos_ - start));
                 }
 
-                while(character::IsIdentifierPart(c_))
+                bool SkipUnicodeEscapeSequence()
                 {
+                    if(c_ != u'u')
+                    {
+                        return false;
+                    }
+                    Advance();
+                    for(size_t i = 0; i < 4; i++)
+                    {
+                        if(!character::IsHexDigit(c_))
+                        {
+                            return false;
+                        }
+                        Advance();
+                    }
+                    return true;
+                }
+
+                Token ScanIdentifier()
+                {
+                    assert(character::IsIdentifierStart(c_));
+                    size_t start = pos_;
+                    std::string source;
                     if(c_ == u'\\')
                     {
                         Advance();
@@ -1075,520 +1064,7 @@ namespace es
                     {
                         Advance();
                     }
-                }
 
-                source = m_source.substr(start, pos_ - start);
-                if(source == "null")
-                {
-                    return Token(Token::Type::TK_NULL, source);
-                }
-                if(source == "true" || source == "false")
-                {
-                    return Token(Token::Type::TK_BOOL, source);
-                }
-                for(const auto& keyword : kKeywords)
-                {
-                    if(source == keyword)
-                    {
-                        return Token(Token::Type::TK_KEYWORD, source);
-                    }
-                }
-                for(const auto& future : kFutureReservedWords)
-                {
-                    if(source == future)
-                    {
-                        return Token(Token::Type::TK_FUTURE, source);
-                    }
-                    // TODO(zhuzilin) Check if source in kStrictModeFutureReservedWords
-                    // when stric mode code is supported.
-                }
-                return Token(Token::Type::TK_IDENT, source);
-            error:
-                return Token(Token::Type::TK_ILLEGAL, m_source.substr(start, pos_ - start));
-            }
-
-        public:
-            Lexer(const std::string& source):
-                c_(0),
-                m_source(source),
-                pos_(0),
-                end_(source.size()),
-                token_(Token::Type::TK_NOT_FOUND, "")
-            {
-                UpdateC();
-            }
-
-            Token Next(bool line_terminator = false)
-            {
-                Token token = Token(Token::Type::TK_NOT_FOUND, "");
-                do
-                {
-                    size_t start = pos_;
-                    switch(c_)
-                    {
-                        case character::CH_EOS:
-                        {
-                            token = Token(Token::Type::TK_EOS, m_source.substr(pos_, 0));
-                            break;
-                        }
-
-                        case u'{':
-                        {
-                            Advance();
-                            token = Token(Token::Type::TK_LBRACE, m_source.substr(start, 1));
-                            break;
-                        }
-                        case u'}':
-                        {
-                            Advance();
-                            token = Token(Token::Type::TK_RBRACE, m_source.substr(start, 1));
-                            break;
-                        }
-                        case u'(':
-                        {
-                            Advance();
-                            token = Token(Token::Type::TK_LPAREN, m_source.substr(start, 1));
-                            break;
-                        }
-                        case u')':
-                        {
-                            Advance();
-                            token = Token(Token::Type::TK_RPAREN, m_source.substr(start, 1));
-                            break;
-                        }
-                        case u'[':
-                        {
-                            Advance();
-                            token = Token(Token::Type::TK_LBRACK, m_source.substr(start, 1));
-                            break;
-                        }
-                        case u']':
-                        {
-                            Advance();
-                            token = Token(Token::Type::TK_RBRACK, m_source.substr(start, 1));
-                            break;
-                        }
-                        case u'.':
-                        {
-                            if(character::IsDecimalDigit(LookAhead()))
-                            {
-                                token = ScanNumericLiteral();
-                            }
-                            else
-                            {
-                                token = Token(Token::Type::TK_DOT, m_source.substr(start, 1));
-                                Advance();
-                            }
-                            break;
-                        }
-                        case u';':
-                        {
-                            Advance();
-                            token = Token(Token::Type::TK_SEMICOLON, m_source.substr(start, 1));
-                            break;
-                        }
-                        case u',':
-                        {
-                            Advance();
-                            token = Token(Token::Type::TK_COMMA, m_source.substr(start, 1));
-                            break;
-                        }
-                        case u'?':
-                        {
-                            Advance();
-                            token = Token(Token::Type::TK_QUESTION, m_source.substr(start, 1));
-                            break;
-                        }
-                        case u':':
-                        {
-                            Advance();
-                            token = Token(Token::Type::TK_COLON, m_source.substr(start, 1));
-                            break;
-                        }
-
-                        case u'<':
-                        {
-                            Advance();
-                            switch(c_)
-                            {
-                                case u'<':
-                                    Advance();
-                                    switch(c_)
-                                    {
-                                        case u'=':// <<=
-                                            Advance();
-                                            token = Token(Token::Type::TK_BIT_LSH_ASSIGN, m_source.substr(start, 3));
-                                            break;
-                                        default:// <<
-                                            token = Token(Token::Type::TK_BIT_LSH, m_source.substr(start, 2));
-                                    }
-                                    break;
-                                case u'=':// <=
-                                    Advance();
-                                    token = Token(Token::Type::TK_LE, m_source.substr(start, 2));
-                                    break;
-                                default:// <
-                                    token = Token(Token::Type::TK_LT, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-                        case u'>':
-                        {
-                            Advance();
-                            switch(c_)
-                            {
-                                case u'>':
-                                    Advance();
-                                    switch(c_)
-                                    {
-                                        case u'>':
-                                            Advance();
-                                            switch(c_)
-                                            {
-                                                case u'=':// >>>=
-                                                    Advance();
-                                                    token = Token(Token::Type::TK_BIT_URSH_ASSIGN, m_source.substr(start, 4));
-                                                    break;
-                                                default:// >>>
-                                                    token = Token(Token::Type::TK_BIT_URSH, m_source.substr(start, 3));
-                                            }
-                                            break;
-                                        case u'=':// >>=
-                                            token = Token(Token::Type::TK_BIT_RSH_ASSIGN, m_source.substr(start, 3));
-                                            Advance();
-                                            break;
-                                        default:// >>
-                                            token = Token(Token::Type::TK_BIT_RSH, m_source.substr(start, 2));
-                                    }
-                                    break;
-                                case u'=':// >=
-                                    Advance();
-                                    token = Token(Token::Type::TK_GE, m_source.substr(start, 2));
-                                    break;
-                                default:// >
-                                    token = Token(Token::Type::TK_GT, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-                        case u'=':
-                        {
-                            Advance();
-                            switch(c_)
-                            {
-                                case u'=':
-                                    Advance();
-                                    switch(c_)
-                                    {
-                                        case u'=':// ===
-                                            Advance();
-                                            token = Token(Token::Type::TK_EQ3, m_source.substr(start, 3));
-                                            break;
-                                        default:// ==
-                                            token = Token(Token::Type::TK_EQ, m_source.substr(start, 2));
-                                            break;
-                                    }
-                                    break;
-                                default:// =
-                                    token = Token(Token::Type::TK_ASSIGN, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-                        case u'!':
-                        {
-                            Advance();
-                            switch(c_)
-                            {
-                                case u'=':
-                                    Advance();
-                                    switch(c_)
-                                    {
-                                        case u'=':// !==
-                                            Advance();
-                                            token = Token(Token::Type::TK_NE3, m_source.substr(start, 3));
-                                            break;
-                                        default:// !=
-                                            token = Token(Token::Type::TK_NE, m_source.substr(start, 2));
-                                            break;
-                                    }
-                                    break;
-                                default:// !
-                                    token = Token(Token::Type::TK_LOGICAL_NOT, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-
-                        case u'+':
-                        {
-                            Advance();
-                            switch(c_)
-                            {
-                                case u'+':// ++
-                                    Advance();
-                                    token = Token(Token::Type::TK_INC, m_source.substr(start, 2));
-                                    break;
-                                case u'=':// +=
-                                    Advance();
-                                    token = Token(Token::Type::TK_ADD_ASSIGN, m_source.substr(start, 2));
-                                    break;
-                                default:// +
-                                    token = Token(Token::Type::TK_ADD, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-                        case u'-':
-                        {
-                            Advance();
-                            switch(c_)
-                            {
-                                case u'-':// --
-                                    Advance();
-                                    token = Token(Token::Type::TK_DEC, m_source.substr(start, 2));
-                                    break;
-                                case u'=':// -=
-                                    Advance();
-                                    token = Token(Token::Type::TK_SUB_ASSIGN, m_source.substr(start, 2));
-                                default:// -
-                                    token = Token(Token::Type::TK_SUB, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-                        case u'*':
-                        {
-                            Advance();
-                            if(c_ == u'=')
-                            {// *=
-                                Advance();
-                                token = Token(Token::Type::TK_MUL_ASSIGN, m_source.substr(start, 2));
-                            }
-                            else
-                            {// +
-                                token = Token(Token::Type::TK_MUL, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-                        case u'%':
-                        {
-                            Advance();
-                            if(c_ == u'=')
-                            {// %=
-                                Advance();
-                                token = Token(Token::Type::TK_MOD_ASSIGN, m_source.substr(start, 2));
-                            }
-                            else
-                            {// %
-                                token = Token(Token::Type::TK_MOD, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-
-                        case u'&':
-                        {
-                            Advance();
-                            switch(c_)
-                            {
-                                case u'&':// &&
-                                    Advance();
-                                    token = Token(Token::Type::TK_LOGICAL_AND, m_source.substr(start, 2));
-                                    break;
-                                case u'=':// &=
-                                    Advance();
-                                    token = Token(Token::Type::TK_BIT_AND_ASSIGN, m_source.substr(start, 2));
-                                    break;
-                                default:// &
-                                    token = Token(Token::Type::TK_BIT_AND, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-                        case u'|':
-                        {
-                            Advance();
-                            switch(c_)
-                            {
-                                case u'|':// ||
-                                    Advance();
-                                    token = Token(Token::Type::TK_LOGICAL_OR, m_source.substr(start, 2));
-                                    break;
-                                case u'=':// |=
-                                    Advance();
-                                    token = Token(Token::Type::TK_BIT_OR_ASSIGN, m_source.substr(start, 2));
-                                    break;
-                                default:// |
-                                    token = Token(Token::Type::TK_BIT_OR, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-                        case u'^':
-                        {
-                            Advance();
-                            if(c_ == u'=')
-                            {// ^=
-                                Advance();
-                                token = Token(Token::Type::TK_BIT_XOR_ASSIGN, m_source.substr(start, 2));
-                            }
-                            else
-                            {
-                                token = Token(Token::Type::TK_BIT_XOR, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-                        case u'~':
-                        {
-                            Advance();
-                            token = Token(Token::Type::TK_BIT_NOT, m_source.substr(start, 1));
-                            break;
-                        }
-
-                        case u'/':
-                        {
-                            Advance();
-                            switch(c_)
-                            {
-                                case u'*':// /*
-                                    Advance();
-                                    SkipMultiLineComment();
-                                    break;
-                                case u'/':// //
-                                    Advance();
-                                    SkipSingleLineComment();
-                                    break;
-                                case u'=':// /=
-                                    Advance();
-                                    token = Token(Token::Type::TK_DIV_ASSIGN, m_source.substr(start, 2));
-                                    break;
-                                default:// /
-                                    // We cannot distinguish DIV and regex in lexer level and therefore,
-                                    // we need to check if the symbol of div operator or start of regex
-                                    // in parser.
-                                    token = Token(Token::Type::TK_DIV, m_source.substr(start, 1));
-                            }
-                            break;
-                        }
-
-                        case u'\'':
-                        case u'"':
-                        {
-                            token = ScanStringLiteral();
-                            break;
-                        }
-
-                        default:
-                            if(character::IsWhiteSpace(c_))
-                            {
-                                SkipWhiteSpace();
-                            }
-                            else if(character::IsLineTerminator(c_))
-                            {
-                                if(line_terminator)
-                                {
-                                    token = ScanLineTerminatorSequence();
-                                }
-                                else
-                                {
-                                    SkipLineTerminatorSequence();
-                                }
-                            }
-                            else if(character::IsDecimalDigit(c_))
-                            {
-                                token = ScanNumericLiteral();
-                            }
-                            else if(character::IsIdentifierStart(c_))
-                            {
-                                token = ScanIdentifier();
-                            }
-                            else
-                            {
-                                Advance();
-                                token = Token(Token::TK_ILLEGAL, m_source.substr(start, 1));
-                            }
-                    }
-                } while(token.type() == Token::Type::TK_NOT_FOUND);
-                token_ = token;
-                return token_;
-            }
-
-            inline Token Last()
-            {
-                return token_;
-            }
-            inline size_t Pos()
-            {
-                return pos_;
-            }
-
-            void Rewind(size_t pos, Token token)
-            {
-                pos_ = pos;
-                token_ = std::move(token);
-                UpdateC();
-            }
-
-            Token NextAndRewind(bool line_terminator = false)
-            {
-                size_t old_pos = Pos();
-                Token old_token = Last();
-                Token token = Next(line_terminator);
-                Rewind(old_pos, old_token);
-                return token;
-            }
-
-            bool LineTermAhead()
-            {
-                return NextAndRewind(true).IsLineTerminator();
-            }
-
-            bool TrySkipSemiColon()
-            {
-                Token token = NextAndRewind();
-                if(token.IsSemiColon())
-                {
-                    Next();
-                    return true;
-                }
-                // 7.9 Automatic Semicolon Insertion
-                return token.type() == Token::TK_EOS || token.type() == Token::TK_RBRACE || LineTermAhead();
-            }
-
-            Token ScanRegexLiteral()
-            {
-                assert(c_ == u'/');
-                size_t start = pos_;
-                Advance();
-                if(!character::IsRegularExpressionFirstChar(c_))
-                {
-                    Advance();
-                    goto error;
-                }
-                while(c_ != character::CH_EOS && c_ != u'/' && !character::IsLineTerminator(c_))
-                {
-                    switch(c_)
-                    {
-                        case u'\\':
-                        {// Regular Expression
-                            if(!SkipRegularExpressionBackslashSequence())
-                            {
-                                Advance();
-                                goto error;
-                            }
-                            break;
-                        }
-                        case u'[':
-                        {
-                            if(!SkipRegularExpressionClass())
-                            {
-                                Advance();
-                                goto error;
-                            }
-                            break;
-                        }
-                        default:
-                            SkipRegularExpressionChars();
-                    }
-                }
-
-                if(c_ == u'/')
-                {
-                    Advance();
-                    // RegularExpressionFlags
                     while(character::IsIdentifierPart(c_))
                     {
                         if(c_ == u'\\')
@@ -1605,1087 +1081,1601 @@ namespace es
                             Advance();
                         }
                     }
-                    token_ = Token(Token::Type::TK_REGEX, m_source.substr(start, pos_ - start));
+
+                    source = m_source.substr(start, pos_ - start);
+                    if(source == "null")
+                    {
+                        return Token(Token::Type::TK_NULL, source);
+                    }
+                    if(source == "true" || source == "false")
+                    {
+                        return Token(Token::Type::TK_BOOL, source);
+                    }
+                    for(const auto& keyword : kKeywords)
+                    {
+                        if(source == keyword)
+                        {
+                            return Token(Token::Type::TK_KEYWORD, source);
+                        }
+                    }
+                    for(const auto& future : kFutureReservedWords)
+                    {
+                        if(source == future)
+                        {
+                            return Token(Token::Type::TK_FUTURE, source);
+                        }
+                        // TODO(zhuzilin) Check if source in kStrictModeFutureReservedWords
+                        // when stric mode code is supported.
+                    }
+                    return Token(Token::Type::TK_IDENT, source);
+                error:
+                    return Token(Token::Type::TK_ILLEGAL, m_source.substr(start, pos_ - start));
+                }
+
+            public:
+                Lexer(const std::string& source):
+                    c_(0),
+                    m_source(source),
+                    pos_(0),
+                    end_(source.size()),
+                    token_(Token::Type::TK_NOT_FOUND, "")
+                {
+                    UpdateC();
+                }
+
+                Token Next(bool line_terminator = false)
+                {
+                    Token token = Token(Token::Type::TK_NOT_FOUND, "");
+                    do
+                    {
+                        size_t start = pos_;
+                        switch(c_)
+                        {
+                            case character::CH_EOS:
+                            {
+                                token = Token(Token::Type::TK_EOS, m_source.substr(pos_, 0));
+                                break;
+                            }
+
+                            case u'{':
+                            {
+                                Advance();
+                                token = Token(Token::Type::TK_LBRACE, m_source.substr(start, 1));
+                                break;
+                            }
+                            case u'}':
+                            {
+                                Advance();
+                                token = Token(Token::Type::TK_RBRACE, m_source.substr(start, 1));
+                                break;
+                            }
+                            case u'(':
+                            {
+                                Advance();
+                                token = Token(Token::Type::TK_LPAREN, m_source.substr(start, 1));
+                                break;
+                            }
+                            case u')':
+                            {
+                                Advance();
+                                token = Token(Token::Type::TK_RPAREN, m_source.substr(start, 1));
+                                break;
+                            }
+                            case u'[':
+                            {
+                                Advance();
+                                token = Token(Token::Type::TK_LBRACK, m_source.substr(start, 1));
+                                break;
+                            }
+                            case u']':
+                            {
+                                Advance();
+                                token = Token(Token::Type::TK_RBRACK, m_source.substr(start, 1));
+                                break;
+                            }
+                            case u'.':
+                            {
+                                if(character::IsDecimalDigit(LookAhead()))
+                                {
+                                    token = ScanNumericLiteral();
+                                }
+                                else
+                                {
+                                    token = Token(Token::Type::TK_DOT, m_source.substr(start, 1));
+                                    Advance();
+                                }
+                                break;
+                            }
+                            case u';':
+                            {
+                                Advance();
+                                token = Token(Token::Type::TK_SEMICOLON, m_source.substr(start, 1));
+                                break;
+                            }
+                            case u',':
+                            {
+                                Advance();
+                                token = Token(Token::Type::TK_COMMA, m_source.substr(start, 1));
+                                break;
+                            }
+                            case u'?':
+                            {
+                                Advance();
+                                token = Token(Token::Type::TK_QUESTION, m_source.substr(start, 1));
+                                break;
+                            }
+                            case u':':
+                            {
+                                Advance();
+                                token = Token(Token::Type::TK_COLON, m_source.substr(start, 1));
+                                break;
+                            }
+
+                            case u'<':
+                            {
+                                Advance();
+                                switch(c_)
+                                {
+                                    case u'<':
+                                        Advance();
+                                        switch(c_)
+                                        {
+                                            case u'=':// <<=
+                                                Advance();
+                                                token = Token(Token::Type::TK_BIT_LSH_ASSIGN, m_source.substr(start, 3));
+                                                break;
+                                            default:// <<
+                                                token = Token(Token::Type::TK_BIT_LSH, m_source.substr(start, 2));
+                                        }
+                                        break;
+                                    case u'=':// <=
+                                        Advance();
+                                        token = Token(Token::Type::TK_LE, m_source.substr(start, 2));
+                                        break;
+                                    default:// <
+                                        token = Token(Token::Type::TK_LT, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+                            case u'>':
+                            {
+                                Advance();
+                                switch(c_)
+                                {
+                                    case u'>':
+                                        Advance();
+                                        switch(c_)
+                                        {
+                                            case u'>':
+                                                Advance();
+                                                switch(c_)
+                                                {
+                                                    case u'=':// >>>=
+                                                        Advance();
+                                                        token = Token(Token::Type::TK_BIT_URSH_ASSIGN, m_source.substr(start, 4));
+                                                        break;
+                                                    default:// >>>
+                                                        token = Token(Token::Type::TK_BIT_URSH, m_source.substr(start, 3));
+                                                }
+                                                break;
+                                            case u'=':// >>=
+                                                token = Token(Token::Type::TK_BIT_RSH_ASSIGN, m_source.substr(start, 3));
+                                                Advance();
+                                                break;
+                                            default:// >>
+                                                token = Token(Token::Type::TK_BIT_RSH, m_source.substr(start, 2));
+                                        }
+                                        break;
+                                    case u'=':// >=
+                                        Advance();
+                                        token = Token(Token::Type::TK_GE, m_source.substr(start, 2));
+                                        break;
+                                    default:// >
+                                        token = Token(Token::Type::TK_GT, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+                            case u'=':
+                            {
+                                Advance();
+                                switch(c_)
+                                {
+                                    case u'=':
+                                        Advance();
+                                        switch(c_)
+                                        {
+                                            case u'=':// ===
+                                                Advance();
+                                                token = Token(Token::Type::TK_EQ3, m_source.substr(start, 3));
+                                                break;
+                                            default:// ==
+                                                token = Token(Token::Type::TK_EQ, m_source.substr(start, 2));
+                                                break;
+                                        }
+                                        break;
+                                    default:// =
+                                        token = Token(Token::Type::TK_ASSIGN, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+                            case u'!':
+                            {
+                                Advance();
+                                switch(c_)
+                                {
+                                    case u'=':
+                                        Advance();
+                                        switch(c_)
+                                        {
+                                            case u'=':// !==
+                                                Advance();
+                                                token = Token(Token::Type::TK_NE3, m_source.substr(start, 3));
+                                                break;
+                                            default:// !=
+                                                token = Token(Token::Type::TK_NE, m_source.substr(start, 2));
+                                                break;
+                                        }
+                                        break;
+                                    default:// !
+                                        token = Token(Token::Type::TK_LOGICAL_NOT, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+
+                            case u'+':
+                            {
+                                Advance();
+                                switch(c_)
+                                {
+                                    case u'+':// ++
+                                        Advance();
+                                        token = Token(Token::Type::TK_INC, m_source.substr(start, 2));
+                                        break;
+                                    case u'=':// +=
+                                        Advance();
+                                        token = Token(Token::Type::TK_ADD_ASSIGN, m_source.substr(start, 2));
+                                        break;
+                                    default:// +
+                                        token = Token(Token::Type::TK_ADD, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+                            case u'-':
+                            {
+                                Advance();
+                                switch(c_)
+                                {
+                                    case u'-':// --
+                                        Advance();
+                                        token = Token(Token::Type::TK_DEC, m_source.substr(start, 2));
+                                        break;
+                                    case u'=':// -=
+                                        Advance();
+                                        token = Token(Token::Type::TK_SUB_ASSIGN, m_source.substr(start, 2));
+                                    default:// -
+                                        token = Token(Token::Type::TK_SUB, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+                            case u'*':
+                            {
+                                Advance();
+                                if(c_ == u'=')
+                                {// *=
+                                    Advance();
+                                    token = Token(Token::Type::TK_MUL_ASSIGN, m_source.substr(start, 2));
+                                }
+                                else
+                                {// +
+                                    token = Token(Token::Type::TK_MUL, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+                            case u'%':
+                            {
+                                Advance();
+                                if(c_ == u'=')
+                                {// %=
+                                    Advance();
+                                    token = Token(Token::Type::TK_MOD_ASSIGN, m_source.substr(start, 2));
+                                }
+                                else
+                                {// %
+                                    token = Token(Token::Type::TK_MOD, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+
+                            case u'&':
+                            {
+                                Advance();
+                                switch(c_)
+                                {
+                                    case u'&':// &&
+                                        Advance();
+                                        token = Token(Token::Type::TK_LOGICAL_AND, m_source.substr(start, 2));
+                                        break;
+                                    case u'=':// &=
+                                        Advance();
+                                        token = Token(Token::Type::TK_BIT_AND_ASSIGN, m_source.substr(start, 2));
+                                        break;
+                                    default:// &
+                                        token = Token(Token::Type::TK_BIT_AND, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+                            case u'|':
+                            {
+                                Advance();
+                                switch(c_)
+                                {
+                                    case u'|':// ||
+                                        Advance();
+                                        token = Token(Token::Type::TK_LOGICAL_OR, m_source.substr(start, 2));
+                                        break;
+                                    case u'=':// |=
+                                        Advance();
+                                        token = Token(Token::Type::TK_BIT_OR_ASSIGN, m_source.substr(start, 2));
+                                        break;
+                                    default:// |
+                                        token = Token(Token::Type::TK_BIT_OR, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+                            case u'^':
+                            {
+                                Advance();
+                                if(c_ == u'=')
+                                {// ^=
+                                    Advance();
+                                    token = Token(Token::Type::TK_BIT_XOR_ASSIGN, m_source.substr(start, 2));
+                                }
+                                else
+                                {
+                                    token = Token(Token::Type::TK_BIT_XOR, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+                            case u'~':
+                            {
+                                Advance();
+                                token = Token(Token::Type::TK_BIT_NOT, m_source.substr(start, 1));
+                                break;
+                            }
+
+                            case u'/':
+                            {
+                                Advance();
+                                switch(c_)
+                                {
+                                    case u'*':// /*
+                                        Advance();
+                                        SkipMultiLineComment();
+                                        break;
+                                    case u'/':// //
+                                        Advance();
+                                        SkipSingleLineComment();
+                                        break;
+                                    case u'=':// /=
+                                        Advance();
+                                        token = Token(Token::Type::TK_DIV_ASSIGN, m_source.substr(start, 2));
+                                        break;
+                                    default:// /
+                                        // We cannot distinguish DIV and regex in lexer level and therefore,
+                                        // we need to check if the symbol of div operator or start of regex
+                                        // in parser.
+                                        token = Token(Token::Type::TK_DIV, m_source.substr(start, 1));
+                                }
+                                break;
+                            }
+
+                            case u'\'':
+                            case u'"':
+                            {
+                                token = ScanStringLiteral();
+                                break;
+                            }
+
+                            default:
+                                if(character::IsWhiteSpace(c_))
+                                {
+                                    SkipWhiteSpace();
+                                }
+                                else if(character::IsLineTerminator(c_))
+                                {
+                                    if(line_terminator)
+                                    {
+                                        token = ScanLineTerminatorSequence();
+                                    }
+                                    else
+                                    {
+                                        SkipLineTerminatorSequence();
+                                    }
+                                }
+                                else if(character::IsDecimalDigit(c_))
+                                {
+                                    token = ScanNumericLiteral();
+                                }
+                                else if(character::IsIdentifierStart(c_))
+                                {
+                                    token = ScanIdentifier();
+                                }
+                                else
+                                {
+                                    Advance();
+                                    token = Token(Token::TK_ILLEGAL, m_source.substr(start, 1));
+                                }
+                        }
+                    } while(token.type() == Token::Type::TK_NOT_FOUND);
+                    token_ = token;
                     return token_;
                 }
-            error:
-                token_ = Token(Token::Type::TK_ILLEGAL, m_source.substr(start, pos_ - start));
-                return token_;
-            }
 
-            // For regex
-            inline void Back()
-            {
-                if(pos_ == 0)
+                inline Token Last()
                 {
-                    return;
+                    return token_;
                 }
-                pos_--;
-                UpdateC();
-            }
-    };
+                inline size_t Pos()
+                {
+                    return pos_;
+                }
 
-    class AST
-    {
-    public:
-        enum Type
-        {
-            AST_EXPR_THIS,
-            AST_EXPR_IDENT,
+                void Rewind(size_t pos, Token token)
+                {
+                    pos_ = pos;
+                    token_ = std::move(token);
+                    UpdateC();
+                }
 
-            AST_EXPR_NULL,
-            AST_EXPR_BOOL,
-            AST_EXPR_NUMBER,
-            AST_EXPR_STRING,
-            AST_EXPR_REGEX,
+                Token NextAndRewind(bool line_terminator = false)
+                {
+                    size_t old_pos = Pos();
+                    Token old_token = Last();
+                    Token token = Next(line_terminator);
+                    Rewind(old_pos, old_token);
+                    return token;
+                }
 
-            AST_EXPR_ARRAY,
-            AST_EXPR_OBJ,
+                bool LineTermAhead()
+                {
+                    return NextAndRewind(true).IsLineTerminator();
+                }
 
-            AST_EXPR_PAREN,// ( Expression )
+                bool TrySkipSemiColon()
+                {
+                    Token token = NextAndRewind();
+                    if(token.IsSemiColon())
+                    {
+                        Next();
+                        return true;
+                    }
+                    // 7.9 Automatic Semicolon Insertion
+                    return token.type() == Token::TK_EOS || token.type() == Token::TK_RBRACE || LineTermAhead();
+                }
 
-            AST_EXPR_BINARY,
-            AST_EXPR_UNARY,
-            AST_EXPR_TRIPLE,
+                Token ScanRegexLiteral()
+                {
+                    assert(c_ == u'/');
+                    size_t start = pos_;
+                    Advance();
+                    if(!character::IsRegularExpressionFirstChar(c_))
+                    {
+                        Advance();
+                        goto error;
+                    }
+                    while(c_ != character::CH_EOS && c_ != u'/' && !character::IsLineTerminator(c_))
+                    {
+                        switch(c_)
+                        {
+                            case u'\\':
+                            {// Regular Expression
+                                if(!SkipRegularExpressionBackslashSequence())
+                                {
+                                    Advance();
+                                    goto error;
+                                }
+                                break;
+                            }
+                            case u'[':
+                            {
+                                if(!SkipRegularExpressionClass())
+                                {
+                                    Advance();
+                                    goto error;
+                                }
+                                break;
+                            }
+                            default:
+                                SkipRegularExpressionChars();
+                        }
+                    }
 
-            AST_EXPR_ARGS,
-            AST_EXPR_LHS,
+                    if(c_ == u'/')
+                    {
+                        Advance();
+                        // RegularExpressionFlags
+                        while(character::IsIdentifierPart(c_))
+                        {
+                            if(c_ == u'\\')
+                            {
+                                Advance();
+                                if(!SkipUnicodeEscapeSequence())
+                                {
+                                    Advance();
+                                    goto error;
+                                }
+                            }
+                            else
+                            {
+                                Advance();
+                            }
+                        }
+                        token_ = Token(Token::Type::TK_REGEX, m_source.substr(start, pos_ - start));
+                        return token_;
+                    }
+                error:
+                    token_ = Token(Token::Type::TK_ILLEGAL, m_source.substr(start, pos_ - start));
+                    return token_;
+                }
 
-            AST_EXPR,
-
-            AST_FUNC,
-
-            AST_STMT_EMPTY,
-            AST_STMT_BLOCK,
-            AST_STMT_IF,
-            AST_STMT_WHILE,
-            AST_STMT_FOR,
-            AST_STMT_FOR_IN,
-            AST_STMT_WITH,
-            AST_STMT_DO_WHILE,
-            AST_STMT_TRY,
-
-            AST_STMT_VAR,
-            AST_STMT_VAR_DECL,
-
-            AST_STMT_CONTINUE,
-            AST_STMT_BREAK,
-            AST_STMT_RETURN,
-            AST_STMT_THROW,
-
-            AST_STMT_SWITCH,
-
-            AST_STMT_LABEL,
-            AST_STMT_DEBUG,
-
-            AST_PROGRAM,
-            AST_FUNC_BODY,
-
-            AST_ILLEGAL,
+                // For regex
+                inline void Back()
+                {
+                    if(pos_ == 0)
+                    {
+                        return;
+                    }
+                    pos_--;
+                    UpdateC();
+                }
         };
 
-    private:
-        Type m_type;
-        std::string m_source;
-        std::string label_;
-
-    public:
-        AST(Type type, const std::string& source = "") : m_type(type), m_source(source)
+        class AST
         {
-        }
-        virtual ~AST(){};
-
-        Type type()
-        {
-            return m_type;
-        }
-        std::string source()
-        {
-            return m_source;
-        }
-
-        void SetSource(const std::string& source)
-        {
-            m_source = source;
-        }
-
-        bool IsIllegal()
-        {
-            return m_type == AST_ILLEGAL;
-        }
-
-        std::string label()
-        {
-            return label_;
-        }
-        void SetLabel(const std::string& label)
-        {
-            label_ = label;
-        }
-    };
-
-    class ArrayLiteral : public AST
-    {
-        private:
-            std::vector<std::pair<size_t, AST*>> elements_;
-            size_t len_;
-
-        public:
-            ArrayLiteral() : AST(AST_EXPR_ARRAY), len_(0)
-            {
-            }
-
-            ~ArrayLiteral() override
-            {
-                for(auto pair : elements_)
-                {
-                    delete pair.second;
-                }
-            }
-
-            size_t length()
-            {
-                return len_;
-            }
-            std::vector<std::pair<size_t, AST*>> elements()
-            {
-                return elements_;
-            }
-
-            void AddElement(AST* element)
-            {
-                if(element != nullptr)
-                {
-                    elements_.emplace_back(len_, element);
-                }
-                len_++;
-            }
-    };
-
-    class ObjectLiteral : public AST
-    {
-        public:
-            struct Property
-            {
+            public:
                 enum Type
                 {
-                    NORMAL = 0,
-                    GET,
-                    SET,
+                    AST_EXPR_THIS,
+                    AST_EXPR_IDENT,
+                    AST_EXPR_NULL,
+                    AST_EXPR_BOOL,
+                    AST_EXPR_NUMBER,
+                    AST_EXPR_STRING,
+                    AST_EXPR_REGEX,
+                    AST_EXPR_ARRAY,
+                    AST_EXPR_OBJ,
+                    AST_EXPR_PAREN,// ( Expression )
+                    AST_EXPR_BINARY,
+                    AST_EXPR_UNARY,
+                    AST_EXPR_TRIPLE,
+                    AST_EXPR_ARGS,
+                    AST_EXPR_LHS,
+                    AST_EXPR,
+                    AST_FUNC,
+                    AST_STMT_EMPTY,
+                    AST_STMT_BLOCK,
+                    AST_STMT_IF,
+                    AST_STMT_WHILE,
+                    AST_STMT_FOR,
+                    AST_STMT_FOR_IN,
+                    AST_STMT_WITH,
+                    AST_STMT_DO_WHILE,
+                    AST_STMT_TRY,
+                    AST_STMT_VAR,
+                    AST_STMT_VAR_DECL,
+                    AST_STMT_CONTINUE,
+                    AST_STMT_BREAK,
+                    AST_STMT_RETURN,
+                    AST_STMT_THROW,
+                    AST_STMT_SWITCH,
+                    AST_STMT_LABEL,
+                    AST_STMT_DEBUG,
+                    AST_PROGRAM,
+                    AST_FUNC_BODY,
+                    AST_ILLEGAL,
                 };
 
-                Token key;
-                AST* value;
-                Type type;
+            private:
+                Type m_type;
+                std::string m_source;
+                std::string label_;
 
-                Property(Token k, AST* v, Type t) : key(std::move(k)), value(v), type(t)
+            public:
+                AST(Type type, const std::string& source = "") : m_type(type), m_source(source)
                 {
                 }
-            };
+                virtual ~AST(){};
 
-        private:
-            std::vector<Property> properties_;
-
-        public:
-            ObjectLiteral() : AST(AST_EXPR_OBJ)
-            {
-            }
-
-            ~ObjectLiteral() override
-            {
-                for(const auto& property : properties_)
+                Type type()
                 {
-                    delete property.value;
+                    return m_type;
                 }
-            }
-
-            void AddProperty(const Property& p)
-            {
-                properties_.emplace_back(p);
-            }
-
-            std::vector<Property> properties()
-            {
-                return properties_;
-            }
-
-            size_t length()
-            {
-                return properties_.size();
-            }
-
-
-    };
-
-    class Paren : public AST
-    {
-        private:
-            AST* expr_;
-
-        public:
-            Paren(AST* expr, const std::string& source) : AST(AST_EXPR_PAREN, source), expr_(expr)
-            {
-            }
-
-            AST* expr()
-            {
-                return expr_;
-            }
-    };
-
-    class Binary : public AST
-    {
-        private:
-            AST* lhs_;
-            AST* rhs_;
-            Token op_;
-
-        public:
-            Binary(AST* lhs, AST* rhs, Token op, const std::string& source = "")
-            : AST(AST_EXPR_BINARY, source), lhs_(lhs), rhs_(rhs), op_(std::move(op))
-            {
-            }
-
-            ~Binary() override
-            {
-                delete lhs_;
-                delete rhs_;
-            }
-
-            AST* lhs()
-            {
-                return lhs_;
-            }
-            AST* rhs()
-            {
-                return rhs_;
-            }
-            std::string op()
-            {
-                return op_.source();
-            }
-    };
-
-    class Unary : public AST
-    {
-        private:
-            AST* node_;
-            Token op_;
-            bool prefix_;
-
-        public:
-            Unary(AST* node, Token op, bool prefix) : AST(AST_EXPR_UNARY), node_(node), op_(std::move(op)), prefix_(prefix)
-            {
-            }
-
-            ~Unary() override
-            {
-                delete node_;
-            }
-
-            AST* node()
-            {
-                return node_;
-            }
-            Token op()
-            {
-                return op_;
-            }
-            bool prefix()
-            {
-                return prefix_;
-            }
-    };
-
-    class TripleCondition : public AST
-    {
-        private:
-            AST* cond_;
-            AST* true_expr_;
-            AST* false_expr_;
-
-        public:
-            TripleCondition(AST* cond, AST* true_expr, AST* false_expr)
-            : AST(AST_EXPR_TRIPLE), cond_(cond), true_expr_(true_expr), false_expr_(false_expr)
-            {
-            }
-
-            ~TripleCondition() override
-            {
-                delete cond_;
-                delete true_expr_;
-                delete false_expr_;
-            }
-
-            AST* cond()
-            {
-                return cond_;
-            }
-            AST* true_expr()
-            {
-                return true_expr_;
-            }
-            AST* false_expr()
-            {
-                return false_expr_;
-            }
-
-    };
-
-    class Expression : public AST
-    {
-        private:
-            std::vector<AST*> elements_;
-
-        public:
-            Expression() : AST(AST_EXPR)
-            {
-            }
-            ~Expression() override
-            {
-                for(auto element : elements_)
+                std::string source()
                 {
-                    delete element;
+                    return m_source;
                 }
-            }
 
-            void AddElement(AST* element)
-            {
-                elements_.push_back(element);
-            }
-
-            std::vector<AST*> elements()
-            {
-                return elements_;
-            }
-    };
-
-    class Arguments : public AST
-    {
-        private:
-            std::vector<AST*> args_;
-
-        public:
-            Arguments(const std::vector<AST*>& args) : AST(AST_EXPR_ARGS), args_(args)
-            {
-            }
-
-            ~Arguments() override
-            {
-                for(auto arg : args_)
+                void SetSource(const std::string& source)
                 {
-                    delete arg;
+                    m_source = source;
                 }
-            }
 
-            std::vector<AST*> args()
-            {
-                return args_;
-            }
-    };
-
-    class LHS : public AST
-    {
-        public:
-            enum PostfixType
-            {
-                CALL,
-                INDEX,
-                PROP,
-            };
-
-        private:
-            AST* base_;
-            size_t new_count_;
-
-            std::vector<std::pair<size_t, PostfixType>> order_;
-            std::vector<Arguments*> args_list_;
-            std::vector<AST*> index_list_;
-            std::vector<std::string> prop_name_list_;
-
-        public:
-            LHS(AST* base, size_t new_count) : AST(AST_EXPR_LHS), base_(base), new_count_(new_count)
-            {
-            }
-
-            ~LHS() override
-            {
-                for(auto args : args_list_)
+                bool IsIllegal()
                 {
-                    delete args;
+                    return m_type == AST_ILLEGAL;
                 }
-                for(auto index : index_list_)
+
+                std::string label()
                 {
-                    delete index;
+                    return label_;
                 }
-            }
-
-            void AddArguments(Arguments* args)
-            {
-                order_.emplace_back(std::make_pair(args_list_.size(), CALL));
-                args_list_.emplace_back(args);
-            }
-
-            void AddIndex(AST* index)
-            {
-                order_.emplace_back(std::make_pair(index_list_.size(), INDEX));
-                index_list_.emplace_back(index);
-            }
-
-            void AddProp(Token prop_name)
-            {
-                order_.emplace_back(std::make_pair(prop_name_list_.size(), PROP));
-                prop_name_list_.emplace_back(prop_name.source());
-            }
-
-            AST* base()
-            {
-                return base_;
-            }
-            size_t new_count()
-            {
-                return new_count_;
-            }
-            std::vector<std::pair<size_t, PostfixType>> order()
-            {
-                return order_;
-            }
-            std::vector<Arguments*> args_list()
-            {
-                return args_list_;
-            }
-            std::vector<AST*> index_list()
-            {
-                return index_list_;
-            }
-            std::vector<std::string> prop_name_list()
-            {
-                return prop_name_list_;
-            }
-
-    };
-
-    class Function : public AST
-    {
-        private:
-            Token name_;
-            std::vector<std::string> params_;
-            AST* body_;
-
-        public:
-            Function(const std::vector<std::string>& params, AST* body, const std::string& source)
-            : Function(Token(Token::TK_NOT_FOUND, ""), params, body, source)
-            {
-            }
-
-            Function(Token name, const std::vector<std::string>& params, AST* body, const std::string& source)
-            : AST(AST_FUNC, source), name_(std::move(name)), params_(params)
-            {
-                assert(body->type() == AST::AST_FUNC_BODY);
-                body_ = body;
-            }
-
-            ~Function() override
-            {
-                delete body_;
-            }
-
-            bool is_named()
-            {
-                return name_.type() != Token::TK_NOT_FOUND;
-            }
-            std::string name()
-            {
-                return name_.source();
-            }
-            std::vector<std::string> params()
-            {
-                return params_;
-            }
-            AST* body()
-            {
-                return body_;
-            }
-    };
-
-    class ProgramOrFunctionBody : public AST
-    {
-        private:
-            bool strict_;
-            std::vector<Function*> func_decls_;
-            std::vector<AST*> stmts_;
-
-        public:
-            ProgramOrFunctionBody(Type type, bool strict) : AST(type), strict_(strict)
-            {
-            }
-            ~ProgramOrFunctionBody() override
-            {
-                for(auto func_decl : func_decls_)
+                void SetLabel(const std::string& label)
                 {
-                    delete func_decl;
+                    label_ = label;
                 }
-                for(auto stmt : stmts_)
-                {
-                    delete stmt;
-                }
-            }
+        };
 
-            void AddFunctionDecl(AST* func)
-            {
-                assert(func->type() == AST_FUNC);
-                func_decls_.emplace_back(static_cast<Function*>(func));
-            }
-            void AddStatement(AST* stmt)
-            {
-                stmts_.emplace_back(stmt);
-            }
+        class ArrayLiteral : public AST
+        {
+            private:
+                std::vector<std::pair<size_t, AST*>> elements_;
+                size_t len_;
 
-            bool strict()
-            {
-                return strict_;
-            }
-            std::vector<Function*> func_decls()
-            {
-                return func_decls_;
-            }
-            std::vector<AST*> statements()
-            {
-                return stmts_;
-            }
-    };
-
-    class LabelledStmt : public AST
-    {
-        private:
-            Token label_;
-            AST* stmt_;
-
-        public:
-            LabelledStmt(Token label, AST* stmt, const std::string& source)
-            : AST(AST_STMT_LABEL, source), label_(std::move(label)), stmt_(stmt)
-            {
-            }
-            ~LabelledStmt()
-            {
-                delete stmt_;
-            }
-
-            std::string label()
-            {
-                return label_.source();
-            }
-            AST* statement()
-            {
-                return stmt_;
-            }
-    };
-
-    class ContinueOrBreak : public AST
-    {
-        private:
-            Token ident_;
-
-        public:
-            ContinueOrBreak(Type type, const std::string& source)
-            : ContinueOrBreak(type, Token(Token::TK_NOT_FOUND, ""), source)
-            {
-            }
-
-            ContinueOrBreak(Type type, Token ident, const std::string& source)
-            : AST(type, source), ident_(std::move(ident))
-            {
-            }
-
-            std::string ident()
-            {
-                return ident_.source();
-            }
-    };
-
-    class Return : public AST
-    {
-        private:
-            AST* expr_;
-
-        public:
-            Return(AST* expr, const std::string& source) : AST(AST_STMT_RETURN, source), expr_(expr)
-            {
-            }
-            ~Return()
-            {
-                {
-                    delete expr_;
-                }
-            }
-
-            AST* expr()
-            {
-                return expr_;
-            }
-    };
-
-    class Throw : public AST
-    {
-        private:
-            AST* expr_;
-
-        public:
-            Throw(AST* expr, const std::string& source) : AST(AST_STMT_THROW, source), expr_(expr)
-            {
-            }
-            ~Throw()
-            {
-                {
-                    delete expr_;
-                }
-            }
-
-            AST* expr()
-            {
-                return expr_;
-            }
-    };
-
-    class VarDecl : public AST
-    {
-        private:
-            Token ident_;
-            AST* init_;
-
-        public:
-            VarDecl(Token ident, const std::string& source) : VarDecl(std::move(ident), nullptr, source)
-            {
-            }
-
-            VarDecl(Token ident, AST* init, const std::string& source)
-            : AST(AST_STMT_VAR_DECL, source), ident_(std::move(ident)), init_(init)
-            {
-            }
-            ~VarDecl()
-            {
-                delete init_;
-            }
-
-            std::string ident()
-            {
-                return ident_.source();
-            }
-            AST* init()
-            {
-                return init_;
-            }
-    };
-
-    class VarStmt : public AST
-    {
-        public:
-            std::vector<VarDecl*> decls_;
-
-        public:
-            VarStmt() : AST(AST_STMT_VAR)
-            {
-            }
-            ~VarStmt()
-            {
-                for(auto decl : decls_)
-                {
-                    delete decl;
-                }
-            }
-
-            void AddDecl(AST* decl)
-            {
-                assert(decl->type() == AST_STMT_VAR_DECL);
-                decls_.emplace_back(static_cast<VarDecl*>(decl));
-            }
-
-            std::vector<VarDecl*> decls()
-            {
-                return decls_;
-            }
-    };
-
-    class Block : public AST
-    {
-        public:
-            std::vector<AST*> stmts_;
-
-        public:
-            Block() : AST(AST_STMT_BLOCK)
-            {
-            }
-            ~Block()
-            {
-                for(auto stmt : stmts_)
-                {
-                    delete stmt;
-                }
-            }
-
-            void AddStatement(AST* stmt)
-            {
-                stmts_.emplace_back(stmt);
-            }
-
-            std::vector<AST*> statements()
-            {
-                return stmts_;
-            }
-    };
-
-    class Try : public AST
-    {
-        public:
-            AST* try_block_;
-            Token catch_ident_;
-            AST* catch_block_;
-            AST* finally_block_;
-
-        public:
-            Try(AST* try_block, Token catch_ident, AST* catch_block, const std::string& source)
-            : Try(try_block, std::move(catch_ident), catch_block, nullptr, source)
-            {
-            }
-
-            Try(AST* try_block, AST* finally_block, const std::string& source)
-            : Try(try_block, Token(Token::TK_NOT_FOUND, ""), nullptr, finally_block, source)
-            {
-            }
-
-            Try(AST* try_block, Token catch_ident, AST* catch_block, AST* finally_block, const std::string& source)
-            : AST(AST_STMT_TRY, source), try_block_(try_block), catch_ident_(std::move(catch_ident)),
-              catch_block_(catch_block), finally_block_(finally_block)
-            {
-            }
-
-            ~Try()
-            {
-                delete try_block_;
-                {
-                    delete catch_block_;
-                }
-                {
-                    delete finally_block_;
-                }
-            }
-
-            AST* try_block()
-            {
-                return try_block_;
-            }
-            std::string catch_ident()
-            {
-                return catch_ident_.source();
-            };
-            AST* catch_block()
-            {
-                return catch_block_;
-            }
-            AST* finally_block()
-            {
-                return finally_block_;
-            }
-    };
-
-    class If : public AST
-    {
-        public:
-            AST* cond_;
-            AST* if_block_;
-            AST* else_block_;
-
-        public:
-            If(AST* cond, AST* if_block, const std::string& source) : If(cond, if_block, nullptr, source)
-            {
-            }
-
-            If(AST* cond, AST* if_block, AST* else_block, const std::string& source)
-            : AST(AST_STMT_IF, source), cond_(cond), if_block_(if_block), else_block_(else_block)
-            {
-            }
-            ~If()
-            {
-                delete cond_;
-                delete if_block_;
-                {
-                    delete else_block_;
-                }
-            }
-
-            AST* cond()
-            {
-                return cond_;
-            }
-            AST* if_block()
-            {
-                return if_block_;
-            }
-            AST* else_block()
-            {
-                return else_block_;
-            }
-    };
-
-    class WhileOrWith : public AST
-    {
-        public:
-            AST* expr_;
-            AST* stmt_;
-
-        public:
-            WhileOrWith(Type type, AST* expr, AST* stmt, const std::string& source)
-            : AST(type, source), expr_(expr), stmt_(stmt)
-            {
-            }
-            ~WhileOrWith()
-            {
-                delete expr_;
-                delete stmt_;
-            }
-
-            AST* expr()
-            {
-                return expr_;
-            }
-            AST* stmt()
-            {
-                return stmt_;
-            }
-    };
-
-    class DoWhile : public AST
-    {
-        public:
-            AST* expr_;
-            AST* stmt_;
-
-        public:
-            DoWhile(AST* expr, AST* stmt, const std::string& source)
-            : AST(AST_STMT_DO_WHILE, source), expr_(expr), stmt_(stmt)
-            {
-            }
-            ~DoWhile()
-            {
-                delete expr_;
-                delete stmt_;
-            }
-
-            AST* expr()
-            {
-                return expr_;
-            }
-            AST* stmt()
-            {
-                return stmt_;
-            }
-
-    };
-
-    class Switch : public AST
-    {
-        public:
-            struct DefaultClause
-            {
-                std::vector<AST*> stmts;
-            };
-
-            struct CaseClause
-            {
-                CaseClause(AST* expr, const std::vector<AST*>& stmts) : expr(expr), stmts(stmts)
+            public:
+                ArrayLiteral() : AST(AST_EXPR_ARRAY), len_(0)
                 {
                 }
-                AST* expr;
-                std::vector<AST*> stmts;
-            };
 
-        private:
-            AST* expr_;
-            bool has_default_clause_ = false;
-            DefaultClause default_clause_;
-            std::vector<CaseClause> before_default_case_clauses_;
-            std::vector<CaseClause> after_default_case_clauses_;
-
-        public:
-            Switch() : AST(AST_STMT_SWITCH)
-            {
-            }
-
-            ~Switch() override
-            {
-                for(const CaseClause& clause : before_default_case_clauses_)
+                ~ArrayLiteral() override
                 {
-                    delete clause.expr;
-                    for(auto stmt : clause.stmts)
+                    for(auto pair : elements_)
+                    {
+                        delete pair.second;
+                    }
+                }
+
+                size_t length()
+                {
+                    return len_;
+                }
+                std::vector<std::pair<size_t, AST*>> elements()
+                {
+                    return elements_;
+                }
+
+                void AddElement(AST* element)
+                {
+                    if(element != nullptr)
+                    {
+                        elements_.emplace_back(len_, element);
+                    }
+                    len_++;
+                }
+        };
+
+        class ObjectLiteral : public AST
+        {
+            public:
+                struct Property
+                {
+                    enum Type
+                    {
+                        NORMAL = 0,
+                        GET,
+                        SET,
+                    };
+
+                    Token key;
+                    AST* value;
+                    Type type;
+
+                    Property(Token k, AST* v, Type t) : key(std::move(k)), value(v), type(t)
+                    {
+                    }
+                };
+
+            private:
+                std::vector<Property> properties_;
+
+            public:
+                ObjectLiteral() : AST(AST_EXPR_OBJ)
+                {
+                }
+
+                ~ObjectLiteral() override
+                {
+                    for(const auto& property : properties_)
+                    {
+                        delete property.value;
+                    }
+                }
+
+                void AddProperty(const Property& p)
+                {
+                    properties_.emplace_back(p);
+                }
+
+                std::vector<Property> properties()
+                {
+                    return properties_;
+                }
+
+                size_t length()
+                {
+                    return properties_.size();
+                }
+
+
+        };
+
+        class Paren : public AST
+        {
+            private:
+                AST* expr_;
+
+            public:
+                Paren(AST* expr, const std::string& source) : AST(AST_EXPR_PAREN, source), expr_(expr)
+                {
+                }
+
+                AST* expr()
+                {
+                    return expr_;
+                }
+        };
+
+        class Binary : public AST
+        {
+            private:
+                AST* lhs_;
+                AST* rhs_;
+                Token op_;
+
+            public:
+                Binary(AST* lhs, AST* rhs, Token op, const std::string& source = "")
+                : AST(AST_EXPR_BINARY, source), lhs_(lhs), rhs_(rhs), op_(std::move(op))
+                {
+                }
+
+                ~Binary() override
+                {
+                    delete lhs_;
+                    delete rhs_;
+                }
+
+                AST* lhs()
+                {
+                    return lhs_;
+                }
+                AST* rhs()
+                {
+                    return rhs_;
+                }
+                std::string op()
+                {
+                    return op_.source();
+                }
+        };
+
+        class Unary : public AST
+        {
+            private:
+                AST* node_;
+                Token op_;
+                bool prefix_;
+
+            public:
+                Unary(AST* node, Token op, bool prefix) : AST(AST_EXPR_UNARY), node_(node), op_(std::move(op)), prefix_(prefix)
+                {
+                }
+
+                ~Unary() override
+                {
+                    delete node_;
+                }
+
+                AST* node()
+                {
+                    return node_;
+                }
+                Token op()
+                {
+                    return op_;
+                }
+                bool prefix()
+                {
+                    return prefix_;
+                }
+        };
+
+        class TripleCondition : public AST
+        {
+            private:
+                AST* cond_;
+                AST* true_expr_;
+                AST* false_expr_;
+
+            public:
+                TripleCondition(AST* cond, AST* true_expr, AST* false_expr)
+                : AST(AST_EXPR_TRIPLE), cond_(cond), true_expr_(true_expr), false_expr_(false_expr)
+                {
+                }
+
+                ~TripleCondition() override
+                {
+                    delete cond_;
+                    delete true_expr_;
+                    delete false_expr_;
+                }
+
+                AST* cond()
+                {
+                    return cond_;
+                }
+                AST* true_expr()
+                {
+                    return true_expr_;
+                }
+                AST* false_expr()
+                {
+                    return false_expr_;
+                }
+
+        };
+
+        class Expression : public AST
+        {
+            private:
+                std::vector<AST*> elements_;
+
+            public:
+                Expression() : AST(AST_EXPR)
+                {
+                }
+                ~Expression() override
+                {
+                    for(auto element : elements_)
+                    {
+                        delete element;
+                    }
+                }
+
+                void AddElement(AST* element)
+                {
+                    elements_.push_back(element);
+                }
+
+                std::vector<AST*> elements()
+                {
+                    return elements_;
+                }
+        };
+
+        class Arguments : public AST
+        {
+            private:
+                std::vector<AST*> args_;
+
+            public:
+                Arguments(const std::vector<AST*>& args) : AST(AST_EXPR_ARGS), args_(args)
+                {
+                }
+
+                ~Arguments() override
+                {
+                    for(auto arg : args_)
+                    {
+                        delete arg;
+                    }
+                }
+
+                std::vector<AST*> args()
+                {
+                    return args_;
+                }
+        };
+
+        class LHS : public AST
+        {
+            public:
+                enum PostfixType
+                {
+                    CALL,
+                    INDEX,
+                    PROP,
+                };
+
+            private:
+                AST* base_;
+                size_t new_count_;
+
+                std::vector<std::pair<size_t, PostfixType>> order_;
+                std::vector<Arguments*> args_list_;
+                std::vector<AST*> index_list_;
+                std::vector<std::string> prop_name_list_;
+
+            public:
+                LHS(AST* base, size_t new_count) : AST(AST_EXPR_LHS), base_(base), new_count_(new_count)
+                {
+                }
+
+                ~LHS() override
+                {
+                    for(auto args : args_list_)
+                    {
+                        delete args;
+                    }
+                    for(auto index : index_list_)
+                    {
+                        delete index;
+                    }
+                }
+
+                void AddArguments(Arguments* args)
+                {
+                    order_.emplace_back(std::make_pair(args_list_.size(), CALL));
+                    args_list_.emplace_back(args);
+                }
+
+                void AddIndex(AST* index)
+                {
+                    order_.emplace_back(std::make_pair(index_list_.size(), INDEX));
+                    index_list_.emplace_back(index);
+                }
+
+                void AddProp(Token prop_name)
+                {
+                    order_.emplace_back(std::make_pair(prop_name_list_.size(), PROP));
+                    prop_name_list_.emplace_back(prop_name.source());
+                }
+
+                AST* base()
+                {
+                    return base_;
+                }
+                size_t new_count()
+                {
+                    return new_count_;
+                }
+                std::vector<std::pair<size_t, PostfixType>> order()
+                {
+                    return order_;
+                }
+                std::vector<Arguments*> args_list()
+                {
+                    return args_list_;
+                }
+                std::vector<AST*> index_list()
+                {
+                    return index_list_;
+                }
+                std::vector<std::string> prop_name_list()
+                {
+                    return prop_name_list_;
+                }
+
+        };
+
+        class Function : public AST
+        {
+            private:
+                Token name_;
+                std::vector<std::string> params_;
+                AST* body_;
+
+            public:
+                Function(const std::vector<std::string>& params, AST* body, const std::string& source)
+                : Function(Token(Token::TK_NOT_FOUND, ""), params, body, source)
+                {
+                }
+
+                Function(Token name, const std::vector<std::string>& params, AST* body, const std::string& source)
+                : AST(AST_FUNC, source), name_(std::move(name)), params_(params)
+                {
+                    assert(body->type() == AST::AST_FUNC_BODY);
+                    body_ = body;
+                }
+
+                ~Function() override
+                {
+                    delete body_;
+                }
+
+                bool is_named()
+                {
+                    return name_.type() != Token::TK_NOT_FOUND;
+                }
+                std::string name()
+                {
+                    return name_.source();
+                }
+                std::vector<std::string> params()
+                {
+                    return params_;
+                }
+                AST* body()
+                {
+                    return body_;
+                }
+        };
+
+        class ProgramOrFunctionBody : public AST
+        {
+            private:
+                bool strict_;
+                std::vector<Function*> func_decls_;
+                std::vector<AST*> stmts_;
+
+            public:
+                ProgramOrFunctionBody(Type type, bool strict) : AST(type), strict_(strict)
+                {
+                }
+                ~ProgramOrFunctionBody() override
+                {
+                    for(auto func_decl : func_decls_)
+                    {
+                        delete func_decl;
+                    }
+                    for(auto stmt : stmts_)
                     {
                         delete stmt;
                     }
                 }
-                for(const CaseClause& clause : after_default_case_clauses_)
+
+                void AddFunctionDecl(AST* func)
                 {
-                    delete clause.expr;
-                    for(auto stmt : clause.stmts)
+                    assert(func->type() == AST_FUNC);
+                    func_decls_.emplace_back(static_cast<Function*>(func));
+                }
+                void AddStatement(AST* stmt)
+                {
+                    stmts_.emplace_back(stmt);
+                }
+
+                bool strict()
+                {
+                    return strict_;
+                }
+                std::vector<Function*> func_decls()
+                {
+                    return func_decls_;
+                }
+                std::vector<AST*> statements()
+                {
+                    return stmts_;
+                }
+        };
+
+        class LabelledStmt : public AST
+        {
+            private:
+                Token label_;
+                AST* stmt_;
+
+            public:
+                LabelledStmt(Token label, AST* stmt, const std::string& source)
+                : AST(AST_STMT_LABEL, source), label_(std::move(label)), stmt_(stmt)
+                {
+                }
+                ~LabelledStmt()
+                {
+                    delete stmt_;
+                }
+
+                std::string label()
+                {
+                    return label_.source();
+                }
+                AST* statement()
+                {
+                    return stmt_;
+                }
+        };
+
+        class ContinueOrBreak : public AST
+        {
+            private:
+                Token ident_;
+
+            public:
+                ContinueOrBreak(Type type, const std::string& source)
+                : ContinueOrBreak(type, Token(Token::TK_NOT_FOUND, ""), source)
+                {
+                }
+
+                ContinueOrBreak(Type type, Token ident, const std::string& source)
+                : AST(type, source), ident_(std::move(ident))
+                {
+                }
+
+                std::string ident()
+                {
+                    return ident_.source();
+                }
+        };
+
+        class Return : public AST
+        {
+            private:
+                AST* expr_;
+
+            public:
+                Return(AST* expr, const std::string& source) : AST(AST_STMT_RETURN, source), expr_(expr)
+                {
+                }
+                ~Return()
+                {
+                    {
+                        delete expr_;
+                    }
+                }
+
+                AST* expr()
+                {
+                    return expr_;
+                }
+        };
+
+        class Throw : public AST
+        {
+            private:
+                AST* expr_;
+
+            public:
+                Throw(AST* expr, const std::string& source) : AST(AST_STMT_THROW, source), expr_(expr)
+                {
+                }
+                ~Throw()
+                {
+                    {
+                        delete expr_;
+                    }
+                }
+
+                AST* expr()
+                {
+                    return expr_;
+                }
+        };
+
+        class VarDecl : public AST
+        {
+            private:
+                Token ident_;
+                AST* init_;
+
+            public:
+                VarDecl(Token ident, const std::string& source) : VarDecl(std::move(ident), nullptr, source)
+                {
+                }
+
+                VarDecl(Token ident, AST* init, const std::string& source)
+                : AST(AST_STMT_VAR_DECL, source), ident_(std::move(ident)), init_(init)
+                {
+                }
+                ~VarDecl()
+                {
+                    delete init_;
+                }
+
+                std::string ident()
+                {
+                    return ident_.source();
+                }
+                AST* init()
+                {
+                    return init_;
+                }
+        };
+
+        class VarStmt : public AST
+        {
+            public:
+                std::vector<VarDecl*> decls_;
+
+            public:
+                VarStmt() : AST(AST_STMT_VAR)
+                {
+                }
+                ~VarStmt()
+                {
+                    for(auto decl : decls_)
+                    {
+                        delete decl;
+                    }
+                }
+
+                void AddDecl(AST* decl)
+                {
+                    assert(decl->type() == AST_STMT_VAR_DECL);
+                    decls_.emplace_back(static_cast<VarDecl*>(decl));
+                }
+
+                std::vector<VarDecl*> decls()
+                {
+                    return decls_;
+                }
+        };
+
+        class Block : public AST
+        {
+            public:
+                std::vector<AST*> stmts_;
+
+            public:
+                Block() : AST(AST_STMT_BLOCK)
+                {
+                }
+                ~Block()
+                {
+                    for(auto stmt : stmts_)
                     {
                         delete stmt;
                     }
                 }
-                for(auto stmt : default_clause_.stmts)
+
+                void AddStatement(AST* stmt)
                 {
-                    delete stmt;
+                    stmts_.emplace_back(stmt);
                 }
-            }
 
-            void SetExpr(AST* expr)
-            {
-                expr_ = expr;
-            }
+                std::vector<AST*> statements()
+                {
+                    return stmts_;
+                }
+        };
 
-            void SetDefaultClause(const std::vector<AST*>& stmts)
-            {
-                assert(!has_default_clause());
-                has_default_clause_ = true;
-                default_clause_.stmts = stmts;
-            }
+        class Try : public AST
+        {
+            public:
+                AST* try_block_;
+                Token catch_ident_;
+                AST* catch_block_;
+                AST* finally_block_;
 
-            void AddBeforeDefaultCaseClause(const CaseClause& c)
-            {
-                before_default_case_clauses_.emplace_back(c);
-            }
+            public:
+                Try(AST* try_block, Token catch_ident, AST* catch_block, const std::string& source)
+                : Try(try_block, std::move(catch_ident), catch_block, nullptr, source)
+                {
+                }
 
-            void AddAfterDefaultCaseClause(const CaseClause& c)
-            {
-                after_default_case_clauses_.emplace_back(c);
-            }
+                Try(AST* try_block, AST* finally_block, const std::string& source)
+                : Try(try_block, Token(Token::TK_NOT_FOUND, ""), nullptr, finally_block, source)
+                {
+                }
 
-            AST* expr()
-            {
-                return expr_;
-            }
-            std::vector<CaseClause> before_default_case_clauses()
-            {
-                return before_default_case_clauses_;
-            }
-            bool has_default_clause()
-            {
-                return has_default_clause_;
-            }
-            DefaultClause default_clause()
-            {
-                assert(has_default_clause());
-                return default_clause_;
-            }
-            std::vector<CaseClause> after_default_case_clauses()
-            {
-                return after_default_case_clauses_;
-            }
-    };
+                Try(AST* try_block, Token catch_ident, AST* catch_block, AST* finally_block, const std::string& source)
+                : AST(AST_STMT_TRY, source), try_block_(try_block), catch_ident_(std::move(catch_ident)),
+                  catch_block_(catch_block), finally_block_(finally_block)
+                {
+                }
 
-    class For : public AST
-    {
-        private:
-            std::vector<AST*> expr0s_;
-            AST* expr1_;
-            AST* expr2_;
+                ~Try()
+                {
+                    delete try_block_;
+                    {
+                        delete catch_block_;
+                    }
+                    {
+                        delete finally_block_;
+                    }
+                }
 
-            AST* stmt_;
+                AST* try_block()
+                {
+                    return try_block_;
+                }
+                std::string catch_ident()
+                {
+                    return catch_ident_.source();
+                };
+                AST* catch_block()
+                {
+                    return catch_block_;
+                }
+                AST* finally_block()
+                {
+                    return finally_block_;
+                }
+        };
 
-        public:
-            For(const std::vector<AST*>& expr0s, AST* expr1, AST* expr2, AST* stmt, const std::string& source)
-            : AST(AST_STMT_FOR, source), expr0s_(expr0s), expr1_(expr1), expr2_(expr2), stmt_(stmt)
-            {
-            }
+        class If : public AST
+        {
+            public:
+                AST* cond_;
+                AST* if_block_;
+                AST* else_block_;
 
-            std::vector<AST*> expr0s()
-            {
-                return expr0s_;
-            }
-            AST* expr1()
-            {
-                return expr1_;
-            }
-            AST* expr2()
-            {
-                return expr2_;
-            }
-            AST* statement()
-            {
-                return stmt_;
-            }
-    };
+            public:
+                If(AST* cond, AST* if_block, const std::string& source) : If(cond, if_block, nullptr, source)
+                {
+                }
 
-    class ForIn : public AST
-    {
-        private:
-            AST* expr0_;
-            AST* expr1_;
-            AST* stmt_;
+                If(AST* cond, AST* if_block, AST* else_block, const std::string& source)
+                : AST(AST_STMT_IF, source), cond_(cond), if_block_(if_block), else_block_(else_block)
+                {
+                }
+                ~If()
+                {
+                    delete cond_;
+                    delete if_block_;
+                    {
+                        delete else_block_;
+                    }
+                }
 
-        public:
-            ForIn(AST* expr0, AST* expr1, AST* stmt, const std::string& source)
-            : AST(AST_STMT_FOR_IN, source), expr0_(expr0), expr1_(expr1), stmt_(stmt)
-            {
-            }
+                AST* cond()
+                {
+                    return cond_;
+                }
+                AST* if_block()
+                {
+                    return if_block_;
+                }
+                AST* else_block()
+                {
+                    return else_block_;
+                }
+        };
 
-            AST* expr0()
-            {
-                return expr0_;
-            }
-            AST* expr1()
-            {
-                return expr1_;
-            }
-            AST* statement()
-            {
-                return stmt_;
-            }
-    };
+        class WhileOrWith : public AST
+        {
+            public:
+                AST* expr_;
+                AST* stmt_;
 
-    class Parser
-    {
-        private:
-            std::string m_source;
-            Lexer lexer_;
+            public:
+                WhileOrWith(Type type, AST* expr, AST* stmt, const std::string& source)
+                : AST(type, source), expr_(expr), stmt_(stmt)
+                {
+                }
+                ~WhileOrWith()
+                {
+                    delete expr_;
+                    delete stmt_;
+                }
 
-        public:
-            Parser(const std::string& source);
-            AST* ParsePrimaryExpression();
-            std::vector<std::string> ParseFormalParameterList();
-            AST* ParseFunction(bool must_be_named);
-            AST* ParseArrayLiteral();
-            AST* ParseObjectLiteral();
-            AST* ParseExpression(bool no_in);
-            AST* ParseAssignmentExpression(bool no_in);
-            AST* ParseConditionalExpression(bool no_in);
-            AST* ParseBinaryAndUnaryExpression(bool no_in, int priority);
-            AST* ParseLeftHandSideExpression();
-            AST* ParseArguments();
-            AST* ParseFunctionBody(Token::Type ending_token_type = Token::TK_RBRACE);
-            AST* ParseProgram();
-            AST* ParseProgramOrFunctionBody(Token::Type ending_token_type, AST::Type program_or_function);
-            AST* ParseStatement();
-            AST* ParseBlockStatement();
-            AST* ParseVariableDeclaration(bool no_in);
-            AST* ParseVariableStatement(bool no_in);
-            AST* ParseExpressionStatement();
-            AST* ParseIfStatement();
-            AST* ParseDoWhileStatement();
-            AST* ParseWhileStatement();
-            AST* ParseWithStatement();
-            AST* ParseWhileOrWithStatement(const std::string& keyword, AST::Type type);
-            AST* ParseForStatement();
-            AST* ParseForStatement(const std::vector<AST*>& expr0s, size_t start);
-            AST* ParseForInStatement(AST* expr0, size_t start);
-            AST* ParseContinueStatement();
-            AST* ParseBreakStatement();
-            AST* ParseContinueOrBreakStatement(const std::string& keyword, AST::Type type);
-            AST* ParseReturnStatement();
-            AST* ParseThrowStatement();
-            AST* ParseSwitchStatement();
-            AST* ParseTryStatement();
-            AST* ParseLabelledStatement();
-    };
+                AST* expr()
+                {
+                    return expr_;
+                }
+                AST* stmt()
+                {
+                    return stmt_;
+                }
+        };
 
-    class JSValue;
+        class DoWhile : public AST
+        {
+            public:
+                AST* expr_;
+                AST* stmt_;
+
+            public:
+                DoWhile(AST* expr, AST* stmt, const std::string& source)
+                : AST(AST_STMT_DO_WHILE, source), expr_(expr), stmt_(stmt)
+                {
+                }
+                ~DoWhile()
+                {
+                    delete expr_;
+                    delete stmt_;
+                }
+
+                AST* expr()
+                {
+                    return expr_;
+                }
+                AST* stmt()
+                {
+                    return stmt_;
+                }
+
+        };
+
+        class Switch : public AST
+        {
+            public:
+                struct DefaultClause
+                {
+                    std::vector<AST*> stmts;
+                };
+
+                struct CaseClause
+                {
+                    CaseClause(AST* expr, const std::vector<AST*>& stmts) : expr(expr), stmts(stmts)
+                    {
+                    }
+                    AST* expr;
+                    std::vector<AST*> stmts;
+                };
+
+            private:
+                AST* expr_;
+                bool has_default_clause_ = false;
+                DefaultClause default_clause_;
+                std::vector<CaseClause> before_default_case_clauses_;
+                std::vector<CaseClause> after_default_case_clauses_;
+
+            public:
+                Switch() : AST(AST_STMT_SWITCH)
+                {
+                }
+
+                ~Switch() override
+                {
+                    for(const CaseClause& clause : before_default_case_clauses_)
+                    {
+                        delete clause.expr;
+                        for(auto stmt : clause.stmts)
+                        {
+                            delete stmt;
+                        }
+                    }
+                    for(const CaseClause& clause : after_default_case_clauses_)
+                    {
+                        delete clause.expr;
+                        for(auto stmt : clause.stmts)
+                        {
+                            delete stmt;
+                        }
+                    }
+                    for(auto stmt : default_clause_.stmts)
+                    {
+                        delete stmt;
+                    }
+                }
+
+                void SetExpr(AST* expr)
+                {
+                    expr_ = expr;
+                }
+
+                void SetDefaultClause(const std::vector<AST*>& stmts)
+                {
+                    assert(!has_default_clause());
+                    has_default_clause_ = true;
+                    default_clause_.stmts = stmts;
+                }
+
+                void AddBeforeDefaultCaseClause(const CaseClause& c)
+                {
+                    before_default_case_clauses_.emplace_back(c);
+                }
+
+                void AddAfterDefaultCaseClause(const CaseClause& c)
+                {
+                    after_default_case_clauses_.emplace_back(c);
+                }
+
+                AST* expr()
+                {
+                    return expr_;
+                }
+                std::vector<CaseClause> before_default_case_clauses()
+                {
+                    return before_default_case_clauses_;
+                }
+                bool has_default_clause()
+                {
+                    return has_default_clause_;
+                }
+                DefaultClause default_clause()
+                {
+                    assert(has_default_clause());
+                    return default_clause_;
+                }
+                std::vector<CaseClause> after_default_case_clauses()
+                {
+                    return after_default_case_clauses_;
+                }
+        };
+
+        class For : public AST
+        {
+            private:
+                std::vector<AST*> expr0s_;
+                AST* expr1_;
+                AST* expr2_;
+
+                AST* stmt_;
+
+            public:
+                For(const std::vector<AST*>& expr0s, AST* expr1, AST* expr2, AST* stmt, const std::string& source)
+                : AST(AST_STMT_FOR, source), expr0s_(expr0s), expr1_(expr1), expr2_(expr2), stmt_(stmt)
+                {
+                }
+
+                std::vector<AST*> expr0s()
+                {
+                    return expr0s_;
+                }
+                AST* expr1()
+                {
+                    return expr1_;
+                }
+                AST* expr2()
+                {
+                    return expr2_;
+                }
+                AST* statement()
+                {
+                    return stmt_;
+                }
+        };
+
+        class ForIn : public AST
+        {
+            private:
+                AST* expr0_;
+                AST* expr1_;
+                AST* stmt_;
+
+            public:
+                ForIn(AST* expr0, AST* expr1, AST* stmt, const std::string& source)
+                : AST(AST_STMT_FOR_IN, source), expr0_(expr0), expr1_(expr1), stmt_(stmt)
+                {
+                }
+
+                AST* expr0()
+                {
+                    return expr0_;
+                }
+                AST* expr1()
+                {
+                    return expr1_;
+                }
+                AST* statement()
+                {
+                    return stmt_;
+                }
+        };
+
+        class Parser
+        {
+            private:
+                std::string m_source;
+                Lexer lexer_;
+
+            public:
+                Parser(const std::string& source);
+                AST* ParsePrimaryExpression();
+                std::vector<std::string> ParseFormalParameterList();
+                AST* ParseFunction(bool must_be_named);
+                AST* ParseArrayLiteral();
+                AST* ParseObjectLiteral();
+                AST* ParseExpression(bool no_in);
+                AST* ParseAssignmentExpression(bool no_in);
+                AST* ParseConditionalExpression(bool no_in);
+                AST* ParseBinaryAndUnaryExpression(bool no_in, int priority);
+                AST* ParseLeftHandSideExpression();
+                AST* ParseArguments();
+                AST* ParseFunctionBody(Token::Type ending_token_type = Token::TK_RBRACE);
+                AST* ParseProgram();
+                AST* ParseProgramOrFunctionBody(Token::Type ending_token_type, AST::Type program_or_function);
+                AST* ParseStatement();
+                AST* ParseBlockStatement();
+                AST* ParseVariableDeclaration(bool no_in);
+                AST* ParseVariableStatement(bool no_in);
+                AST* ParseExpressionStatement();
+                AST* ParseIfStatement();
+                AST* ParseDoWhileStatement();
+                AST* ParseWhileStatement();
+                AST* ParseWithStatement();
+                AST* ParseWhileOrWithStatement(const std::string& keyword, AST::Type type);
+                AST* ParseForStatement();
+                AST* ParseForStatement(const std::vector<AST*>& expr0s, size_t start);
+                AST* ParseForInStatement(AST* expr0, size_t start);
+                AST* ParseContinueStatement();
+                AST* ParseBreakStatement();
+                AST* ParseContinueOrBreakStatement(const std::string& keyword, AST::Type type);
+                AST* ParseReturnStatement();
+                AST* ParseThrowStatement();
+                AST* ParseSwitchStatement();
+                AST* ParseTryStatement();
+                AST* ParseLabelledStatement();
+        };
+    }
 
     class Error
     {
@@ -2789,9 +2779,7 @@ namespace es
                 JS_STRING,
                 JS_NUMBER,
                 JS_OBJECT,
-
                 LANG_TO_SPEC,
-
                 JS_REF,
                 JS_LIST,
                 JS_PROP_DESC,
@@ -2799,7 +2787,6 @@ namespace es
                 JS_LEX_ENV,
                 JS_ENV_REC,
             };
-
 
         private:
             Type m_type;
@@ -3708,7 +3695,7 @@ namespace es
     // 8.12.5 [[Put]] ( P, V, Throw )
     inline void JSObject::Put(Error* e, const std::string& P, JSValue* V, bool throw_flag)
     {
-        log::PrintSource("Put ", P, " " + V->ToString());
+        //log::PrintSource("Put ", P, " " + V->ToString());
         if(!CanPut(P))
         {// 1
             if(throw_flag)
@@ -3725,7 +3712,7 @@ namespace es
             {// 3
                 PropertyDescriptor* value_desc = new PropertyDescriptor();
                 value_desc->SetValue(V);
-                log::PrintSource("Overwrite the old desc with " + value_desc->ToString());
+                //log::PrintSource("Overwrite the old desc with " + value_desc->ToString());
                 DefineOwnProperty(e, P, value_desc, throw_flag);
                 return;
             }
@@ -3736,7 +3723,7 @@ namespace es
             PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(value);
             if(desc->IsAccessorDescriptor())
             {
-                log::PrintSource("Use parent prototype's setter");
+                //log::PrintSource("Use parent prototype's setter");
                 JSValue* setter = desc->Set();
                 assert(!setter->IsUndefined());
                 JSObject* setter_obj = static_cast<JSObject*>(setter);
@@ -3830,17 +3817,17 @@ namespace es
                 return true;// 6
             }
         }
-        log::PrintSource("desc: " + desc->ToString() + ", current: " + current_desc->ToString());
+        //log::PrintSource("desc: " + desc->ToString() + ", current: " + current_desc->ToString());
         if(!current_desc->Configurable())
         {// 7
             if(desc->Configurable())
             {// 7.a
-                log::PrintSource("DefineOwnProperty: ", P, " not configurable, while new value configurable");
+                //log::PrintSource("DefineOwnProperty: ", P, " not configurable, while new value configurable");
                 goto reject;
             }
             if(desc->HasEnumerable() && (desc->Enumerable() != current_desc->Enumerable()))
             {// 7.b
-                log::PrintSource("DefineOwnProperty: ", P, " enumerable value differ");
+                //log::PrintSource("DefineOwnProperty: ", P, " enumerable value differ");
                 goto reject;
             }
         }
@@ -3897,13 +3884,13 @@ namespace es
                 }
             }
         }
-        log::PrintSource("DefineOwnProperty: ", P, " is set" + (desc->HasValue() ? " to " + desc->Value()->ToString() : ""));
+        //log::PrintSource("DefineOwnProperty: ", P, " is set" + (desc->HasValue() ? " to " + desc->Value()->ToString() : ""));
         // 12.
         current_desc->Set(desc);
         // 13.
         return true;
     reject:
-        log::PrintSource("DefineOwnProperty reject");
+        //log::PrintSource("DefineOwnProperty reject");
         if(throw_flag)
         {
             *e = *Error::TypeError();
@@ -3959,7 +3946,7 @@ namespace es
 
             void SetMutableBinding(Error* e, const std::string& N, JSValue* V, bool S) override
             {
-                log::PrintSource("enter SetMutableBinding ", N, " to " + V->ToString());
+                //log::PrintSource("enter SetMutableBinding ", N, " to " + V->ToString());
                 assert(V->IsLanguageType());
                 assert(HasBinding(N));
                 // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,
@@ -3987,11 +3974,11 @@ namespace es
                     }
                     else
                     {
-                        log::PrintSource("GetBindingValue ", N, " undefined");
+                        //log::PrintSource("GetBindingValue ", N, " undefined");
                         return Undefined::Instance();
                     }
                 }
-                log::PrintSource("GetBindingValue ", N, " " + b.value->ToString());
+                //log::PrintSource("GetBindingValue ", N, " " + b.value->ToString());
                 return b.value;
             }
 
@@ -4065,7 +4052,7 @@ namespace es
 
             void SetMutableBinding(Error* e, const std::string& N, JSValue* V, bool S) override
             {
-                log::PrintSource("enter SetMutableBinding ", N, " to " + V->ToString());
+                //log::PrintSource("enter SetMutableBinding ", N, " to " + V->ToString());
                 assert(V->IsLanguageType());
                 bindings_->Put(e, N, V, S);
             }
@@ -4319,7 +4306,7 @@ namespace es
 
     inline void PutValue(Error* e, JSValue* V, JSValue* W)
     {
-        log::PrintSource("PutValue V: " + V->ToString() + ", W: " + W->ToString());
+        //log::PrintSource("PutValue V: " + V->ToString() + ", W: " + W->ToString());
         if(!V->IsReference())
         {
             *e = *Error::ReferenceError();
@@ -5302,7 +5289,7 @@ namespace es
 
     double ToNumber(Error* e, JSValue* input);
     std::string NumberToString(double m);
-    Completion EvalProgram(AST* ast);
+    Completion EvalProgram(Parsing::AST* ast);
 
     class FunctionProto : public JSObject
     {
@@ -5415,21 +5402,21 @@ namespace es
 
     };
 
-    void EnterFunctionCode(Error* e, JSObject* f, ProgramOrFunctionBody* body, JSValue* this_arg, const std::vector<JSValue*>& args, bool strict);
+    void EnterFunctionCode(Error* e, JSObject* f, Parsing::ProgramOrFunctionBody* body, JSValue* this_arg, const std::vector<JSValue*>& args, bool strict);
 
     class FunctionObject : public JSObject
     {
         private:
             std::vector<std::string> formal_params_;
             LexicalEnvironment* scope_;
-            ProgramOrFunctionBody* body_;
+            Parsing::ProgramOrFunctionBody* body_;
             bool strict_ = false;
 
         protected:
             bool from_bind_;
 
         public:
-            FunctionObject(const std::vector<std::string>& names, AST* body, LexicalEnvironment* scope, bool from_bind_ = false):
+            FunctionObject(const std::vector<std::string>& names, Parsing::AST* body, LexicalEnvironment* scope, bool from_bind_ = false):
                 JSObject(OBJ_FUNC, "Function", true, nullptr, true, true),
                 formal_params_(names),
                 scope_(scope),
@@ -5440,8 +5427,8 @@ namespace es
                 // Whether the function is made from bind.
                 if(body != nullptr)
                 {
-                    assert(body->type() == AST::AST_FUNC_BODY);
-                    body_ = static_cast<ProgramOrFunctionBody*>(body);
+                    assert(body->type() == Parsing::AST::AST_FUNC_BODY);
+                    body_ = static_cast<Parsing::ProgramOrFunctionBody*>(body);
                     strict_ = body_->strict() || RuntimeContext::TopContext()->strict();
                     AddValueProperty("length", new Number(names.size()), false, false, false);// 14 & 15
                     JSObject* proto = new Object();// 16
@@ -5463,7 +5450,7 @@ namespace es
             {
                 return formal_params_;
             };
-            virtual AST* Code()
+            virtual Parsing::AST* Code()
             {
                 return body_;
             }
@@ -5479,7 +5466,7 @@ namespace es
             // 13.2.1 [[Call]]
             virtual JSValue* Call(Error* e, JSValue* this_arg, const std::vector<JSValue*>& arguments) override
             {
-                log::PrintSource("enter FunctionObject::Call ", body_->source());
+                //log::PrintSource("enter FunctionObject::Call ", body_->source());
                 EnterFunctionCode(e, this, body_, this_arg, arguments, strict_);
                 if(!e->IsOk())
                 {
@@ -5521,7 +5508,7 @@ namespace es
             // 13.2.2 [[Construct]]
             virtual JSObject* Construct(Error* e, const std::vector<JSValue*>& arguments) override
             {
-                log::PrintSource("enter FunctionObject::Construct");
+                //log::PrintSource("enter FunctionObject::Construct");
                 JSObject* obj = new JSObject(OBJ_OTHER, "Object", true, nullptr, false, false);
                 JSValue* proto = Get(e, "prototype");
                 if(!e->IsOk())
@@ -5643,11 +5630,13 @@ namespace es
             {
                 assert(false);
             };
+
             std::vector<std::string> FormalParameters() override
             {
                 assert(false);
             };
-            AST* Code() override
+
+            Parsing::AST* Code() override
             {
                 assert(false);
             }
@@ -5718,7 +5707,7 @@ namespace es
             // 15.3.2.1 new Function (p1, p2, … , pn, body)
             JSObject* Construct(Error* e, const std::vector<JSValue*>& arguments) override
             {
-                log::PrintSource("enter FunctionConstructor::Construct");
+                //log::PrintSource("enter FunctionConstructor::Construct");
                 size_t arg_count = arguments.size();
                 std::string P;
                 std::string body;
@@ -5752,10 +5741,10 @@ namespace es
                     }
                 }
                 std::vector<std::string> names;
-                AST* body_ast;
+                Parsing::AST* body_ast;
                 if(!P.empty())
                 {
-                    Parser parser(P);
+                    Parsing::Parser parser(P);
                     names = parser.ParseFormalParameterList();
                     if(names.empty())
                     {
@@ -5764,8 +5753,8 @@ namespace es
                     }
                 }
                 {
-                    Parser parser(body);
-                    body_ast = parser.ParseFunctionBody(Token::TK_EOS);
+                    Parsing::Parser parser(body);
+                    body_ast = parser.ParseFunctionBody(Parsing::Token::TK_EOS);
                     if(body_ast->IsIllegal())
                     {
                         *e = *Error::SyntaxError("failed to parse function body: " + body_ast->source());
@@ -5773,7 +5762,7 @@ namespace es
                     }
                 }
                 LexicalEnvironment* scope = LexicalEnvironment::Global();
-                bool strict = static_cast<ProgramOrFunctionBody*>(body_ast)->strict();
+                bool strict = static_cast<Parsing::ProgramOrFunctionBody*>(body_ast)->strict();
                 if(strict)
                 {
                     // 13.1
@@ -5885,7 +5874,7 @@ namespace es
         return F;
     }
 
-    inline FunctionObject* InstantiateFunctionDeclaration(Error* e, Function* func_ast)
+    inline FunctionObject* InstantiateFunctionDeclaration(Error* e, Parsing::Function* func_ast)
     {
         assert(func_ast->is_named());
         std::string identifier = func_ast->name();
@@ -5893,7 +5882,7 @@ namespace es
         RuntimeContext::TopLexicalEnv());
         auto env_rec = static_cast<DeclarativeEnvironmentRecord*>(func_env->env_rec());// 2
         env_rec->CreateImmutableBinding(identifier);// 3
-        auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
+        auto body = static_cast<Parsing::ProgramOrFunctionBody*>(func_ast->body());
         bool strict = body->strict() || RuntimeContext::TopContext()->strict();
         if(strict)
         {
@@ -5922,10 +5911,10 @@ namespace es
         return closure;// 6
     }
 
-    inline JSValue* EvalFunction(Error* e, AST* ast)
+    inline JSValue* EvalFunction(Error* e, Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_FUNC);
-        Function* func_ast = static_cast<Function*>(ast);
+        assert(ast->type() == Parsing::AST::AST_FUNC);
+        auto func_ast = static_cast<Parsing::Function*>(ast);
 
         if(func_ast->is_named())
         {
@@ -5933,7 +5922,7 @@ namespace es
         }
         else
         {
-            auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
+            auto body = static_cast<Parsing::ProgramOrFunctionBody*>(func_ast->body());
             bool strict = body->strict() || RuntimeContext::TopContext()->strict();
             if(strict)
             {
@@ -7122,7 +7111,7 @@ namespace es
             }
             return JSObject::DefineOwnProperty(e, P, desc, throw_flag);
         reject:
-            log::PrintSource("Array::DefineOwnProperty reject ", P, " " + desc->ToString());
+            //log::PrintSource("Array::DefineOwnProperty reject ", P, " " + desc->ToString());
             if(throw_flag)
             {
                 *e = *Error::TypeError();
@@ -7547,16 +7536,16 @@ namespace es
 
     inline JSValue* MakeArgGetter(const std::string& name, LexicalEnvironment* env)
     {
-        Parser parser("return " + name + ";");
-        ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(parser.ParseFunctionBody(Token::TK_EOS));
+        Parsing::Parser parser("return " + name + ";");
+        auto body = static_cast<Parsing::ProgramOrFunctionBody*>(parser.ParseFunctionBody(Parsing::Token::TK_EOS));
         return new FunctionObject({}, body, env);
     }
 
     inline JSValue* MakeArgSetter(const std::string& name, LexicalEnvironment* env)
     {
         std::string param = name + "_arg";
-        Parser parser(name + " = " + param);
-        ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(parser.ParseFunctionBody(Token::TK_EOS));
+        Parsing::Parser parser(name + " = " + param);
+        auto body = static_cast<Parsing::ProgramOrFunctionBody*>(parser.ParseFunctionBody(Parsing::Token::TK_EOS));
         return new FunctionObject({ param }, body, env);
     }
 
@@ -7601,56 +7590,56 @@ namespace es
         return obj;// 15
     }
 
-    inline void FindAllVarDecl(const std::vector<AST*>& stmts, const std::vector<VarDecl*>& idecls)
+    inline void FindAllVarDecl(const std::vector<Parsing::AST*>& stmts, const std::vector<Parsing::VarDecl*>& idecls)
     {
         auto decls = idecls;
         for(auto stmt : stmts)
         {
             switch(stmt->type())
             {
-                case AST::AST_STMT_VAR:
+                case Parsing::AST::AST_STMT_VAR:
                 {
-                    VarStmt* var_stmt = static_cast<VarStmt*>(stmt);
+                    Parsing::VarStmt* var_stmt = static_cast<Parsing::VarStmt*>(stmt);
                     for(auto d : var_stmt->decls())
                     {
                         decls.emplace_back(d);
                     }
                     break;
                 }
-                case AST::AST_STMT_FOR:
+                case Parsing::AST::AST_STMT_FOR:
                 {
-                    For* for_stmt = static_cast<For*>(stmt);
-                    if(!for_stmt->expr0s().empty() && for_stmt->expr0s()[0]->type() == AST::AST_STMT_VAR_DECL)
+                    Parsing::For* for_stmt = static_cast<Parsing::For*>(stmt);
+                    if(!for_stmt->expr0s().empty() && for_stmt->expr0s()[0]->type() == Parsing::AST::AST_STMT_VAR_DECL)
                     {
-                        for(AST* ast : for_stmt->expr0s())
+                        for(Parsing::AST* ast : for_stmt->expr0s())
                         {
-                            VarDecl* d = static_cast<VarDecl*>(ast);
+                            Parsing::VarDecl* d = static_cast<Parsing::VarDecl*>(ast);
                             decls.emplace_back(d);
                         }
                     }
                     FindAllVarDecl({ for_stmt->statement() }, decls);
                     break;
                 }
-                case AST::AST_STMT_FOR_IN:
+                case Parsing::AST::AST_STMT_FOR_IN:
                 {
-                    ForIn* for_in_stmt = static_cast<ForIn*>(stmt);
-                    if(for_in_stmt->expr0()->type() == AST::AST_STMT_VAR_DECL)
+                    Parsing::ForIn* for_in_stmt = static_cast<Parsing::ForIn*>(stmt);
+                    if(for_in_stmt->expr0()->type() == Parsing::AST::AST_STMT_VAR_DECL)
                     {
-                        VarDecl* d = static_cast<VarDecl*>(for_in_stmt->expr0());
+                        Parsing::VarDecl* d = static_cast<Parsing::VarDecl*>(for_in_stmt->expr0());
                         decls.emplace_back(d);
                     }
                     FindAllVarDecl({ for_in_stmt->statement() }, decls);
                     break;
                 }
-                case AST::AST_STMT_BLOCK:
+                case Parsing::AST::AST_STMT_BLOCK:
                 {
-                    Block* block = static_cast<Block*>(stmt);
+                    Parsing::Block* block = static_cast<Parsing::Block*>(stmt);
                     FindAllVarDecl(block->statements(), decls);
                     break;
                 }
-                case AST::AST_STMT_TRY:
+                case Parsing::AST::AST_STMT_TRY:
                 {
-                    Try* try_stmt = static_cast<Try*>(stmt);
+                    Parsing::Try* try_stmt = static_cast<Parsing::Try*>(stmt);
                     FindAllVarDecl({ try_stmt->try_block() }, decls);
                     if(try_stmt->catch_block() != nullptr)
                     {
@@ -7671,11 +7660,11 @@ namespace es
 
     // 10.5 Declaration Binding Instantiation
     inline void DeclarationBindingInstantiation(
-    Error* e, ExecutionContext* context, AST* code, CodeType code_type, FunctionObject* f = nullptr, std::vector<JSValue*> args = {})
+    Error* e, ExecutionContext* context, Parsing::AST* code, CodeType code_type, FunctionObject* f = nullptr, std::vector<JSValue*> args = {})
     {
         auto env = context->variable_env()->env_rec();// 1
         bool configurable_bindings = false;
-        ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
+        Parsing::ProgramOrFunctionBody* body = static_cast<Parsing::ProgramOrFunctionBody*>(code);
         if(code_type == CODE_EVAL)
         {
             configurable_bindings = true;// 2
@@ -7685,7 +7674,7 @@ namespace es
         {// 4
             assert(f != nullptr);
             auto names = f->FormalParameters();// 4.a
-            Function* func_ast = static_cast<Function*>(code);
+            Parsing::Function* func_ast = static_cast<Parsing::Function*>(code);
             (void)func_ast;
             size_t arg_count = args.size();// 4.b
             size_t n = 0;// 4.c
@@ -7714,7 +7703,7 @@ namespace es
             }
         }
         // 5
-        for(Function* func_decl : body->func_decls())
+        for(Parsing::Function* func_decl : body->func_decls())
         {
             assert(func_decl->is_named());
             std::string fn = func_decl->name();
@@ -7781,9 +7770,9 @@ namespace es
             }
         }
         // 8
-        std::vector<VarDecl*> decls;
+        std::vector<Parsing::VarDecl*> decls;
         FindAllVarDecl(body->statements(), decls);
-        for(VarDecl* d : decls)
+        for(Parsing::VarDecl* d : decls)
         {
             std::string dn = d->ident();
             bool var_already_declared = env->HasBinding(dn);
@@ -7804,17 +7793,17 @@ namespace es
     }
 
     // 10.4.1
-    inline void EnterGlobalCode(Error* e, AST* ast)
+    inline void EnterGlobalCode(Error* e, Parsing::AST* ast)
     {
-        ProgramOrFunctionBody* program;
-        if(ast->type() == AST::AST_PROGRAM)
+        Parsing::ProgramOrFunctionBody* program;
+        if(ast->type() == Parsing::AST::AST_PROGRAM)
         {
-            program = static_cast<ProgramOrFunctionBody*>(ast);
+            program = static_cast<Parsing::ProgramOrFunctionBody*>(ast);
         }
         else
         {
             // TODO(zhuzilin) This is for test. Add test label like #ifdefine TEST
-            program = new ProgramOrFunctionBody(AST::AST_PROGRAM, false);
+            program = new Parsing::ProgramOrFunctionBody(Parsing::AST::AST_PROGRAM, false);
             program->AddStatement(ast);
         }
         // 1 10.4.1.1
@@ -7826,10 +7815,10 @@ namespace es
     }
 
     // 10.4.2
-    inline void EnterEvalCode(Error* e, AST* ast)
+    inline void EnterEvalCode(Error* e, Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_PROGRAM);
-        ProgramOrFunctionBody* program = static_cast<ProgramOrFunctionBody*>(ast);
+        assert(ast->type() == Parsing::AST::AST_PROGRAM);
+        Parsing::ProgramOrFunctionBody* program = static_cast<Parsing::ProgramOrFunctionBody*>(ast);
         ExecutionContext* context;
         LexicalEnvironment* variable_env;
         LexicalEnvironment* lexical_env;
@@ -7865,7 +7854,7 @@ namespace es
     inline JSValue* GlobalObject::eval(Error* e, JSValue* this_arg, const std::vector<JSValue*>& vals)
     {
         (void)this_arg;
-        log::PrintSource("enter GlobalObject::eval");
+        //log::PrintSource("enter GlobalObject::eval");
         if(vals.empty())
         {
             return Undefined::Instance();
@@ -7875,8 +7864,8 @@ namespace es
             return vals[0];
         }
         std::string x = static_cast<String*>(vals[0])->data();
-        Parser parser(x);
-        AST* program = parser.ParseProgram();
+        Parsing::Parser parser(x);
+        Parsing::AST* program = parser.ParseProgram();
         if(program->IsIllegal())
         {
             *e = *Error::SyntaxError("failed to parse eval");
@@ -7921,7 +7910,7 @@ namespace es
 
     // 10.4.3
     inline void
-    EnterFunctionCode(Error* e, JSObject* f, ProgramOrFunctionBody* body, JSValue* this_arg, const std::vector<JSValue*>& args, bool strict)
+    EnterFunctionCode(Error* e, JSObject* f, Parsing::ProgramOrFunctionBody* body, JSValue* this_arg, const std::vector<JSValue*>& args, bool strict)
     {
         assert(f->obj_type() == JSObject::OBJ_FUNC);
         FunctionObject* func = static_cast<FunctionObject*>(f);
@@ -8200,36 +8189,36 @@ namespace es
     // x === y
     bool StrictEqual(Error* e, JSValue* x, JSValue* y);
 
-    Completion EvalStatement(AST* ast);
-    Completion EvalStatementList(const std::vector<AST*>& statements);
-    Completion EvalBlockStatement(AST* ast);
-    std::string EvalVarDecl(Error* e, AST* ast);
-    Completion EvalVarStatement(AST* ast);
-    Completion EvalIfStatement(AST* ast);
-    Completion EvalForStatement(AST* ast);
-    Completion EvalForInStatement(AST* ast);
-    Completion EvalDoWhileStatement(AST* ast);
-    Completion EvalWhileStatement(AST* ast);
-    Completion EvalContinueStatement(AST* ast);
-    Completion EvalBreakStatement(AST* ast);
-    Completion EvalReturnStatement(AST* ast);
-    Completion EvalLabelledStatement(AST* ast);
-    Completion EvalWithStatement(AST* ast);
-    Completion EvalSwitchStatement(AST* ast);
-    Completion EvalThrowStatement(AST* ast);
-    Completion EvalTryStatement(AST* ast);
-    Completion EvalExpressionStatement(AST* ast);
+    Completion EvalStatement(Parsing::AST* ast);
+    Completion EvalStatementList(const std::vector<Parsing::AST*>& statements);
+    Completion EvalBlockStatement(Parsing::AST* ast);
+    std::string EvalVarDecl(Error* e, Parsing::AST* ast);
+    Completion EvalVarStatement(Parsing::AST* ast);
+    Completion EvalIfStatement(Parsing::AST* ast);
+    Completion EvalForStatement(Parsing::AST* ast);
+    Completion EvalForInStatement(Parsing::AST* ast);
+    Completion EvalDoWhileStatement(Parsing::AST* ast);
+    Completion EvalWhileStatement(Parsing::AST* ast);
+    Completion EvalContinueStatement(Parsing::AST* ast);
+    Completion EvalBreakStatement(Parsing::AST* ast);
+    Completion EvalReturnStatement(Parsing::AST* ast);
+    Completion EvalLabelledStatement(Parsing::AST* ast);
+    Completion EvalWithStatement(Parsing::AST* ast);
+    Completion EvalSwitchStatement(Parsing::AST* ast);
+    Completion EvalThrowStatement(Parsing::AST* ast);
+    Completion EvalTryStatement(Parsing::AST* ast);
+    Completion EvalExpressionStatement(Parsing::AST* ast);
 
-    JSValue* EvalExpression(Error* e, AST* ast);
-    JSValue* EvalPrimaryExpression(Error* e, AST* ast);
-    Reference* EvalIdentifier(AST* ast);
-    Number* EvalNumber(AST* ast);
-    String* EvalString(AST* ast);
-    Object* EvalObject(Error* e, AST* ast);
-    ArrayObject* EvalArray(Error* e, AST* ast);
-    JSValue* EvalUnaryOperator(Error* e, AST* ast);
-    JSValue* EvalBinaryExpression(Error* e, AST* ast);
-    JSValue* EvalBinaryExpression(Error* e, const std::string& op, AST* lhs, AST* rhs);
+    JSValue* EvalExpression(Error* e, Parsing::AST* ast);
+    JSValue* EvalPrimaryExpression(Error* e, Parsing::AST* ast);
+    Reference* EvalIdentifier(Parsing::AST* ast);
+    Number* EvalNumber(Parsing::AST* ast);
+    String* EvalString(Parsing::AST* ast);
+    Object* EvalObject(Error* e, Parsing::AST* ast);
+    ArrayObject* EvalArray(Error* e, Parsing::AST* ast);
+    JSValue* EvalUnaryOperator(Error* e, Parsing::AST* ast);
+    JSValue* EvalBinaryExpression(Error* e, Parsing::AST* ast);
+    JSValue* EvalBinaryExpression(Error* e, const std::string& op, Parsing::AST* lhs, Parsing::AST* rhs);
     JSValue* EvalBinaryExpression(Error* e, const std::string& op, JSValue* lval, JSValue* rval);
     JSValue* EvalArithmeticOperator(Error* e, const std::string& op, JSValue* lval, JSValue* rval);
     JSValue* EvalAddOperator(Error* e, JSValue* lval, JSValue* rval);
@@ -8237,33 +8226,33 @@ namespace es
     JSValue* EvalRelationalOperator(Error* e, const std::string& op, JSValue* lval, JSValue* rval);
     JSValue* EvalEqualityOperator(Error* e, const std::string& op, JSValue* lval, JSValue* rval);
     JSValue* EvalBitwiseOperator(Error* e, const std::string& op, JSValue* lval, JSValue* rval);
-    JSValue* EvalLogicalOperator(Error* e, const std::string& op, AST* lhs, AST* rhs);
+    JSValue* EvalLogicalOperator(Error* e, const std::string& op, Parsing::AST* lhs, Parsing::AST* rhs);
     JSValue* EvalSimpleAssignment(Error* e, JSValue* lref, JSValue* rval);
     JSValue* EvalCompoundAssignment(Error* e, const std::string& op, JSValue* lref, JSValue* rval);
-    JSValue* EvalTripleConditionExpression(Error* e, AST* ast);
-    JSValue* EvalAssignmentExpression(Error* e, AST* ast);
-    JSValue* EvalLeftHandSideExpression(Error* e, AST* ast);
-    std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast);
+    JSValue* EvalTripleConditionExpression(Error* e, Parsing::AST* ast);
+    JSValue* EvalAssignmentExpression(Error* e, Parsing::AST* ast);
+    JSValue* EvalLeftHandSideExpression(Error* e, Parsing::AST* ast);
+    std::vector<JSValue*> EvalArgumentsList(Error* e, Parsing::Arguments* ast);
     JSValue* EvalCallExpression(Error* e, JSValue* ref, const std::vector<JSValue*>& arg_list);
     JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, const std::string& identifier_name, ValueGuard& guard);
-    JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, AST* expr, ValueGuard& guard);
-    JSValue* EvalExpressionList(Error* e, AST* ast);
+    JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, Parsing::AST* expr, ValueGuard& guard);
+    JSValue* EvalExpressionList(Error* e, Parsing::AST* ast);
 
     Reference* IdentifierResolution(const std::string& name);
 
-    inline Completion EvalProgram(AST* ast)
+    inline Completion EvalProgram(Parsing::AST* ast)
     {
         Completion head_result;
-        assert(ast->type() == AST::AST_PROGRAM || ast->type() == AST::AST_FUNC_BODY);
-        auto prog = static_cast<ProgramOrFunctionBody*>(ast);
+        assert(ast->type() == Parsing::AST::AST_PROGRAM || ast->type() == Parsing::AST::AST_FUNC_BODY);
+        auto prog = static_cast<Parsing::ProgramOrFunctionBody*>(ast);
         auto statements = prog->statements();
         // 12.9 considered syntactically incorrect if it contains
         //      a return statement that is not within a FunctionBody.
-        if(ast->type() != AST::AST_FUNC_BODY)
+        if(ast->type() != Parsing::AST::AST_FUNC_BODY)
         {
             for(auto stmt : statements)
             {
-                if(stmt->type() == AST::AST_STMT_RETURN)
+                if(stmt->type() == Parsing::AST::AST_STMT_RETURN)
                 {
                     return Completion(Completion::THROWING, new ErrorObject(Error::SyntaxError()), "");
                 }
@@ -8290,50 +8279,50 @@ namespace es
         return head_result;
     }
 
-    inline Completion EvalStatement(AST* ast)
+    inline Completion EvalStatement(Parsing::AST* ast)
     {
         switch(ast->type())
         {
-            case AST::AST_STMT_BLOCK:
+            case Parsing::AST::AST_STMT_BLOCK:
                 return EvalBlockStatement(ast);
-            case AST::AST_STMT_VAR:
+            case Parsing::AST::AST_STMT_VAR:
                 return EvalVarStatement(ast);
-            case AST::AST_STMT_EMPTY:
+            case Parsing::AST::AST_STMT_EMPTY:
                 return Completion(Completion::NORMAL, nullptr, "");
-            case AST::AST_STMT_IF:
+            case Parsing::AST::AST_STMT_IF:
                 return EvalIfStatement(ast);
-            case AST::AST_STMT_DO_WHILE:
+            case Parsing::AST::AST_STMT_DO_WHILE:
                 return EvalDoWhileStatement(ast);
-            case AST::AST_STMT_WHILE:
+            case Parsing::AST::AST_STMT_WHILE:
                 return EvalWhileStatement(ast);
-            case AST::AST_STMT_FOR:
+            case Parsing::AST::AST_STMT_FOR:
                 return EvalForStatement(ast);
-            case AST::AST_STMT_FOR_IN:
+            case Parsing::AST::AST_STMT_FOR_IN:
                 return EvalForInStatement(ast);
-            case AST::AST_STMT_CONTINUE:
+            case Parsing::AST::AST_STMT_CONTINUE:
                 return EvalContinueStatement(ast);
-            case AST::AST_STMT_BREAK:
+            case Parsing::AST::AST_STMT_BREAK:
                 return EvalBreakStatement(ast);
-            case AST::AST_STMT_RETURN:
+            case Parsing::AST::AST_STMT_RETURN:
                 return EvalReturnStatement(ast);
-            case AST::AST_STMT_WITH:
+            case Parsing::AST::AST_STMT_WITH:
                 return EvalWithStatement(ast);
-            case AST::AST_STMT_LABEL:
+            case Parsing::AST::AST_STMT_LABEL:
                 return EvalLabelledStatement(ast);
-            case AST::AST_STMT_SWITCH:
+            case Parsing::AST::AST_STMT_SWITCH:
                 return EvalSwitchStatement(ast);
-            case AST::AST_STMT_THROW:
+            case Parsing::AST::AST_STMT_THROW:
                 return EvalThrowStatement(ast);
-            case AST::AST_STMT_TRY:
+            case Parsing::AST::AST_STMT_TRY:
                 return EvalTryStatement(ast);
-            case AST::AST_STMT_DEBUG:
+            case Parsing::AST::AST_STMT_DEBUG:
                 return Completion(Completion::NORMAL, nullptr, "");
             default:
                 return EvalExpressionStatement(ast);
         }
     }
 
-    inline Completion EvalStatementList(const std::vector<AST*>& statements)
+    inline Completion EvalStatementList(const std::vector<Parsing::AST*>& statements)
     {
         Completion sl;
         for(auto stmt : statements)
@@ -8352,17 +8341,17 @@ namespace es
         return sl;
     }
 
-    inline Completion EvalBlockStatement(AST* ast)
+    inline Completion EvalBlockStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_BLOCK);
-        Block* block = static_cast<Block*>(ast);
+        assert(ast->type() == Parsing::AST::AST_STMT_BLOCK);
+        Parsing::Block* block = static_cast<Parsing::Block*>(ast);
         return EvalStatementList(block->statements());
     }
 
-    inline std::string EvalVarDecl(Error* e, AST* ast)
+    inline std::string EvalVarDecl(Error* e, Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_VAR_DECL);
-        VarDecl* decl = static_cast<VarDecl*>(ast);
+        assert(ast->type() == Parsing::AST::AST_STMT_VAR_DECL);
+        Parsing::VarDecl* decl = static_cast<Parsing::VarDecl*>(ast);
         if(decl->init() == nullptr)
         {
             return decl->ident();
@@ -8386,12 +8375,12 @@ namespace es
         return decl->ident();
     }
 
-    inline Completion EvalVarStatement(AST* ast)
+    inline Completion EvalVarStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_VAR);
+        assert(ast->type() == Parsing::AST::AST_STMT_VAR);
         Error* e = Error::Ok();
-        VarStmt* var_stmt = static_cast<VarStmt*>(ast);
-        for(VarDecl* decl : var_stmt->decls())
+        Parsing::VarStmt* var_stmt = static_cast<Parsing::VarStmt*>(ast);
+        for(Parsing::VarDecl* decl : var_stmt->decls())
         {
             if(decl->init() == nullptr)
             {
@@ -8408,11 +8397,11 @@ namespace es
         return Completion(Completion::THROWING, new ErrorObject(e), "");
     }
 
-    inline Completion EvalIfStatement(AST* ast)
+    inline Completion EvalIfStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_IF);
+        assert(ast->type() == Parsing::AST::AST_STMT_IF);
         Error* e = Error::Ok();
-        If* if_stmt = static_cast<If*>(ast);
+        Parsing::If* if_stmt = static_cast<Parsing::If*>(ast);
         JSValue* expr_ref = EvalExpression(e, if_stmt->cond());
         if(!e->IsOk())
         {
@@ -8435,12 +8424,12 @@ namespace es
     }
 
     // 12.6.1 The do-while Statement
-    inline Completion EvalDoWhileStatement(AST* ast)
+    inline Completion EvalDoWhileStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_DO_WHILE);
+        assert(ast->type() == Parsing::AST::AST_STMT_DO_WHILE);
         Error* e = Error::Ok();
         RuntimeContext::TopContext()->EnterIteration();
-        DoWhile* loop_stmt = static_cast<DoWhile*>(ast);
+        Parsing::DoWhile* loop_stmt = static_cast<Parsing::DoWhile*>(ast);
         JSValue* V = nullptr;
         JSValue* expr_ref;
         JSValue* val;
@@ -8491,12 +8480,12 @@ namespace es
     }
 
     // 12.6.2 The while Statement
-    inline Completion EvalWhileStatement(AST* ast)
+    inline Completion EvalWhileStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_WHILE);
+        assert(ast->type() == Parsing::AST::AST_STMT_WHILE);
         Error* e = Error::Ok();
         RuntimeContext::TopContext()->EnterIteration();
-        WhileOrWith* loop_stmt = static_cast<WhileOrWith*>(ast);
+        Parsing::WhileOrWith* loop_stmt = static_cast<Parsing::WhileOrWith*>(ast);
         JSValue* V = nullptr;
         JSValue* expr_ref;
         JSValue* val;
@@ -8547,18 +8536,18 @@ namespace es
     }
 
     // 12.6.3 The for Statement
-    inline Completion EvalForStatement(AST* ast)
+    inline Completion EvalForStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_FOR);
+        assert(ast->type() == Parsing::AST::AST_STMT_FOR);
         Error* e = Error::Ok();
         RuntimeContext::TopContext()->EnterIteration();
-        For* for_stmt = static_cast<For*>(ast);
+        Parsing::For* for_stmt = static_cast<Parsing::For*>(ast);
         JSValue* V = nullptr;
         Completion stmt;
         bool has_label;
         for(auto expr : for_stmt->expr0s())
         {
-            if(expr->type() == AST::AST_STMT_VAR_DECL)
+            if(expr->type() == Parsing::AST::AST_STMT_VAR_DECL)
             {
                 EvalVarDecl(e, expr);
                 if(!e->IsOk())
@@ -8642,21 +8631,21 @@ namespace es
     }
 
     // 12.6.4 The for-in Statement
-    inline Completion EvalForInStatement(AST* ast)
+    inline Completion EvalForInStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_FOR_IN);
+        assert(ast->type() == Parsing::AST::AST_STMT_FOR_IN);
         Error* e = Error::Ok();
         RuntimeContext::TopContext()->EnterIteration();
-        ForIn* for_in_stmt = static_cast<ForIn*>(ast);
+        Parsing::ForIn* for_in_stmt = static_cast<Parsing::ForIn*>(ast);
         JSObject* obj;
         JSValue* expr_ref;
         JSValue* expr_val;
         Completion stmt;
         bool has_label;
         JSValue* V = nullptr;
-        if(for_in_stmt->expr0()->type() == AST::AST_STMT_VAR_DECL)
+        if(for_in_stmt->expr0()->type() == Parsing::AST::AST_STMT_VAR_DECL)
         {
-            VarDecl* decl = static_cast<VarDecl*>(for_in_stmt->expr0());
+            Parsing::VarDecl* decl = static_cast<Parsing::VarDecl*>(for_in_stmt->expr0());
             std::string var_name = EvalVarDecl(e, decl);
             if(!e->IsOk())
             {
@@ -8779,37 +8768,37 @@ namespace es
         return Completion(Completion::THROWING, new ErrorObject(e), "");
     }
 
-    inline Completion EvalContinueStatement(AST* ast)
+    inline Completion EvalContinueStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_CONTINUE);
+        assert(ast->type() == Parsing::AST::AST_STMT_CONTINUE);
         Error* e = Error::Ok();
         if(!RuntimeContext::TopContext()->InIteration())
         {
             *e = *Error::SyntaxError();
             return Completion(Completion::THROWING, new ErrorObject(e), "");
         }
-        ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
+        Parsing::ContinueOrBreak* stmt = static_cast<Parsing::ContinueOrBreak*>(ast);
         return Completion(Completion::CONTINUING, nullptr, stmt->ident());
     }
 
-    inline Completion EvalBreakStatement(AST* ast)
+    inline Completion EvalBreakStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_BREAK);
+        assert(ast->type() == Parsing::AST::AST_STMT_BREAK);
         Error* e = Error::Ok();
         if(!RuntimeContext::TopContext()->InIteration())
         {
             *e = *Error::SyntaxError();
             return Completion(Completion::THROWING, new ErrorObject(e), "");
         }
-        ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
+        Parsing::ContinueOrBreak* stmt = static_cast<Parsing::ContinueOrBreak*>(ast);
         return Completion(Completion::BREAKING, nullptr, stmt->ident());
     }
 
-    inline Completion EvalReturnStatement(AST* ast)
+    inline Completion EvalReturnStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_RETURN);
+        assert(ast->type() == Parsing::AST::AST_STMT_RETURN);
         Error* e = Error::Ok();
-        Return* return_stmt = static_cast<Return*>(ast);
+        Parsing::Return* return_stmt = static_cast<Parsing::Return*>(ast);
         if(return_stmt->expr() == nullptr)
         {
             return Completion(Completion::RETURNING, Undefined::Instance(), "");
@@ -8818,10 +8807,10 @@ namespace es
         return Completion(Completion::RETURNING, GetValue(e, exp_ref), "");
     }
 
-    inline Completion EvalLabelledStatement(AST* ast)
+    inline Completion EvalLabelledStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_LABEL);
-        LabelledStmt* label_stmt = static_cast<LabelledStmt*>(ast);
+        assert(ast->type() == Parsing::AST::AST_STMT_LABEL);
+        Parsing::LabelledStmt* label_stmt = static_cast<Parsing::LabelledStmt*>(ast);
         label_stmt->statement()->SetLabel(label_stmt->label());
         Completion R = EvalStatement(label_stmt->statement());
         if(R.type == Completion::BREAKING && R.target == label_stmt->label())
@@ -8832,16 +8821,16 @@ namespace es
     }
 
     // 12.10 The with Statement
-    inline Completion EvalWithStatement(AST* ast)
+    inline Completion EvalWithStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_WITH);
+        assert(ast->type() == Parsing::AST::AST_STMT_WITH);
         if(RuntimeContext::TopContext()->strict())
         {
             return Completion(Completion::THROWING,
                               new ErrorObject(Error::SyntaxError("cannot have with statement in strict mode")), "");
         }
         Error* e = Error::Ok();
-        WhileOrWith* with_stmt = static_cast<WhileOrWith*>(ast);
+        Parsing::WhileOrWith* with_stmt = static_cast<Parsing::WhileOrWith*>(ast);
         JSValue* ref = EvalExpression(e, with_stmt->expr());
         if(!e->IsOk())
         {
@@ -8865,7 +8854,7 @@ namespace es
         return C;
     }
 
-    inline JSValue* EvalCaseClause(Error* e, const Switch::CaseClause& C)
+    inline JSValue* EvalCaseClause(Error* e, const Parsing::Switch::CaseClause& C)
     {
         JSValue* exp_ref = EvalExpression(e, C.expr);
         if(!e->IsOk())
@@ -8875,7 +8864,7 @@ namespace es
         return GetValue(e, exp_ref);
     }
 
-    inline Completion EvalCaseBlock(Switch* switch_stmt, JSValue* input)
+    inline Completion EvalCaseBlock(Parsing::Switch* switch_stmt, JSValue* input)
     {
         Error* e = Error::Ok();
         JSValue* V = nullptr;
@@ -8964,11 +8953,11 @@ namespace es
     }
 
     // 12.11 The switch Statement
-    inline Completion EvalSwitchStatement(AST* ast)
+    inline Completion EvalSwitchStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_SWITCH);
+        assert(ast->type() == Parsing::AST::AST_STMT_SWITCH);
         Error* e = Error::Ok();
-        Switch* switch_stmt = static_cast<Switch*>(ast);
+        Parsing::Switch* switch_stmt = static_cast<Parsing::Switch*>(ast);
         JSValue* expr_ref = EvalExpression(e, switch_stmt->expr());
         if(!e->IsOk())
         {
@@ -8988,11 +8977,11 @@ namespace es
     }
 
     // 12.13 The throw Statement
-    inline Completion EvalThrowStatement(AST* ast)
+    inline Completion EvalThrowStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_THROW);
+        assert(ast->type() == Parsing::AST::AST_STMT_THROW);
         Error* e = Error::Ok();
-        Throw* throw_stmt = static_cast<Throw*>(ast);
+        Parsing::Throw* throw_stmt = static_cast<Parsing::Throw*>(ast);
         JSValue* exp_ref = EvalExpression(e, throw_stmt->expr());
         if(es::Error::Ok() == nullptr)
         {
@@ -9006,7 +8995,7 @@ namespace es
         return Completion(Completion::THROWING, val, "");
     }
 
-    inline Completion EvalCatch(Try* try_stmt, const Completion& C)
+    inline Completion EvalCatch(Parsing::Try* try_stmt, const Completion& C)
     {
         // NOTE(zhuzilin) Don't gc these two env, during this function.
         Error* e = Error::Ok();
@@ -9030,15 +9019,15 @@ namespace es
         return B;
     }
 
-    inline Completion EvalTryStatement(AST* ast)
+    inline Completion EvalTryStatement(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_STMT_TRY);
+        assert(ast->type() == Parsing::AST::AST_STMT_TRY);
         Error* e = Error::Ok();
         (void)e;
-        Try* try_stmt = static_cast<Try*>(ast);
+        Parsing::Try* try_stmt = static_cast<Parsing::Try*>(ast);
         Completion B = EvalBlockStatement(try_stmt->try_block());
         if(try_stmt->finally_block() == nullptr)
-        {// try Block Catch
+        {// try Parsing::Block Catch
             if(B.type != Completion::THROWING)
             {
                 return B;
@@ -9046,7 +9035,7 @@ namespace es
             return EvalCatch(try_stmt, B);
         }
         else if(try_stmt->catch_block() == nullptr)
-        {// try Block Finally
+        {// try Parsing::Block Finally
             Completion F = EvalBlockStatement(try_stmt->finally_block());
             if(F.type == Completion::NORMAL)
             {
@@ -9055,7 +9044,7 @@ namespace es
             return F;
         }
         else
-        {// try Block Catch Finally
+        {// try Parsing::Block Catch Finally
             Completion C = B;
             if(B.type == Completion::THROWING)
             {
@@ -9070,7 +9059,7 @@ namespace es
         }
     }
 
-    inline Completion EvalExpressionStatement(AST* ast)
+    inline Completion EvalExpressionStatement(Parsing::AST* ast)
     {
         Error* e = Error::Ok();
         JSValue* val = EvalExpression(e, ast);
@@ -9081,38 +9070,38 @@ namespace es
         return Completion(Completion::NORMAL, val, "");
     }
 
-    inline JSValue* EvalExpression(Error* e, AST* ast)
+    inline JSValue* EvalExpression(Error* e, Parsing::AST* ast)
     {
-        assert(ast->type() <= AST::AST_EXPR || ast->type() == AST::AST_FUNC);
+        assert(ast->type() <= Parsing::AST::AST_EXPR || ast->type() == Parsing::AST::AST_FUNC);
         JSValue* val;
         switch(ast->type())
         {
-            case AST::AST_EXPR_THIS:
-            case AST::AST_EXPR_IDENT:
-            case AST::AST_EXPR_NULL:
-            case AST::AST_EXPR_BOOL:
-            case AST::AST_EXPR_NUMBER:
-            case AST::AST_EXPR_STRING:
-            case AST::AST_EXPR_OBJ:
-            case AST::AST_EXPR_ARRAY:
-            case AST::AST_EXPR_PAREN:
+            case Parsing::AST::AST_EXPR_THIS:
+            case Parsing::AST::AST_EXPR_IDENT:
+            case Parsing::AST::AST_EXPR_NULL:
+            case Parsing::AST::AST_EXPR_BOOL:
+            case Parsing::AST::AST_EXPR_NUMBER:
+            case Parsing::AST::AST_EXPR_STRING:
+            case Parsing::AST::AST_EXPR_OBJ:
+            case Parsing::AST::AST_EXPR_ARRAY:
+            case Parsing::AST::AST_EXPR_PAREN:
                 val = EvalPrimaryExpression(e, ast);
                 break;
-            case AST::AST_EXPR_UNARY:
+            case Parsing::AST::AST_EXPR_UNARY:
                 val = EvalUnaryOperator(e, ast);
                 break;
-            case AST::AST_EXPR_BINARY:
+            case Parsing::AST::AST_EXPR_BINARY:
                 val = EvalBinaryExpression(e, ast);
                 break;
-            case AST::AST_EXPR_TRIPLE:
+            case Parsing::AST::AST_EXPR_TRIPLE:
                 val = EvalTripleConditionExpression(e, ast);
                 break;
-            case AST::AST_EXPR_LHS:
+            case Parsing::AST::AST_EXPR_LHS:
                 val = EvalLeftHandSideExpression(e, ast);
                 break;
-            case AST::AST_EXPR:
+            case Parsing::AST::AST_EXPR:
                 val = EvalExpressionList(e, ast);
-            case AST::AST_FUNC:
+            case Parsing::AST::AST_FUNC:
                 val = EvalFunction(e, ast);
                 break;
             default:
@@ -9125,37 +9114,37 @@ namespace es
         return val;
     }
 
-    inline JSValue* EvalPrimaryExpression(Error* e, AST* ast)
+    inline JSValue* EvalPrimaryExpression(Error* e, Parsing::AST* ast)
     {
         JSValue* val;
         switch(ast->type())
         {
-            case AST::AST_EXPR_THIS:
+            case Parsing::AST::AST_EXPR_THIS:
                 val = RuntimeContext::TopContext()->this_binding();
                 break;
-            case AST::AST_EXPR_IDENT:
+            case Parsing::AST::AST_EXPR_IDENT:
                 val = EvalIdentifier(ast);
                 break;
-            case AST::AST_EXPR_NULL:
+            case Parsing::AST::AST_EXPR_NULL:
                 val = Null::Instance();
                 break;
-            case AST::AST_EXPR_BOOL:
+            case Parsing::AST::AST_EXPR_BOOL:
                 val = ast->source() == "true" ? Bool::True() : Bool::False();
                 break;
-            case AST::AST_EXPR_NUMBER:
+            case Parsing::AST::AST_EXPR_NUMBER:
                 val = EvalNumber(ast);
                 break;
-            case AST::AST_EXPR_STRING:
+            case Parsing::AST::AST_EXPR_STRING:
                 val = EvalString(ast);
                 break;
-            case AST::AST_EXPR_OBJ:
+            case Parsing::AST::AST_EXPR_OBJ:
                 val = EvalObject(e, ast);
                 break;
-            case AST::AST_EXPR_ARRAY:
+            case Parsing::AST::AST_EXPR_ARRAY:
                 val = EvalArray(e, ast);
                 break;
-            case AST::AST_EXPR_PAREN:
-                val = EvalExpression(e, static_cast<Paren*>(ast)->expr());
+            case Parsing::AST::AST_EXPR_PAREN:
+                val = EvalExpression(e, static_cast<Parsing::Paren*>(ast)->expr());
                 break;
             default:
                 std::cout << "Not primary expression, type " << ast->type() << std::endl;
@@ -9172,9 +9161,9 @@ namespace es
         return env->GetIdentifierReference(name, strict);
     }
 
-    inline Reference* EvalIdentifier(AST* ast)
+    inline Reference* EvalIdentifier(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_EXPR_IDENT);
+        assert(ast->type() == Parsing::AST::AST_EXPR_IDENT);
         return IdentifierResolution(ast->source());
     }
 
@@ -9250,9 +9239,9 @@ namespace es
         return new Number(val);
     }
 
-    inline Number* EvalNumber(AST* ast)
+    inline Number* EvalNumber(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_EXPR_NUMBER);
+        assert(ast->type() == Parsing::AST::AST_EXPR_NUMBER);
         auto source = ast->source();
         return EvalNumber(source);
     }
@@ -9363,34 +9352,34 @@ namespace es
         return new String(StrCat(vals));
     }
 
-    inline String* EvalString(AST* ast)
+    inline String* EvalString(Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_EXPR_STRING);
+        assert(ast->type() == Parsing::AST::AST_EXPR_STRING);
         auto source = ast->source();
         return EvalString(source);
     }
 
-    inline std::string EvalPropertyName(Error* e, Token token)
+    inline std::string EvalPropertyName(Error* e, Parsing::Token token)
     {
         switch(token.type())
         {
-            case Token::TK_IDENT:
-            case Token::TK_KEYWORD:
-            case Token::TK_FUTURE:
+            case Parsing::Token::TK_IDENT:
+            case Parsing::Token::TK_KEYWORD:
+            case Parsing::Token::TK_FUTURE:
                 return token.source();
-            case Token::TK_NUMBER:
+            case Parsing::Token::TK_NUMBER:
                 return ToString(e, EvalNumber(token.source()));
-            case Token::TK_STRING:
+            case Parsing::Token::TK_STRING:
                 return ToString(e, EvalString(token.source()));
             default:
                 assert(false);
         }
     }
 
-    inline Object* EvalObject(Error* e, AST* ast)
+    inline Object* EvalObject(Error* e, Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_EXPR_OBJ);
-        ObjectLiteral* obj_ast = static_cast<ObjectLiteral*>(ast);
+        assert(ast->type() == Parsing::AST::AST_EXPR_OBJ);
+        Parsing::ObjectLiteral* obj_ast = static_cast<Parsing::ObjectLiteral*>(ast);
         bool strict = RuntimeContext::TopContext()->strict();
         Object* obj = new Object();
         // PropertyName : AssignmentExpression
@@ -9400,7 +9389,7 @@ namespace es
             PropertyDescriptor* desc = new PropertyDescriptor();
             switch(property.type)
             {
-                case ObjectLiteral::Property::NORMAL:
+                case Parsing::ObjectLiteral::Property::NORMAL:
                 {
                     JSValue* expr_value = EvalAssignmentExpression(e, property.value);
                     JSValue* prop_value = GetValue(e, expr_value);
@@ -9409,9 +9398,9 @@ namespace es
                 }
                 default:
                 {
-                    assert(property.value->type() == AST::AST_FUNC);
-                    Function* func_ast = static_cast<Function*>(property.value);
-                    bool strict_func = static_cast<ProgramOrFunctionBody*>(func_ast->body())->strict();
+                    assert(property.value->type() == Parsing::AST::AST_FUNC);
+                    Parsing::Function* func_ast = static_cast<Parsing::Function*>(property.value);
+                    bool strict_func = static_cast<Parsing::ProgramOrFunctionBody*>(func_ast->body())->strict();
                     if(strict || strict_func)
                     {
                         for(const auto& name : func_ast->params())
@@ -9425,7 +9414,7 @@ namespace es
                     }
                     FunctionObject* closure
                     = new FunctionObject(func_ast->params(), func_ast->body(), RuntimeContext::TopLexicalEnv());
-                    if(property.type == ObjectLiteral::Property::GET)
+                    if(property.type == Parsing::ObjectLiteral::Property::GET)
                     {
                         desc->SetGet(closure);
                     }
@@ -9464,10 +9453,10 @@ namespace es
         return obj;
     }
 
-    inline ArrayObject* EvalArray(Error* e, AST* ast)
+    inline ArrayObject* EvalArray(Error* e, Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_EXPR_ARRAY);
-        ArrayLiteral* array_ast = static_cast<ArrayLiteral*>(ast);
+        assert(ast->type() == Parsing::AST::AST_EXPR_ARRAY);
+        Parsing::ArrayLiteral* array_ast = static_cast<Parsing::ArrayLiteral*>(ast);
 
         ArrayObject* arr = new ArrayObject(array_ast->length());
         for(auto pair : array_ast->elements())
@@ -9482,15 +9471,15 @@ namespace es
         return arr;
     }
 
-    inline JSValue* EvalAssignmentExpression(Error* e, AST* ast)
+    inline JSValue* EvalAssignmentExpression(Error* e, Parsing::AST* ast)
     {
         return EvalExpression(e, ast);
     }
 
-    inline JSValue* EvalUnaryOperator(Error* e, AST* ast)
+    inline JSValue* EvalUnaryOperator(Error* e, Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_EXPR_UNARY);
-        Unary* u = static_cast<Unary*>(ast);
+        assert(ast->type() == Parsing::AST::AST_EXPR_UNARY);
+        Parsing::Unary* u = static_cast<Parsing::Unary*>(ast);
 
         JSValue* expr = EvalExpression(e, u->node());
         if(!e->IsOk())
@@ -9665,14 +9654,14 @@ namespace es
         assert(false);
     }
 
-    inline JSValue* EvalBinaryExpression(Error* e, AST* ast)
+    inline JSValue* EvalBinaryExpression(Error* e, Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_EXPR_BINARY);
-        Binary* b = static_cast<Binary*>(ast);
+        assert(ast->type() == Parsing::AST::AST_EXPR_BINARY);
+        Parsing::Binary* b = static_cast<Parsing::Binary*>(ast);
         return EvalBinaryExpression(e, b->op(), b->lhs(), b->rhs());
     }
 
-    inline JSValue* EvalBinaryExpression(Error* e, const std::string& op, AST* lhs, AST* rhs)
+    inline JSValue* EvalBinaryExpression(Error* e, const std::string& op, Parsing::AST* lhs, Parsing::AST* rhs)
     {
         // && and || are different, as there are not &&= and ||=
         if((op == "&&") || (op == "||"))
@@ -9985,7 +9974,7 @@ namespace es
     }
 
     // 11.11 Binary Logical Operators
-    inline JSValue* EvalLogicalOperator(Error* e, const std::string& op, AST* lhs, AST* rhs)
+    inline JSValue* EvalLogicalOperator(Error* e, const std::string& op, Parsing::AST* lhs, Parsing::AST* rhs)
     {
         JSValue* lref = EvalExpression(e, lhs);
         if(!e->IsOk())
@@ -10060,10 +10049,10 @@ namespace es
     }
 
     // 11.12 Conditional Operator ( ? : )
-    inline JSValue* EvalTripleConditionExpression(Error* e, AST* ast)
+    inline JSValue* EvalTripleConditionExpression(Error* e, Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_EXPR_TRIPLE);
-        TripleCondition* t = static_cast<TripleCondition*>(ast);
+        assert(ast->type() == Parsing::AST::AST_EXPR_TRIPLE);
+        Parsing::TripleCondition* t = static_cast<Parsing::TripleCondition*>(ast);
         JSValue* lref = EvalExpression(e, t->cond());
         if(!e->IsOk())
         {
@@ -10094,10 +10083,10 @@ namespace es
         }
     }
 
-    inline JSValue* EvalLeftHandSideExpression(Error* e, AST* ast)
+    inline JSValue* EvalLeftHandSideExpression(Error* e, Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_EXPR_LHS);
-        LHS* lhs = static_cast<LHS*>(ast);
+        assert(ast->type() == Parsing::AST::AST_EXPR_LHS);
+        Parsing::LHS* lhs = static_cast<Parsing::LHS*>(ast);
 
         ValueGuard guard;
         JSValue* base = EvalExpression(e, lhs->base());
@@ -10111,7 +10100,7 @@ namespace es
         {
             switch(pair.second)
             {
-                case LHS::PostfixType::CALL:
+                case Parsing::LHS::PostfixType::CALL:
                 {
                     auto args = lhs->args_list()[pair.first];
                     auto arg_list = EvalArgumentsList(e, args);
@@ -10149,7 +10138,7 @@ namespace es
                     }
                     break;
                 }
-                case LHS::PostfixType::INDEX:
+                case Parsing::LHS::PostfixType::INDEX:
                 {
                     auto index = lhs->index_list()[pair.first];
                     base = EvalIndexExpression(e, base, index, guard);
@@ -10159,7 +10148,7 @@ namespace es
                     }
                     break;
                 }
-                case LHS::PostfixType::PROP:
+                case Parsing::LHS::PostfixType::PROP:
                 {
                     auto prop = lhs->prop_name_list()[pair.first];
                     base = EvalIndexExpression(e, base, prop, guard);
@@ -10196,10 +10185,10 @@ namespace es
         return base;
     }
 
-    inline std::vector<JSValue*> EvalArgumentsList(Error* e, Arguments* ast)
+    inline std::vector<JSValue*> EvalArgumentsList(Error* e, Parsing::Arguments* ast)
     {
         std::vector<JSValue*> arg_list;
-        for(AST* ast : ast->args())
+        for(Parsing::AST* ast : ast->args())
         {
             JSValue* ref = EvalExpression(e, ast);
             if(!e->IsOk())
@@ -10285,7 +10274,7 @@ namespace es
         return new Reference(base_value, identifier_name, strict);
     }
 
-    inline JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, AST* expr, ValueGuard& guard)
+    inline JSValue* EvalIndexExpression(Error* e, JSValue* base_ref, Parsing::AST* expr, ValueGuard& guard)
     {
         JSValue* property_name_ref = EvalExpression(e, expr);
         if(!e->IsOk())
@@ -10305,13 +10294,13 @@ namespace es
         return EvalIndexExpression(e, base_ref, property_name_str, guard);
     }
 
-    inline JSValue* EvalExpressionList(Error* e, AST* ast)
+    inline JSValue* EvalExpressionList(Error* e, Parsing::AST* ast)
     {
-        assert(ast->type() == AST::AST_EXPR);
-        Expression* exprs = static_cast<Expression*>(ast);
+        assert(ast->type() == Parsing::AST::AST_EXPR);
+        Parsing::Expression* exprs = static_cast<Parsing::Expression*>(ast);
         assert(!exprs->elements().empty());
         JSValue* val;
-        for(AST* expr : exprs->elements())
+        for(Parsing::AST* expr : exprs->elements())
         {
             JSValue* ref = EvalAssignmentExpression(e, expr);
             if(!e->IsOk())
