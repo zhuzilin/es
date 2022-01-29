@@ -101,50 +101,6 @@ class RegExpConstructor : public JSObject {
     return singleton;
   }
 
-  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
-    Handle<String> P, F;
-    if (arguments.size() == 0) {
-      P = String::Empty();
-    } else if (arguments[0].val()->IsRegExpObject()) {
-      if (arguments.size() > 1 && !arguments[1].val()->IsUndefined()) {
-        Handle<RegExpObject> R = static_cast<Handle<RegExpObject>>(arguments[0]);
-        P = R.val()->pattern();
-        F = R.val()->flag();
-      } else {
-        *e = *Error::TypeError(u"new RegExp called with RegExp object and flag.");
-        return Handle<JSValue>();
-      }
-    } else {
-      P = ::es::ToString(e, arguments[0]);
-      if (!e->IsOk()) return Handle<JSValue>();
-    }
-    if (arguments.size() < 2 || arguments[1].val()->IsUndefined()) {
-      F = String::Empty();
-    } else {
-      F = ::es::ToString(e, arguments[1]);
-      if (!e->IsOk()) return Handle<JSValue>();
-    }
-    // Check is flag is valid
-    std::unordered_map<char16_t, size_t> count;
-    bool valid_flag = true;
-    for (auto c : F.val()->data()) {
-      if (c != u'g' && c != u'i' && c != u'm') {
-        valid_flag = false;
-        break;
-      }
-      if (count[c] > 0) {
-        valid_flag = false;
-        break;
-      }
-      count[c]++;
-    }
-    if (!valid_flag) {
-      *e = *Error::SyntaxError(u"invalid RegExp flag: " + F.val()->data());
-      return Handle<JSValue>();
-    }
-    return RegExpObject::New(P, F);
-  }
-
   static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function RegExp() { [native code] }");
   }
@@ -173,6 +129,7 @@ Handle<JSValue> RegExpProto::toString(Error* e, Handle<JSValue> this_arg, std::v
 }
 
 Handle<JSValue> Call__RegExpConstructor(Error* e, Handle<RegExpConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSObject> Construct__RegExpConstructor(Error* e, Handle<RegExpConstructor> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es
 

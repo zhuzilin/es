@@ -241,25 +241,6 @@ class ArrayConstructor : public JSObject {
     return singleton;
   }
 
-  // 15.5.2.1 new Array ( [ value ] )
-  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
-    if (arguments.size() == 1 && arguments[0].val()->IsNumber()) {
-      Handle<Number> len = static_cast<Handle<Number>>(arguments[0]);
-      if (len.val()->data() == ToUint32(e, len)) {
-        return ArrayObject::New(len.val()->data());
-      } else {
-        *e = *Error::RangeError(u"Invalid array length");
-        return Handle<JSValue>();
-      }
-    }
-    Handle<ArrayObject> arr = ArrayObject::New(arguments.size());
-    for (size_t i = 0; i < arguments.size(); i++) {
-      Handle<JSValue> arg = arguments[i];
-      AddValueProperty(arr, NumberToU16String(i), arg, true, true, true);
-    }
-    return arr;
-  }
-
   static Handle<JSValue> isArray(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size() == 0 || !vals[0].val()->IsObject())
       return Bool::False();
@@ -274,7 +255,7 @@ class ArrayConstructor : public JSObject {
  private:
   static Handle<ArrayConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Array", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      OBJ_ARRAY_CONSTRUCTOR, u"Array", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<ArrayConstructor>(new (jsobj.val()) ArrayConstructor());
   }
 };
@@ -532,6 +513,7 @@ Handle<JSValue> ObjectConstructor::keys(Error* e, Handle<JSValue> this_arg, std:
 }
 
 bool DefineOwnProperty__Array(Error* e, Handle<ArrayObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
+Handle<JSObject> Construct__ArrayConstructor(Error* e, Handle<ArrayConstructor> O,  std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es
 

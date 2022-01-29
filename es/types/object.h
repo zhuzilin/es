@@ -37,7 +37,11 @@ class JSObject : public JSValue {
 
     OBJ_FUNC_PROTO,
 
+    OBJ_ARRAY_CONSTRUCTOR,
     OBJ_BOOL_CONSTRUCTOR,
+    OBJ_DATE_CONSTRUCTOR,
+    OBJ_ERROR_CONSTRUCTOR,
+    OBJ_FUNC_CONSTRUCTOR,
     OBJ_NUMBER_CONSTRUCTOR,
     OBJ_OBJECT_CONSTRUCTOR,
     OBJ_REGEXP_CONSTRUCTOR,
@@ -62,7 +66,8 @@ class JSObject : public JSValue {
     flag_t flag = 0
   ) {
 #ifdef GC_DEBUG
-    std::cout << "JSObject::New " << log::ToString(klass) << std::endl;
+    if (log::Debugger::On())
+      std::cout << "JSObject::New " << log::ToString(klass) << std::endl;
 #endif
     Handle<JSValue> jsval = JSValue::New(JS_OBJECT, kJSObjectOffset - kJSValueOffset + size, flag);
     SET_VALUE(jsval.val(), kObjTypeOffset, obj_type, ObjType);
@@ -113,10 +118,6 @@ class JSObject : public JSValue {
   bool HasPrimitiveValue() {
     return obj_type() == OBJ_BOOL || obj_type() == OBJ_DATE ||
            obj_type() == OBJ_NUMBER || obj_type() == OBJ_STRING;
-  }
-  // [[Construct]]
-  virtual Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) {
-    assert(false);
   }
   bool IsConstructor() override { return READ_VALUE(this, kIsConstructorOffset, bool); }
   bool IsCallable() override { return READ_VALUE(this, kIsCallableOffset, bool); }
@@ -213,6 +214,8 @@ void AddFuncProperty(
 Handle<JSValue> Call(Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 Handle<JSValue> Call__Base(Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 Handle<JSValue> Call__Construct(Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+
+Handle<JSObject> Construct(Error* e, Handle<JSObject> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace
 

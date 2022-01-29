@@ -267,15 +267,6 @@ class StringConstructor : public JSObject {
     return singleton;
   }
 
-  // 15.5.2.1 String::New ( [ value ] )
-  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
-    if (arguments.size() == 0)
-      return StringObject::New(String::Empty());
-    Handle<String> str = ::es::ToString(e, arguments[0]);
-    if (!e->IsOk()) return Handle<JSValue>();
-    return StringObject::New(str);
-  }
-
   static Handle<JSValue> fromCharCode(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     std::u16string result = u"";
     for (Handle<JSValue> val : vals) {
@@ -300,6 +291,7 @@ class StringConstructor : public JSObject {
 
 Handle<JSValue> GetOwnProperty__String(Handle<StringObject> O, Handle<String> P);
 Handle<JSValue> Call__StringConstructor(Error* e, Handle<StringConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSObject> Construct__StringConstructor(Error* e, Handle<StringConstructor> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es
 

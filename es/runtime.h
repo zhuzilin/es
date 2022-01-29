@@ -17,16 +17,25 @@ class ExecutionContext {
     Handle<LexicalEnvironment> lexical_env,
     Handle<JSValue> this_binding,
     bool strict
-  ) : variable_env_(variable_env), lexical_env_(lexical_env),
-      this_binding_(this_binding), strict_(strict),
-      iteration_layers_(0), switch_layers_(0) {}
+  ) : strict_(strict), iteration_layers_(0), switch_layers_(0) {
+    pointers_ = new HeapObject*[3];
+    SET_HANDLE_VALUE(pointers_, kVarEnvOffset, variable_env, LexicalEnvironment);
+    SET_HANDLE_VALUE(pointers_, kLexEnvOffset, lexical_env, LexicalEnvironment);
+    SET_HANDLE_VALUE(pointers_, kThisBindingOffset, this_binding, JSValue);
+  }
 
-  Handle<LexicalEnvironment> variable_env() { return variable_env_; }
-  Handle<LexicalEnvironment> lexical_env() { return lexical_env_; }
-  Handle<JSValue> this_binding() { return this_binding_; }
+  ~ExecutionContext() {
+    delete[] pointers_;
+  }
+
+  Handle<LexicalEnvironment> variable_env() { return READ_HANDLE_VALUE(pointers_, kVarEnvOffset, LexicalEnvironment); }
+  Handle<LexicalEnvironment> lexical_env() { return READ_HANDLE_VALUE(pointers_, kLexEnvOffset, LexicalEnvironment); }
+  Handle<JSValue> this_binding() { return READ_HANDLE_VALUE(pointers_, kThisBindingOffset, JSValue); }
   bool strict() { return strict_; }
 
-  void SetLexicalEnv(Handle<LexicalEnvironment> lexical_env) { lexical_env_ = lexical_env; }
+  void SetLexicalEnv(Handle<LexicalEnvironment> lexical_env) {
+    SET_HANDLE_VALUE(pointers_, kLexEnvOffset, lexical_env, LexicalEnvironment);
+  }
 
   bool HasLabel(std::u16string label) {
     if (label == u"")
@@ -61,16 +70,19 @@ class ExecutionContext {
 
   std::vector<HeapObject**> Pointers() {
     std::vector<HeapObject**> pointers;
-    pointers.emplace_back(reinterpret_cast<HeapObject**>(lexical_env_.ptr()));
-    pointers.emplace_back(reinterpret_cast<HeapObject**>(variable_env_.ptr()));
-    pointers.emplace_back(reinterpret_cast<HeapObject**>(this_binding_.ptr()));
+    pointers.emplace_back(pointers_);
+    pointers.emplace_back(pointers_ + 1);
+    pointers.emplace_back(pointers_ + 2);
     return pointers;
   }
 
  private:
-  Handle<LexicalEnvironment> variable_env_;
-  Handle<LexicalEnvironment> lexical_env_;
-  Handle<JSValue> this_binding_;
+  static constexpr size_t kVarEnvOffset = 0;
+  static constexpr size_t kLexEnvOffset = kPtrSize;
+  static constexpr size_t kThisBindingOffset = 2 * kPtrSize;
+
+  HeapObject** pointers_;
+
   bool strict_;
   std::stack<std::u16string> label_stack_;
   size_t iteration_layers_;

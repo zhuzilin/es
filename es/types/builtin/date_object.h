@@ -213,10 +213,6 @@ class DateConstructor : public JSObject {
     return singleton;
   }
 
-  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
-    assert(false);
-  }
-
   static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function Date() { [native code] }");
   }
@@ -236,7 +232,7 @@ class DateConstructor : public JSObject {
  private:
   static Handle<DateConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Date", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      OBJ_DATE_CONSTRUCTOR, u"Date", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<DateConstructor>(new (jsobj.val()) DateConstructor());
   }
 };

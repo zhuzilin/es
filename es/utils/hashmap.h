@@ -14,7 +14,8 @@ class HashMap : public HeapObject {
  public:
   static Handle<HashMap<T>> New(size_t num_bucket = kDefaultHashMapSize) {
 #ifdef GC_DEBUG
-    std::cout << "HashMap::New" << std::endl;
+    if (log::Debugger::On())
+      std::cout << "HashMap::New" << std::endl;
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(2 * kSizeTSize + num_bucket * kPtrSize);
     SET_VALUE(heap_obj.val(), kNumBucketOffset, num_bucket, size_t);
@@ -134,7 +135,8 @@ class HashMap : public HeapObject {
    public:
     static Handle<ListNode> New(Handle<String> key, Handle<T> val) {
 #ifdef GC_DEBUG
-      std::cout << "ListNode::New" << std::endl;
+      if (log::Debugger::On())
+        std::cout << "ListNode::New" << std::endl;
 #endif
       Handle<HeapObject> heap_obj = HeapObject::New(3 * kPtrSize);
       SET_HANDLE_VALUE(heap_obj.val(), kKeyOffset, key, String);

@@ -49,15 +49,6 @@ class BoolConstructor : public JSObject {
     return singleton;
   }
 
-  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
-    bool b;
-    if (arguments.size() == 0)
-      b = ToBoolean(Undefined::Instance());
-    else
-      b = ToBoolean(arguments[0]);
-    return BoolObject::New(Bool::Wrap(b));
-  }
-
   static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function Bool() { [native code] }");
   }
@@ -71,6 +62,7 @@ class BoolConstructor : public JSObject {
 };
 
 Handle<JSValue> Call__BoolConstructor(Error* e, Handle<BoolConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSObject> Construct__BoolConstructor(Error* e, Handle<BoolConstructor> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es
 

@@ -77,27 +77,6 @@ class ObjectConstructor : public JSObject {
     return singleton;
   }
 
-  // 15.2.2 The Object Constructor
-  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
-    if (arguments.size() > 0) {  // 1
-      Handle<JSValue> value = arguments[0];
-      switch (value.val()->type()) {
-        case JSValue::JS_OBJECT:
-          // TODO(zhuzilin) deal with host object.
-          return static_cast<Handle<JSObject>>(value);
-        case JSValue::JS_STRING:
-        case JSValue::JS_BOOL:
-        case JSValue::JS_NUMBER:
-          return ToObject(e, value);
-        default:
-          break;
-      }
-    }
-    assert(arguments.size() == 0 || arguments[0].val()->IsNull() || arguments[0].val()->IsUndefined());
-    Handle<JSObject> obj = Object::New();
-    return obj;
-  }
-
   // 15.2.3.2 Object.getPrototypeOf ( O )
   static Handle<JSValue> getPrototypeOf(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size() < 1 || !vals[0].val()->IsObject()) {
@@ -221,6 +200,7 @@ class ObjectConstructor : public JSObject {
 };
 
 Handle<JSValue> Call__ObjectConstructor(Error* e, Handle<ObjectConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSObject> Construct__ObjectConstructor(Error* e, Handle<ObjectConstructor> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es
 

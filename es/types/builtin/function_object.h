@@ -70,6 +70,9 @@ class FunctionProto : public JSObject {
   }
 
   static Handle<JSValue> call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (log::Tracker::On()) {
+      std::cout << "enter call" << std::endl;
+    }
     Handle<JSValue> val = Runtime::TopValue();
     if (!val.val()->IsObject()) {
       *e = *Error::TypeError(u"Function.prototype.call called on non-object");
@@ -160,24 +163,6 @@ class FunctionObject : public JSObject {
   virtual bool strict() { return READ_VALUE(this, kStrictOffset, bool); }
   bool from_bind() { return READ_VALUE(this, kFromBindOffset, bool); }
 
-  // 13.2.2 [[Construct]]
-  virtual Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
-    log::PrintSource("enter FunctionObject::Construct");
-    Handle<JSObject> obj = JSObject::New(OBJ_OTHER, u"Object", true, Handle<JSValue>(), false, false, nullptr, 0);
-    Handle<JSValue> proto = Get(e, Handle<JSObject>(this), String::Prototype());
-    if (!e->IsOk()) return Handle<JSValue>();
-    if (proto.val()->IsObject()) {  // 6
-      obj.val()->SetPrototype(proto);
-    } else {  // 7
-      obj.val()->SetPrototype(ObjectProto::Instance());
-    }
-    Handle<JSValue> result = Call(e, Handle<JSObject>(this), obj, arguments);  // 8
-    if (!e->IsOk()) return Handle<JSValue>();
-    if (result.val()->IsObject())  // 9
-      return static_cast<Handle<JSObject>>(result);
-    return obj;  // 10
-  }
-
   virtual std::string ToString() override {
     std::string result = "Function(";
     FixedArray<String>* params = READ_VALUE(this, kFormalParametersOffset, FixedArray<String>*);
@@ -231,20 +216,6 @@ class BindFunctionObject : public FunctionObject {
   Handle<JSValue> BoundThis() { return READ_HANDLE_VALUE(this, kBoundThisOffset, JSValue); }
   Handle<FixedArray<JSValue>> BoundArgs() { return READ_HANDLE_VALUE(this, kBoundArgsOffset, FixedArray<JSValue>); }
 
-  // 13.2.2 [[Construct]]
-  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> extra_args) override {
-    if (!TargetFunction().val()->IsConstructor()) {
-      *e = *Error::TypeError(u"target function has no [[Construct]] internal method");
-      return Handle<JSValue>();
-    }
-    std::vector<Handle<JSValue>> args;
-    for (size_t i = 0; i < BoundArgs().val()->size(); i++) {
-      args.emplace_back(BoundArgs().val()->Get(i));
-    }
-    args.insert(args.end(), extra_args.begin(), extra_args.end());
-    return TargetFunction().val()->Construct(e, args);
-  }
-
   std::string ToString() override {
     return "BindFunctionObject";
   }
@@ -263,63 +234,6 @@ class FunctionConstructor : public JSObject {
     return singleton;
   }
 
-  // 15.3.2.1 new Function (p1, p2, … , pn, body)
-  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
-    log::PrintSource("enter FunctionConstructor::Construct");
-    size_t arg_count = arguments.size();
-    std::u16string P = u"";
-    std::u16string body = u"";
-    if (arg_count == 1) {
-      body = ToU16String(e, arguments[0]);
-      if (!e->IsOk()) return Handle<JSValue>();
-    } else if (arg_count > 1) {
-      P += ToU16String(e, arguments[0]);
-      if (!e->IsOk()) return Handle<JSValue>();
-      for (size_t i = 1; i < arg_count - 1; i++) {
-        P += u"," + ToU16String(e, arguments[i]);
-        if (!e->IsOk()) return Handle<JSValue>();
-      }
-      body = ToU16String(e, arguments[arg_count - 1]);
-      if (!e->IsOk()) return Handle<JSValue>();
-    }
-    std::u16string P_view = Runtime::Global()->AddSource(std::move(P));
-    std::vector<std::u16string> names;
-    AST* body_ast;
-    if (P_view.size() > 0) {
-      Parser parser(P_view);
-      names = parser.ParseFormalParameterList();
-      if (names.size() == 0) {
-        *e = *Error::SyntaxError(u"invalid parameter name");
-        return Handle<JSValue>();
-      }
-    }
-    std::u16string body_view = Runtime::Global()->AddSource(std::move(body));
-    {
-      Parser parser(body_view);
-      body_ast = parser.ParseFunctionBody(Token::TK_EOS);
-      if (body_ast->IsIllegal()) {
-        *e = *Error::SyntaxError(u"failed to parse function body: " + body_ast->source());
-        return Handle<JSValue>();
-      }
-    }
-    Handle<LexicalEnvironment> scope = LexicalEnvironment::Global();
-    bool strict = static_cast<ProgramOrFunctionBody*>(body_ast)->strict();
-    if (strict) {
-      // 13.1
-      if (HaveDuplicate(names)) {
-        *e = *Error::SyntaxError(u"have duplicate parameter name in strict mode");
-        return Handle<JSValue>();
-      }
-      for (auto name : names) {
-        if (name == u"eval" || name == u"arguments") {
-          *e = *Error::SyntaxError(u"param name cannot be eval or arguments in strict mode");
-          return Handle<JSValue>();
-        }
-      }
-    }
-    return FunctionObject::New(names, body_ast, scope);
-  }
-
   static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function Function() { [native code] }");
   }
@@ -327,7 +241,7 @@ class FunctionConstructor : public JSObject {
  private:
   static Handle<FunctionConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Function", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      OBJ_FUNC_CONSTRUCTOR, u"Function", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<FunctionConstructor>(new (jsobj.val()) FunctionConstructor());
   }
 };
@@ -463,8 +377,12 @@ bool HasInstance__Function(Error* e, Handle<FunctionObject> O, Handle<JSValue> V
 bool HasInstance__BindFunction(Error* e, Handle<BindFunctionObject> O, Handle<JSValue> V);
 
 Handle<JSValue> Call__Function(Error* e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments);
-Handle<JSValue> Call__BindFunction(Error* e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments);
-Handle<JSValue> Call__FunctionProto(Error* e, Handle<FunctionProto> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSValue> Call__BindFunction(Error* e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> extra_args);
+Handle<JSValue> Call__FunctionProto(Error* e, Handle<FunctionProto> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments);
+
+Handle<JSObject> Construct__Function(Error* e, Handle<FunctionObject> O,std::vector<Handle<JSValue>> arguments);
+Handle<JSObject> Construct__BindFunction(Error* e, Handle<BindFunctionObject> O, std::vector<Handle<JSValue>> extra_args);
+Handle<JSObject> Construct__FunctionConstructor(Error* e, Handle<FunctionConstructor> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es
 

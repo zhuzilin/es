@@ -39,7 +39,8 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
    public:
     static Handle<Binding> New(Handle<JSValue> value, bool can_delete, bool is_mutable) {
 #ifdef GC_DEBUG
-      std::cout << "Binding::New" << std::endl;
+      if (log::Debugger::On())
+        std::cout << "Binding::New" << std::endl;
 #endif
       Handle<HeapObject> heap_obj = HeapObject::New(kBindingOffset - kHeapObjectOffset);
       SET_HANDLE_VALUE(heap_obj.val(), kValueOffset, value, JSValue);

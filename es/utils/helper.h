@@ -31,6 +31,21 @@ class Debugger {
 #endif
 };
 
+// For exact debugging
+class Tracker {
+ public:
+  static Tracker* Instance() {
+    static Tracker tracker;
+    return &tracker;
+  }
+
+  static void TurnOn() { Tracker::Instance()->on_ = true; }
+  static bool On() { return Tracker::Instance()->on_; }
+
+ private:
+  bool on_ = false;
+};
+
 void PrintSource(std::string comment, std::u16string str = u"", std::string postfix = "") {
   if (Debugger::On()) {
     std::cout << comment;

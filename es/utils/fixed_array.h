@@ -11,7 +11,8 @@ class FixedArray : public HeapObject {
   static Handle<FixedArray<T>> New(std::vector<Handle<T>> elements) {
     size_t n = elements.size();
 #ifdef GC_DEBUG
-    std::cout << "FixedArray::New " << n << std::endl;
+    if (log::Debugger::On())
+      std::cout << "FixedArray::New " << n << std::endl;
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
     SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);
@@ -33,7 +34,8 @@ class FixedArray : public HeapObject {
 
   static Handle<FixedArray<T>> New(size_t n) {
 #ifdef GC_DEBUG
-    std::cout << "FixedArray::New " << n << std::endl;
+    if (log::Debugger::On())
+      std::cout << "FixedArray::New " << n << std::endl;
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
     SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);

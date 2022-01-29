@@ -54,15 +54,6 @@ class ErrorConstructor : public JSObject {
     return singleton;
   }
 
-  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
-    if (arguments.size() == 0 || arguments[0].val()->IsUndefined())
-      return ErrorObject::New(Error::NativeError(ToU16String(nullptr, Undefined::Instance())));
-    std::u16string s = ToU16String(e, arguments[0]);
-    if (!e->IsOk())
-      return Handle<JSValue>();
-    return ErrorObject::New(Error::NativeError(s));
-  }
-
   static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function Error() { [native code] }");
   }
@@ -70,10 +61,12 @@ class ErrorConstructor : public JSObject {
  private:
   static Handle<ErrorConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Error", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      OBJ_ERROR_CONSTRUCTOR, u"Error", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<ErrorConstructor>(new (jsobj.val()) ErrorConstructor());
   }
 };
+
+Handle<JSObject> Construct__ErrorConstructor(Error* e, Handle<ErrorConstructor> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es
 

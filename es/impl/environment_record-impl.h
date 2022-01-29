@@ -119,7 +119,7 @@ Handle<JSValue> GetBindingValue__Declarative(
     }
   }
   log::PrintSource("GetBindingValue ", N.val()->data(), " " + b->value().ToString());
-    return b->value();
+  return b->value();
 }
 
 // 10.2.1.2.4 GetBindingValue(N,S)

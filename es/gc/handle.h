@@ -133,8 +133,10 @@ class Handle {
   explicit Handle(T* value) {
     if (value != nullptr) {
 #ifdef GC_DEBUG
-      Handle<T> tmp;
-      std::cout << "Add " << typeid(tmp).name() << std::endl;
+      if (log::Debugger::On()) {
+        Handle<T> tmp;
+        std::cout << "Add " << typeid(tmp).name() << std::endl;
+      }
 #endif
       ptr_ = reinterpret_cast<T**>(HandleScope::Add(value));
     } else {

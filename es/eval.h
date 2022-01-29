@@ -510,7 +510,8 @@ Completion EvalWithStatement(AST* ast) {
   Handle<JSObject> obj = ToObject(e, val);
   if (!e->IsOk())
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
-  Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
+  // Prevent garbage collect old env.
+  Handle<LexicalEnvironment> old_env = Handle<LexicalEnvironment>(Runtime::TopLexicalEnv().val());
   Handle<LexicalEnvironment> new_env = NewObjectEnvironment(obj, old_env, true);
   Runtime::TopContext()->SetLexicalEnv(new_env);
   Completion C = EvalStatement(with_stmt->stmt());
@@ -619,9 +620,9 @@ Completion EvalThrowStatement(AST* ast) {
 }
 
 Completion EvalCatch(Try* try_stmt, Completion C) {
-  // NOTE(zhuzilin) Don't gc these two env, during this function.
   Error* e = Error::Ok();
-  Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
+  // Prevent garbage collect old env.
+  Handle<LexicalEnvironment> old_env = Handle<LexicalEnvironment>(Runtime::TopLexicalEnv().val());
   Handle<LexicalEnvironment> catch_env = NewDeclarativeEnvironment(old_env);
   Handle<String> ident_str = String::New(try_stmt->catch_ident());
   CreateMutableBinding(e, catch_env.val()->env_rec(), ident_str, false);  // 4
@@ -1419,10 +1420,19 @@ Handle<JSValue> EvalLeftHandSideExpression(Error* e, AST* ast) {
 
   size_t new_count = lhs->new_count();
   for (auto pair : lhs->order()) {
+    if (log::Tracker::On()) {
+      std::cout << "lhs: " << pair.second << std::endl;
+    }
     switch (pair.second) {
       case LHS::PostfixType::CALL: {
         auto args = lhs->args_list()[pair.first];
+        if (log::Tracker::On()) {
+          std::cout << "before tracing arg list" << std::endl;
+        }
         auto arg_list = EvalArgumentsList(e, args);
+        if (log::Tracker::On()) {
+          std::cout << "finish tracing arg list" << std::endl;
+        }
         if (!e->IsOk()) return Handle<JSValue>();
         if (new_count > 0) {
           base = GetValue(e, base);
@@ -1432,7 +1442,7 @@ Handle<JSValue> EvalLeftHandSideExpression(Error* e, AST* ast) {
             return Handle<JSValue>();
           }
           Handle<JSObject> constructor = static_cast<Handle<JSObject>>(base);
-          base = constructor.val()->Construct(e, arg_list);
+          base = Construct(e, constructor, arg_list);
           if (!e->IsOk()) return Handle<JSValue>();
           new_count--;
         } else {
@@ -1465,7 +1475,7 @@ Handle<JSValue> EvalLeftHandSideExpression(Error* e, AST* ast) {
       return Handle<JSValue>();
     }
     Handle<JSObject> constructor = static_cast<Handle<JSObject>>(base);
-    base = constructor.val()->Construct(e, {});
+    base = Construct(e, constructor, {});
     if (!e->IsOk()) return Handle<JSValue>();
     new_count--;
   }
@@ -1474,8 +1484,12 @@ Handle<JSValue> EvalLeftHandSideExpression(Error* e, AST* ast) {
 
 std::vector<Handle<JSValue>> EvalArgumentsList(Error* e, Arguments* ast) {
   std::vector<Handle<JSValue>> arg_list;
-  for (AST* ast : ast->args()) {
-    Handle<JSValue> ref = EvalExpression(e, ast);
+  for (AST* arg_ast : ast->args()) {
+    if (log::Tracker::On()) {
+      std::cout << "before eval " << log::ToString(arg_ast->source()) << std::endl;
+      std::cout << "this: " << Runtime::TopContext()->this_binding().ToString() << std::endl;
+    }
+    Handle<JSValue> ref = EvalExpression(e, arg_ast);
     if (!e->IsOk())
       return {};
     Handle<JSValue> arg = GetValue(e, ref);
@@ -1488,6 +1502,9 @@ std::vector<Handle<JSValue>> EvalArgumentsList(Error* e, Arguments* ast) {
 
 // 11.2.3
 Handle<JSValue> EvalCallExpression(Error* e, Handle<JSValue> ref, std::vector<Handle<JSValue>> arg_list) {
+  if (log::Tracker::On()) {
+    std::cout << "enter EvalCallExpression" << std::endl;
+  }
   Handle<JSValue> val = GetValue(e, ref);
   if (!e->IsOk())
     return Handle<JSValue>();
