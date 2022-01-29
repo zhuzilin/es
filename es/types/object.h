@@ -134,7 +134,7 @@ class JSObject : public JSValue {
     if (!Prototype().val()->IsNull()) {
       Handle<JSObject> proto = static_cast<Handle<JSObject>>(Prototype());
       for (auto pair : proto.val()->AllEnumerableProperties()) {
-        if (named_properties()->GetRaw(pair.first) != nullptr) {
+        if (named_properties()->GetRaw(pair.first) == nullptr) {
           result.emplace_back(pair);
         }
       }
