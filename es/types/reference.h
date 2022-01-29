@@ -90,7 +90,7 @@ Handle<JSValue> GetValue(Error* e, Handle<JSValue> V) {
   } else {
     assert(base.val()->IsEnvironmentRecord());
     Handle<EnvironmentRecord> er = static_cast<Handle<EnvironmentRecord>>(base);
-    return er.val()->GetBindingValue(e, ref.val()->GetReferencedName(), ref.val()->IsStrictReference());
+    return GetBindingValue(e, er, ref.val()->GetReferencedName(), ref.val()->IsStrictReference());
   }
 }
 
@@ -149,7 +149,7 @@ void PutValue(Error* e, Handle<JSValue> V, Handle<JSValue> W) {
   } else {
     assert(base.val()->IsEnvironmentRecord());
     Handle<EnvironmentRecord> er = static_cast<Handle<EnvironmentRecord>>(base);
-    er.val()->SetMutableBinding(e, ref.val()->GetReferencedName(), W, ref.val()->IsStrictReference());
+    SetMutableBinding(e, er, ref.val()->GetReferencedName(), W, ref.val()->IsStrictReference());
   }
 }
 

@@ -48,7 +48,7 @@ Handle<LexicalEnvironment> NewObjectEnvironment(Handle<JSObject> obj, Handle<Lex
 
 Handle<Reference> GetIdentifierReference(Handle<LexicalEnvironment> lex, Handle<String> name, bool strict) {
   auto env_rec = lex.val()->env_rec();
-  bool exists = env_rec.val()->HasBinding(name);
+  bool exists = HasBinding(env_rec, name);
   if (exists) {
     return Reference::New(env_rec, name, strict);
   }

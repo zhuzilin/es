@@ -13,7 +13,9 @@ template<typename T>
 class HashMap : public HeapObject {
  public:
   static Handle<HashMap<T>> New(size_t num_bucket = kDefaultHashMapSize) {
+#ifdef GC_DEBUG
     std::cout << "HashMap::New" << std::endl;
+#endif
     Handle<HeapObject> heap_obj = HeapObject::New(2 * kSizeTSize + num_bucket * kPtrSize);
     SET_VALUE(heap_obj.val(), kNumBucketOffset, num_bucket, size_t);
     SET_VALUE(heap_obj.val(), kSizeOffset, 0, size_t);
@@ -37,73 +39,47 @@ class HashMap : public HeapObject {
   void SetSize(size_t s) { SET_VALUE(this, kSizeOffset, s, size_t); }
   size_t num_bucket() { return READ_VALUE(this, kNumBucketOffset, size_t); }
 
-  void Set(Handle<String> key, Handle<T> val) {
-    std::cout << "enter Set" << std::endl;
-    size_t offset = ListHeadOffset(key.val());
-    ListNode* head = GetListHead(offset);
-    if (head == nullptr || LessThan(key.val(), head->key())) {
-      Handle<ListNode> new_head = ListNode::New(key, val);
-      new_head.val()->SetNext(head);
-      SetListHead(offset, new_head.val());
-      SetSize(size() + 1);
-      std::cout << "return Set1" << std::endl;
-      return;
-    } else if (*key.val() == *(head->key())) {
-      head->SetVal(val.val());
-      std::cout << "return Set2" << std::endl;
+  // Set can not be method as there can be gc happening inside.
+  static void Set(Handle<HashMap<T>> map, Handle<String> key, Handle<T> val) {
+    ListNode* old_node = map.val()->GetListNodeRaw(key);
+    if (old_node != nullptr) {
+      old_node->SetVal(val.val());
       return;
     }
+    map.val()->SetSize(map.val()->size() + 1);
+    Handle<ListNode> new_node = ListNode::New(key, val);
+    // There will not be any new memory allocated after this line.
+    // So we could use pointer.
+    size_t offset = map.val()->ListHeadOffset(key.val());
+    ListNode* head = map.val()->GetListHead(offset);
+    if (head == nullptr || LessThan(key.val(), head->key())) {
+      new_node.val()->SetNext(head);
+      map.val()->SetListHead(offset, new_node.val());
+      return;
+    }
+    assert(*key.val() != *(head->key()));
     while (head->next() != nullptr) {
       String* next_key = head->next()->key();
-      if (*key.val() == *next_key) {
-        head->next()->SetVal(val.val());
-        std::cout << "return Set3" << std::endl;
-        return;
-      } else if (LessThan(key.val(), next_key)) {
-        Handle<ListNode> node = ListNode::New(key, val);
-        node.val()->SetNext(head->next());
-        head->SetNext(node.val());
-        SetSize(size() + 1);
-        std::cout << "return Set4" << std::endl;
+      assert(*key.val() != *next_key);
+      if (LessThan(key.val(), next_key)) {
+        new_node.val()->SetNext(head->next());
+        head->SetNext(new_node.val());
         return;
       }
       head = head->next();
     }
-    head->SetNext(ListNode::New(key, val).val());
-    SetSize(size() + 1);
-    std::cout << "return Set5" << std::endl;
+    head->SetNext(new_node.val());
   }
 
   Handle<T> Get(Handle<String> key) {
-    size_t offset = ListHeadOffset(key.val());
-    ListNode* head = GetListHead(offset);
-    if (head == nullptr)
-      return Handle<T>();
-    while (head != nullptr) {
-      if (*key.val() == *(head->key())) {
-        return Handle<T>(head->val());
-      } else if (LessThan(key.val(), head->key())) {
-        return Handle<T>();
-      }
-      head = head->next();
-    }
-    return Handle<T>();
+    return Handle<T>(GetRaw(key));
   }
 
   T* GetRaw(Handle<String> key) {
-    size_t offset = ListHeadOffset(key.val());
-    ListNode* head = GetListHead(offset);
-    if (head == nullptr)
+    ListNode* node = GetListNodeRaw(key);
+    if (node == nullptr)
       return nullptr;
-    while (head != nullptr) {
-      if (*key.val() == *(head->key())) {
-        return head->val();
-      } else if (LessThan(key.val(), head->key())) {
-        return nullptr;
-      }
-      head = head->next();
-    }
-    return nullptr;
+    return node->val();
   }
 
   void Delete(Handle<String> key) {
@@ -157,7 +133,9 @@ class HashMap : public HeapObject {
   class ListNode : public HeapObject {
    public:
     static Handle<ListNode> New(Handle<String> key, Handle<T> val) {
+#ifdef GC_DEBUG
       std::cout << "ListNode::New" << std::endl;
+#endif
       Handle<HeapObject> heap_obj = HeapObject::New(3 * kPtrSize);
       SET_HANDLE_VALUE(heap_obj.val(), kKeyOffset, key, String);
       SET_HANDLE_VALUE(heap_obj.val(), kValOffset, val, T);
@@ -225,6 +203,22 @@ class HashMap : public HeapObject {
 
   inline size_t ListHeadOffset(String* key) {
     return kElementOffset + U16Hash(key->data()) % num_bucket() * kPtrSize;
+  }
+
+  ListNode* GetListNodeRaw(Handle<String> key) {
+    size_t offset = ListHeadOffset(key.val());
+    ListNode* head = GetListHead(offset);
+    if (head == nullptr)
+      return nullptr;
+    while (head != nullptr) {
+      if (*key.val() == *(head->key())) {
+        return head;
+      } else if (LessThan(key.val(), head->key())) {
+        return nullptr;
+      }
+      head = head->next();
+    }
+    return nullptr;
   }
 
   static constexpr size_t kNumBucketOffset = kHeapObjectOffset;

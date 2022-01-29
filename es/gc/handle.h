@@ -132,8 +132,10 @@ class Handle {
  public:
   explicit Handle(T* value) {
     if (value != nullptr) {
+#ifdef GC_DEBUG
       Handle<T> tmp;
       std::cout << "Add " << typeid(tmp).name() << std::endl;
+#endif
       ptr_ = reinterpret_cast<T**>(HandleScope::Add(value));
     } else {
       ptr_ = nullptr;
@@ -144,7 +146,7 @@ class Handle {
 
   template<typename S>
   Handle(Handle<S> base) {
-#ifdef TEST
+#ifdef GC_DEBUG
     // Make sure the type conversion is correct.
     S* a = nullptr;
     T* b = static_cast<T*>(a);

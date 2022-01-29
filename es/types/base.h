@@ -33,7 +33,9 @@ class JSValue : public HeapObject {
   };
 
   static Handle<JSValue> New(Type type, size_t size, flag_t flag = 0) {
+#ifdef GC_DEBUG
     std::cout << "JSValue::New " << type << " " << size << " " << std::endl;
+#endif
     Handle<HeapObject> mem = HeapObject::New(kIntSize + size, flag);
     SET_VALUE(mem.val(), kTypeOffset, type, Type);
     return Handle<JSValue>(mem);

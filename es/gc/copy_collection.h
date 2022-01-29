@@ -38,22 +38,30 @@ class CopyCollection : public GC {
   }
 
   void Collect() override {
+#ifdef GC_DEBUG
     std::cout << "enter CopyCollection::Collect" << std::endl;
+#endif
     Flip();
     Initialise(worklist_);
     auto root_pointers = Runtime::Global()->Pointers();
     assert(root_pointers.size() > 0);
+#ifdef GC_DEBUG
     std::cout << "root_pointers size: " << root_pointers.size() << std::endl;
+#endif
     for (HeapObject** fld : root_pointers) {
       Process(fld);
     }
+#ifdef GC_DEBUG
     std::cout << "finish root_pointers" << std::endl;
+#endif
     while (!IsEmpty(worklist_)) {
       void* ref = Remove(worklist_);
       Scan(ref);
     }
     memset(fromspace_, 0, extent_);
+#ifdef GC_DEBUG
     std::cout << "exit CopyCollection::Collect " << free_ - tospace_ << std::endl;
+#endif
   }
 
   void Flip() {
@@ -61,19 +69,25 @@ class CopyCollection : public GC {
     top_ = tospace_ + extent_;
     free_ = tospace_;
     memset(tospace_, 0, extent_);
+#ifdef GC_DEBUG
     std::cout << "Flip new top: " << top_ - heap_start_ << std::endl;
     std::cout << "Flip new free: " << free_ - heap_start_ << std::endl;
+#endif
   }
 
   void Scan(void* ref) {
     HeapObject* heap_ref = static_cast<HeapObject*>(ref);
     assert(heap_ref != nullptr);
+#ifdef GC_DEBUG
     std::cout << "Scanning: " << heap_ref->ToString() << " " << ref << std::endl;
+#endif
     auto ref_pointers = heap_ref->Pointers();
     for (HeapObject** fld : ref_pointers) {
       Process(fld);
     }
+#ifdef GC_DEBUG
     std::cout << "exit Scan" << std::endl;
+#endif
   }
 
   void Process(HeapObject** fld) {
@@ -85,9 +99,13 @@ class CopyCollection : public GC {
       return;
     }
     assert(fromspace_ < (char*)from_ref && (char*)from_ref < fromspace_ + extent_);
+#ifdef GC_DEBUG
     std::cout << "Processing: " << from_ref->ToString() << std::endl;
+#endif
     *fld = static_cast<HeapObject*>(Forward(from_ref));
+#ifdef GC_DEBUG
     std::cout << "exit Process" << std::endl;
+#endif
   }
 
   void* Forward(void* from_ref) {
@@ -102,7 +120,9 @@ class CopyCollection : public GC {
     assert(fromspace_ < from_ref && from_ref < fromspace_ + extent_);
     char* to_ref = free_ + sizeof(Header);
     size_t size = Size(from_ref);
+#ifdef GC_DEBUG
     std::cout << "copy to free: " << free_ - tospace_ << std::endl;
+#endif
     free_ += size;
     SetForwardAddress(from_ref, nullptr);
     memcpy(H(to_ref), H(from_ref), size);

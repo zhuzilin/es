@@ -88,11 +88,8 @@ Completion EvalProgram(AST* ast) {
   if (statements.size() == 0)
     return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
   for (auto stmt : prog->statements()) {
-    std::cout << "program stmt: " << log::ToString(stmt->source()) << std::endl;
-    std::cout << "head_result: " << head_result.type() << std::endl;
     if (head_result.IsAbruptCompletion())
       break;
-    std::cout << "before eval stmt: " << log::ToString(stmt->source()) << std::endl;
     Completion tail_result = EvalStatement(stmt);
     if (tail_result.IsThrow())
       return tail_result;
@@ -106,7 +103,6 @@ Completion EvalProgram(AST* ast) {
 }
 
 Completion EvalStatement(AST* ast) {
-  std::cout << "eval statement: " << log::ToString(ast->source()) << std::endl;
   HandleScope scope;
   switch(ast->type()) {
     case AST::AST_STMT_BLOCK:
@@ -199,12 +195,10 @@ error:
 }
 
 Completion EvalIfStatement(AST* ast) {
-  std::cout << "enter if statement" << std::endl;
   assert(ast->type() == AST::AST_STMT_IF);
   Error* e = Error::Ok();
   If* if_stmt = static_cast<If*>(ast);
   Handle<JSValue> expr_ref = EvalExpression(e, if_stmt->cond());
-  std::cout << "expr_ref: " << expr_ref.ToString() << std::endl;
   if (!e->IsOk())
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   Handle<JSValue> expr = GetValue(e, expr_ref);
@@ -630,13 +624,13 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
   Handle<LexicalEnvironment> catch_env = NewDeclarativeEnvironment(old_env);
   Handle<String> ident_str = String::New(try_stmt->catch_ident());
-  catch_env.val()->env_rec().val()->CreateMutableBinding(e, ident_str, false);  // 4
+  CreateMutableBinding(e, catch_env.val()->env_rec(), ident_str, false);  // 4
   if (!e->IsOk()) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
-  catch_env.val()->env_rec().val()->SetMutableBinding(e, ident_str, C.value(), false);  // 5
+  SetMutableBinding(e, catch_env.val()->env_rec(), ident_str, C.value(), false);  // 5
   if (!e->IsOk()) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
@@ -1094,7 +1088,7 @@ Handle<JSValue> EvalUnaryOperator(Error* e, AST* ast) {
         return Bool::False();
       }
       Handle<EnvironmentRecord> bindings = static_cast<Handle<EnvironmentRecord>>(ref.val()->GetBase());
-      return Bool::Wrap(bindings.val()->DeleteBinding(e, ref.val()->GetReferencedName()));
+      return Bool::Wrap(DeleteBinding(e, bindings, ref.val()->GetReferencedName()));
     }
   } else if (op == u"typeof") {
     if (expr.val()->IsReference()) {
@@ -1515,7 +1509,7 @@ Handle<JSValue> EvalCallExpression(Error* e, Handle<JSValue> ref, std::vector<Ha
     } else {
       assert(base.val()->IsEnvironmentRecord());
       auto env_rec = static_cast<Handle<EnvironmentRecord>>(base);
-      this_value = env_rec.val()->ImplicitThisValue();
+      this_value = ImplicitThisValue(env_rec);
     }
   } else {
     this_value = Undefined::Instance();

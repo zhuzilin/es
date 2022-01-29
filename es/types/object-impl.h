@@ -29,9 +29,7 @@ Handle<JSValue> GetOwnProperty(Handle<JSObject> O, Handle<String> P) {
 
 // 8.12.1 [[GetOwnProperty]] (P)
 Handle<JSValue> GetOwnProperty__Base(Handle<JSObject> O, Handle<String> P) {
-  std::cout << "before Get" << std::endl;
   Handle<JSValue> val = O.val()->named_properties()->Get(P);
-  std::cout << "after Get" << std::endl;
   if (val.IsNullptr()) {
     return Undefined::Instance();
   }
@@ -340,8 +338,8 @@ bool DefineOwnProperty__Base(
     if(!O.val()->Extensible())  // 3
       goto reject;
     // 4.
-    O.val()->named_properties()->Set(P, desc);
-    std::cout << "return Set xxx " << P.ToString() << " = " << desc.ToString() << std::endl;
+    HashMap<PropertyDescriptor>::Set(
+      Handle<HashMap<PropertyDescriptor>>(O.val()->named_properties()), P, desc);
     return true;
   }
   if (desc.val()->bitmask() == 0) {  // 5
@@ -381,14 +379,13 @@ bool DefineOwnProperty__Base(
       // 9.a
       if (!current_desc.val()->Configurable()) goto reject;
       // 9.b.i & 9.c.i
-      std::cout << "before old property" << std::endl;
       Handle<PropertyDescriptor> old_property = O.val()->named_properties()->Get(P);
-      std::cout << "old property: " << old_property.ToString() << std::endl;
       Handle<PropertyDescriptor> new_property = PropertyDescriptor::New();
       new_property.val()->SetConfigurable(old_property.val()->Configurable());
       new_property.val()->SetEnumerable(old_property.val()->Enumerable());
       new_property.val()->SetBitMask(old_property.val()->bitmask());
-      O.val()->named_properties()->Set(P, new_property);
+      HashMap<PropertyDescriptor>::Set(
+        Handle<HashMap<PropertyDescriptor>>(O.val()->named_properties()), P, desc);
     } else if (current_desc.val()->IsDataDescriptor() && desc.val()->IsDataDescriptor()) {  // 10.
       if (!current_desc.val()->Configurable()) {  // 10.a
         if (!current_desc.val()->Writable()) {

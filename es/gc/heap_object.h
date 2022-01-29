@@ -16,7 +16,9 @@ void* Allocate(size_t size, flag_t flag);
 class HeapObject {
  public:
   static Handle<HeapObject> New(size_t size, flag_t flag = 0) {
+#ifdef GC_DEBUG
     std::cout << "HeapObject::New " << std::endl;
+#endif
     return Handle<HeapObject>(new (Allocate(size + kPtrSize, flag)) HeapObject());
   }
 

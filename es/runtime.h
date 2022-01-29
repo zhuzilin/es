@@ -127,13 +127,6 @@ class Runtime {
     }
     auto scope_pointers = HandleScope::AllPointers();
     pointers.insert(pointers.end(), scope_pointers.begin(), scope_pointers.end());
-    std::cout << "scope_pointers size: " << scope_pointers.size() << std::endl;
-    for (size_t i = 0; i < scope_pointers.size(); i++) {
-      auto p = scope_pointers[i];
-      if (p != nullptr) {
-        std::cout << i << " scope_pointers: " << (*p)->ToString() << std::endl;
-      }
-    }
     return pointers;
   }
 
