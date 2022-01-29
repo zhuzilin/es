@@ -1,0 +1,347 @@
+rm -f parser.o main.o utf.o run
+rm -f parser.d main.d utf.d
+clang++ -std=c++20 -fno-rtti  -Ofast -march=native -flto -ffast-math -funroll-loops -Wall -Wextra -c  -o parser.o parser.cpp
+In file included from parser.cpp:2:
+./es.h:5797:103: warning: unused parameter 'vals' [-Wunused-parameter]
+    inline JSValue* FunctionProto::toString(Error* e, JSValue* this_arg, const std::vector<JSValue*>& vals)
+                                                                                                      ^
+./es.h:6180:36: warning: unused parameter 'e' [-Wunused-parameter]
+        JSObject* Construct(Error* e, const std::vector<JSValue*>& arguments) override
+                                   ^
+./es.h:6281:41: warning: comparison of integers of different signs: 'int' and 'std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::size_type' (aka 'unsigned long') [-Wsign-compare]
+            if(position < 0 || position >= S.size())
+                               ~~~~~~~~ ^  ~~~~~~~~
+./es.h:6311:41: warning: comparison of integers of different signs: 'int' and 'std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::size_type' (aka 'unsigned long') [-Wsign-compare]
+            if(position < 0 || position >= S.size())
+                               ~~~~~~~~ ^  ~~~~~~~~
+./es.h:7164:40: warning: unused parameter 'e' [-Wunused-parameter]
+        static JSValue* isArray(Error* e, JSValue* this_arg, const std::vector<JSValue*>& vals)
+                                       ^
+./es.h:7230:26: warning: unused variable 'mapped_value' [-Wunused-variable]
+                JSValue* mapped_value = callbackfn->Call(e, T, { k_value, new Number(k), O });
+                         ^
+./es.h:7214:22: warning: unused variable 'A' [-Wunused-variable]
+        ArrayObject* A = new ArrayObject(len);
+                     ^
+./es.h:7555:21: warning: comparison of integers of different signs: 'int' and 'std::vector::size_type' (aka 'unsigned long') [-Wsign-compare]
+            if(indx < names.size())
+               ~~~~ ^ ~~~~~~~~~~~~
+./es.h:7667:23: warning: unused variable 'func_ast' [-Wunused-variable]
+            Function* func_ast = static_cast<Function*>(code);
+                      ^
+./es.h:7843:59: warning: unused parameter 'this_arg' [-Wunused-parameter]
+    inline JSValue* GlobalObject::eval(Error* e, JSValue* this_arg, const std::vector<JSValue*>& vals)
+                                                          ^
+./es.h:8465:16: warning: unused variable 'tmp_m' [-Wunused-variable]
+        double tmp_m;
+               ^
+./es.h:8501:33: warning: comparison of integers of different signs: 'size_t' (aka 'unsigned long') and 'int' [-Wsign-compare]
+            for(size_t i = 0; i < k; i++)
+                              ~ ^ ~
+./es.h:8504:26: warning: comparison of integers of different signs: 'unsigned long' and 'int' [-Wsign-compare]
+                if(i + 1 == k - n)
+                   ~~~~~ ^  ~~~~~
+./es.h:8517:33: warning: comparison of integers of different signs: 'size_t' (aka 'unsigned long') and 'int' [-Wsign-compare]
+            for(size_t i = 0; i < k; i++)
+                              ~ ^ ~
+./es.h:8542:29: warning: comparison of integers of different signs: 'size_t' (aka 'unsigned long') and 'int' [-Wsign-compare]
+        for(size_t i = 0; i < k; i++)
+                          ~ ^ ~
+./es.h:8545:22: warning: comparison of integers of different signs: 'unsigned long' and 'int' [-Wsign-compare]
+            if(i + 1 == k - 1)
+               ~~~~~ ^  ~~~~~
+./es.h:8815:36: warning: unused parameter 'e' [-Wunused-parameter]
+    inline bool StrictEqual(Error* e, JSValue* x, JSValue* y)
+                                   ^
+./es.h:9605:22: warning: unused variable 'clause_selector' [-Wunused-variable]
+            JSValue* clause_selector = EvalCaseClause(e, C);
+                     ^
+./es.h:9689:16: warning: unused variable 'e' [-Wunused-variable]
+        Error* e = Error::Ok();
+               ^
+./es.h:10102:54: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                if(previous_desc->IsDataDescriptor() && desc->IsAccessorDescriptor() ||// 4.b
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ~~
+./es.h:10102:54: note: place parentheses around the '&&' expression to silence this warning
+                if(previous_desc->IsDataDescriptor() && desc->IsAccessorDescriptor() ||// 4.b
+                                                     ^
+                   (                                                                )
+./es.h:10103:58: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                   previous_desc->IsAccessorDescriptor() && desc->IsDataDescriptor())
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+./es.h:10103:58: note: place parentheses around the '&&' expression to silence this warning
+                   previous_desc->IsAccessorDescriptor() && desc->IsDataDescriptor())
+                                                         ^
+                   (                                                                )
+./es.h:10109:45: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                    ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~ ~~
+./es.h:10109:45: note: place parentheses around the '&&' expression to silence this warning
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                                            ^
+                    (                                        )
+./es.h:10109:90: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                                                              ~~ ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+./es.h:10109:90: note: place parentheses around the '&&' expression to silence this warning
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                                                                                         ^
+                                                                 (                                        )
+./es.h:10653:23: warning: '&&' within '||' [-Wlogical-op-parentheses]
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+           ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~ ~~
+./es.h:10653:23: note: place parentheses around the '&&' expression to silence this warning
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+                      ^
+           (                             )
+./es.h:10653:57: warning: '&&' within '||' [-Wlogical-op-parentheses]
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+                                          ~~ ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+./es.h:10653:57: note: place parentheses around the '&&' expression to silence this warning
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+                                                        ^
+                                             (                            )
+parser.cpp:115:14: warning: unused variable 'tmp' [-Wunused-variable]
+        AST* tmp;
+             ^
+parser.cpp:209:5: warning: unused label 'error' [-Wunused-label]
+    error:
+    ^~~~~~
+parser.cpp:818:5: warning: unused label 'error' [-Wunused-label]
+    error:
+    ^~~~~~
+In file included from parser.cpp:2:
+./es.h:3343:29: warning: private field 'desciptor_' is not used [-Wunused-private-field]
+        PropertyDescriptor* desciptor_;
+                            ^
+29 warnings generated.
+clang++ -std=c++20 -fno-rtti  -Ofast -march=native -flto -ffast-math -funroll-loops -Wall -Wextra -c  -o main.o main.cpp
+In file included from main.cpp:12:
+./es.h:5797:103: warning: unused parameter 'vals' [-Wunused-parameter]
+    inline JSValue* FunctionProto::toString(Error* e, JSValue* this_arg, const std::vector<JSValue*>& vals)
+                                                                                                      ^
+./es.h:6180:36: warning: unused parameter 'e' [-Wunused-parameter]
+        JSObject* Construct(Error* e, const std::vector<JSValue*>& arguments) override
+                                   ^
+./es.h:6281:41: warning: comparison of integers of different signs: 'int' and 'std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::size_type' (aka 'unsigned long') [-Wsign-compare]
+            if(position < 0 || position >= S.size())
+                               ~~~~~~~~ ^  ~~~~~~~~
+./es.h:6311:41: warning: comparison of integers of different signs: 'int' and 'std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::size_type' (aka 'unsigned long') [-Wsign-compare]
+            if(position < 0 || position >= S.size())
+                               ~~~~~~~~ ^  ~~~~~~~~
+./es.h:7164:40: warning: unused parameter 'e' [-Wunused-parameter]
+        static JSValue* isArray(Error* e, JSValue* this_arg, const std::vector<JSValue*>& vals)
+                                       ^
+./es.h:7230:26: warning: unused variable 'mapped_value' [-Wunused-variable]
+                JSValue* mapped_value = callbackfn->Call(e, T, { k_value, new Number(k), O });
+                         ^
+./es.h:7214:22: warning: unused variable 'A' [-Wunused-variable]
+        ArrayObject* A = new ArrayObject(len);
+                     ^
+./es.h:7555:21: warning: comparison of integers of different signs: 'int' and 'std::vector::size_type' (aka 'unsigned long') [-Wsign-compare]
+            if(indx < names.size())
+               ~~~~ ^ ~~~~~~~~~~~~
+./es.h:7667:23: warning: unused variable 'func_ast' [-Wunused-variable]
+            Function* func_ast = static_cast<Function*>(code);
+                      ^
+./es.h:7843:59: warning: unused parameter 'this_arg' [-Wunused-parameter]
+    inline JSValue* GlobalObject::eval(Error* e, JSValue* this_arg, const std::vector<JSValue*>& vals)
+                                                          ^
+./es.h:8465:16: warning: unused variable 'tmp_m' [-Wunused-variable]
+        double tmp_m;
+               ^
+./es.h:8501:33: warning: comparison of integers of different signs: 'size_t' (aka 'unsigned long') and 'int' [-Wsign-compare]
+            for(size_t i = 0; i < k; i++)
+                              ~ ^ ~
+./es.h:8504:26: warning: comparison of integers of different signs: 'unsigned long' and 'int' [-Wsign-compare]
+                if(i + 1 == k - n)
+                   ~~~~~ ^  ~~~~~
+./es.h:8517:33: warning: comparison of integers of different signs: 'size_t' (aka 'unsigned long') and 'int' [-Wsign-compare]
+            for(size_t i = 0; i < k; i++)
+                              ~ ^ ~
+./es.h:8542:29: warning: comparison of integers of different signs: 'size_t' (aka 'unsigned long') and 'int' [-Wsign-compare]
+        for(size_t i = 0; i < k; i++)
+                          ~ ^ ~
+./es.h:8545:22: warning: comparison of integers of different signs: 'unsigned long' and 'int' [-Wsign-compare]
+            if(i + 1 == k - 1)
+               ~~~~~ ^  ~~~~~
+./es.h:8815:36: warning: unused parameter 'e' [-Wunused-parameter]
+    inline bool StrictEqual(Error* e, JSValue* x, JSValue* y)
+                                   ^
+./es.h:9605:22: warning: unused variable 'clause_selector' [-Wunused-variable]
+            JSValue* clause_selector = EvalCaseClause(e, C);
+                     ^
+./es.h:9689:16: warning: unused variable 'e' [-Wunused-variable]
+        Error* e = Error::Ok();
+               ^
+./es.h:10102:54: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                if(previous_desc->IsDataDescriptor() && desc->IsAccessorDescriptor() ||// 4.b
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ~~
+./es.h:10102:54: note: place parentheses around the '&&' expression to silence this warning
+                if(previous_desc->IsDataDescriptor() && desc->IsAccessorDescriptor() ||// 4.b
+                                                     ^
+                   (                                                                )
+./es.h:10103:58: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                   previous_desc->IsAccessorDescriptor() && desc->IsDataDescriptor())
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+./es.h:10103:58: note: place parentheses around the '&&' expression to silence this warning
+                   previous_desc->IsAccessorDescriptor() && desc->IsDataDescriptor())
+                                                         ^
+                   (                                                                )
+./es.h:10109:45: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                    ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~ ~~
+./es.h:10109:45: note: place parentheses around the '&&' expression to silence this warning
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                                            ^
+                    (                                        )
+./es.h:10109:90: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                                                              ~~ ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+./es.h:10109:90: note: place parentheses around the '&&' expression to silence this warning
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                                                                                         ^
+                                                                 (                                        )
+./es.h:10653:23: warning: '&&' within '||' [-Wlogical-op-parentheses]
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+           ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~ ~~
+./es.h:10653:23: note: place parentheses around the '&&' expression to silence this warning
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+                      ^
+           (                             )
+./es.h:10653:57: warning: '&&' within '||' [-Wlogical-op-parentheses]
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+                                          ~~ ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+./es.h:10653:57: note: place parentheses around the '&&' expression to silence this warning
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+                                                        ^
+                                             (                            )
+./es.h:3343:29: warning: private field 'desciptor_' is not used [-Wunused-private-field]
+        PropertyDescriptor* desciptor_;
+                            ^
+26 warnings generated.
+clang++ -std=c++20 -fno-rtti  -Ofast -march=native -flto -ffast-math -funroll-loops -Wall -Wextra -c  -o utf.o utf.cpp
+In file included from utf.cpp:2:
+./es.h:5797:103: warning: unused parameter 'vals' [-Wunused-parameter]
+    inline JSValue* FunctionProto::toString(Error* e, JSValue* this_arg, const std::vector<JSValue*>& vals)
+                                                                                                      ^
+./es.h:6180:36: warning: unused parameter 'e' [-Wunused-parameter]
+        JSObject* Construct(Error* e, const std::vector<JSValue*>& arguments) override
+                                   ^
+./es.h:6281:41: warning: comparison of integers of different signs: 'int' and 'std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::size_type' (aka 'unsigned long') [-Wsign-compare]
+            if(position < 0 || position >= S.size())
+                               ~~~~~~~~ ^  ~~~~~~~~
+./es.h:6311:41: warning: comparison of integers of different signs: 'int' and 'std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::size_type' (aka 'unsigned long') [-Wsign-compare]
+            if(position < 0 || position >= S.size())
+                               ~~~~~~~~ ^  ~~~~~~~~
+./es.h:7164:40: warning: unused parameter 'e' [-Wunused-parameter]
+        static JSValue* isArray(Error* e, JSValue* this_arg, const std::vector<JSValue*>& vals)
+                                       ^
+./es.h:7230:26: warning: unused variable 'mapped_value' [-Wunused-variable]
+                JSValue* mapped_value = callbackfn->Call(e, T, { k_value, new Number(k), O });
+                         ^
+./es.h:7214:22: warning: unused variable 'A' [-Wunused-variable]
+        ArrayObject* A = new ArrayObject(len);
+                     ^
+./es.h:7555:21: warning: comparison of integers of different signs: 'int' and 'std::vector::size_type' (aka 'unsigned long') [-Wsign-compare]
+            if(indx < names.size())
+               ~~~~ ^ ~~~~~~~~~~~~
+./es.h:7667:23: warning: unused variable 'func_ast' [-Wunused-variable]
+            Function* func_ast = static_cast<Function*>(code);
+                      ^
+./es.h:7843:59: warning: unused parameter 'this_arg' [-Wunused-parameter]
+    inline JSValue* GlobalObject::eval(Error* e, JSValue* this_arg, const std::vector<JSValue*>& vals)
+                                                          ^
+./es.h:8465:16: warning: unused variable 'tmp_m' [-Wunused-variable]
+        double tmp_m;
+               ^
+./es.h:8501:33: warning: comparison of integers of different signs: 'size_t' (aka 'unsigned long') and 'int' [-Wsign-compare]
+            for(size_t i = 0; i < k; i++)
+                              ~ ^ ~
+./es.h:8504:26: warning: comparison of integers of different signs: 'unsigned long' and 'int' [-Wsign-compare]
+                if(i + 1 == k - n)
+                   ~~~~~ ^  ~~~~~
+./es.h:8517:33: warning: comparison of integers of different signs: 'size_t' (aka 'unsigned long') and 'int' [-Wsign-compare]
+            for(size_t i = 0; i < k; i++)
+                              ~ ^ ~
+./es.h:8542:29: warning: comparison of integers of different signs: 'size_t' (aka 'unsigned long') and 'int' [-Wsign-compare]
+        for(size_t i = 0; i < k; i++)
+                          ~ ^ ~
+./es.h:8545:22: warning: comparison of integers of different signs: 'unsigned long' and 'int' [-Wsign-compare]
+            if(i + 1 == k - 1)
+               ~~~~~ ^  ~~~~~
+./es.h:8815:36: warning: unused parameter 'e' [-Wunused-parameter]
+    inline bool StrictEqual(Error* e, JSValue* x, JSValue* y)
+                                   ^
+./es.h:9605:22: warning: unused variable 'clause_selector' [-Wunused-variable]
+            JSValue* clause_selector = EvalCaseClause(e, C);
+                     ^
+./es.h:9689:16: warning: unused variable 'e' [-Wunused-variable]
+        Error* e = Error::Ok();
+               ^
+./es.h:10102:54: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                if(previous_desc->IsDataDescriptor() && desc->IsAccessorDescriptor() ||// 4.b
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ~~
+./es.h:10102:54: note: place parentheses around the '&&' expression to silence this warning
+                if(previous_desc->IsDataDescriptor() && desc->IsAccessorDescriptor() ||// 4.b
+                                                     ^
+                   (                                                                )
+./es.h:10103:58: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                   previous_desc->IsAccessorDescriptor() && desc->IsDataDescriptor())
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+./es.h:10103:58: note: place parentheses around the '&&' expression to silence this warning
+                   previous_desc->IsAccessorDescriptor() && desc->IsDataDescriptor())
+                                                         ^
+                   (                                                                )
+./es.h:10109:45: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                    ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~ ~~
+./es.h:10109:45: note: place parentheses around the '&&' expression to silence this warning
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                                            ^
+                    (                                        )
+./es.h:10109:90: warning: '&&' within '||' [-Wlogical-op-parentheses]
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                                                              ~~ ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+./es.h:10109:90: note: place parentheses around the '&&' expression to silence this warning
+                   (previous_desc->HasGet() && desc->HasGet() || previous_desc->HasSet() && desc->HasSet()))
+                                                                                         ^
+                                                                 (                                        )
+./es.h:10653:23: warning: '&&' within '||' [-Wlogical-op-parentheses]
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+           ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~ ~~
+./es.h:10653:23: note: place parentheses around the '&&' expression to silence this warning
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+                      ^
+           (                             )
+./es.h:10653:57: warning: '&&' within '||' [-Wlogical-op-parentheses]
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+                                          ~~ ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+./es.h:10653:57: note: place parentheses around the '&&' expression to silence this warning
+        if(op == "&&" && !ToBoolean(lval) || op == "||" && ToBoolean(lval))
+                                                        ^
+                                             (                            )
+utf.cpp:392:59: warning: unused variable 'kLowerCaseCache' [-Wunused-const-variable]
+            static const std::array<char16_t, 1000 - 192> kLowerCaseCache
+                                                          ^
+utf.cpp:435:52: warning: unused variable 'kLowerCaseKeys' [-Wunused-const-variable]
+            static const std::array<char16_t, 101> kLowerCaseKeys = { {
+                                                   ^
+utf.cpp:446:52: warning: unused variable 'kLowerCaseValues' [-Wunused-const-variable]
+            static const std::array<char16_t, 202> kLowerCaseValues = { {
+                                                   ^
+utf.cpp:465:59: warning: unused variable 'kUpperCaseCache' [-Wunused-const-variable]
+            static const std::array<char16_t, 1000 - 181> kUpperCaseCache
+                                                          ^
+utf.cpp:508:52: warning: unused variable 'kUpperCaseKeys' [-Wunused-const-variable]
+            static const std::array<char16_t, 113> kUpperCaseKeys = { {
+                                                   ^
+utf.cpp:520:52: warning: unused variable 'kUpperCaseValues' [-Wunused-const-variable]
+            static const std::array<char16_t, 226> kUpperCaseValues = { {
+                                                   ^
+In file included from utf.cpp:2:
+./es.h:3343:29: warning: private field 'desciptor_' is not used [-Wunused-private-field]
+        PropertyDescriptor* desciptor_;
+                            ^
+32 warnings generated.
+clang++ -std=c++20 -fno-rtti -o run parser.o main.o utf.o -flto -ldl -lm  -lreadline

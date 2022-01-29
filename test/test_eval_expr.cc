@@ -190,7 +190,7 @@ TEST(TestEvalExpr, Function) {
     JSValue* val = EvalFunction(e, ast);
     EXPECT_EQ(JSValue::JS_OBJECT, val->type());
     FunctionObject* func = static_cast<FunctionObject*>(val);
-    EXPECT_EQ(1, func->FormalParameters()->size());
+    EXPECT_EQ(1, func->FormalParameters().size());
   }
 
   {
@@ -199,7 +199,7 @@ TEST(TestEvalExpr, Function) {
     JSValue* val = EvalFunction(e, ast);
     EXPECT_EQ(JSValue::JS_OBJECT, val->type());
     FunctionObject* func = static_cast<FunctionObject*>(val);
-    EXPECT_EQ(1, func->FormalParameters()->size());
+    EXPECT_EQ(1, func->FormalParameters().size());
   }
 }
 
@@ -221,7 +221,7 @@ TEST(TestEvalExpr, Array) {
   EnterGlobalCode(e, new ProgramOrFunctionBody(AST::AST_PROGRAM, false));
   {
     std::vector<std::pair<std::u16string, size_t>> sources = {
-      {u"[, 1, 'abc', 123.4,]", 4}, {u"[]", 0}
+      {u"[, 1, 'abc', a,]", 4}, {u"[]", 0}
     };
     for (auto pair : sources) {
       Parser parser(pair.first);
@@ -229,7 +229,7 @@ TEST(TestEvalExpr, Array) {
       JSValue* val = EvalArray(e, ast);
       EXPECT_EQ(JSValue::JS_OBJECT, val->type());
       ArrayObject* arr = static_cast<ArrayObject*>(val);
-      EXPECT_EQ(pair.second, static_cast<Number*>(arr->Get(e, String::Length()))->data());
+      EXPECT_EQ(pair.second, static_cast<Number*>(arr->Get(e, u"length"))->data());
     }
     
   }

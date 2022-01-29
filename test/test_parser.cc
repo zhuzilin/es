@@ -94,7 +94,7 @@ TEST(TestParser, PrimaryExpression_Literal) {
     }
   }
 
-  // RegExp
+  // Regex
   {
     vec_string sources = {
       u"/a/", u"/[a-z]*?/", u"/[012]/g", u"/[012]/$", u"/你好/",
@@ -102,7 +102,7 @@ TEST(TestParser, PrimaryExpression_Literal) {
     for (auto source : sources) {
       Parser parser(source);
       AST* ast = parser.ParsePrimaryExpression();
-      EXPECT_EQ(AST::AST_EXPR_REGEXP, ast->type());
+      EXPECT_EQ(AST::AST_EXPR_REGEX, ast->type());
       EXPECT_EQ(source, ast->source());
     }
   }
@@ -258,7 +258,7 @@ TEST(TestParser, Expression_Binary) {
 TEST(TestParser, Expression_Unary) {
   {
     std::vector<std::pair<string, string>> sources = {
-      {u"a ++", u"a"}, {u"++\na", u"\na"}, {u"++ a", u" a"}, {u"!!a", u"!a"}
+      {u"a ++", u"a"}, {u"++\na", u"\na"}, {u"++ a", u" a"},
     };
     for (auto pair : sources) {
       auto source = pair.first;

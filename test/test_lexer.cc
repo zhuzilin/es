@@ -178,15 +178,14 @@ TEST(TestLexer, Identifier) {
   }
 }
 
-TEST(TestLexer, RegExp) {
+TEST(TestLexer, Regex) {
   {
     std::vector<std::u16string> sources = {
       u"/a/", u"/[a-z]*?/", u"/[012]/gba", u"/[012]/$", u"/你好/",
     };
     for (auto source : sources) {
       Lexer lexer(source);
-      std::u16string tmp;
-      Token token = lexer.ScanRegExpLiteral(tmp, tmp);
+      Token token = lexer.ScanRegexLiteral();
       EXPECT_EQ(Token::Type::TK_REGEX, token.type());
       EXPECT_EQ(source, token.source());
     }
@@ -200,8 +199,7 @@ TEST(TestLexer, RegExp) {
       auto source = pair.first;
       auto error = pair.second;
       Lexer lexer(source);
-      std::u16string tmp;
-      Token token = lexer.ScanRegExpLiteral(tmp, tmp);
+      Token token = lexer.ScanRegexLiteral();
       EXPECT_EQ(Token::Type::TK_ILLEGAL, token.type());
       EXPECT_EQ(error, token.source());
     }
