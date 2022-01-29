@@ -77,13 +77,6 @@ class ObjectConstructor : public JSObject {
     return singleton;
   }
 
-  // 15.2.1 The Object Constructor Called as a Function
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    if (arguments.size() == 0 || arguments[0].val()->IsNull() || arguments[0].val()->IsUndefined())
-      return Construct(e, arguments);
-    return ToObject(e, arguments[0]);
-  }
-
   // 15.2.2 The Object Constructor
   Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     if (arguments.size() > 0) {  // 1
@@ -222,10 +215,12 @@ class ObjectConstructor : public JSObject {
  private:
   static Handle<ObjectConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Object", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      OBJ_OBJECT_CONSTRUCTOR, u"Object", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<ObjectConstructor>(new (jsobj.val()) ObjectConstructor());
   }
 };
+
+Handle<JSValue> Call__ObjectConstructor(Error* e, Handle<ObjectConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 
 }  // namespace es
 

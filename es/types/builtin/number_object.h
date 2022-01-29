@@ -101,19 +101,6 @@ class NumberConstructor : public JSObject {
     return singleton;
   }
 
-  // 15.7.1.1 Number ( [ value ] )
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    Handle<Number> js_num;
-    if (arguments.size() == 0) {
-      js_num = Number::Zero();
-    } else {
-      double num = ToNumber(e, arguments[0]);
-      if (!e->IsOk()) return Handle<JSValue>();
-      js_num = Number::New(num);
-    }
-    return js_num;
-  }
-
   Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     Handle<Number> js_num;
     if (arguments.size() == 0) {
@@ -133,10 +120,12 @@ class NumberConstructor : public JSObject {
  private:
   static Handle<NumberConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Number", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      OBJ_NUMBER_CONSTRUCTOR, u"Number", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<NumberConstructor>(new (jsobj.val()) NumberConstructor());
   }
 };
+
+Handle<JSValue> Call__NumberConstructor(Error* e, Handle<NumberConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 
 }  // namespace es
 

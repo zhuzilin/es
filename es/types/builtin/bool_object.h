@@ -49,15 +49,6 @@ class BoolConstructor : public JSObject {
     return singleton;
   }
 
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    bool b;
-    if (arguments.size() == 0)
-      b = ToBoolean(Undefined::Instance());
-    else
-      b = ToBoolean(arguments[0]);
-    return Bool::Wrap(b);
-  }
-
   Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     bool b;
     if (arguments.size() == 0)
@@ -74,10 +65,12 @@ class BoolConstructor : public JSObject {
  private:
   static Handle<BoolConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Boolean", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      OBJ_BOOL_CONSTRUCTOR, u"Boolean", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<BoolConstructor>(new (jsobj.val()) BoolConstructor());
   }
 };
+
+Handle<JSValue> Call__BoolConstructor(Error* e, Handle<BoolConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 
 }  // namespace es
 

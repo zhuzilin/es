@@ -28,10 +28,6 @@ class FunctionProto : public JSObject {
     return singleton;
   }
 
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    return Undefined::Instance();
-  }
-
   static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
 
   // 15.3.4.3 Function.prototype.apply (thisArg, argArray)
@@ -47,10 +43,10 @@ class FunctionProto : public JSObject {
       return Handle<JSValue>();
     }
     if (vals.size() == 0) {
-      return func.val()->Call(e, Undefined::Instance(), {});
+      return Call(e, func, Undefined::Instance(), {});
     }
     if (vals.size() < 2 || vals[1].val()->IsNull() || vals[1].val()->IsUndefined()) {  // 2
-      return func.val()->Call(e, vals[0], {});
+      return Call(e, func, vals[0], {});
     }
     if (!vals[1].val()->IsObject()) {  // 3
       *e = *Error::TypeError(u"Function.prototype.apply's argument is non-object");
@@ -70,7 +66,7 @@ class FunctionProto : public JSObject {
       arg_list.emplace_back(next_arg);
       index++;
     }
-    return func.val()->Call(e, vals[0], arg_list);
+    return Call(e, func, vals[0], arg_list);
   }
 
   static Handle<JSValue> call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
@@ -86,9 +82,9 @@ class FunctionProto : public JSObject {
     }
     if (vals.size()) {
       Handle<JSValue> this_arg = vals[0];
-      return func.val()->Call(e, this_arg, std::vector<Handle<JSValue>>(vals.begin() + 1, vals.end()));
+      return Call(e, func, this_arg, std::vector<Handle<JSValue>>(vals.begin() + 1, vals.end()));
     } else {
-      return func.val()->Call(e, Undefined::Instance(), {});
+      return Call(e, func, Undefined::Instance(), {});
     }
   }
 
@@ -97,7 +93,7 @@ class FunctionProto : public JSObject {
  private:
   static Handle<FunctionProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_FUNC, u"Function", true, Handle<JSValue>(), false, true, nullptr, 0, flag);
+      OBJ_FUNC_PROTO, u"Function", true, Handle<JSValue>(), false, true, nullptr, 0, flag);
     return Handle<FunctionProto>(new (jsobj.val()) FunctionProto());
   }
 };
@@ -164,44 +160,6 @@ class FunctionObject : public JSObject {
   virtual bool strict() { return READ_VALUE(this, kStrictOffset, bool); }
   bool from_bind() { return READ_VALUE(this, kFromBindOffset, bool); }
 
-  // 13.2.1 [[Call]]
-  virtual Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments) override {
-    log::PrintSource("enter FunctionObject::Call ", Code()->source().substr(0, 100));
-    EnterFunctionCode(e, Handle<es::JSObject>(this), Code(), this_arg, arguments, strict());
-    if (!e->IsOk()) return Handle<JSValue>();
-
-    Completion result;
-    if (Code() != nullptr) {
-      result = EvalProgram(Code());
-    }
-    Runtime::Global()->PopContext();   // 3
-
-    std::cout << "Code source: " << Code() << std::endl;
-    log::PrintSource("exit FunctionObject::Call", Code()->source().substr(0, 100));
-    switch (result.type()) {
-      case Completion::RETURN:
-        log::PrintSource("exit FunctionObject::Call RETURN");
-        return result.value();
-      case Completion::THROW: {
-        log::PrintSource("exit FunctionObject::Call THROW");
-        Handle<JSValue> throw_value = result.value();
-        if (throw_value.val()->IsErrorObject()) {
-          *e = *(static_cast<Handle<ErrorObject>>(throw_value).val()->e());
-          log::PrintSource("message: ", e->message());
-          return Handle<JSValue>();
-        }
-        std::u16string message = ToU16String(e, throw_value);
-        log::PrintSource("message: ", message);
-        *e = *Error::NativeError(message);
-        return Handle<JSValue>();
-      }
-      default:
-        log::PrintSource("exit FunctionObject::Call NORMAL");
-        assert(result.type() == Completion::NORMAL);
-        return Undefined::Instance();
-    }
-  }
-
   // 13.2.2 [[Construct]]
   virtual Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     log::PrintSource("enter FunctionObject::Construct");
@@ -213,7 +171,7 @@ class FunctionObject : public JSObject {
     } else {  // 7
       obj.val()->SetPrototype(ObjectProto::Instance());
     }
-    Handle<JSValue> result = Call(e, obj, arguments);  // 8
+    Handle<JSValue> result = Call(e, Handle<JSObject>(this), obj, arguments);  // 8
     if (!e->IsOk()) return Handle<JSValue>();
     if (result.val()->IsObject())  // 9
       return static_cast<Handle<JSObject>>(result);
@@ -273,16 +231,6 @@ class BindFunctionObject : public FunctionObject {
   Handle<JSValue> BoundThis() { return READ_HANDLE_VALUE(this, kBoundThisOffset, JSValue); }
   Handle<FixedArray<JSValue>> BoundArgs() { return READ_HANDLE_VALUE(this, kBoundArgsOffset, FixedArray<JSValue>); }
 
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> extra_args) override {
-    log::PrintSource("enter BindFunctionObject::Call");
-    std::vector<Handle<JSValue>> args;
-    for (size_t i = 0; i < BoundArgs().val()->size(); i++) {
-      args.emplace_back(BoundArgs().val()->Get(i));
-    }
-    args.insert(args.end(), extra_args.begin(), extra_args.end());
-    return TargetFunction().val()->Call(e, BoundThis(), args);
-  }
-
   // 13.2.2 [[Construct]]
   Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> extra_args) override {
     if (!TargetFunction().val()->IsConstructor()) {
@@ -313,11 +261,6 @@ class FunctionConstructor : public JSObject {
   static Handle<FunctionConstructor> Instance() {
     static Handle<FunctionConstructor> singleton = FunctionConstructor::New(GCFlag::SINGLE);
     return singleton;
-  }
-
-  // 15.3.1 The Function Constructor Called as a Function
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    return Construct(e, arguments);
   }
 
   // 15.3.2.1 new Function (p1, p2, … , pn, body)
@@ -518,6 +461,10 @@ void AddFuncProperty(
 Handle<JSValue> Get__Function(Error* e, Handle<FunctionObject> O, Handle<String> P);
 bool HasInstance__Function(Error* e, Handle<FunctionObject> O, Handle<JSValue> V);
 bool HasInstance__BindFunction(Error* e, Handle<BindFunctionObject> O, Handle<JSValue> V);
+
+Handle<JSValue> Call__Function(Error* e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments);
+Handle<JSValue> Call__BindFunction(Error* e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments);
+Handle<JSValue> Call__FunctionProto(Error* e, Handle<FunctionProto> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 
 }  // namespace es
 

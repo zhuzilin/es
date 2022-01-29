@@ -39,7 +39,7 @@ class ArrayProto : public JSObject {
       func = Get(e, ObjectProto::Instance(), String::New(u"toString"));
       if (!e->IsOk()) return Handle<JSValue>();
     }
-    return static_cast<Handle<JSObject>>(func).val()->Call(e, this_arg, vals);
+    return Call(e, static_cast<Handle<JSObject>>(func), this_arg, vals);
   }
 
   static Handle<JSValue> toLocaleString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
@@ -241,11 +241,6 @@ class ArrayConstructor : public JSObject {
     return singleton;
   }
 
-  // 15.5.1.1 Array ( [ value ] )
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    return Construct(e, arguments);
-  }
-
   // 15.5.2.1 new Array ( [ value ] )
   Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     if (arguments.size() == 1 && arguments[0].val()->IsNumber()) {
@@ -396,7 +391,7 @@ Handle<JSValue> ArrayProto::sort(Error* e, Handle<JSValue> this_arg, std::vector
       if (x.val()->IsUndefined() && !y.val()->IsUndefined())
         return true;
       if (!comparefn.val()->IsUndefined()) {
-        Handle<JSValue> res = static_cast<Handle<JSObject>>(comparefn).val()->Call(e, Undefined::Instance(), {x, y});
+        Handle<JSValue> res = Call(e, static_cast<Handle<JSObject>>(comparefn), Undefined::Instance(), {x, y});
         if (!e->IsOk()) return false;
         return ToNumber(e, res) < 0;
       }
@@ -445,7 +440,7 @@ Handle<JSValue> ArrayProto::forEach(Error* e, Handle<JSValue> this_arg, std::vec
     if (k_present) {
       Handle<JSValue> k_value = Get(e, O, p_k);
       if (!e->IsOk()) return Handle<JSValue>();
-      Handle<JSValue> mapped_value = callbackfn.val()->Call(e, T, {k_value, Number::New(k), O});
+      Handle<JSValue> mapped_value = Call(e, callbackfn, T, {k_value, Number::New(k), O});
       if (!e->IsOk()) return Handle<JSValue>();
     }
   }
@@ -476,7 +471,7 @@ Handle<JSValue> ArrayProto::map(Error* e, Handle<JSValue> this_arg, std::vector<
     if (k_present) {
       Handle<JSValue> k_value = Get(e, O, p_k);
       if (!e->IsOk()) return Handle<JSValue>();
-      Handle<JSValue> mapped_value = callbackfn.val()->Call(e, T, {k_value, Number::New(k), O});
+      Handle<JSValue> mapped_value = Call(e, callbackfn, T, {k_value, Number::New(k), O});
       if (!e->IsOk()) return Handle<JSValue>();
       AddValueProperty(A, p_k.val()->data(), mapped_value, true, true, true);
     }
@@ -509,7 +504,7 @@ Handle<JSValue> ArrayProto::filter(Error* e, Handle<JSValue> this_arg, std::vect
     if (k_present) {
       Handle<JSValue> k_value = Get(e, O, p_k);
       if (!e->IsOk()) return Handle<JSValue>();
-      Handle<JSValue> selected = callbackfn.val()->Call(e, T, {k_value, Number::New(k), O});
+      Handle<JSValue> selected = Call(e, callbackfn, T, {k_value, Number::New(k), O});
       if (!e->IsOk()) return Handle<JSValue>();
       if (ToBoolean(selected)) {
         AddValueProperty(A, NumberToU16String(to), k_value, true, true, true);

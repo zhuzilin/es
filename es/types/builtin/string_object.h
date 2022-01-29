@@ -267,13 +267,6 @@ class StringConstructor : public JSObject {
     return singleton;
   }
 
-  // 15.5.1.1 String ( [ value ] )
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    if (arguments.size() == 0)
-      return String::Empty();
-    return ::es::ToString(e, arguments[0]);
-  }
-
   // 15.5.2.1 String::New ( [ value ] )
   Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     if (arguments.size() == 0)
@@ -300,12 +293,13 @@ class StringConstructor : public JSObject {
  private:
   static Handle<StringConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"String", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      OBJ_STRING_CONSTRUCTOR, u"String", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<StringConstructor>(new (jsobj.val()) StringConstructor());
   }
 };
 
 Handle<JSValue> GetOwnProperty__String(Handle<StringObject> O, Handle<String> P);
+Handle<JSValue> Call__StringConstructor(Error* e, Handle<StringConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 
 }  // namespace es
 

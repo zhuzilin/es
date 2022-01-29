@@ -35,6 +35,14 @@ class JSObject : public JSValue {
     OBJ_JSON,
     OBJ_ERROR,
 
+    OBJ_FUNC_PROTO,
+
+    OBJ_BOOL_CONSTRUCTOR,
+    OBJ_NUMBER_CONSTRUCTOR,
+    OBJ_OBJECT_CONSTRUCTOR,
+    OBJ_REGEXP_CONSTRUCTOR,
+    OBJ_STRING_CONSTRUCTOR,
+
     OBJ_ARGUMENTS,
 
     OBJ_INNER_FUNC,
@@ -109,13 +117,8 @@ class JSObject : public JSValue {
     assert(false);
   }
   bool IsConstructor() override { return READ_VALUE(this, kIsConstructorOffset, bool); }
-  // [[Call]]
-  virtual Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) {
-    inner_func callable = TYPED_PTR(this, kCallableOffset, inner_func)[0];
-    assert(IsCallable() && callable != nullptr);
-    return callable(e, Handle<JSValue>(this), arguments);
-  }
   bool IsCallable() override { return READ_VALUE(this, kIsCallableOffset, bool); }
+  inner_func callable() { return TYPED_PTR(this, kCallableOffset, inner_func)[0]; }
 
   // This for for-in statement.
   virtual std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> AllEnumerableProperties() {
@@ -164,6 +167,14 @@ bool JSValue::IsStringObject() { return Is(this, JSObject::OBJ_STRING); }
 bool JSValue::IsDateObject() { return Is(this, JSObject::OBJ_DATE); }
 bool JSValue::IsArgumentsObject() { return Is(this, JSObject::OBJ_ARGUMENTS); }
 
+bool JSValue::IsFunctionProto() { return Is(this, JSObject::OBJ_FUNC_PROTO); }
+
+bool JSValue::IsBoolConstructor() { return Is(this, JSObject::OBJ_BOOL_CONSTRUCTOR); }
+bool JSValue::IsNumberConstructor() { return Is(this, JSObject::OBJ_NUMBER_CONSTRUCTOR); }
+bool JSValue::IsObjectConstructor() { return Is(this, JSObject::OBJ_OBJECT_CONSTRUCTOR); }
+bool JSValue::IsRegExpConstructor() { return Is(this, JSObject::OBJ_REGEXP_CONSTRUCTOR); }
+bool JSValue::IsStringConstructor() { return Is(this, JSObject::OBJ_STRING_CONSTRUCTOR); }
+
 Handle<JSValue> Get(Error* e, Handle<JSObject> O, Handle<String> P);
 Handle<JSValue> Get__Base(Error* e, Handle<JSObject> O, Handle<String> P);
 Handle<JSValue> GetOwnProperty(Handle<JSObject> O, Handle<String> P);
@@ -196,6 +207,10 @@ void AddFuncProperty(
   Handle<JSObject> O, std::u16string name, inner_func callable, bool writable,
   bool enumerable, bool configurable
 );
+
+Handle<JSValue> Call(Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSValue> Call__Base(Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSValue> Call__Construct(Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 
 }  // namespace
 

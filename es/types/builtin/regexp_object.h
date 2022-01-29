@@ -101,17 +101,6 @@ class RegExpConstructor : public JSObject {
     return singleton;
   }
 
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    if (arguments.size() == 0) {
-      *e = *Error::TypeError(u"RegExp called with 0 parameters");
-      return Handle<JSValue>();
-    }
-    if ((arguments.size() == 1 || arguments[1].val()->IsUndefined()) && arguments[0].val()->IsRegExpObject()) {
-        return arguments[0];
-    }
-    return Construct(e, arguments);
-  }
-
   Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     Handle<String> P, F;
     if (arguments.size() == 0) {
@@ -163,7 +152,7 @@ class RegExpConstructor : public JSObject {
  private:
   static Handle<RegExpConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"RegExp", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      OBJ_REGEXP_CONSTRUCTOR, u"RegExp", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
     return Handle<RegExpConstructor>(new (jsobj.val()) RegExpConstructor());
   }
 };
@@ -182,6 +171,8 @@ Handle<JSValue> RegExpProto::toString(Error* e, Handle<JSValue> this_arg, std::v
     (regexp.val()->multiline() ? u"m" : u"")
   );
 }
+
+Handle<JSValue> Call__RegExpConstructor(Error* e, Handle<RegExpConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 
 }  // namespace es
 

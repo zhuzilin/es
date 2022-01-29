@@ -84,7 +84,7 @@ Handle<JSValue> GetValue(Error* e, Handle<JSValue> V) {
           return Undefined::Instance();
         }
         Handle<JSObject> getter_obj = static_cast<Handle<JSObject>>(getter);
-        return getter_obj.val()->Call(e, base, {});
+        return Call(e, getter_obj, base, {});
       }
     }
   } else {
@@ -138,7 +138,7 @@ void PutValue(Error* e, Handle<JSValue> V, Handle<JSValue> W) {
           Handle<JSValue> setter = desc.val()->Set();
           assert(!setter.val()->IsUndefined());
           Handle<JSObject> setter_obj = static_cast<Handle<JSObject>>(setter);
-          setter_obj.val()->Call(e, base, {W});
+          Call(e, setter_obj, base, {W});
         } else {  // 7
           if (throw_flag)
             *e = *Error::TypeError();

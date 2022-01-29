@@ -14,14 +14,6 @@ class Math : public JSObject {
     return singleton;
   }
 
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    return Construct(e, arguments);
-  }
-
-  Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
-    assert(false);
-  }
-
   static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"Math");
   }
@@ -49,7 +41,7 @@ class Math : public JSObject {
  private:
   static Handle<Math> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_FUNC, u"Math", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      OBJ_FUNC, u"Math", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
     return Handle<Math>(new (jsobj.val()) Math());
   }
 };

@@ -12,10 +12,6 @@ class DateProto : public JSObject {
     return singleton;
   }
 
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    return Undefined::Instance();
-  }
-
   static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
@@ -215,10 +211,6 @@ class DateConstructor : public JSObject {
   static Handle<DateConstructor> Instance() {
     static Handle<DateConstructor> singleton = DateConstructor::New(GCFlag::SINGLE);
     return singleton;
-  }
-
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    return Construct(e, arguments);
   }
 
   Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {

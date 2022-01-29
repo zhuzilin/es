@@ -1523,9 +1523,9 @@ Handle<JSValue> EvalCallExpression(Error* e, Handle<JSValue> ref, std::vector<Ha
   // indirect 
   if (ref.val()->IsReference() && static_cast<Handle<Reference>>(ref).val()->GetReferencedName().val()->data() == u"eval") {
     DirectEvalGuard guard;
-    return obj.val()->Call(e, this_value, arg_list);
+    return Call(e, obj, this_value, arg_list);
   } else {
-    return obj.val()->Call(e, this_value, arg_list);
+    return Call(e, obj, this_value, arg_list);
   }
 }
 

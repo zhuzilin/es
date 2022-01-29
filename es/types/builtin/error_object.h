@@ -54,10 +54,6 @@ class ErrorConstructor : public JSObject {
     return singleton;
   }
 
-  Handle<JSValue> Call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {}) override {
-    return Construct(e, arguments);
-  }
-
   Handle<JSObject> Construct(Error* e, std::vector<Handle<JSValue>> arguments) override {
     if (arguments.size() == 0 || arguments[0].val()->IsUndefined())
       return ErrorObject::New(Error::NativeError(ToU16String(nullptr, Undefined::Instance())));

@@ -61,6 +61,14 @@ class JSValue : public HeapObject {
   inline bool IsDateObject();
   inline bool IsArgumentsObject();
 
+  inline bool IsFunctionProto();
+
+  inline bool IsBoolConstructor();
+  inline bool IsNumberConstructor();
+  inline bool IsObjectConstructor();
+  inline bool IsRegExpConstructor();
+  inline bool IsStringConstructor();
+
   inline bool IsReference() { return type() == JS_REF; }
   inline bool IsPropertyDescriptor() { return type() == JS_PROP_DESC; }
   inline bool IsEnvironmentRecord() { return type() == JS_ENV_REC; }
