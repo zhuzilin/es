@@ -387,12 +387,12 @@ Handle<JSValue> FunctionProto::bind(Error* e, Handle<JSValue> this_arg, std::vec
 Handle<FunctionObject> InstantiateFunctionDeclaration(Error* e, Function* func_ast) {
     assert(func_ast->is_named());
     std::u16string identifier = func_ast->name();
-    Handle<es::LexicalEnvironment> func_env = LexicalEnvironment::NewDeclarativeEnvironment(  // 1
+    Handle<es::LexicalEnvironment> func_env = NewDeclarativeEnvironment(  // 1
       Runtime::TopLexicalEnv()
     );
-    auto env_rec = static_cast<DeclarativeEnvironmentRecord*>(func_env.val()->env_rec());  // 2
+    auto env_rec = static_cast<Handle<DeclarativeEnvironmentRecord>>(func_env.val()->env_rec());  // 2
     Handle<String> identifier_str = String::New(identifier);
-    env_rec->CreateImmutableBinding(identifier_str);  // 3
+    env_rec.val()->CreateImmutableBinding(identifier_str);  // 3
     auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
     bool strict = body->strict() || Runtime::TopContext()->strict();
     if (strict) {
@@ -414,7 +414,7 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Error* e, Function* func_a
     }
     Handle<FunctionObject> closure = FunctionObject::New(
       func_ast->params(), func_ast->body(), func_env);  // 4
-    env_rec->InitializeImmutableBinding(identifier_str, closure);  // 5
+    env_rec.val()->InitializeImmutableBinding(identifier_str, closure);  // 5
     return closure;  // 6
 }
 

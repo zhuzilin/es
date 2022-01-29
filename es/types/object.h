@@ -121,7 +121,7 @@ class JSObject : public JSValue {
   inner_func callable() { return TYPED_PTR(this, kCallableOffset, inner_func)[0]; }
 
   // This for for-in statement.
-  virtual std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> AllEnumerableProperties() {
+  std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> AllEnumerableProperties() {
     auto filter = [](PropertyDescriptor* desc) {
       return desc->HasEnumerable() && desc->Enumerable();
     };
@@ -132,7 +132,7 @@ class JSObject : public JSValue {
     if (!Prototype().val()->IsNull()) {
       Handle<JSObject> proto = static_cast<Handle<JSObject>>(Prototype());
       for (auto pair : proto.val()->AllEnumerableProperties()) {
-        if (named_properties()->Get(pair.first).IsNullptr()) {
+        if (named_properties()->GetRaw(pair.first) != nullptr) {
           result.emplace_back(pair);
         }
       }

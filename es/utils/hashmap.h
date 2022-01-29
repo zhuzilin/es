@@ -13,6 +13,7 @@ template<typename T>
 class HashMap : public HeapObject {
  public:
   static Handle<HashMap<T>> New(size_t num_bucket = kDefaultHashMapSize) {
+    std::cout << "HashMap::New" << std::endl;
     Handle<HeapObject> heap_obj = HeapObject::New(2 * kSizeTSize + num_bucket * kPtrSize);
     SET_VALUE(heap_obj.val(), kNumBucketOffset, num_bucket, size_t);
     SET_VALUE(heap_obj.val(), kSizeOffset, 0, size_t);
@@ -37,6 +38,7 @@ class HashMap : public HeapObject {
   size_t num_bucket() { return READ_VALUE(this, kNumBucketOffset, size_t); }
 
   void Set(Handle<String> key, Handle<T> val) {
+    std::cout << "enter Set" << std::endl;
     size_t offset = ListHeadOffset(key.val());
     ListNode* head = GetListHead(offset);
     if (head == nullptr || LessThan(key.val(), head->key())) {
@@ -44,27 +46,32 @@ class HashMap : public HeapObject {
       new_head.val()->SetNext(head);
       SetListHead(offset, new_head.val());
       SetSize(size() + 1);
+      std::cout << "return Set1" << std::endl;
       return;
     } else if (*key.val() == *(head->key())) {
       head->SetVal(val.val());
+      std::cout << "return Set2" << std::endl;
       return;
     }
     while (head->next() != nullptr) {
       String* next_key = head->next()->key();
       if (*key.val() == *next_key) {
         head->next()->SetVal(val.val());
+        std::cout << "return Set3" << std::endl;
         return;
       } else if (LessThan(key.val(), next_key)) {
         Handle<ListNode> node = ListNode::New(key, val);
         node.val()->SetNext(head->next());
         head->SetNext(node.val());
         SetSize(size() + 1);
+        std::cout << "return Set4" << std::endl;
         return;
       }
       head = head->next();
     }
     head->SetNext(ListNode::New(key, val).val());
     SetSize(size() + 1);
+    std::cout << "return Set5" << std::endl;
   }
 
   Handle<T> Get(Handle<String> key) {
@@ -150,6 +157,7 @@ class HashMap : public HeapObject {
   class ListNode : public HeapObject {
    public:
     static Handle<ListNode> New(Handle<String> key, Handle<T> val) {
+      std::cout << "ListNode::New" << std::endl;
       Handle<HeapObject> heap_obj = HeapObject::New(3 * kPtrSize);
       SET_HANDLE_VALUE(heap_obj.val(), kKeyOffset, key, String);
       SET_HANDLE_VALUE(heap_obj.val(), kValOffset, val, T);

@@ -170,7 +170,7 @@ void DeclarationBindingInstantiation(
   Error* e, ExecutionContext* context, AST* code, CodeType code_type,
   Handle<FunctionObject> f = Handle<FunctionObject>(), std::vector<Handle<JSValue>> args = {}
 ) {
-  auto env = context->variable_env().val()->env_rec();  // 1
+  Handle<EnvironmentRecord> env = context->variable_env().val()->env_rec();  // 1
   bool configurable_bindings = false;
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
   if (code_type == CODE_EVAL) {
@@ -188,13 +188,13 @@ void DeclarationBindingInstantiation(
       Handle<JSValue> v = Undefined::Instance();
       if (n < arg_count)  // 4.d.i & 4.d.ii
         v = args[n++];
-      bool arg_already_declared = env->HasBinding(arg_name);  // 4.d.iii
+      bool arg_already_declared = env.val()->HasBinding(arg_name);  // 4.d.iii
       if (!arg_already_declared) {  // 4.d.iv
         // NOTE(zhuzlin) I'm not sure if this should be false.
-        env->CreateMutableBinding(e, arg_name, false);
+        env.val()->CreateMutableBinding(e, arg_name, false);
         if (!e->IsOk()) return;
       }
-      env->SetMutableBinding(e, arg_name, v, strict);  // 4.d.v
+      env.val()->SetMutableBinding(e, arg_name, v, strict);  // 4.d.v
       if (!e->IsOk()) return;
     }
   }
@@ -204,9 +204,9 @@ void DeclarationBindingInstantiation(
     Handle<String> fn = String::New(func_decl->name());
     Handle<FunctionObject> fo = InstantiateFunctionDeclaration(e, func_decl);
     if (!e->IsOk()) return;
-    bool func_already_declared = env->HasBinding(fn);
+    bool func_already_declared = env.val()->HasBinding(fn);
     if (!func_already_declared) {  // 5.d
-      env->CreateMutableBinding(e, fn, configurable_bindings);
+      env.val()->CreateMutableBinding(e, fn, configurable_bindings);
       if (!e->IsOk()) return;
     } else {  // 5.e
       auto go = GlobalObject::Instance();
@@ -227,21 +227,22 @@ void DeclarationBindingInstantiation(
         }
       }
     }
-    env->SetMutableBinding(e, fn, fo, strict);  // 5.f
+    env.val()->SetMutableBinding(e, fn, fo, strict);  // 5.f
   }
   // 6
-  bool arguments_already_declared = env->HasBinding(String::Arguments());
+  bool arguments_already_declared = env.val()->HasBinding(String::Arguments());
   // 7
   if (code_type == CODE_FUNC && !arguments_already_declared) {
     auto args_obj = CreateArgumentsObject(f, args, context->variable_env(), strict);
+    std::cout << "return from CreateArgumentsObject(" << std::endl;
     if (strict) {  // 7.b
-      DeclarativeEnvironmentRecord* decl_env = static_cast<DeclarativeEnvironmentRecord*>(env);
-      decl_env->CreateImmutableBinding(String::Arguments());
-      decl_env->InitializeImmutableBinding(String::Arguments(), args_obj);
+      Handle<DeclarativeEnvironmentRecord> decl_env = static_cast<Handle<DeclarativeEnvironmentRecord>>(env);
+      decl_env.val()->CreateImmutableBinding(String::Arguments());
+      decl_env.val()->InitializeImmutableBinding(String::Arguments(), args_obj);
     } else {  // 7.c
       // NOTE(zhuzlin) I'm not sure if this should be false.
-      env->CreateMutableBinding(e, String::Arguments(), false);
-      env->SetMutableBinding(e, String::Arguments(), args_obj, false);
+      env.val()->CreateMutableBinding(e, String::Arguments(), false);
+      env.val()->SetMutableBinding(e, String::Arguments(), args_obj, false);
     }
   }
   // 8
@@ -249,11 +250,11 @@ void DeclarationBindingInstantiation(
   FindAllVarDecl(body->statements(), decls);
   for (VarDecl* d : decls) {
     Handle<String> dn = String::New(d->ident());
-    bool var_already_declared = env->HasBinding(dn);
+    bool var_already_declared = env.val()->HasBinding(dn);
     if (!var_already_declared) {
-      env->CreateMutableBinding(e, dn, configurable_bindings);
+      env.val()->CreateMutableBinding(e, dn, configurable_bindings);
       if (!e->IsOk()) return;
-      env->SetMutableBinding(e, dn, Undefined::Instance(), strict);
+      env.val()->SetMutableBinding(e, dn, Undefined::Instance(), strict);
       if (!e->IsOk()) return;
     }
   }
@@ -300,7 +301,7 @@ void EnterEvalCode(Error* e, AST* ast) {
   bool strict = Runtime::TopContext()->strict() ||
                 (program->strict() && GlobalObject::Instance().val()->direct_eval());
   if (strict) {  // 3
-    Handle<LexicalEnvironment> strict_var_env = LexicalEnvironment::NewDeclarativeEnvironment(lexical_env);
+    Handle<LexicalEnvironment> strict_var_env = NewDeclarativeEnvironment(lexical_env);
     lexical_env = strict_var_env;
     variable_env = strict_var_env;
   }
@@ -364,7 +365,7 @@ void EnterFunctionCode(
     this_binding = (this_arg.val()->IsUndefined() || this_arg.val()->IsNull()) ?
       static_cast<Handle<JSValue>>(GlobalObject::Instance()) : this_arg;
   }
-  Handle<LexicalEnvironment> local_env = LexicalEnvironment::NewDeclarativeEnvironment(func.val()->Scope());
+  Handle<LexicalEnvironment> local_env = NewDeclarativeEnvironment(func.val()->Scope());
   ExecutionContext* context = new ExecutionContext(local_env, local_env, this_binding, strict);  // 8
   Runtime::Global()->AddContext(context);
   // 9

@@ -517,7 +517,7 @@ Completion EvalWithStatement(AST* ast) {
   if (!e->IsOk())
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
-  Handle<LexicalEnvironment> new_env = LexicalEnvironment::NewObjectEnvironment(obj, old_env, true);
+  Handle<LexicalEnvironment> new_env = NewObjectEnvironment(obj, old_env, true);
   Runtime::TopContext()->SetLexicalEnv(new_env);
   Completion C = EvalStatement(with_stmt->stmt());
   Runtime::TopContext()->SetLexicalEnv(old_env);
@@ -628,15 +628,15 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   // NOTE(zhuzilin) Don't gc these two env, during this function.
   Error* e = Error::Ok();
   Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
-  Handle<LexicalEnvironment> catch_env = LexicalEnvironment::NewDeclarativeEnvironment(old_env);
+  Handle<LexicalEnvironment> catch_env = NewDeclarativeEnvironment(old_env);
   Handle<String> ident_str = String::New(try_stmt->catch_ident());
-  catch_env.val()->env_rec()->CreateMutableBinding(e, ident_str, false);  // 4
+  catch_env.val()->env_rec().val()->CreateMutableBinding(e, ident_str, false);  // 4
   if (!e->IsOk()) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
-  catch_env.val()->env_rec()->SetMutableBinding(e, ident_str, C.value(), false);  // 5
+  catch_env.val()->env_rec().val()->SetMutableBinding(e, ident_str, C.value(), false);  // 5
   if (!e->IsOk()) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
@@ -769,7 +769,7 @@ Handle<Reference> IdentifierResolution(std::u16string name) {
   Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
   Handle<String> ref_name = String::New(name);
   bool strict = Runtime::TopContext()->strict();
-  return env.val()->GetIdentifierReference(ref_name, strict);
+  return GetIdentifierReference(env, ref_name, strict);
 }
 
 Handle<Reference> EvalIdentifier(AST* ast) {

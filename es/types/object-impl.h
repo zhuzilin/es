@@ -29,8 +29,9 @@ Handle<JSValue> GetOwnProperty(Handle<JSObject> O, Handle<String> P) {
 
 // 8.12.1 [[GetOwnProperty]] (P)
 Handle<JSValue> GetOwnProperty__Base(Handle<JSObject> O, Handle<String> P) {
-  // TODO(zhuzilin) String Object has a more elaborate impl 15.5.5.2.
+  std::cout << "before Get" << std::endl;
   Handle<JSValue> val = O.val()->named_properties()->Get(P);
+  std::cout << "after Get" << std::endl;
   if (val.IsNullptr()) {
     return Undefined::Instance();
   }
@@ -340,6 +341,7 @@ bool DefineOwnProperty__Base(
       goto reject;
     // 4.
     O.val()->named_properties()->Set(P, desc);
+    std::cout << "return Set xxx " << P.ToString() << " = " << desc.ToString() << std::endl;
     return true;
   }
   if (desc.val()->bitmask() == 0) {  // 5
@@ -379,7 +381,9 @@ bool DefineOwnProperty__Base(
       // 9.a
       if (!current_desc.val()->Configurable()) goto reject;
       // 9.b.i & 9.c.i
+      std::cout << "before old property" << std::endl;
       Handle<PropertyDescriptor> old_property = O.val()->named_properties()->Get(P);
+      std::cout << "old property: " << old_property.ToString() << std::endl;
       Handle<PropertyDescriptor> new_property = PropertyDescriptor::New();
       new_property.val()->SetConfigurable(old_property.val()->Configurable());
       new_property.val()->SetEnumerable(old_property.val()->Enumerable());
