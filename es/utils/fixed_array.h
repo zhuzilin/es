@@ -34,21 +34,6 @@ class FixedArray : public HeapObject {
     return pointers;
   }
 
-  static Handle<FixedArray<T>> New(size_t n) {
-#ifdef GC_DEBUG
-    if (log::Debugger::On())
-      std::cout << "FixedArray::New " << n << std::endl;
-#endif
-    Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
-
-    SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);
-    for (size_t i = 0; i < n; i++) {
-      SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, Handle<T>(), T);
-    }
-
-    return Handle<FixedArray<T>>(new (heap_obj.val()) FixedArray<T>());
-  }
-
   size_t size() { return READ_VALUE(this, kSizeOffset, size_t); }
   Handle<T> Get(size_t i) { return READ_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, T); }
   T* GetRaw(size_t i) { return READ_VALUE(this, kElementOffset + i * kPtrSize, T*); }

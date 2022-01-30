@@ -90,6 +90,7 @@ Handle<JSValue> GetProperty(Handle<JSObject> O, Handle<String> P) {
 
 // [[Get]]
 Handle<JSValue> Get(Error* e, Handle<JSObject> O, Handle<String> P) {
+  log::PrintSource("enter Get " + P.ToString() + " from " + std::to_string(O.val()->obj_type()));
   if (O.val()->IsFunctionObject()) {
     return Get__Function(e, static_cast<Handle<FunctionObject>>(O), P);
   } else if (O.val()->IsArgumentsObject()) {
@@ -195,6 +196,7 @@ bool CanPut(Handle<JSObject> O, Handle<String> P) {
 // [[Put]]
 // 8.12.5 [[Put]] ( P, V, Throw )
 void Put(Error* e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
+  log::PrintSource("enter Put " + P.ToString() + " to " + O.ToString() + " with value " + V.ToString());
   assert(V.val()->IsLanguageType());
   if (!CanPut(O, P)) {  // 1
     if (throw_flag) {  // 1.a
@@ -320,6 +322,7 @@ Handle<JSValue> DefaultValue(Error* e, Handle<JSObject> O, std::u16string hint) 
 bool DefineOwnProperty(
   Error* e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
 ) {
+  log::PrintSource("enter DefineOwnProperty " + P.ToString());
   if (O.val()->IsArrayObject()) {
     return DefineOwnProperty__Array(e, static_cast<Handle<ArrayObject>>(O), P, desc, throw_flag);
   } else if (O.val()->IsArgumentsObject()) {
@@ -586,6 +589,7 @@ void AddValueProperty(
   Handle<JSObject> O, Handle<String> name, Handle<JSValue> value, bool writable,
   bool enumerable, bool configurable
 ) {
+  log::PrintSource("AddValueProperty " + name.ToString() + " to " + value.ToString());
   Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
   desc.val()->SetDataDescriptor(value, writable, enumerable, configurable);
   // This should just like named_properties_[name] = desc

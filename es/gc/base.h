@@ -25,19 +25,20 @@ class GC {
     Header* header = static_cast<Header*>(ref);
     header->size = size_with_header;
     header->flag = flag;
-    header->forward_address_ = nullptr;
+    header->forward_address = nullptr;
     void* body = static_cast<Header*>(ref) + 1;
+    assert(ForwardAddress(body) == nullptr);
     return body;
   }
 
   void* ForwardAddress(void* ref) {
     Header* header = H(ref);
-    return static_cast<Header*>(header)->forward_address_;
+    return header->forward_address;
   }
 
   void SetForwardAddress(void* ref, void* forward_address) {
     Header* header = H(ref);
-    static_cast<Header*>(header)->forward_address_ = forward_address;
+    header->forward_address = forward_address;
   }
 
  private:

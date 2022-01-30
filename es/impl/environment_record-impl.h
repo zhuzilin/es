@@ -71,7 +71,7 @@ void SetMutableBinding(
 void SetMutableBinding__Declarative(
   Error* e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
 ) {
-  log::PrintSource("enter SetMutableBinding ", N.val()->data(), " to " + V.ToString());
+  log::PrintSource("enter SetMutableBinding__Declarative ", N.val()->data(), " to " + V.ToString());
   assert(V.val()->IsLanguageType());
   assert(HasBinding(env_rec, N));
   // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,
@@ -87,7 +87,7 @@ void SetMutableBinding__Declarative(
 void SetMutableBinding__Object(
   Error* e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
 ) {
-  log::PrintSource("enter SetMutableBinding " + N.ToString() + " to " + V.ToString());
+  log::PrintSource("enter SetMutableBinding__Object " + N.ToString() + " to " + V.ToString());
   assert(V.val()->IsLanguageType());
   Put(e, env_rec.val()->bindings(), N, V, S);
 }
@@ -107,6 +107,7 @@ Handle<JSValue> GetBindingValue(
 Handle<JSValue> GetBindingValue__Declarative(
   Error* e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
+  log::PrintSource("enter GetBindingValue__Declarative " + N.ToString());
   assert(HasBinding(env_rec, N));
   DeclarativeEnvironmentRecord::Binding* b = env_rec.val()->bindings()->GetRaw(N);
   if (b->value().val()->IsUndefined() && !b->is_mutable()) {
@@ -126,6 +127,7 @@ Handle<JSValue> GetBindingValue__Declarative(
 Handle<JSValue> GetBindingValue__Object(
   Error* e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
+  log::PrintSource("enter GetBindingValue__Object " + N.ToString());
   bool value = HasBinding(env_rec, N);
   if (!value) {
     if (S) {

@@ -103,6 +103,7 @@ Completion EvalProgram(AST* ast) {
 }
 
 Completion EvalStatement(AST* ast) {
+  log::PrintSource("EvalStatement ", ast->source().substr(0, 50));
   HandleScope scope;
   switch(ast->type()) {
     case AST::AST_STMT_BLOCK:

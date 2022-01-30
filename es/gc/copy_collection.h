@@ -39,23 +39,20 @@ class CopyCollection : public GC {
 
   void Collect() override {
 #ifdef GC_DEBUG
-    if (log::Debugger::On())
-      std::cout << "enter CopyCollection::Collect" << std::endl;
+    std::cout << "enter CopyCollection::Collect " << free_ - tospace_ << std::endl;
 #endif
     Flip();
     Initialise(worklist_);
     auto root_pointers = Runtime::Global()->Pointers();
     assert(root_pointers.size() > 0);
 #ifdef GC_DEBUG
-    if (log::Debugger::On())
-      std::cout << "root_pointers size: " << root_pointers.size() << std::endl;
+    std::cout << "root_pointers size: " << root_pointers.size() << std::endl;
 #endif
     for (HeapObject** fld : root_pointers) {
       Process(fld);
     }
 #ifdef GC_DEBUG
-    if (log::Debugger::On())
-      std::cout << "finish root_pointers" << std::endl;
+    std::cout << "finish root_pointers" << std::endl;
 #endif
     while (!IsEmpty(worklist_)) {
       void* ref = Remove(worklist_);
@@ -63,8 +60,7 @@ class CopyCollection : public GC {
     }
     memset(fromspace_, 0, extent_);
 #ifdef GC_DEBUG
-    if (log::Debugger::On())
-      std::cout << "exit CopyCollection::Collect " << free_ - tospace_ << std::endl;
+    std::cout << "exit CopyCollection::Collect " << free_ - tospace_ << std::endl;
 #endif
   }
 
@@ -78,63 +74,68 @@ class CopyCollection : public GC {
   void Scan(void* ref) {
     HeapObject* heap_ref = static_cast<HeapObject*>(ref);
     assert(heap_ref != nullptr);
-#ifdef GC_DEBUG
-    // if (log::Debugger::On())
-    //   std::cout << "Scanning: " << heap_ref->ToString() << " " << ref << std::endl;
-#endif
     auto ref_pointers = heap_ref->Pointers();
     for (HeapObject** fld : ref_pointers) {
       Process(fld);
     }
-#ifdef GC_DEBUG
-    // if (log::Debugger::On())
-    //   std::cout << "exit Scan" << std::endl;
-#endif
   }
 
   void Process(HeapObject** fld) {
     if (*fld == nullptr || (Flag(*fld) & GCFlag::CONST))
       return;
     HeapObject* from_ref = *fld;
+#ifdef GC_DEBUG
     assert(from_ref != nullptr);
-    if (tospace_ < (void*)from_ref && (void*)from_ref < tospace_ + extent_) {
+#endif
+    if (InToSpace(from_ref)) {
       return;
     }
-    assert(fromspace_ < (char*)from_ref && (char*)from_ref < fromspace_ + extent_);
 #ifdef GC_DEBUG
-    // if (log::Debugger::On())
-    //   std::cout << "Processing: " << from_ref->ToString() << std::endl;
+    assert(InFromSpace(from_ref));
 #endif
     *fld = static_cast<HeapObject*>(Forward(from_ref));
-#ifdef GC_DEBUG
-    // if (log::Debugger::On())
-    //   std::cout << "exit Process" << std::endl;
-#endif
   }
 
   void* Forward(void* from_ref) {
     void* to_ref = ForwardAddress(from_ref);
-    if (to_ref == nullptr)
+    if (to_ref == nullptr) {
       to_ref = Copy(from_ref);
-    assert(tospace_ < to_ref && to_ref < tospace_ + extent_);
+    }
+#ifdef GC_DEBUG
+    assert(InToSpace(to_ref));
+#endif
     return to_ref;
   }
 
   void* Copy(void* from_ref) {
-    assert(fromspace_ < from_ref && from_ref < fromspace_ + extent_);
+    assert(InFromSpace(from_ref));
     char* to_ref = free_ + sizeof(Header);
     size_t size = Size(from_ref);
-#ifdef GC_DEBUG
-    // if (log::Debugger::On())
-    //   std::cout << "copy " << size << " to free: " << free_ - tospace_ << std::endl;
-#endif
     free_ += size;
-    assert(tospace_ < free_ && free_ < tospace_ + extent_);
-    SetForwardAddress(from_ref, nullptr);
+#ifdef GC_DEBUG
+    assert(InToSpace(free_) || free_ == tospace_ + extent_);
+    assert(ForwardAddress(from_ref) == nullptr);
+#endif
     memcpy(H(to_ref), H(from_ref), size);
     SetForwardAddress(from_ref, to_ref);
+#ifdef GC_DEBUG
+    assert(ForwardAddress(to_ref) == nullptr);
+    assert(InToSpace(ForwardAddress(from_ref)));
+#endif
     Add(worklist_, to_ref);
     return to_ref;
+  }
+
+  bool InToSpace(void* ptr) {
+    return tospace_ <= ptr && ptr < tospace_ + extent_;
+  }
+
+  bool InFromSpace(void* ptr) {
+    return fromspace_ <= ptr && ptr < fromspace_ + extent_;
+  }
+
+  bool InHeap(void* ptr) {
+    return heap_start_ <= ptr && ptr < heap_end_;
   }
 
   char* heap_start_;

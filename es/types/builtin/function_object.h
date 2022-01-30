@@ -108,10 +108,11 @@ class FunctionObject : public JSObject {
       OBJ_FUNC, u"Function", true, Handle<JSValue>(), true, true, nullptr,
       kFunctionObjectOffset - kJSObjectOffset + size
     );
-    Handle<FixedArray<String>> formal_parameter = FixedArray<String>::New(names.size());
+    std::vector<Handle<String>> name_handles(names.size());
     for (size_t i = 0; i < names.size(); i++) {
-      formal_parameter.val()->Set(i, String::New(names[i]));
+      name_handles[i] = String::New(names[i]);
     }
+    Handle<FixedArray<String>> formal_parameter = FixedArray<String>::New(name_handles);
 
     SET_HANDLE_VALUE(jsobj.val(), kFormalParametersOffset, formal_parameter, FixedArray<String>);
     bool strict = Runtime::TopContext()->strict();

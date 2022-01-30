@@ -170,6 +170,7 @@ void DeclarationBindingInstantiation(
   Error* e, ExecutionContext* context, AST* code, CodeType code_type,
   Handle<FunctionObject> f = Handle<FunctionObject>(), std::vector<Handle<JSValue>> args = {}
 ) {
+  log::PrintSource("enter DeclarationBindingInstantiation");
   Handle<EnvironmentRecord> env = context->variable_env().val()->env_rec();  // 1
   bool configurable_bindings = false;
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);

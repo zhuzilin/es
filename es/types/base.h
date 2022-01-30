@@ -315,11 +315,7 @@ class String : public JSValue {
     return singleton;
   }
 
-  inline std::string ToString() override {
-    if (size() > 100)
-      return log::ToString(data().substr(0, 100)) + "...";
-    return log::ToString(data());
-  }
+  inline std::string ToString() override { return log::ToString(data()); }
   inline std::vector<HeapObject**> Pointers() override { return {}; }
 
  private:
