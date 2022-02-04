@@ -59,9 +59,7 @@ class CopyCollection : public GC {
       Scan(ref);
     }
     memset(fromspace_, 0, extent_);
-#ifdef GC_DEBUG
-    std::cout << "exit CopyCollection::Collect " << free_ - tospace_ << std::endl;
-#endif
+    std::cout << "exit CopyCollection::Collect " << (free_ - tospace_) / 1024U / 1024U << std::endl;
   }
 
   void Flip() {

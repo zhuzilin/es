@@ -104,46 +104,72 @@ Completion EvalProgram(AST* ast) {
 
 Completion EvalStatement(AST* ast) {
   log::PrintSource("EvalStatement ", ast->source().substr(0, 50));
-  HandleScope scope;
-  switch(ast->type()) {
-    case AST::AST_STMT_BLOCK:
-      return EvalBlockStatement(ast);
-    case AST::AST_STMT_VAR:
-      return EvalVarStatement(ast);
-    case AST::AST_STMT_EMPTY:
-      return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
-    case AST::AST_STMT_IF:
-      return EvalIfStatement(ast);
-    case AST::AST_STMT_DO_WHILE:
-      return EvalDoWhileStatement(ast);
-    case AST::AST_STMT_WHILE:
-      return EvalWhileStatement(ast);
-    case AST::AST_STMT_FOR:
-      return EvalForStatement(ast);
-    case AST::AST_STMT_FOR_IN:
-      return EvalForInStatement(ast);
-    case AST::AST_STMT_CONTINUE:
-      return EvalContinueStatement(ast);
-    case AST::AST_STMT_BREAK:
-      return EvalBreakStatement(ast);
-    case AST::AST_STMT_RETURN:
-      return EvalReturnStatement(ast);
-    case AST::AST_STMT_WITH:
-      return EvalWithStatement(ast);
-    case AST::AST_STMT_LABEL:
-      return EvalLabelledStatement(ast);
-    case AST::AST_STMT_SWITCH:
-      return EvalSwitchStatement(ast);
-    case AST::AST_STMT_THROW:
-      return EvalThrowStatement(ast);
-    case AST::AST_STMT_TRY:
-      return EvalTryStatement(ast);
-    case AST::AST_STMT_DEBUG:
-      log::Debugger::Turn();
-      return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
-    default:
-      return EvalExpressionStatement(ast);
-  }
+  Completion C(Completion::NORMAL, Handle<JSValue>(), u"");
+  JSValue* val = nullptr;
+  {
+    HandleScope scope;
+    switch(ast->type()) {
+      case AST::AST_STMT_BLOCK:
+        C = EvalBlockStatement(ast);
+        break;
+      case AST::AST_STMT_VAR:
+        C = EvalVarStatement(ast);
+        break;
+      case AST::AST_STMT_EMPTY:
+        break;
+      case AST::AST_STMT_IF:
+        C = EvalIfStatement(ast);
+        break;
+      case AST::AST_STMT_DO_WHILE:
+        C = EvalDoWhileStatement(ast);
+        break;
+      case AST::AST_STMT_WHILE:
+        C = EvalWhileStatement(ast);
+        break;
+      case AST::AST_STMT_FOR:
+        C = EvalForStatement(ast);
+        break;
+      case AST::AST_STMT_FOR_IN:
+        C = EvalForInStatement(ast);
+        break;
+      case AST::AST_STMT_CONTINUE:
+        C = EvalContinueStatement(ast);
+        break;
+      case AST::AST_STMT_BREAK:
+        C = EvalBreakStatement(ast);
+        break;
+      case AST::AST_STMT_RETURN:
+        C = EvalReturnStatement(ast);
+        break;
+      case AST::AST_STMT_WITH:
+        C = EvalWithStatement(ast);
+        break;
+      case AST::AST_STMT_LABEL:
+        C = EvalLabelledStatement(ast);
+        break;
+      case AST::AST_STMT_SWITCH:
+        C = EvalSwitchStatement(ast);
+        break;
+      case AST::AST_STMT_THROW:
+        C = EvalThrowStatement(ast);
+        break;
+      case AST::AST_STMT_TRY:
+        C = EvalTryStatement(ast);
+        break;
+      case AST::AST_STMT_DEBUG:
+        log::Debugger::Turn();
+        break;
+      default:
+        C = EvalExpressionStatement(ast);
+        break;
+    }
+    // Need to bring the value of C out of the current HandleScope
+    if (!C.IsEmpty()) {
+      val = C.value().val();
+    }
+  }  // end of HandleScope
+  C.SetValue(val);
+  return C;
 }
 
 Completion EvalStatementList(std::vector<AST*> statements) {
