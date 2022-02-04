@@ -15,7 +15,7 @@ class Console : public JSObject {
     return singleton;
   }
 
-  static Handle<JSValue> log(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> log(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size())
       std::cout << vals[0].ToString();
     for (size_t i = 1; i < vals.size(); i++) {

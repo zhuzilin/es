@@ -17,7 +17,7 @@
 namespace es {
 
 Handle<JSValue> Call(
-  Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   if (O.val()->IsFunctionObject()) {
     Handle<FunctionObject> F = static_cast<Handle<FunctionObject>>(O);
@@ -58,7 +58,7 @@ Handle<JSValue> Call(
 }
 
 Handle<JSValue> Call__Base(
-  Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   inner_func callable = O.val()->callable();
   assert(O.val()->IsCallable() && callable != nullptr);
@@ -66,19 +66,19 @@ Handle<JSValue> Call__Base(
 }
 
 Handle<JSValue> Call__Construct(
-  Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   return Construct(e, O, arguments);
 }
 
 // 13.2.1 [[Call]]
 Handle<JSValue> Call__Function(
-  Error* e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   ProgramOrFunctionBody* code = O.val()->Code();
   log::PrintSource("enter FunctionObject::Call ", code->source().substr(0, 100));
   EnterFunctionCode(e, O, code, this_arg, arguments, O.val()->strict());
-  if (!e->IsOk()) return Handle<JSValue>();
+  if (!e.val()->IsOk()) return Handle<JSValue>();
 
   Completion result;
   if (code != nullptr) {
@@ -95,13 +95,12 @@ Handle<JSValue> Call__Function(
       log::PrintSource("exit FunctionObject::Call THROW");
       Handle<JSValue> throw_value = result.value();
       if (throw_value.val()->IsErrorObject()) {
-        *e = *(static_cast<Handle<ErrorObject>>(throw_value).val()->e());
-        log::PrintSource("message: ", e->message());
+        e = static_cast<Handle<ErrorObject>>(throw_value).val()->e();
+        log::PrintSource("message: " + e.ToString());
         return Handle<JSValue>();
       }
-      std::u16string message = ToU16String(e, throw_value);
-      log::PrintSource("message: ", message);
-      *e = *Error::NativeError(message);
+      log::PrintSource("message: " + throw_value.ToString());
+      e = Error::NativeError(throw_value);
       return Handle<JSValue>();
     }
     default:
@@ -112,7 +111,7 @@ Handle<JSValue> Call__Function(
 }
 
 Handle<JSValue> Call__BindFunction(
-  Error* e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> extra_args
+  Handle<Error>& e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> extra_args
 ) {
   log::PrintSource("enter BindFunctionObject::Call");
   Handle<FixedArray<JSValue>> bound_args = O.val()->BoundArgs();
@@ -129,14 +128,14 @@ Handle<JSValue> Call__BindFunction(
 // 15.3.4 The Function prototype object is itself a Function object (its [[Class]] is "Function") that,
 // when invoked, accepts any arguments and returns undefined.
 Handle<JSValue> Call__FunctionProto(
-  Error* e, Handle<FunctionProto> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<FunctionProto> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   return Undefined::Instance();
 }
 
 // 15.6.1.1 Boolean (value)
 Handle<JSValue> Call__BoolConstructor(
-  Error* e, Handle<BoolConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<BoolConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   bool b;
   if (arguments.size() == 0)
@@ -148,14 +147,14 @@ Handle<JSValue> Call__BoolConstructor(
 
 // 15.7.1.1 Number ( [ value ] )
 Handle<JSValue> Call__NumberConstructor(
-  Error* e, Handle<NumberConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<NumberConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   Handle<Number> js_num;
   if (arguments.size() == 0) {
     js_num = Number::Zero();
   } else {
     double num = ToNumber(e, arguments[0]);
-    if (!e->IsOk()) return Handle<JSValue>();
+    if (!e.val()->IsOk()) return Handle<JSValue>();
     js_num = Number::New(num);
   }
   return js_num;
@@ -163,7 +162,7 @@ Handle<JSValue> Call__NumberConstructor(
 
 // 15.2.1.1 Object ( [ value ] )
 Handle<JSValue> Call__ObjectConstructor(
-  Error* e, Handle<ObjectConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<ObjectConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   if (arguments.size() == 0 || arguments[0].val()->IsNull() || arguments[0].val()->IsUndefined())
     return Construct(e, O, arguments);
@@ -172,10 +171,10 @@ Handle<JSValue> Call__ObjectConstructor(
 
 // 15.10.4.1 new RegExp(pattern, flags)
 Handle<JSValue> Call__RegExpConstructor(
-  Error* e, Handle<RegExpConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<RegExpConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   if (arguments.size() == 0) {
-    *e = *Error::TypeError(u"RegExp called with 0 parameters");
+    e = Error::TypeError(u"RegExp called with 0 parameters");
     return Handle<JSValue>();
   }
   if ((arguments.size() == 1 || arguments[1].val()->IsUndefined()) && arguments[0].val()->IsRegExpObject()) {
@@ -186,7 +185,7 @@ Handle<JSValue> Call__RegExpConstructor(
 
 // 15.5.1.1 String ( [ value ] )
 Handle<JSValue> Call__StringConstructor(
-  Error* e, Handle<StringConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<StringConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   if (arguments.size() == 0)
     return String::Empty();

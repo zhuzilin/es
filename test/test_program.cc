@@ -25,7 +25,7 @@ typedef std::vector<std::pair<string,string>> vec_pair_string;
 TEST(TestProgram, SimpleAssign0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"a = 1;a");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
@@ -33,14 +33,14 @@ TEST(TestProgram, SimpleAssign0) {
     EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, static_cast<Handle<Reference>>(res.value())));
     EXPECT_EQ(1, num.val()->data());
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
   }
 }
 
 TEST(TestProgram, SimpleAssign1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"a = 1;a=2;a");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
@@ -49,14 +49,14 @@ TEST(TestProgram, SimpleAssign1) {
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(2, num.val()->data());
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
   }
 }
 
 TEST(TestProgram, CompoundAssign0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"a = 1; a+=1; a");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
@@ -65,14 +65,14 @@ TEST(TestProgram, CompoundAssign0) {
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(2, num.val()->data());
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
   }
 }
 
 TEST(TestProgram, Call0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"a = function(b){return b;}; a(3)");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
@@ -80,14 +80,14 @@ TEST(TestProgram, Call0) {
     EXPECT_EQ(JSValue::JS_NUMBER, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(res.value());
     EXPECT_EQ(3, num.val()->data());
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
   }
 }
 
 TEST(TestProgram, Call1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"function a(b){return b;}; a(3)");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
@@ -95,14 +95,14 @@ TEST(TestProgram, Call1) {
     EXPECT_EQ(JSValue::JS_NUMBER, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(res.value());
     EXPECT_EQ(3, num.val()->data());
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
   }
 }
 
 TEST(TestProgram, Call2) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"a = 1; function b(){return a;}; b()");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
@@ -110,14 +110,14 @@ TEST(TestProgram, Call2) {
     EXPECT_EQ(JSValue::JS_NUMBER, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(res.value());
     EXPECT_EQ(1, num.val()->data());
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
   }
 }
 
 TEST(TestProgram, Call3) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"function c(){return function() { return 10};}; c()()");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
@@ -125,19 +125,19 @@ TEST(TestProgram, Call3) {
     EXPECT_EQ(JSValue::JS_NUMBER, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(res.value());
     EXPECT_EQ(10, num.val()->data());
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
   }
 }
 
 TEST(TestProgram, CallFunctionContructor) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"a = Function('return 5'); a()");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
     EXPECT_EQ(JSValue::JS_NUMBER, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(res.value());
     EXPECT_EQ(5, num.val()->data());
@@ -147,12 +147,12 @@ TEST(TestProgram, CallFunctionContructor) {
 TEST(TestProgram, Object0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"a = {a: 1}; a.a");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
     EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
@@ -163,12 +163,12 @@ TEST(TestProgram, Object0) {
 TEST(TestProgram, Object1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"a = {a: {0: 10}}; a.a[0]");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
     EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
@@ -179,12 +179,12 @@ TEST(TestProgram, Object1) {
 TEST(TestProgram, Object2) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"a = {a: 136}; a.a = 5; a.a");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
     EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
@@ -195,12 +195,12 @@ TEST(TestProgram, Object2) {
 TEST(TestProgram, Object3) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(u"a = {get b() {return this.c}, set b(x) {this.c = x}}; a.b = 5; a.b");
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
     EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
@@ -211,7 +211,7 @@ TEST(TestProgram, Object3) {
 TEST(TestProgram, New0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"a = new new function() {\n"
       u"  this.a = 12345;\n"
@@ -222,7 +222,7 @@ TEST(TestProgram, New0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
     EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
@@ -233,7 +233,7 @@ TEST(TestProgram, New0) {
 TEST(TestProgram, New1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"a = new String('abc').toString()\n"
       u"a\n"
@@ -241,7 +241,7 @@ TEST(TestProgram, New1) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
     EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<String> str = static_cast<Handle<String>>(GetValue(e, ref));
@@ -252,7 +252,7 @@ TEST(TestProgram, New1) {
 TEST(TestProgram, If) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"a = 1\n"
       u"if (false)\n"
@@ -263,7 +263,7 @@ TEST(TestProgram, If) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(true, e->IsOk());
+    EXPECT_EQ(true, e.val()->IsOk());
     EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
@@ -274,7 +274,7 @@ TEST(TestProgram, If) {
 TEST(TestProgram, Strict0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"a = 1"
@@ -290,7 +290,7 @@ TEST(TestProgram, Strict0) {
 TEST(TestProgram, Strict1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"a = 235\n"
@@ -299,7 +299,7 @@ TEST(TestProgram, Strict1) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(235, num.val()->data());
@@ -309,14 +309,14 @@ TEST(TestProgram, Strict1) {
 TEST(TestProgram, Var0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"var a = 147; a"
     );
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(147, num.val()->data());
@@ -326,7 +326,7 @@ TEST(TestProgram, Var0) {
 TEST(TestProgram, While0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"var a = 1, n = 5\n"
@@ -338,7 +338,7 @@ TEST(TestProgram, While0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(8, num.val()->data());
@@ -348,7 +348,7 @@ TEST(TestProgram, While0) {
 TEST(TestProgram, While1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"var a = 1, n = 5\n"
@@ -361,7 +361,7 @@ TEST(TestProgram, While1) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(2, num.val()->data());
@@ -371,7 +371,7 @@ TEST(TestProgram, While1) {
 TEST(TestProgram, While2) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"var a = 0, n = 4, sum = 0\n"
@@ -385,7 +385,7 @@ TEST(TestProgram, While2) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(8, num.val()->data());
@@ -395,7 +395,7 @@ TEST(TestProgram, While2) {
 TEST(TestProgram, DoWhile0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"var a = 10, n = 5\n"
@@ -407,7 +407,7 @@ TEST(TestProgram, DoWhile0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(20, num.val()->data());
@@ -417,7 +417,7 @@ TEST(TestProgram, DoWhile0) {
 TEST(TestProgram, DoWhile1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"var a = 1, n = 5\n"
@@ -430,7 +430,7 @@ TEST(TestProgram, DoWhile1) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(2, num.val()->data());
@@ -440,7 +440,7 @@ TEST(TestProgram, DoWhile1) {
 TEST(TestProgram, DoWhile2) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"var a = 0, n = 4, sum = 0\n"
@@ -454,7 +454,7 @@ TEST(TestProgram, DoWhile2) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(8, num.val()->data());
@@ -464,7 +464,7 @@ TEST(TestProgram, DoWhile2) {
 TEST(TestProgram, For0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"var sum = 0, i;"
@@ -475,7 +475,7 @@ TEST(TestProgram, For0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(6, num.val()->data());
@@ -485,7 +485,7 @@ TEST(TestProgram, For0) {
 TEST(TestProgram, For1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"for (var i = 0, sum = 0; i < 4; i++) {\n"
@@ -496,7 +496,7 @@ TEST(TestProgram, For1) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(3, num.val()->data());
@@ -506,7 +506,7 @@ TEST(TestProgram, For1) {
 TEST(TestProgram, ForIn0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"var sum = 0, i;"
@@ -518,7 +518,7 @@ TEST(TestProgram, ForIn0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(6, num.val()->data());
@@ -528,7 +528,7 @@ TEST(TestProgram, ForIn0) {
 TEST(TestProgram, ForIn1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"var sum = 0;"
@@ -540,7 +540,7 @@ TEST(TestProgram, ForIn1) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(6, num.val()->data());
@@ -550,7 +550,7 @@ TEST(TestProgram, ForIn1) {
 TEST(TestProgram, Try0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"try {\n"
@@ -562,7 +562,7 @@ TEST(TestProgram, Try0) {
     );
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Completion res = EvalProgram(ast);
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
@@ -573,7 +573,7 @@ TEST(TestProgram, Try0) {
 TEST(TestProgram, Try1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"try {\n"
@@ -585,7 +585,7 @@ TEST(TestProgram, Try1) {
     );
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Completion res = EvalProgram(ast);
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
@@ -596,7 +596,7 @@ TEST(TestProgram, Try1) {
 TEST(TestProgram, Switch0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"var a = 0;"
@@ -610,7 +610,7 @@ TEST(TestProgram, Switch0) {
     );
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Completion res = EvalProgram(ast);
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
@@ -621,7 +621,7 @@ TEST(TestProgram, Switch0) {
 TEST(TestProgram, Switch1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"var a = 0;"
@@ -637,7 +637,7 @@ TEST(TestProgram, Switch1) {
     );
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Completion res = EvalProgram(ast);
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
@@ -648,7 +648,7 @@ TEST(TestProgram, Switch1) {
 TEST(TestProgram, Label0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"var i, c = 0;\n"
       u"L1: for(i = 0; i < 3; i++) {\n"
@@ -662,7 +662,7 @@ TEST(TestProgram, Label0) {
     );
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Completion res = EvalProgram(ast);
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
@@ -673,7 +673,7 @@ TEST(TestProgram, Label0) {
 TEST(TestProgram, Fib0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"function fib(n) {\n"
@@ -689,7 +689,7 @@ TEST(TestProgram, Fib0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(55, num.val()->data());
@@ -699,7 +699,7 @@ TEST(TestProgram, Fib0) {
 TEST(TestProgram, Fib1) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u"function fib(n) {\n"
@@ -716,7 +716,7 @@ TEST(TestProgram, Fib1) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(55, num.val()->data());
@@ -726,7 +726,7 @@ TEST(TestProgram, Fib1) {
 TEST(TestProgram, Eval0) {
   Init();
   {
-    Error* e = Error::Ok();
+    Handle<Error> e = Error::Ok();
     Parser parser(
       u"'use strict';\n"
       u" var a = 4;\n"
@@ -736,7 +736,7 @@ TEST(TestProgram, Eval0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(Error::E_OK, e->type());
+    EXPECT_EQ(Error::E_OK, e.val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(6, num.val()->data());

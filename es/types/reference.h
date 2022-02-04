@@ -8,7 +8,7 @@
 
 namespace es {
 
-Handle<JSObject> ToObject(Error* e, Handle<JSValue> input);
+Handle<JSObject> ToObject(Handle<Error>& e, Handle<JSValue> input);
 
 class Reference : public JSValue {
  public:
@@ -53,14 +53,14 @@ class Reference : public JSValue {
   static constexpr size_t kStrictReferenceOffset = kReferenceNameOffset + kPtrSize;
 };
 
-Handle<JSValue> GetValue(Error* e, Handle<JSValue> V) {
+Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
   log::PrintSource("GetValue V:" + V.ToString());
   if (!V.val()->IsReference()) {
     return V;
   }
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
   if (ref.val()->IsUnresolvableReference()) {
-    *e = *Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
+    e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
     return Handle<JSValue>();
   }
   Handle<JSValue> base = ref.val()->GetBase();
@@ -72,7 +72,7 @@ Handle<JSValue> GetValue(Error* e, Handle<JSValue> V) {
       return Get(e, obj, ref.val()->GetReferencedName());
     } else {  // special [[Get]]
       Handle<JSObject> O = ToObject(e, base);
-      if (!e->IsOk()) return Handle<JSValue>();
+      if (!e.val()->IsOk()) return Handle<JSValue>();
       Handle<JSValue> tmp = GetProperty(O, ref.val()->GetReferencedName());
       if (tmp.val()->IsUndefined())
         return Undefined::Instance();
@@ -96,17 +96,17 @@ Handle<JSValue> GetValue(Error* e, Handle<JSValue> V) {
   }
 }
 
-void PutValue(Error* e, Handle<JSValue> V, Handle<JSValue> W) {
+void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
   log::PrintSource("PutValue V: " + V.ToString() + ", W: " + W.ToString());
   if (!V.val()->IsReference()) {
-    *e = *Error::ReferenceError();
+    e = Error::ReferenceError(u"put value to non-reference.");
     return;
   }
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
   Handle<JSValue> base = ref.val()->GetBase();
   if (ref.val()->IsUnresolvableReference()) {  // 3
     if (ref.val()->IsStrictReference()) {  // 3.a
-      *e = *Error::ReferenceError();
+      e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
       return;
     }
     Put(e, GlobalObject::Instance(), ref.val()->GetReferencedName(), W, false);  // 3.b
@@ -121,7 +121,7 @@ void PutValue(Error* e, Handle<JSValue> V, Handle<JSValue> W) {
       Handle<JSObject> O = ToObject(e, base);
       if (!CanPut(O, P)) {  // 2
         if (throw_flag)
-          *e = *Error::TypeError();
+          e = Error::TypeError();
         return;
       }
       Handle<JSValue> tmp = GetOwnProperty(O, P);  // 3
@@ -129,7 +129,7 @@ void PutValue(Error* e, Handle<JSValue> V, Handle<JSValue> W) {
         Handle<PropertyDescriptor> own_desc = static_cast<Handle<PropertyDescriptor>>(tmp);
         if (own_desc.val()->IsDataDescriptor()) {  // 4
           if (throw_flag)
-            *e = *Error::TypeError();
+            e = Error::TypeError();
           return;
         }
       }
@@ -143,7 +143,7 @@ void PutValue(Error* e, Handle<JSValue> V, Handle<JSValue> W) {
           Call(e, setter_obj, base, {W});
         } else {  // 7
           if (throw_flag)
-            *e = *Error::TypeError();
+            e = Error::TypeError();
           return;
         }
       }

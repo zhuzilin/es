@@ -8,7 +8,6 @@
 #include <unordered_map>
 
 #include <es/gc/heap_object.h>
-#include <es/error.h>
 
 namespace es {
 
@@ -81,11 +80,6 @@ class JSValue : public HeapObject {
 
   inline bool IsPrototype() { return IsNull() || IsObject(); }
 
-  void CheckObjectCoercible(Error* e) {
-    if (IsUndefined() || IsNull()) {
-      *e = *Error::TypeError(u"undefined or null is not coercible");
-    }
-  }
   virtual bool IsCallable() {
     // JSObject need to implement its own IsCallable
     assert(!IsObject());
@@ -402,6 +396,9 @@ class Number : public JSValue {
   inline std::string ToString() override { return std::to_string(data()); }
   inline std::vector<HeapObject**> Pointers() override { return {}; }
 };
+
+class Error;
+void CheckObjectCoercible(Handle<Error>& e, Handle<JSValue> val);
 
 }  // namespace es
 

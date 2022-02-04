@@ -12,7 +12,7 @@ class ErrorProto : public JSObject {
     return singleton;
   }
 
-  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
@@ -27,24 +27,24 @@ class ErrorProto : public JSObject {
 
 class ErrorObject : public JSObject {
  public:
-  static Handle<ErrorObject> New(Error* e) {
+  static Handle<ErrorObject> New(Handle<Error> e) {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_ERROR, u"Error", true, Handle<JSValue>(), false, false, nullptr, kPtrSize
     );
 
-    SET_VALUE(jsobj.val(), kErrorOffset, e, Error*);
+    SET_HANDLE_VALUE(jsobj.val(), kErrorOffset, e, Error);
 
     Handle<ErrorObject> obj(new (jsobj.val()) ErrorObject());
     obj.val()->SetPrototype(ErrorProto::Instance());
-    AddValueProperty(obj, u"message", String::New(e->message()), true, false, false);
+    AddValueProperty(obj, u"message", e.val()->value(), true, false, false);
     return obj;
   }
 
-  Error* e() { return READ_VALUE(this, kErrorOffset, Error*); }
-  Error::Type ErrorType() { return e()->type(); }
-  std::u16string ErrorMessage() { return e()->message(); }
+  Handle<Error> e() { return READ_HANDLE_VALUE(this, kErrorOffset, Error); }
+  Error::ErrorType ErrorType() { return e().val()->type(); }
+  Handle<JSValue> ErrorValue() { return e().val()->value(); }
 
-  std::string ToString() { return log::ToString(e()->message()); }
+  std::string ToString() { return ErrorValue().ToString(); }
 
  private:
   static constexpr size_t kErrorOffset = kJSObjectOffset;
@@ -57,7 +57,7 @@ class ErrorConstructor : public JSObject {
     return singleton;
   }
 
-  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function Error() { [native code] }");
   }
 
@@ -70,7 +70,7 @@ class ErrorConstructor : public JSObject {
   }
 };
 
-Handle<JSObject> Construct__ErrorConstructor(Error* e, Handle<ErrorConstructor> O, std::vector<Handle<JSValue>> arguments);
+Handle<JSObject> Construct__ErrorConstructor(Handle<Error>& e, Handle<ErrorConstructor> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es
 

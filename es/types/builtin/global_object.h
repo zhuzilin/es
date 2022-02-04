@@ -5,8 +5,8 @@
 
 namespace es {
 
-std::u16string ToU16String(Error* e, Handle<JSValue> input);
-double ToInt32(Error* e, Handle<JSValue> input);
+std::u16string ToU16String(Handle<Error>& e, Handle<JSValue> input);
+double ToInt32(Handle<Error>& e, Handle<JSValue> input);
 double StringToNumber(std::u16string source);
 
 // 15.1 The Global Object
@@ -23,23 +23,23 @@ class GlobalObject : public JSObject {
   }
 
   // 15.1.2.1 eval(X)
-  static Handle<JSValue> eval(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+  static Handle<JSValue> eval(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
 
   // 15.1.2.2 parseInt (string , radix)
-  static Handle<JSValue> parseInt(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> parseInt(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     // TODO(zhuzilin) use parseFloat at the moment. fix later
     if (vals.size() == 0 || vals[0].val()->IsUndefined()) {
-      *e = *Error::TypeError(u"parseInt called with undefined string");
+      e = Error::TypeError(u"parseInt called with undefined string");
       return Handle<JSValue>();
     }
     std::u16string input_string = ToU16String(e, vals[0]);
     size_t len = input_string.size();
-    if (!e->IsOk()) return Handle<JSValue>();
+    if (!e.val()->IsOk()) return Handle<JSValue>();
     double R = 10;
     bool strip_prefix = true;
     if (vals.size() >= 2 && !vals[1].val()->IsUndefined()) {
       R = ToInt32(e, vals[0]);
-      if (!e->IsOk()) return Handle<JSValue>();
+      if (!e.val()->IsOk()) return Handle<JSValue>();
       if (R < 2 || R > 36)
         return Number::NaN();
       if (R != 0 && R != 16)
@@ -80,7 +80,7 @@ class GlobalObject : public JSObject {
   }
 
   // 15.1.2.3 parseFloat (string)
-  static Handle<JSValue> parseFloat(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> parseFloat(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size() == 0)
       return Number::NaN();
     std::u16string input_string = es::ToU16String(e, vals[0]);
@@ -106,12 +106,12 @@ class GlobalObject : public JSObject {
   }
 
   // 15.1.2.4 isNaN (number)
-  static Handle<JSValue> isNaN(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> isNaN(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
   // 15.1.2.5 isFinite (number)
-  static Handle<JSValue> isFinite(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> isFinite(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 

@@ -120,21 +120,21 @@ bool HasBinding(Handle<EnvironmentRecord> env_rec, Handle<String> N);
 bool HasBinding__Declarative(Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N);
 bool HasBinding__Object(Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N);
 
-void CreateMutableBinding(Error* e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool D);
-void CreateMutableBinding__Declarative(Error* e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool D);
-void CreateMutableBinding__Object(Error* e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool D);
+void CreateMutableBinding(Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool D);
+void CreateMutableBinding__Declarative(Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool D);
+void CreateMutableBinding__Object(Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool D);
 
-void SetMutableBinding(Error* e, Handle<EnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S);
-void SetMutableBinding__Declarative(Error* e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S);
-void SetMutableBinding__Object(Error* e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S);
+void SetMutableBinding(Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S);
+void SetMutableBinding__Declarative(Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S);
+void SetMutableBinding__Object(Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S);
 
-Handle<JSValue> GetBindingValue(Error* e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool S);
-Handle<JSValue> GetBindingValue__Declarative(Error* e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S);
-Handle<JSValue> GetBindingValue__Object(Error* e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool S);
+Handle<JSValue> GetBindingValue(Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool S);
+Handle<JSValue> GetBindingValue__Declarative(Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S);
+Handle<JSValue> GetBindingValue__Object(Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool S);
 
-bool DeleteBinding(Error* e, Handle<EnvironmentRecord> env_rec, Handle<String> N);
-bool DeleteBinding__Declarative(Error* e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N);
-bool DeleteBinding__Object(Error* e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N);
+bool DeleteBinding(Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N);
+bool DeleteBinding__Declarative(Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N);
+bool DeleteBinding__Object(Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N);
 
 Handle<JSValue> ImplicitThisValue(Handle<EnvironmentRecord> env_rec);
 Handle<JSValue> ImplicitThisValue__Declarative(Handle<DeclarativeEnvironmentRecord> env_rec);

@@ -3,13 +3,13 @@
 
 #include <string>
 
+#include <es/types/base.h>
+
 namespace es {
 
-class JSValue;
-
-class Error {
+class Error : public HeapObject {
  public:
-  enum Type {
+  enum ErrorType {
     E_OK = 0,
     E_EVAL,
     E_RANGE,
@@ -21,54 +21,99 @@ class Error {
   };
 
   // TODO(zhuzilin) Fix memory leakage here.
-  static Error* Ok() {
-    return new Error(E_OK);
+  static Handle<Error> Ok() {
+    static Handle<Error> singleton = Error::New(E_OK, String::Empty(), GCFlag::SINGLE);
+    return singleton;
   }
 
-  static Error* EvalError() {
-    return new Error(E_EVAL);
+  static Handle<Error>& Empty() {
+    static Handle<Error> singleton = Error::New(E_OK, Handle<JSValue>(), GCFlag::SINGLE);
+    return singleton;
   }
 
-  static Error* RangeError(std::u16string message = u"") {
-    return new Error(E_RANGE, message);
+  static Handle<Error> EvalError() {
+    static Handle<Error> singleton = Error::New(E_EVAL, Handle<JSValue>(), GCFlag::SINGLE);
+    singleton.val()->SetMessage(u"");
+    return singleton;
   }
 
-  static Error* ReferenceError(std::u16string message = u"") {
-    return new Error(E_REFERENCE, message);
+  static Handle<Error> RangeError(std::u16string message) {
+    static Handle<Error> singleton = Error::New(E_EVAL, Handle<JSValue>(), GCFlag::SINGLE);
+    singleton.val()->SetMessage(message);
+    return singleton;
   }
 
-  static Error* SyntaxError(std::u16string message = u"") {
-    return new Error(E_SYNTAX, message);
+  static Handle<Error> ReferenceError(std::u16string message) {
+    static Handle<Error> singleton = Error::New(E_REFERENCE, Handle<JSValue>(), GCFlag::SINGLE);
+    singleton.val()->SetMessage(message);
+    return singleton;
   }
 
-  static Error* TypeError(std::u16string message = u"") {
-    return new Error(E_TYPE, message);
+  static Handle<Error> SyntaxError(std::u16string message) {
+    static Handle<Error> singleton = Error::New(E_SYNTAX, Handle<JSValue>(), GCFlag::SINGLE);
+    singleton.val()->SetMessage(message);
+    return singleton;
   }
 
-  static Error* UriError() {
-    return new Error(E_URI);
+  static Handle<Error> TypeError(std::u16string message = u"") {
+    static Handle<Error> singleton = Error::New(E_TYPE, Handle<JSValue>(), GCFlag::SINGLE);
+    singleton.val()->SetMessage(message);
+    return singleton;
   }
 
-  static Error* NativeError(std::u16string message) {
-    return new Error(E_NATIVE, message);
+  static Handle<Error> UriError() {
+    static Handle<Error> singleton = Error::New(E_URI, Handle<JSValue>(), GCFlag::SINGLE);
+    singleton.val()->SetMessage(u"");
+    return singleton;
   }
 
-  Type type() { return type_; }
-
-  bool IsOk() { return type_ == E_OK; }
-
-  std::u16string message() {
-    return message_;
+  static Handle<Error> NativeError(Handle<JSValue> val) {
+    static Handle<Error> singleton = Error::New(E_NATIVE, Handle<JSValue>(), GCFlag::SINGLE);
+    singleton.val()->SetValue(val);
+    return singleton;
   }
 
-  std::string ToString() { return Ok() ? "ok" : "error"; }
+  ErrorType type() { return READ_VALUE(this, kErrorTypeOffset, ErrorType); }
+  Handle<JSValue> value() { return READ_HANDLE_VALUE(this, kValueOffset, JSValue); }
+  void SetValue(Handle<JSValue> val) { SET_HANDLE_VALUE(this, kValueOffset, val, JSValue); }
+
+  void SetMessage(std::u16string message) {
+    if (message == u"") {
+      SetValue(String::Empty());
+    } else {
+      SetValue(String::New(message));
+    }
+  }
+
+  bool IsOk() { return type() == E_OK; }
+
+  std::string ToString() override {
+    return IsOk() ?
+      "ok" :
+      ("error(" + (READ_VALUE(this, kValueOffset, String*))->ToString() + ")");
+  }
+
+  virtual std::vector<HeapObject**> Pointers() override {
+    return {HEAP_PTR(kValueOffset)};
+  }
 
  private:
-  Error(Type t, std::u16string message = u"") :
-    type_(t), message_(message) {}
+  static Handle<Error> New(ErrorType t, Handle<JSValue> val, uint8_t flag) {
+#ifdef GC_DEBUG
+    if (log::Debugger::On())
+      std::cout << "Error::New " << std::endl;
+#endif
+    Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + kPtrSize, flag);
 
-  Type type_;
-  std::u16string message_;
+    SET_VALUE(heap_obj.val(), kErrorTypeOffset, t, ErrorType);
+    SET_HANDLE_VALUE(heap_obj.val(), kValueOffset, val, JSValue);
+
+    new (heap_obj.val()) Error();
+    return Handle<Error>(heap_obj);
+  }
+
+  static constexpr size_t kErrorTypeOffset = kHeapObjectOffset;
+  static constexpr size_t kValueOffset = kErrorTypeOffset + kIntSize;
 };
 
 }  // namespace es

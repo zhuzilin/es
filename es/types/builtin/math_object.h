@@ -5,7 +5,7 @@
 
 namespace es {
 
-double ToNumber(Error* e, Handle<JSValue> input);
+double ToNumber(Handle<Error>& e, Handle<JSValue> input);
 
 class Math : public JSObject {
  public:
@@ -14,19 +14,19 @@ class Math : public JSObject {
     return singleton;
   }
 
-  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"Math");
   }
 
-  static Handle<JSValue> max(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> max(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size() == 0)
       return Number::NegativeInfinity();
     double value1 = ToNumber(e, vals[0]);
-    if (!e->IsOk()) return Handle<JSValue>();
+    if (!e.val()->IsOk()) return Handle<JSValue>();
     double value2;
     if (vals.size() < 2) {
       value2 = ToNumber(e, vals[1]);
-      if (!e->IsOk()) return Handle<JSValue>();
+      if (!e.val()->IsOk()) return Handle<JSValue>();
     }
     if (isnan(value1) || isnan(value2))
       return Number::NaN();

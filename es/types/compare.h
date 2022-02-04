@@ -9,24 +9,24 @@ namespace es {
 
 // 11.8.5 The Abstract Relational Comparison Algorithm
 // x < y
-Handle<JSValue> LessThan(Error* e, Handle<JSValue> x, Handle<JSValue> y, bool left_first = true) {
+Handle<JSValue> LessThan(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y, bool left_first = true) {
   Handle<JSValue> px, py;
   if (left_first) {
     px = ToPrimitive(e, x, u"Number");
-    if (!e->IsOk()) return Undefined::Instance();
+    if (!e.val()->IsOk()) return Undefined::Instance();
     py = ToPrimitive(e, y, u"Number");
-    if (!e->IsOk()) return Undefined::Instance();
+    if (!e.val()->IsOk()) return Undefined::Instance();
   } else {
     py = ToPrimitive(e, y, u"Number");
-    if (!e->IsOk()) return Undefined::Instance();
+    if (!e.val()->IsOk()) return Undefined::Instance();
     px = ToPrimitive(e, x, u"Number");
-    if (!e->IsOk()) return Undefined::Instance();
+    if (!e.val()->IsOk()) return Undefined::Instance();
   }
   if (!(px.val()->IsString() && py.val()->IsString())) {  // 3
     double nx = ToNumber(e, px);
-    if (!e->IsOk()) return Undefined::Instance();
+    if (!e.val()->IsOk()) return Undefined::Instance();
     double ny = ToNumber(e, py);
-    if (!e->IsOk()) return Undefined::Instance();
+    if (!e.val()->IsOk()) return Undefined::Instance();
     if (isnan(nx) || isnan(ny))
       return Undefined::Instance();
     if (nx == ny)  // this includes +0 vs -0
@@ -42,16 +42,16 @@ Handle<JSValue> LessThan(Error* e, Handle<JSValue> x, Handle<JSValue> y, bool le
     return Bool::Wrap(nx < ny);
   } else {  // 4
     Handle<String> sx = ToString(e, px);
-    if (!e->IsOk()) return Undefined::Instance();
+    if (!e.val()->IsOk()) return Undefined::Instance();
     Handle<String> sy = ToString(e, py);
-    if (!e->IsOk()) return Undefined::Instance();
+    if (!e.val()->IsOk()) return Undefined::Instance();
     return Bool::Wrap(*sx.val() < *sy.val());
   }
 }
 
 // 11.9.3 The Abstract Equality Comparison Algorithm
 // x == y
-bool Equal(Error* e, Handle<JSValue> x, Handle<JSValue> y) {
+bool Equal(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y) {
   if (x.val()->type() == y.val()->type()) {
     if (x.val()->IsUndefined()) {
       return true;
@@ -76,27 +76,27 @@ bool Equal(Error* e, Handle<JSValue> x, Handle<JSValue> y) {
     return true;
   } else if (x.val()->IsNumber() && y.val()->IsString()) {  // 4
     double numy = ToNumber(e, y);
-    if (!e->IsOk()) return false;
+    if (!e.val()->IsOk()) return false;
     return Equal(e, x, Number::New(numy));
   } else if (x.val()->IsString() && y.val()->IsNumber()) {  // 5
     double numx = ToNumber(e, x);
-    if (!e->IsOk()) return false;
+    if (!e.val()->IsOk()) return false;
     return Equal(e, Number::New(numx), y);
   } else if (x.val()->IsBool()) {  // 6
     double numx = ToNumber(e, x);
-    if (!e->IsOk()) return false;
+    if (!e.val()->IsOk()) return false;
     return Equal(e, Number::New(numx), y);
   } else if (y.val()->IsBool()) {  // 7
     double numy = ToNumber(e, x);
-    if (!e->IsOk()) return false;
+    if (!e.val()->IsOk()) return false;
     return Equal(e, x, Number::New(numy));
   } else if ((x.val()->IsNumber() || x.val()->IsString()) && y.val()->IsObject()) {  // 8
     Handle<JSValue> primy = ToPrimitive(e, y, u"");
-    if (!e->IsOk()) return false;
+    if (!e.val()->IsOk()) return false;
     return Equal(e, x, primy);
   } else if (x.val()->IsObject() && (y.val()->IsNumber() || y.val()->IsString())) {  // 9
     Handle<JSValue> primx = ToPrimitive(e, x, u"");
-    if (!e->IsOk()) return false;
+    if (!e.val()->IsOk()) return false;
     return Equal(e, primx, y);
   }
   return false;
@@ -104,7 +104,7 @@ bool Equal(Error* e, Handle<JSValue> x, Handle<JSValue> y) {
 
 // 11.9.6 The Strict Equality Comparison Algorithm
 // x === y
-bool StrictEqual(Error* e, Handle<JSValue> x, Handle<JSValue> y) {
+bool StrictEqual(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y) {
   if (x.val()->type() != y.val()->type())
     return false;
   switch (x.val()->type()) {

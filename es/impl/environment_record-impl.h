@@ -25,7 +25,7 @@ bool HasBinding__Object(Handle<ObjectEnvironmentRecord> env_rec, Handle<String> 
 }
 
 void CreateMutableBinding(
-  Error* e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool D
+  Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool D
 ) {
   if (env_rec.val()->IsDeclarativeEnv()) {
     return CreateMutableBinding__Declarative(e, static_cast<Handle<DeclarativeEnvironmentRecord>>(env_rec), N, D);
@@ -37,7 +37,7 @@ void CreateMutableBinding(
 
 // 10.2.1.1.2 CreateMutableBinding (N, D)
 void CreateMutableBinding__Declarative(
-  Error* e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool D
+  Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool D
 ) {
   assert(!HasBinding(env_rec, N));
   Handle<DeclarativeEnvironmentRecord::Binding> b = DeclarativeEnvironmentRecord::Binding::New(
@@ -48,7 +48,7 @@ void CreateMutableBinding__Declarative(
 
 // 10.2.1.2.2 CreateMutableBinding (N, D)
 void CreateMutableBinding__Object(
-  Error* e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool D
+  Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool D
 ) {
   assert(!HasBinding(env_rec, N));
   Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
@@ -57,7 +57,7 @@ void CreateMutableBinding__Object(
 }
 
 void SetMutableBinding(
-  Error* e, Handle<EnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
+  Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
 ) {
   if (env_rec.val()->IsDeclarativeEnv()) {
     return SetMutableBinding__Declarative(e, static_cast<Handle<DeclarativeEnvironmentRecord>>(env_rec), N, V, S);
@@ -69,7 +69,7 @@ void SetMutableBinding(
 
 // 10.2.1.1.3 SetMutableBinding (N,V,S)
 void SetMutableBinding__Declarative(
-  Error* e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
+  Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
 ) {
   log::PrintSource("enter SetMutableBinding__Declarative ", N.val()->data(), " to " + V.ToString());
   assert(V.val()->IsLanguageType());
@@ -79,13 +79,13 @@ void SetMutableBinding__Declarative(
   if (env_rec.val()->bindings()->GetRaw(N)->is_mutable()) {
     env_rec.val()->bindings()->GetRaw(N)->SetValue(V);
   } else if (S) {
-    *e = *Error::TypeError();
+    e = Error::TypeError();
   }
 }
 
 // 10.2.1.2.3 SetMutableBinding (N,V,S)
 void SetMutableBinding__Object(
-  Error* e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
+  Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
 ) {
   log::PrintSource("enter SetMutableBinding__Object " + N.ToString() + " to " + V.ToString());
   assert(V.val()->IsLanguageType());
@@ -93,7 +93,7 @@ void SetMutableBinding__Object(
 }
 
 Handle<JSValue> GetBindingValue(
-  Error* e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool S
+  Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
   if (env_rec.val()->IsDeclarativeEnv()) {
     return GetBindingValue__Declarative(e, static_cast<Handle<DeclarativeEnvironmentRecord>>(env_rec), N, S);
@@ -105,14 +105,14 @@ Handle<JSValue> GetBindingValue(
 
 // 10.2.1.1.4 GetBindingValue(N,S)
 Handle<JSValue> GetBindingValue__Declarative(
-  Error* e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S
+  Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
   log::PrintSource("enter GetBindingValue__Declarative " + N.ToString());
   assert(HasBinding(env_rec, N));
   DeclarativeEnvironmentRecord::Binding* b = env_rec.val()->bindings()->GetRaw(N);
   if (b->value().val()->IsUndefined() && !b->is_mutable()) {
     if (S) {
-      *e = *Error::ReferenceError(N.val()->data() + u" is not defined");
+      e = Error::ReferenceError(N.val()->data() + u" is not defined");
       return Handle<JSValue>();
     } else {
       log::PrintSource("GetBindingValue ", N.val()->data(), " undefined");
@@ -125,13 +125,13 @@ Handle<JSValue> GetBindingValue__Declarative(
 
 // 10.2.1.2.4 GetBindingValue(N,S)
 Handle<JSValue> GetBindingValue__Object(
-  Error* e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool S
+  Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
   log::PrintSource("enter GetBindingValue__Object " + N.ToString());
   bool value = HasBinding(env_rec, N);
   if (!value) {
     if (S) {
-      *e = *Error::ReferenceError(N.val()->data() + u" is not defined");
+      e = Error::ReferenceError(N.val()->data() + u" is not defined");
       return Handle<JSValue>();
     } else {
       return Undefined::Instance();
@@ -141,7 +141,7 @@ Handle<JSValue> GetBindingValue__Object(
 }
 
 bool DeleteBinding(
-  Error* e, Handle<EnvironmentRecord> env_rec, Handle<String> N
+  Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N
 ) {
   if (env_rec.val()->IsDeclarativeEnv()) {
     return DeleteBinding__Declarative(e, static_cast<Handle<DeclarativeEnvironmentRecord>>(env_rec), N);
@@ -153,7 +153,7 @@ bool DeleteBinding(
 
 // 10.2.1.1.5 DeleteBinding (N)
 bool DeleteBinding__Declarative(
-  Error* e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N
+  Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N
 ) {
   if (!HasBinding(env_rec, N)) return true;
   if (!env_rec.val()->bindings()->GetRaw(N)->can_delete()) {
@@ -165,7 +165,7 @@ bool DeleteBinding__Declarative(
 
 // 10.2.1.2.5 DeleteBinding (N)
 bool DeleteBinding__Object(
-  Error* e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N
+  Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N
 ) {
   return Delete(e, env_rec.val()->bindings(), N, false);
 }

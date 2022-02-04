@@ -17,7 +17,7 @@
 
 namespace es {
 
-typedef Handle<JSValue> (*inner_func)(Error*, Handle<JSValue>, std::vector<Handle<JSValue>>);
+typedef Handle<JSValue> (*inner_func)(Handle<Error>&, Handle<JSValue>, std::vector<Handle<JSValue>>);
 
 class JSObject : public JSValue {
  public:
@@ -185,21 +185,21 @@ bool JSValue::IsObjectConstructor() { return Is(this, JSObject::OBJ_OBJECT_CONST
 bool JSValue::IsRegExpConstructor() { return Is(this, JSObject::OBJ_REGEXP_CONSTRUCTOR); }
 bool JSValue::IsStringConstructor() { return Is(this, JSObject::OBJ_STRING_CONSTRUCTOR); }
 
-Handle<JSValue> Get(Error* e, Handle<JSObject> O, Handle<String> P);
-Handle<JSValue> Get__Base(Error* e, Handle<JSObject> O, Handle<String> P);
+Handle<JSValue> Get(Handle<Error>& e, Handle<JSObject> O, Handle<String> P);
+Handle<JSValue> Get__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P);
 Handle<JSValue> GetOwnProperty(Handle<JSObject> O, Handle<String> P);
 Handle<JSValue> GetOwnProperty__Base(Handle<JSObject> O, Handle<String> P);
 Handle<JSValue> GetProperty(Handle<JSObject> O, Handle<String> P);
-void Put(Error* e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag);
+void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag);
 bool CanPut(Handle<JSObject> O, Handle<String> P);
 bool HasProperty(Handle<JSObject> O, Handle<String> P);
-bool Delete(Error* e, Handle<JSObject> O, Handle<String> P, bool throw_flag);
-bool Delete__Base(Error* e, Handle<JSObject> O, Handle<String> P, bool throw_flag);
-Handle<JSValue> DefaultValue(Error* e, Handle<JSObject> O, std::u16string hint);
-bool DefineOwnProperty(Error* e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
-bool DefineOwnProperty__Base(Error* e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
-bool HasInstance(Error* e, Handle<JSObject> O, Handle<JSValue> V);
-bool HasInstance__Base(Error* e, Handle<JSObject> O, Handle<JSValue> V);
+bool Delete(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool throw_flag);
+bool Delete__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool throw_flag);
+Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16string hint);
+bool DefineOwnProperty(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
+bool DefineOwnProperty__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
+bool HasInstance(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> V);
+bool HasInstance__Base(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> V);
 
 void AddValueProperty(
   Handle<JSObject> O, Handle<String> name, Handle<JSValue> value, bool writable,
@@ -218,11 +218,11 @@ void AddFuncProperty(
   bool enumerable, bool configurable
 );
 
-Handle<JSValue> Call(Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
-Handle<JSValue> Call__Base(Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
-Handle<JSValue> Call__Construct(Error* e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSValue> Call(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSValue> Call__Base(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSValue> Call__Construct(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 
-Handle<JSObject> Construct(Error* e, Handle<JSObject> O, std::vector<Handle<JSValue>> arguments);
+Handle<JSObject> Construct(Handle<Error>& e, Handle<JSObject> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace
 

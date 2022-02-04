@@ -13,6 +13,8 @@
 #include <es/gc/heap.h>
 #include <es/impl.h>
 
+using namespace es;
+
 // NOTE(zhuzilin) There are some copy and paste from stackoverflow...
 std::u16string ReadUTF8FileToUTF16String(std::string filename) {
   // https://stackoverflow.com/a/2602258/5163915
@@ -36,60 +38,60 @@ int main(int argc, char* argv[]) {
   std::string filename(argv[1]);
   std::u16string source = ReadUTF8FileToUTF16String(filename);
 
-  es::Parser parser(source);
-  es::AST* ast = parser.ParseProgram();
+  Parser parser(source);
+  AST* ast = parser.ParseProgram();
   if (ast->IsIllegal()) {
     size_t start = ast->start();
     for (size_t i = 0; i < 10; i++) {
-      if (start == 0 || es::character::IsLineTerminator(source[start - 1]))
+      if (start == 0 || character::IsLineTerminator(source[start - 1]))
         break;
       start--;
     }
     size_t end = ast->end();
     for (size_t i = 0; i < 10; i++) {
-      if (end == source.size() || es::character::IsLineTerminator(source[end]))
+      if (end == source.size() || character::IsLineTerminator(source[end]))
         break;
       end++;
     }
     std::cout << "\033[1;31m" << "ParserError: " << "\033[0m"
-              << es::log::ToString(source.substr(start, ast->start() - start))
-              << "\033[1;31m" << es::log::ToString(ast->source()) << "\033[0m"
-              << es::log::ToString(source.substr(ast->end(), end - ast->end())) << std::endl;
+              << log::ToString(source.substr(start, ast->start() - start))
+              << "\033[1;31m" << log::ToString(ast->source()) << "\033[0m"
+              << log::ToString(source.substr(ast->end(), end - ast->end())) << std::endl;
     return 0;
   }
 
-  es::Init();
-  es::Error* e = es::Error::Ok();
-  es::EnterGlobalCode(e, ast);
-  if (!e->IsOk()) {
+  Init();
+  Handle<Error> e = Error::Ok();
+  EnterGlobalCode(e, ast);
+  if (!e.val()->IsOk()) {
     std::cout << "enter global failed" << std::endl;
     return 0;
   }
-  es::Completion res = es::EvalProgram(ast);
+  Completion res = EvalProgram(ast);
   switch (res.type()) {
-    case es::Completion::THROW: {
+    case Completion::THROW: {
       std::cout << "\033[1;31m" << "Uncaught ";
       if (res.value().val()->IsObject()) {
-        es::Handle<es::JSObject> obj = static_cast<es::Handle<es::JSObject>>(res.value());
+        Handle<JSObject> obj = static_cast<Handle<JSObject>>(res.value());
         if (obj.val()->IsErrorObject()) {
-          es::Handle<es::ErrorObject> error = static_cast<es::Handle<es::ErrorObject>>(obj);
+          Handle<ErrorObject> error = static_cast<Handle<ErrorObject>>(obj);
           switch (error.val()->ErrorType()) {
-            case es::Error::E_EVAL:
+            case Error::E_EVAL:
               std::cout << "Eval";
               break;
-            case es::Error::E_RANGE:
+            case Error::E_RANGE:
               std::cout << "Range";
               break;
-            case es::Error::E_REFERENCE:
+            case Error::E_REFERENCE:
               std::cout << "Reference";
               break;
-            case es::Error::E_SYNTAX:
+            case Error::E_SYNTAX:
               std::cout << "Syntax";
               break;
-            case es::Error::E_TYPE:
+            case Error::E_TYPE:
               std::cout << "Type";
               break;
-            case es::Error::E_URI:
+            case Error::E_URI:
               std::cout << "URI";
               break;
             default:

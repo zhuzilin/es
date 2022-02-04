@@ -45,7 +45,7 @@ Handle<JSValue> GetOwnProperty__String(Handle<StringObject> O, Handle<String> P)
   Handle<JSValue> val = GetOwnProperty__Base(O, P);
   if (!val.val()->IsUndefined())
     return val;
-  Error* e = Error::Ok();
+  Handle<Error> e = Error::Ok();
   int index = ToInteger(e, P);  // this will never has error.
   if (*NumberToString(fabs(index)).val() != *P.val())
     return Undefined::Instance();
@@ -67,7 +67,7 @@ Handle<JSValue> GetOwnProperty__Arguments(Handle<ArgumentsObject> O, Handle<Stri
   Handle<JSObject> map = O.val()->ParameterMap();
   Handle<JSValue> is_mapped = GetOwnProperty(map, P);
   if (!is_mapped.val()->IsUndefined()) {  // 5
-    desc.val()->SetValue(Get(nullptr, map, P));
+    desc.val()->SetValue(Get(Error::Empty(), map, P));
   }
   return desc;
 }
@@ -89,7 +89,7 @@ Handle<JSValue> GetProperty(Handle<JSObject> O, Handle<String> P) {
 }
 
 // [[Get]]
-Handle<JSValue> Get(Error* e, Handle<JSObject> O, Handle<String> P) {
+Handle<JSValue> Get(Handle<Error>& e, Handle<JSObject> O, Handle<String> P) {
   log::PrintSource("enter Get " + P.ToString() + " from " + std::to_string(O.val()->obj_type()));
   if (O.val()->IsFunctionObject()) {
     return Get__Function(e, static_cast<Handle<FunctionObject>>(O), P);
@@ -101,7 +101,7 @@ Handle<JSValue> Get(Error* e, Handle<JSObject> O, Handle<String> P) {
 }
 
 // 8.12.3 [[Get]] (P) 
-Handle<JSValue> Get__Base(Error* e, Handle<JSObject> O, Handle<String> P) {
+Handle<JSValue> Get__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P) {
   Handle<JSValue> value = GetProperty(O, P);
   if (value.val()->IsUndefined()) {
     return Undefined::Instance();
@@ -121,16 +121,16 @@ Handle<JSValue> Get__Base(Error* e, Handle<JSObject> O, Handle<String> P) {
 }
 
 // 15.3.5.4 [[Get]] (P)
-Handle<JSValue> Get__Function(Error* e, Handle<FunctionObject> O, Handle<String> P) {
+Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle<String> P) {
   Handle<JSValue> V = Get__Base(e, O, P);
-  if (!e->IsOk()) return Handle<JSValue>();
+  if (!e.val()->IsOk()) return Handle<JSValue>();
   if (P.val()->data() == u"caller") {  // 2
     if (V.val()->IsObject()) {
       Handle<JSObject> obj = static_cast<Handle<JSObject>>(V);
       if (obj.val()->IsFunction()) {
         Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
         if (func.val()->strict()) {
-          *e = *Error::TypeError();
+          e = Error::TypeError();
           return Handle<JSValue>();
         }
       }
@@ -140,19 +140,19 @@ Handle<JSValue> Get__Function(Error* e, Handle<FunctionObject> O, Handle<String>
 }
 
 // 10.6
-Handle<JSValue> Get__Arguments(Error* e, Handle<ArgumentsObject> O, Handle<String> P) {
+Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P) {
   Handle<JSObject> map = O.val()->ParameterMap();
   Handle<JSValue> is_mapped = GetOwnProperty(map, P);
   if (is_mapped.val()->IsUndefined()) {  // 3
     Handle<JSValue> V = Get__Base(e, O, P);
-    if (!e->IsOk()) return Handle<JSValue>();
+    if (!e.val()->IsOk()) return Handle<JSValue>();
     if (P.val()->data() == u"caller") {
       if (V.val()->IsObject()) {
         Handle<JSObject> obj = static_cast<Handle<JSObject>>(V);
         if (obj.val()->IsFunction()) {
           Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(obj);
           if (func.val()->strict()) {
-            *e = *Error::TypeError(u"caller could not be function object");
+            e = Error::TypeError(u"caller could not be function object");
           }
         }
       }
@@ -195,12 +195,12 @@ bool CanPut(Handle<JSObject> O, Handle<String> P) {
 
 // [[Put]]
 // 8.12.5 [[Put]] ( P, V, Throw )
-void Put(Error* e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
+void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
   log::PrintSource("enter Put " + P.ToString() + " to " + O.ToString() + " with value " + V.ToString());
   assert(V.val()->IsLanguageType());
   if (!CanPut(O, P)) {  // 1
     if (throw_flag) {  // 1.a
-      *e = *Error::TypeError();
+      e = Error::TypeError();
     }
     return;  // 1.b
   }
@@ -240,7 +240,7 @@ bool HasProperty(Handle<JSObject> O, Handle<String> P) {
 }
 
 // [[Delete]]
-bool Delete(Error* e, Handle<JSObject> O, Handle<String> P, bool throw_flag) {
+bool Delete(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool throw_flag) {
   if (O.val()->IsArgumentsObject()) {
     return Delete__Arguments(e, static_cast<Handle<ArgumentsObject>>(O), P, throw_flag);
   } else {
@@ -249,7 +249,7 @@ bool Delete(Error* e, Handle<JSObject> O, Handle<String> P, bool throw_flag) {
 }
 
 // 8.12.7 [[Delete]] (P, Throw)
-bool Delete__Base(Error* e, Handle<JSObject> O, Handle<String> P, bool throw_flag) {
+bool Delete__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool throw_flag) {
   Handle<JSValue> value = GetOwnProperty(O, P);
   if (value.val()->IsUndefined()) {
     return true;
@@ -260,17 +260,17 @@ bool Delete__Base(Error* e, Handle<JSObject> O, Handle<String> P, bool throw_fla
     return true;
   } else {
     if (throw_flag) {
-      *e = *Error::TypeError();
+      e = Error::TypeError();
     }
     return false;
   }
 }
 
-bool Delete__Arguments(Error* e, Handle<ArgumentsObject> O, Handle<String> P, bool throw_flag) {
+bool Delete__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, bool throw_flag) {
   Handle<JSObject> map = O.val()->ParameterMap();
   Handle<JSValue> is_mapped = GetOwnProperty(map, P);
   bool result = Delete__Base(e, O, P, throw_flag);
-  if (!e->IsOk()) return false;
+  if (!e.val()->IsOk()) return false;
   if (result && !is_mapped.val()->IsUndefined()) {
     Delete(e, map, P, false);
   }
@@ -279,7 +279,7 @@ bool Delete__Arguments(Error* e, Handle<ArgumentsObject> O, Handle<String> P, bo
 
 // [[DefaultValue]]
 // 8.12.8 [[DefaultValue]] (hint)
-Handle<JSValue> DefaultValue(Error* e, Handle<JSObject> O, std::u16string hint) {
+Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16string hint) {
   Handle<String> first, second;
   if (hint == u"String" || hint == u"" && O.val()->IsDateObject()) {
     first = String::New(u"toString");
@@ -295,32 +295,32 @@ Handle<JSValue> DefaultValue(Error* e, Handle<JSObject> O, std::u16string hint) 
   guard.AddValue(O);
 
   Handle<JSValue> to_string = Get(e, O, first);
-  if (!e->IsOk()) return Handle<JSValue>();
+  if (!e.val()->IsOk()) return Handle<JSValue>();
   if (to_string.val()->IsCallable()) {
     Handle<JSObject> to_string_obj = static_cast<Handle<JSObject>>(to_string);
     Handle<JSValue> str = Call(e, to_string_obj, O);
-    if (!e->IsOk()) return Handle<JSValue>();
+    if (!e.val()->IsOk()) return Handle<JSValue>();
     if (str.val()->IsPrimitive()) {
       return str;
     }
   }
   Handle<JSValue> value_of = Get(e, O, second);
-  if (!e->IsOk()) return Handle<JSValue>();
+  if (!e.val()->IsOk()) return Handle<JSValue>();
   if (value_of.val()->IsCallable()) {
     Handle<JSObject> value_of_obj = static_cast<Handle<JSObject>>(value_of);
     Handle<JSValue> val = Call(e, value_of_obj, O);
-    if (!e->IsOk()) return Handle<JSValue>();
+    if (!e.val()->IsOk()) return Handle<JSValue>();
     if (val.val()->IsPrimitive()) {
       return val;
     }
   }
-  *e = *Error::TypeError(u"failed to get [[DefaultValue]]");
+  e = Error::TypeError(u"failed to get [[DefaultValue]]");
   return Handle<JSValue>();
 }
 
 // [[DefineOwnProperty]]
 bool DefineOwnProperty(
-  Error* e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
+  Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
 ) {
   log::PrintSource("enter DefineOwnProperty " + P.ToString());
   if (O.val()->IsArrayObject()) {
@@ -333,7 +333,7 @@ bool DefineOwnProperty(
 }
 
 bool DefineOwnProperty__Base(
-  Error* e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
+  Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
 ) {
   Handle<JSValue> current = GetOwnProperty(O, P);
   Handle<PropertyDescriptor> current_desc;
@@ -416,13 +416,13 @@ bool DefineOwnProperty__Base(
 reject:
   log::PrintSource("DefineOwnProperty reject");
   if (throw_flag) {
-    *e = *Error::TypeError();
+    e = Error::TypeError();
   }
   return false;
 }
 
 bool DefineOwnProperty__Array(
-  Error* e, Handle<ArrayObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
+  Handle<Error>& e, Handle<ArrayObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
 ) {
   auto old_len_desc = static_cast<Handle<PropertyDescriptor>>(GetOwnProperty(O, String::Length()));
   assert(!old_len_desc.val()->IsUndefined());
@@ -434,11 +434,11 @@ bool DefineOwnProperty__Array(
     Handle<PropertyDescriptor> new_len_desc = PropertyDescriptor::New();
     new_len_desc.val()->Set(desc);
     double new_len = ToUint32(e, desc.val()->Value());
-    if (!e->IsOk()) goto reject;
+    if (!e.val()->IsOk()) goto reject;
     double new_num = ToNumber(e, desc.val()->Value());
-    if (!e->IsOk()) goto reject;
+    if (!e.val()->IsOk()) goto reject;
     if (new_len != new_num) {
-      *e = *Error::RangeError(u"length of array need to be uint32.");
+      e = Error::RangeError(u"length of array need to be uint32.");
       return false;
     }
     new_len_desc.val()->SetValue(Number::New(new_len));
@@ -493,20 +493,20 @@ bool DefineOwnProperty__Array(
 reject:
   log::PrintSource("Array::DefineOwnProperty reject " + P.ToString() + " " + desc.ToString());
   if (throw_flag) {
-    *e = *Error::TypeError();
+    e = Error::TypeError();
   }
   return false;
 }
 
 bool DefineOwnProperty__Arguments(
-  Error* e, Handle<ArgumentsObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
+  Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
 ) {
   Handle<JSObject> map = O.val()->ParameterMap();
   Handle<JSValue> is_mapped = GetOwnProperty(map, P);
   bool allowed = DefineOwnProperty__Base(e, O, P, desc, false);
   if (!allowed) {
     if (throw_flag) {
-      *e = *Error::TypeError(u"DefineOwnProperty " + P.val()->data() + u" failed");
+      e = Error::TypeError(u"DefineOwnProperty " + P.val()->data() + u" failed");
     }
     return false;
   }
@@ -526,7 +526,7 @@ bool DefineOwnProperty__Arguments(
 }
 
 // [[HasInstance]]
-bool HasInstance(Error* e, Handle<JSObject> O, Handle<JSValue> V) {
+bool HasInstance(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> V) {
   if (O.val()->IsFunctionObject()) {
     Handle<FunctionObject> F = static_cast<Handle<FunctionObject>>(O);
     if (!F.val()->from_bind()) {
@@ -541,14 +541,14 @@ bool HasInstance(Error* e, Handle<JSObject> O, Handle<JSValue> V) {
 
 // NOTE(zhuzilin) Here we use the implementation in 15.3.5.3 [[HasInstance]] (V)
 // to make sure all callables have HasInstance.
-bool HasInstance__Base(Error* e, Handle<JSObject> obj, Handle<JSValue> V) {
+bool HasInstance__Base(Handle<Error>& e, Handle<JSObject> obj, Handle<JSValue> V) {
   assert(obj.val()->IsCallable());
   if (!V.val()->IsObject())
     return false;
   Handle<JSValue> O = Get(e, obj, String::Prototype());
-  if (!e->IsOk()) return false;
+  if (!e.val()->IsOk()) return false;
   if (!O.val()->IsObject()) {
-    *e = *Error::TypeError(u"non-object prototype.");
+    e = Error::TypeError(u"non-object prototype.");
     return false;
   }
   while (!V.val()->IsNull()) {
@@ -556,32 +556,32 @@ bool HasInstance__Base(Error* e, Handle<JSObject> obj, Handle<JSValue> V) {
       return true;
     assert(V.val()->IsObject());
     V = static_cast<Handle<JSObject>>(V).val()->Prototype();
-    if (!e->IsOk()) return false;
+    if (!e.val()->IsOk()) return false;
   }
   return false; 
 }
 
 // 15.3.5.3 [[HasInstance]] (V)
-bool HasInstance__Function(Error* e, Handle<FunctionObject> obj, Handle<JSValue> V) {
+bool HasInstance__Function(Handle<Error>& e, Handle<FunctionObject> obj, Handle<JSValue> V) {
   if (!V.val()->IsObject())
     return false;
   Handle<JSValue> O = Get(e, obj, String::Prototype());
-  if (!e->IsOk()) return false;
+  if (!e.val()->IsOk()) return false;
   if (!O.val()->IsObject()) {
-    *e = *Error::TypeError();
+    e = Error::TypeError();
     return false;
   }
   while (!V.val()->IsNull()) {
     if (V.val() == O.val())
       return true;
     V = Get(e, static_cast<Handle<JSObject>>(V), String::Prototype());
-    if (!e->IsOk()) return false;
+    if (!e.val()->IsOk()) return false;
   }
   return false;
 }
 
 // 15.3.4.5.3 [[HasInstance]] (V)
-bool HasInstance__BindFunction(Error* e, Handle<BindFunctionObject> obj, Handle<JSValue> V) {
+bool HasInstance__BindFunction(Handle<Error>& e, Handle<BindFunctionObject> obj, Handle<JSValue> V) {
   return HasInstance(e, obj.val()->TargetFunction(), V);
 }
 
@@ -593,7 +593,7 @@ void AddValueProperty(
   Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
   desc.val()->SetDataDescriptor(value, writable, enumerable, configurable);
   // This should just like named_properties_[name] = desc
-  DefineOwnProperty(nullptr, O, name, desc, false);
+  DefineOwnProperty(Error::Empty(), O, name, desc, false);
 }
 
 }  // namespace es

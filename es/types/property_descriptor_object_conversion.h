@@ -28,9 +28,9 @@ Handle<JSValue> FromPropertyDescriptor(Handle<JSValue> value) {
   return obj;
 }
 
-Handle<PropertyDescriptor> ToPropertyDescriptor(Error* e, Handle<JSValue> val) {
+Handle<PropertyDescriptor> ToPropertyDescriptor(Handle<Error>& e, Handle<JSValue> val) {
   if (!val.val()->IsObject()) {
-    *e = *Error::TypeError();
+    e = Error::TypeError();
     return Handle<PropertyDescriptor>();
   }
   Handle<JSObject> obj = static_cast<Handle<JSObject>>(val);
@@ -54,20 +54,20 @@ Handle<PropertyDescriptor> ToPropertyDescriptor(Error* e, Handle<JSValue> val) {
   if (HasProperty(obj, String::Get())) {
     Handle<JSValue> value = Get(e, obj, String::Get());
     if (!value.val()->IsCallable() && !value.val()->IsUndefined()) {
-      *e = *Error::TypeError(u"getter not callable.");
+      e = Error::TypeError(u"getter not callable.");
     }
     desc.val()->SetGet(value);
   }
   if (HasProperty(obj, String::Set())) {
     Handle<JSValue> value = Get(e, obj, String::Set());
     if (!value.val()->IsCallable() && !value.val()->IsUndefined()) {
-      *e = *Error::TypeError(u"setter not callable.");
+      e = Error::TypeError(u"setter not callable.");
     }
     desc.val()->SetSet(value);
   }
   if (desc.val()->HasSet() || desc.val()->HasGet()) {
     if (desc.val()->HasValue() || desc.val()->HasWritable()) {
-      *e = *Error::TypeError(u"cannot have both get/set and value/writable");
+      e = Error::TypeError(u"cannot have both get/set and value/writable");
       return Handle<PropertyDescriptor>();
     }
   }

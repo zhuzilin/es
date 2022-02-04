@@ -65,7 +65,7 @@ Handle<ArgumentsObject> CreateArgumentsObject(
         desc.val()->SetSet(p);
         desc.val()->SetGet(g);
         desc.val()->SetConfigurable(true);
-        DefineOwnProperty(nullptr, map, NumberToString(indx), desc, false);
+        DefineOwnProperty(Error::Empty(), map, NumberToString(indx), desc, false);
       }
     }
     indx--;  // 11.d
@@ -167,7 +167,7 @@ void FindAllVarDecl(std::vector<AST*> stmts, std::vector<VarDecl*>& decls) {
 
 // 10.5 Declaration Binding Instantiation
 void DeclarationBindingInstantiation(
-  Error* e, ExecutionContext* context, AST* code, CodeType code_type,
+  Handle<Error>& e, ExecutionContext* context, AST* code, CodeType code_type,
   Handle<FunctionObject> f = Handle<FunctionObject>(), std::vector<Handle<JSValue>> args = {}
 ) {
   log::PrintSource("enter DeclarationBindingInstantiation");
@@ -193,10 +193,10 @@ void DeclarationBindingInstantiation(
       if (!arg_already_declared) {  // 4.d.iv
         // NOTE(zhuzlin) I'm not sure if this should be false.
         CreateMutableBinding(e, env, arg_name, false);
-        if (!e->IsOk()) return;
+        if (!e.val()->IsOk()) return;
       }
       SetMutableBinding(e, env,arg_name, v, strict);  // 4.d.v
-      if (!e->IsOk()) return;
+      if (!e.val()->IsOk()) return;
     }
   }
   // 5
@@ -204,11 +204,11 @@ void DeclarationBindingInstantiation(
     assert(func_decl->is_named());
     Handle<String> fn = String::New(func_decl->name());
     Handle<FunctionObject> fo = InstantiateFunctionDeclaration(e, func_decl);
-    if (!e->IsOk()) return;
+    if (!e.val()->IsOk()) return;
     bool func_already_declared = HasBinding(env, fn);
     if (!func_already_declared) {  // 5.d
       CreateMutableBinding(e, env, fn, configurable_bindings);
-      if (!e->IsOk()) return;
+      if (!e.val()->IsOk()) return;
     } else {  // 5.e
       auto go = GlobalObject::Instance();
       auto existing_prop = GetProperty(go, fn);
@@ -218,12 +218,12 @@ void DeclarationBindingInstantiation(
         auto new_desc = PropertyDescriptor::New();
         new_desc.val()->SetDataDescriptor(Undefined::Instance(), true, true, configurable_bindings);
         DefineOwnProperty(e, go, fn, new_desc, true);
-        if (!e->IsOk()) return;
+        if (!e.val()->IsOk()) return;
       } else {  // 5.e.iv
         if (existing_prop_desc.val()->IsAccessorDescriptor() ||
             !(existing_prop_desc.val()->HasConfigurable() && existing_prop_desc.val()->Configurable() &&
               existing_prop_desc.val()->HasEnumerable() && existing_prop_desc.val()->Enumerable())) {
-          *e = *Error::TypeError();
+          e = Error::TypeError();
           return;
         }
       }
@@ -253,15 +253,15 @@ void DeclarationBindingInstantiation(
     bool var_already_declared = HasBinding(env, dn);
     if (!var_already_declared) {
       CreateMutableBinding(e, env, dn, configurable_bindings);
-      if (!e->IsOk()) return;
+      if (!e.val()->IsOk()) return;
       SetMutableBinding(e, env,dn, Undefined::Instance(), strict);
-      if (!e->IsOk()) return;
+      if (!e.val()->IsOk()) return;
     }
   }
 }
 
 // 10.4.1
-void EnterGlobalCode(Error* e, AST* ast) {
+void EnterGlobalCode(Handle<Error>& e, AST* ast) {
   ProgramOrFunctionBody* program;
   if (ast->type() == AST::AST_PROGRAM) {
     program = static_cast<ProgramOrFunctionBody*>(ast);
@@ -279,7 +279,7 @@ void EnterGlobalCode(Error* e, AST* ast) {
 }
 
 // 10.4.2
-void EnterEvalCode(Error* e, AST* ast) {
+void EnterEvalCode(Handle<Error>& e, AST* ast) {
   assert(ast->type() == AST::AST_PROGRAM);
   ProgramOrFunctionBody* program = static_cast<ProgramOrFunctionBody*>(ast);
   ExecutionContext* context;
@@ -311,7 +311,7 @@ void EnterEvalCode(Error* e, AST* ast) {
 }
 
 // 15.1.2.1 eval(X)
-Handle<JSValue> GlobalObject::eval(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   log::PrintSource("enter GlobalObject::eval");
   if (vals.size() == 0)
     return Undefined::Instance();
@@ -321,11 +321,11 @@ Handle<JSValue> GlobalObject::eval(Error* e, Handle<JSValue> this_arg, std::vect
   Parser parser(x);
   AST* program = parser.ParseProgram();
   if (program->IsIllegal()) {
-    *e = *Error::SyntaxError(u"failed to parse eval");
+    e = Error::SyntaxError(u"failed to parse eval");
     return Handle<JSValue>();
   }
   EnterEvalCode(e, program);
-  if (!e->IsOk()) return Handle<JSValue>();
+  if (!e.val()->IsOk()) return Handle<JSValue>();
   Completion result = EvalProgram(program);
   Runtime::Global()->PopContext();
 
@@ -337,14 +337,12 @@ Handle<JSValue> GlobalObject::eval(Error* e, Handle<JSValue> this_arg, std::vect
         return Undefined::Instance();
     default: {
       assert(result.type() == Completion::THROW);
-      std::u16string message;
       Handle<JSValue> return_value = result.value();
       if (return_value.val()->IsErrorObject()) {
-        message = static_cast<Handle<ErrorObject>>(return_value).val()->ErrorMessage();
+        e = static_cast<Handle<ErrorObject>>(return_value).val()->e();
       } else {
-        message = ToU16String(e, return_value);
+        e = Error::NativeError(return_value);
       }
-      *e = *Error::NativeError(message);
       return return_value;
     }
   }
@@ -352,7 +350,7 @@ Handle<JSValue> GlobalObject::eval(Error* e, Handle<JSValue> this_arg, std::vect
 
 // 10.4.3
 void EnterFunctionCode(
-  Error* e, Handle<JSObject> F, ProgramOrFunctionBody* body,
+  Handle<Error>& e, Handle<JSObject> F, ProgramOrFunctionBody* body,
   Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict
 ) {
   assert(F.val()->obj_type() == JSObject::OBJ_FUNC);
@@ -689,18 +687,18 @@ void Init() {
   InitRegExp();
 }
 
-Handle<JSValue> StringProto::split(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+Handle<JSValue> StringProto::split(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   Handle<JSValue> val = Runtime::TopValue();
-  val.val()->CheckObjectCoercible(e);
-  if (!e->IsOk()) return Handle<JSValue>();
+  CheckObjectCoercible(e, val);
+  if (!e.val()->IsOk()) return Handle<JSValue>();
   std::u16string S = ToU16String(e, val);
-  if (!e->IsOk()) return Handle<JSValue>();
+  if (!e.val()->IsOk()) return Handle<JSValue>();
   Handle<ArrayObject> A = ArrayObject::New(0);
   size_t length_A = 0;
   size_t lim = 4294967295.0;
   if (vals.size() >= 2 && !vals[1].val()->IsUndefined()) {
     lim = ToUint32(e, vals[1]);
-    if (!e->IsOk()) return Handle<JSValue>();
+    if (!e.val()->IsOk()) return Handle<JSValue>();
   }
   size_t s = S.size();
   size_t p = 0;

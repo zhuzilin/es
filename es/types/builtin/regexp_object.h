@@ -6,7 +6,7 @@
 
 namespace es {
 
-Handle<String> ToString(Error* e, Handle<JSValue> input);
+Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input);
 
 class RegExpProto : public JSObject {
  public:
@@ -15,15 +15,15 @@ class RegExpProto : public JSObject {
     return singleton;
   }
 
-  static Handle<JSValue> exec(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> exec(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static Handle<JSValue> test(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> test(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
-  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
 
  private:
   static Handle<RegExpProto> New(flag_t flag) {
@@ -103,7 +103,7 @@ class RegExpConstructor : public JSObject {
     return singleton;
   }
 
-  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function RegExp() { [native code] }");
   }
 
@@ -116,10 +116,10 @@ class RegExpConstructor : public JSObject {
   }
 };
 
-Handle<JSValue> RegExpProto::toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+Handle<JSValue> RegExpProto::toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   Handle<JSValue> val = Runtime::TopValue();
   if (!val.val()->IsRegExpObject()) {
-    *e = *Error::TypeError(u"RegExp.prototype.toString called by non-regex");
+    e = Error::TypeError(u"RegExp.prototype.toString called by non-regex");
     return Handle<JSValue>();
   }
   Handle<RegExpObject> regexp = static_cast<Handle<RegExpObject>>(val);
@@ -131,8 +131,8 @@ Handle<JSValue> RegExpProto::toString(Error* e, Handle<JSValue> this_arg, std::v
   );
 }
 
-Handle<JSValue> Call__RegExpConstructor(Error* e, Handle<RegExpConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
-Handle<JSObject> Construct__RegExpConstructor(Error* e, Handle<RegExpConstructor> O, std::vector<Handle<JSValue>> arguments);
+Handle<JSValue> Call__RegExpConstructor(Handle<Error>& e, Handle<RegExpConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSObject> Construct__RegExpConstructor(Handle<Error>& e, Handle<RegExpConstructor> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es
 

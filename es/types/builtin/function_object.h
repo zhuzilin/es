@@ -12,12 +12,12 @@
 
 namespace es {
 
-double ToNumber(Error* e, Handle<JSValue> input);
+double ToNumber(Handle<Error>& e, Handle<JSValue> input);
 Handle<String> NumberToString(double m);
 Completion EvalProgram(AST* ast);
 
 void EnterFunctionCode(
-  Error* e, Handle<JSObject> F, ProgramOrFunctionBody* body,
+  Handle<Error>& e, Handle<JSObject> F, ProgramOrFunctionBody* body,
   Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict
 );
 
@@ -28,18 +28,18 @@ class FunctionProto : public JSObject {
     return singleton;
   }
 
-  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
 
   // 15.3.4.3 Function.prototype.apply (thisArg, argArray)
-  static Handle<JSValue> apply(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> apply(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSValue> val = Runtime::TopValue();
     if (!val.val()->IsObject()) {
-      *e = *Error::TypeError(u"Function.prototype.apply called on non-object");
+      e = Error::TypeError(u"Function.prototype.apply called on non-object");
       return Handle<JSValue>();
     }
     Handle<JSObject> func = static_cast<Handle<JSObject>>(val);
     if (!func.val()->IsCallable()) {
-      *e = *Error::TypeError(u"Function.prototype.apply called on non-callable");
+      e = Error::TypeError(u"Function.prototype.apply called on non-callable");
       return Handle<JSValue>();
     }
     if (vals.size() == 0) {
@@ -49,35 +49,35 @@ class FunctionProto : public JSObject {
       return Call(e, func, vals[0], {});
     }
     if (!vals[1].val()->IsObject()) {  // 3
-      *e = *Error::TypeError(u"Function.prototype.apply's argument is non-object");
+      e = Error::TypeError(u"Function.prototype.apply's argument is non-object");
       return Handle<JSValue>();
     }
     Handle<JSObject> arg_array = static_cast<Handle<JSObject>>(vals[1]);
     Handle<JSValue> len = Get(e, arg_array, String::Length());
-    if (!e->IsOk()) return Handle<JSValue>();
+    if (!e.val()->IsOk()) return Handle<JSValue>();
     size_t n = ToNumber(e, len);
     std::vector<Handle<JSValue>> arg_list;  // 6
     size_t index = 0;  // 7
     while (index < n) {  // 8
       Handle<String> index_name = ::es::NumberToString(index);
-      if (!e->IsOk()) return Handle<JSValue>();
+      if (!e.val()->IsOk()) return Handle<JSValue>();
       Handle<JSValue> next_arg = Get(e, arg_array, index_name);
-      if (!e->IsOk()) return Handle<JSValue>();
+      if (!e.val()->IsOk()) return Handle<JSValue>();
       arg_list.emplace_back(next_arg);
       index++;
     }
     return Call(e, func, vals[0], arg_list);
   }
 
-  static Handle<JSValue> call(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> call(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSValue> val = Runtime::TopValue();
     if (!val.val()->IsObject()) {
-      *e = *Error::TypeError(u"Function.prototype.call called on non-object");
+      e = Error::TypeError(u"Function.prototype.call called on non-object");
       return Handle<JSValue>();
     }
     Handle<JSObject> func = static_cast<Handle<JSObject>>(val);
     if (!func.val()->IsCallable()) {
-      *e = *Error::TypeError(u"Function.prototype.call called on non-callable");
+      e = Error::TypeError(u"Function.prototype.call called on non-callable");
       return Handle<JSValue>();
     }
     if (vals.size()) {
@@ -88,7 +88,7 @@ class FunctionProto : public JSObject {
     }
   }
 
-  static Handle<JSValue> bind(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+  static Handle<JSValue> bind(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
 
  private:
   static Handle<FunctionProto> New(flag_t flag) {
@@ -235,7 +235,7 @@ class FunctionConstructor : public JSObject {
     return singleton;
   }
 
-  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function Function() { [native code] }");
   }
 
@@ -248,15 +248,15 @@ class FunctionConstructor : public JSObject {
   }
 };
 
-Handle<JSValue> FunctionProto::toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+Handle<JSValue> FunctionProto::toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   Handle<JSValue> val = Runtime::TopValue();
   if (!val.val()->IsObject()) {
-    *e = *Error::TypeError(u"Function.prototype.toString called on non-object");
+    e = Error::TypeError(u"Function.prototype.toString called on non-object");
     return Handle<JSValue>();
   }
   Handle<JSObject> obj = static_cast<Handle<JSObject>>(val);
   if (obj.val()->obj_type() != JSObject::OBJ_FUNC) {
-    *e = *Error::TypeError(u"Function.prototype.toString called on non-function");
+    e = Error::TypeError(u"Function.prototype.toString called on non-function");
     return Handle<JSValue>();
   }
   Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(obj);
@@ -273,10 +273,10 @@ Handle<JSValue> FunctionProto::toString(Error* e, Handle<JSValue> this_arg, std:
 }
 
 // 15.3.4.5 Function.prototype.bind (thisArg [, arg1 [, arg2, …]])
-Handle<JSValue> FunctionProto::bind(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+Handle<JSValue> FunctionProto::bind(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   Handle<JSValue> val = Runtime::TopValue();
   if (!val.val()->IsCallable()) {
-    *e = *Error::TypeError(u"Function.prototype.call called on non-callable");
+    e = Error::TypeError(u"Function.prototype.call called on non-callable");
     return Handle<JSValue>();
   }
   Handle<JSObject> target = static_cast<Handle<JSObject>>(val);
@@ -300,7 +300,7 @@ Handle<JSValue> FunctionProto::bind(Error* e, Handle<JSValue> this_arg, std::vec
   return F;
 }
 
-Handle<FunctionObject> InstantiateFunctionDeclaration(Error* e, Function* func_ast) {
+Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function* func_ast) {
     assert(func_ast->is_named());
     std::u16string identifier = func_ast->name();
     Handle<es::LexicalEnvironment> func_env = NewDeclarativeEnvironment(  // 1
@@ -314,17 +314,17 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Error* e, Function* func_a
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
-        *e = *Error::SyntaxError(u"have duplicate parameter name in strict mode");
+        e = Error::SyntaxError(u"have duplicate parameter name in strict mode");
         return Handle<JSValue>();
       }
       for (auto name : func_ast->params()) {
         if (name == u"eval" || name == u"arguments") {
-          *e = *Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
+          e = Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
           return Handle<JSValue>();
         }
       }
       if (func_ast->name() == u"eval" || func_ast->name() == u"arguments") {
-        *e = *Error::SyntaxError(u"function name cannot be eval or arguments in strict mode");
+        e = Error::SyntaxError(u"function name cannot be eval or arguments in strict mode");
         return Handle<JSValue>();
       }
     }
@@ -334,7 +334,7 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Error* e, Function* func_a
     return closure;  // 6
 }
 
-Handle<JSValue> EvalFunction(Error* e, AST* ast) {
+Handle<JSValue> EvalFunction(Handle<Error>& e, AST* ast) {
   assert(ast->type() == AST::AST_FUNC);
   Function* func_ast = static_cast<Function*>(ast);
 
@@ -346,12 +346,12 @@ Handle<JSValue> EvalFunction(Error* e, AST* ast) {
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
-        *e = *Error::SyntaxError(u"have duplicate parameter name in strict mode");
+        e = Error::SyntaxError(u"have duplicate parameter name in strict mode");
         return Handle<JSValue>();
       }
       for (auto name : func_ast->params()) {
         if (name == u"eval" || name == u"arguments") {
-          *e = *Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
+          e = Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
           return Handle<JSValue>();
         }
       }
@@ -374,17 +374,17 @@ void AddFuncProperty(
   AddValueProperty(O, name, value, writable, enumerable, configurable);
 }
 
-Handle<JSValue> Get__Function(Error* e, Handle<FunctionObject> O, Handle<String> P);
-bool HasInstance__Function(Error* e, Handle<FunctionObject> O, Handle<JSValue> V);
-bool HasInstance__BindFunction(Error* e, Handle<BindFunctionObject> O, Handle<JSValue> V);
+Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle<String> P);
+bool HasInstance__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle<JSValue> V);
+bool HasInstance__BindFunction(Handle<Error>& e, Handle<BindFunctionObject> O, Handle<JSValue> V);
 
-Handle<JSValue> Call__Function(Error* e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments);
-Handle<JSValue> Call__BindFunction(Error* e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> extra_args);
-Handle<JSValue> Call__FunctionProto(Error* e, Handle<FunctionProto> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments);
+Handle<JSValue> Call__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments);
+Handle<JSValue> Call__BindFunction(Handle<Error>& e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> extra_args);
+Handle<JSValue> Call__FunctionProto(Handle<Error>& e, Handle<FunctionProto> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments);
 
-Handle<JSObject> Construct__Function(Error* e, Handle<FunctionObject> O,std::vector<Handle<JSValue>> arguments);
-Handle<JSObject> Construct__BindFunction(Error* e, Handle<BindFunctionObject> O, std::vector<Handle<JSValue>> extra_args);
-Handle<JSObject> Construct__FunctionConstructor(Error* e, Handle<FunctionConstructor> O, std::vector<Handle<JSValue>> arguments);
+Handle<JSObject> Construct__Function(Handle<Error>& e, Handle<FunctionObject> O,std::vector<Handle<JSValue>> arguments);
+Handle<JSObject> Construct__BindFunction(Handle<Error>& e, Handle<BindFunctionObject> O, std::vector<Handle<JSValue>> extra_args);
+Handle<JSObject> Construct__FunctionConstructor(Handle<Error>& e, Handle<FunctionConstructor> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es
 

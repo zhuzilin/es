@@ -14,11 +14,11 @@ class BoolProto : public JSObject {
     return singleton;
   }
 
-  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return ToBoolean(Runtime::TopValue()) ? String::True() : String::False();
   }
 
-  static Handle<JSValue> valueOf(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> valueOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     assert(false);
   }
 
@@ -51,7 +51,7 @@ class BoolConstructor : public JSObject {
     return singleton;
   }
 
-  static Handle<JSValue> toString(Error* e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     return String::New(u"function Bool() { [native code] }");
   }
 
@@ -64,8 +64,8 @@ class BoolConstructor : public JSObject {
   }
 };
 
-Handle<JSValue> Call__BoolConstructor(Error* e, Handle<BoolConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
-Handle<JSObject> Construct__BoolConstructor(Error* e, Handle<BoolConstructor> O, std::vector<Handle<JSValue>> arguments);
+Handle<JSValue> Call__BoolConstructor(Handle<Error>& e, Handle<BoolConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSObject> Construct__BoolConstructor(Handle<Error>& e, Handle<BoolConstructor> O, std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es
 
