@@ -26,18 +26,27 @@ enum CodeType {
   CODE_EVAL,
 };
 
+std::unordered_map<std::u16string, ProgramOrFunctionBody*> getter_bodies;
+std::unordered_map<std::u16string, ProgramOrFunctionBody*> setter_bodies;
+
 Handle<JSValue> MakeArgGetter(std::u16string name, Handle<LexicalEnvironment> env) {
-  Parser parser(u"return " + name + u";");
-  ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(
-    parser.ParseFunctionBody(Token::TK_EOS));
+  if (getter_bodies.find(name) == getter_bodies.end()) {
+    Parser parser(u"return " + name + u";");
+    getter_bodies[name] = static_cast<ProgramOrFunctionBody*>(
+      parser.ParseFunctionBody(Token::TK_EOS));
+  }
+  ProgramOrFunctionBody* body = getter_bodies[name];
   return FunctionObject::New({}, body, env);
 }
 
 Handle<JSValue> MakeArgSetter(std::u16string name, Handle<LexicalEnvironment> env) {
   std::u16string param = name + u"_arg";
-  Parser parser(name + u" = " + param);
-  ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(
-    parser.ParseFunctionBody(Token::TK_EOS));
+  if (setter_bodies.find(name) == setter_bodies.end()) {
+    Parser parser(name + u" = " + param);
+    setter_bodies[name] = static_cast<ProgramOrFunctionBody*>(
+      parser.ParseFunctionBody(Token::TK_EOS));
+  }
+  ProgramOrFunctionBody* body = setter_bodies[name];
   return FunctionObject::New({param}, body, env);
 }
 
