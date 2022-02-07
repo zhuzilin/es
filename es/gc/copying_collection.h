@@ -1,18 +1,18 @@
-#ifndef ES_GC_COPY_COLLECTION
-#define ES_GC_COPY_COLLECTION
+#ifndef ES_GC_COPYING_COLLECTION
+#define ES_GC_COPYING_COLLECTION
 
 #include <stdlib.h>
 
 #include <algorithm>
 
-#include <es/gc/base.h>
+#include <es/gc/base_collection.h>
 #include <es/utils/helper.h>
 
 namespace es {
 
-class CopyCollection : public GC {
+class CopyingCollection : public GC {
  public:
-  CopyCollection(size_t size) {
+  CopyingCollection(size_t size) {
     heap_start_ = static_cast<char*>(malloc(size));
     memset(heap_start_, 0, size);
     heap_end_ = heap_start_ + size;
@@ -28,18 +28,23 @@ class CopyCollection : public GC {
     free_ = tospace_;
   }
 
-  void* Allocate(size_t size) override {
+  void* Allocate(size_t size, flag_t flag) override {
     char* result = free_;
     char* newfree = result + size;
     if (newfree > top_)
       return nullptr;
     free_ = newfree;
+    // Set header
+    Header* header = reinterpret_cast<Header*>(result);
+    header->size = size;
+    header->flag = flag;
+    header->forward_address = nullptr;
     return result;
   }
 
   void Collect() override {
 #ifdef GC_DEBUG
-    std::cout << "enter CopyCollection::Collect " << free_ - tospace_ << std::endl;
+    std::cout << "enter CopyingCollection::Collect" << std::endl;
 #endif
     Flip();
     Initialise(worklist_);
@@ -59,7 +64,9 @@ class CopyCollection : public GC {
       Scan(ref);
     }
     memset(fromspace_, 0, extent_);
-    std::cout << "exit CopyCollection::Collect " << (free_ - tospace_) / 1024U / 1024U << std::endl;
+#ifdef GC_DEBUG
+    std::cout << "exit CopyingCollection::Collect " << (free_ - tospace_) / 1024U / 1024U << std::endl;
+#endif
   }
 
   void Flip() {
@@ -161,4 +168,4 @@ class CopyCollection : public GC {
 
 }  // namespace es
 
-#endif  // ES_GC_COPY_COLLECTION
+#endif  // ES_GC_COPYING_COLLECTION

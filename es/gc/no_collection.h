@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-#include <es/gc/base.h>
+#include <es/gc/base_collection.h>
 #include <es/utils/helper.h>
 #include <es/utils/macros.h>
 
@@ -15,16 +15,22 @@ class NoCollection : public GC {
     segment_size_(segment_size), memsize_(0), offset_(0) {}
 
  private:
-  void* Allocate(size_t size) override {
-    if (offset_ + size + kPtrSize > memsize_) {
+  void* Allocate(size_t size, flag_t flag) override {
+    if (offset_ + size > memsize_) {
       return nullptr;
     }
     void* ptr = TYPED_PTR(mem_, offset_, void*);
-    offset_ += size + kPtrSize;  
+    offset_ += size;
+    // Set header
+    Header* header = reinterpret_cast<Header*>(ptr);
+    header->size = size;
+    header->flag = flag;
+
     return ptr;
   }
 
   void Collect() override {
+    // Simply reallocate a segment.
     mem_ = malloc(segment_size_);
     memsize_ = segment_size_;
     offset_ = 0;

@@ -1,12 +1,15 @@
 #ifndef ES_GC_HEADER_H
 #define ES_GC_HEADER_H
 
+#include <stdlib.h>
+
 namespace es {
 
 enum GCFlag {
   CONST   = 1,
   BIG     = 1 << 1,
   SINGLE  = 1 << 2,
+  MARK    = 1 << 3,
 };
 
 typedef uint8_t flag_t;
@@ -14,7 +17,10 @@ typedef uint8_t flag_t;
 struct Header {
   flag_t flag = 0;
   uint32_t size = 0;
-  void* forward_address = nullptr;
+  union {
+    void* forward_address = nullptr;
+    void* next_obj;
+  };
 };
 
 Header* H(void* ref) { return static_cast<Header*>(ref) - 1; }
