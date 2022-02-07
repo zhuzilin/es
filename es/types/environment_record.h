@@ -83,6 +83,9 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
   std::vector<HeapObject**> Pointers() override { return {HEAP_PTR(kBindingsOffset)}; }
 
   HashMap<Binding>* bindings() { return READ_VALUE(this, kBindingsOffset, HashMap<Binding>*); }
+  void SetBindings(Handle<HashMap<Binding>> new_binding) {
+    SET_HANDLE_VALUE(this, kBindingsOffset, new_binding, HashMap<Binding>);
+  }
 
   std::string ToString() override {
     return "DeclarativeEnvRec(" + log::ToString(this) + ")";

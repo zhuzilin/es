@@ -104,6 +104,9 @@ class JSObject : public JSValue {
   HashMap<PropertyDescriptor>* named_properties() {
     return READ_VALUE(this, kNamedPropertiesOffset, HashMap<PropertyDescriptor>*);
   };
+  void SetNamedProperties(Handle<HashMap<PropertyDescriptor>> new_named_properties) {
+    SET_HANDLE_VALUE(this, kNamedPropertiesOffset, new_named_properties, HashMap<PropertyDescriptor>);
+  }
   bool IsFunction() { return obj_type() == OBJ_FUNC; }
 
   // Internal Preperties Common to All Objects

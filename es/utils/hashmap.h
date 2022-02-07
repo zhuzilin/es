@@ -2,11 +2,19 @@
 #define ES_UTILS_MAP_H
 
 #include <queue>
+#include <unordered_map>
 
 #include <es/gc/heap_object.h>
 #include <es/types/base.h>
 
 namespace es {
+
+std::unordered_map<size_t, size_t> kExpandHashMapSize = {
+  {7, 17},
+  {17, 37},
+  {37, 67},
+  {67, 67},
+};
 
 // NOTE(zhuzilin) For now, the key type will be String*.
 template<typename T>
@@ -43,14 +51,17 @@ class HashMap : public HeapObject {
   size_t num_bucket() { return READ_VALUE(this, kNumBucketOffset, size_t); }
 
   // Set can not be method as there can be gc happening inside.
-  static void Set(Handle<HashMap<T>> map, Handle<String> key, Handle<T> val) {
+  static Handle<HashMap<T>> Set(Handle<HashMap<T>> map, Handle<String> key, Handle<T> val) {
     ListNode* old_node = map.val()->GetListNodeRaw(key);
     if (old_node != nullptr) {
       old_node->SetVal(val.val());
-      return;
+      return map;
+    }
+    Handle<ListNode> new_node = ListNode::New(key, val);
+    if (map.val()->size() == map.val()->num_bucket()) {
+      map = Rehash(map);
     }
     map.val()->SetSize(map.val()->size() + 1);
-    Handle<ListNode> new_node = ListNode::New(key, val);
     // There will not be any new memory allocated after this line.
     // So we could use pointer.
     size_t offset = map.val()->ListHeadOffset(key.val());
@@ -58,7 +69,7 @@ class HashMap : public HeapObject {
     if (head == nullptr || LessThan(key.val(), head->key())) {
       new_node.val()->SetNext(head);
       map.val()->SetListHead(offset, new_node.val());
-      return;
+      return map;
     }
     assert(*key.val() != *(head->key()));
     while (head->next() != nullptr) {
@@ -67,11 +78,57 @@ class HashMap : public HeapObject {
       if (LessThan(key.val(), next_key)) {
         new_node.val()->SetNext(head->next());
         head->SetNext(new_node.val());
-        return;
+        return map;
       }
       head = head->next();
     }
     head->SetNext(new_node.val());
+    return map;
+  }
+
+  static Handle<HashMap<T>> Rehash(Handle<HashMap<T>> map) {
+    size_t old_num_bucket = map.val()->num_bucket();
+    size_t new_num_bucket = kExpandHashMapSize[old_num_bucket];
+    if (new_num_bucket == old_num_bucket)
+      return map;
+    Handle<HashMap<T>> new_map = HashMap<T>::New(new_num_bucket);
+    size_t count = 0;
+    for (size_t i = 0; i < old_num_bucket; i++) {
+      size_t offset = kElementOffset + i * kPtrSize;
+      ListNode* node = map.val()->GetListHead(offset);
+      while (node != nullptr) {
+        ListNode* next_node = node->next();
+        size_t offset = new_map.val()->ListHeadOffset(node->key());
+        ListNode* head = new_map.val()->GetListHead(offset);
+        // Need to make sure the list is sorted when rehashing
+        if (head == nullptr || LessThan(node->key(), head->key())) {
+          node->SetNext(head);
+          new_map.val()->SetListHead(offset, node);
+        } else {
+          assert(*node->key() != *(head->key()));
+          bool inserted = false;
+          while (head->next() != nullptr) {
+            String* next_key = head->next()->key();
+            assert(*node->key() != *next_key);
+            if (LessThan(node->key(), next_key)) {
+              node->SetNext(head->next());
+              head->SetNext(node);
+              inserted = true;
+              break;
+            }
+            head = head->next();
+          }
+          if (!inserted) {
+            head->SetNext(node);
+            node->SetNext(nullptr);
+          }
+        }
+        node = next_node;
+      }
+    }
+    count = 0;
+    new_map.val()->SetSize(map.val()->size());
+    return new_map;
   }
 
   Handle<T> Get(Handle<String> key) {

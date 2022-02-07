@@ -341,8 +341,9 @@ bool DefineOwnProperty__Base(
     if(!O.val()->Extensible())  // 3
       goto reject;
     // 4.
-    HashMap<PropertyDescriptor>::Set(
+    auto new_named_properties = HashMap<PropertyDescriptor>::Set(
       Handle<HashMap<PropertyDescriptor>>(O.val()->named_properties()), P, desc);
+    O.val()->SetNamedProperties(new_named_properties);
     return true;
   }
   if (desc.val()->bitmask() == 0) {  // 5
@@ -387,8 +388,9 @@ bool DefineOwnProperty__Base(
       new_property.val()->SetConfigurable(old_property.val()->Configurable());
       new_property.val()->SetEnumerable(old_property.val()->Enumerable());
       new_property.val()->SetBitMask(old_property.val()->bitmask());
-      HashMap<PropertyDescriptor>::Set(
+      auto new_named_properties = HashMap<PropertyDescriptor>::Set(
         Handle<HashMap<PropertyDescriptor>>(O.val()->named_properties()), P, desc);
+      O.val()->SetNamedProperties(new_named_properties);
     } else if (current_desc.val()->IsDataDescriptor() && desc.val()->IsDataDescriptor()) {  // 10.
       if (!current_desc.val()->Configurable()) {  // 10.a
         if (!current_desc.val()->Writable()) {

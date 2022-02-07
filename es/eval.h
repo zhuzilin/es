@@ -1523,12 +1523,12 @@ Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::v
   if (!e.val()->IsOk())
     return Handle<JSValue>();
   if (!val.val()->IsObject()) {  // 4
-    e = Error::TypeError(u"is not a function");
+    e = Error::TypeError(u"calling non-object.");
     return Handle<JSValue>();
   }
   auto obj = static_cast<Handle<JSObject>>(val);
   if (!obj.val()->IsCallable()) {  // 5
-    e = Error::TypeError(u"is not a function");
+    e = Error::TypeError(u"calling non-callable.");
     return Handle<JSValue>();
   }
   Handle<JSValue> this_value;

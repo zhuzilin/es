@@ -42,8 +42,9 @@ void CreateMutableBinding__Declarative(
   assert(!HasBinding(env_rec, N));
   Handle<DeclarativeEnvironmentRecord::Binding> b = DeclarativeEnvironmentRecord::Binding::New(
     Undefined::Instance(), D, true);
-  HashMap<DeclarativeEnvironmentRecord::Binding>::Set(
+  auto new_bindings = HashMap<DeclarativeEnvironmentRecord::Binding>::Set(
     Handle<HashMap<DeclarativeEnvironmentRecord::Binding>>(env_rec.val()->bindings()), N, b);
+  env_rec.val()->SetBindings(new_bindings);
 }
 
 // 10.2.1.2.2 CreateMutableBinding (N, D)
@@ -199,8 +200,9 @@ void CreateImmutableBinding(
   assert(!HasBinding(env_rec, N));
   Handle<DeclarativeEnvironmentRecord::Binding> b = DeclarativeEnvironmentRecord::Binding::New(
     Undefined::Instance(), false, false);
-  HashMap<DeclarativeEnvironmentRecord::Binding>::Set(
+  auto new_bindings = HashMap<DeclarativeEnvironmentRecord::Binding>::Set(
     Handle<HashMap<DeclarativeEnvironmentRecord::Binding>>(env_rec.val()->bindings()), N, b);
+  env_rec.val()->SetBindings(new_bindings);
 }
 
 // 10.2.1.1.8 InitializeImmutableBinding (N,V)
