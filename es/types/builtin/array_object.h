@@ -210,7 +210,8 @@ class ArrayProto : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_OTHER, u"Array", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
 
-    return Handle<ArrayProto>(new (jsobj.val()) ArrayProto());
+    new (jsobj.val()) ArrayProto();
+    return Handle<ArrayProto>(jsobj);
   }
 };
 
@@ -221,7 +222,8 @@ class ArrayObject : public JSObject {
       OBJ_ARRAY, u"Array", true, Handle<JSValue>(), false, false, nullptr, 0
     );
 
-    Handle<ArrayObject> obj(new (jsobj.val()) ArrayObject());
+    new (jsobj.val()) ArrayObject();
+    Handle<ArrayObject> obj(jsobj);
     obj.val()->SetPrototype(ArrayProto::Instance());
     Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
     // Not using AddValueProperty here to by pass the override DefineOwnProperty
@@ -259,7 +261,8 @@ class ArrayConstructor : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_ARRAY_CONSTRUCTOR, u"Array", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    return Handle<ArrayConstructor>(new (jsobj.val()) ArrayConstructor());
+    new (jsobj.val()) ArrayConstructor();
+    return Handle<ArrayConstructor>(jsobj);
   }
 };
 

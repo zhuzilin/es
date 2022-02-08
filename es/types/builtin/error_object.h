@@ -21,7 +21,8 @@ class ErrorProto : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_ERROR, u"Error", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
 
-    return Handle<ErrorProto>(new (jsobj.val()) ErrorProto());
+    new (jsobj.val()) ErrorProto();
+    return Handle<ErrorProto>(jsobj);
   }
 };
 
@@ -34,7 +35,8 @@ class ErrorObject : public JSObject {
 
     SET_HANDLE_VALUE(jsobj.val(), kErrorOffset, e, Error);
 
-    Handle<ErrorObject> obj(new (jsobj.val()) ErrorObject());
+    new (jsobj.val()) ErrorObject();
+    Handle<ErrorObject> obj(jsobj);
     obj.val()->SetPrototype(ErrorProto::Instance());
     AddValueProperty(obj, u"message", e.val()->value(), true, false, false);
     return obj;
@@ -66,7 +68,8 @@ class ErrorConstructor : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_ERROR_CONSTRUCTOR, u"Error", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    return Handle<ErrorConstructor>(new (jsobj.val()) ErrorConstructor());
+    new (jsobj.val()) ErrorConstructor();
+    return Handle<ErrorConstructor>(jsobj);
   }
 };
 

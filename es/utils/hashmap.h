@@ -203,7 +203,8 @@ class HashMap : public HeapObject {
       SET_HANDLE_VALUE(heap_obj.val(), kValOffset, val, T);
       SET_HANDLE_VALUE(heap_obj.val(), kNextOffset, Handle<ListNode>(), ListNode);
 
-      return Handle<ListNode>(new (heap_obj.val()) ListNode());
+      new (heap_obj.val()) ListNode();
+      return Handle<ListNode>(heap_obj);
     }
 
     std::vector<HeapObject**> Pointers() override {

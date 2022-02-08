@@ -132,7 +132,8 @@ class GlobalObject : public JSObject {
 
     SET_VALUE(jsobj.val(), kDirectEvalOffset, false, bool);
 
-    return Handle<GlobalObject>(new (jsobj.val()) GlobalObject());
+    new (jsobj.val()) GlobalObject();
+    return Handle<GlobalObject>(jsobj);
   }
 
   static constexpr size_t kDirectEvalOffset = kJSObjectOffset;

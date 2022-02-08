@@ -55,7 +55,8 @@ class ObjectProto : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_OBJECT, u"Object", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
 
-    return Handle<ObjectProto>(new (jsobj.val()) ObjectProto());
+    new (jsobj.val()) ObjectProto();
+    return Handle<ObjectProto>(jsobj);
   }
 };
 
@@ -66,7 +67,8 @@ class Object : public JSObject {
       OBJ_OBJECT, u"Object", true, Handle<JSValue>(), false, false, nullptr, 0
     );
 
-    Handle<Object> obj = Handle<Object>(new (jsobj.val()) Object());
+    new (jsobj.val()) Object();
+    Handle<Object> obj = Handle<Object>(jsobj);
     obj.val()->SetPrototype(ObjectProto::Instance());
     return obj;
   }
@@ -198,7 +200,8 @@ class ObjectConstructor : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_OBJECT_CONSTRUCTOR, u"Object", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    return Handle<ObjectConstructor>(new (jsobj.val()) ObjectConstructor());
+    new (jsobj.val()) ObjectConstructor();
+    return Handle<ObjectConstructor>(jsobj);
   }
 };
 

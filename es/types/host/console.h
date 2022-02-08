@@ -31,7 +31,8 @@ class Console : public JSObject {
       OBJ_HOST, u"Console", true, Handle<JSValue>(), false, false, nullptr, 0, flag
     );
 
-    Handle<Console> obj(new (jsobj.val()) Console());
+    new (jsobj.val()) Console();
+    Handle<Console> obj(jsobj);
     AddFuncProperty(obj, u"log", log, false, false, false);
     return obj;
   }

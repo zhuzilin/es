@@ -30,7 +30,8 @@ class RegExpProto : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_REGEXP, u"RegExp", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
 
-    return Handle<RegExpProto>(new (jsobj.val()) RegExpProto());
+    new (jsobj.val()) RegExpProto();
+    return Handle<RegExpProto>(jsobj);
   }
 };
 
@@ -62,7 +63,8 @@ class RegExpObject : public JSObject {
     SET_VALUE(jsobj.val(), kIgnoreCaseOffset, ignore_case, bool);
     SET_VALUE(jsobj.val(), kMultilineOffset, multiline, bool);
 
-    Handle<RegExpObject> obj = Handle<RegExpObject>(new (jsobj.val()) RegExpObject());
+    new (jsobj.val()) RegExpObject();
+    Handle<RegExpObject> obj = Handle<RegExpObject>(jsobj);
     obj.val()->SetPrototype(RegExpProto::Instance());
     AddValueProperty(obj, u"source", pattern, false, false, false);
     AddValueProperty(obj, u"global", Bool::Wrap(global), false, false, false);
@@ -112,7 +114,8 @@ class RegExpConstructor : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_REGEXP_CONSTRUCTOR, u"RegExp", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    return Handle<RegExpConstructor>(new (jsobj.val()) RegExpConstructor());
+    new (jsobj.val()) RegExpConstructor();
+    return Handle<RegExpConstructor>(jsobj);
   }
 };
 

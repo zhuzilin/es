@@ -242,7 +242,8 @@ class StringProto : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_OTHER, u"String", true, String::Empty(), false, false, nullptr, 0, flag);
 
-    return Handle<StringProto>(new (jsobj.val()) StringProto());
+    new (jsobj.val()) StringProto();
+    return Handle<StringProto>(jsobj);
   }
 };
 
@@ -253,7 +254,8 @@ class StringObject : public JSObject {
       OBJ_STRING, u"String", true, primitive_value, false, false, nullptr, 0
     );
 
-    Handle<StringObject> obj = Handle<StringObject>(new (jsobj.val()) StringObject());
+    new (jsobj.val()) StringObject();
+    Handle<StringObject> obj = Handle<StringObject>(jsobj);
     obj.val()->SetPrototype(StringProto::Instance());
     assert(primitive_value.val()->IsString());
     double length = static_cast<Handle<String>>(primitive_value).val()->size();
@@ -288,7 +290,8 @@ class StringConstructor : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_STRING_CONSTRUCTOR, u"String", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    return Handle<StringConstructor>(new (jsobj.val()) StringConstructor());
+    new (jsobj.val()) StringConstructor();
+    return Handle<StringConstructor>(jsobj);
   }
 };
 

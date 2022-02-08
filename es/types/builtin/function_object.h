@@ -95,7 +95,8 @@ class FunctionProto : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_FUNC_PROTO, u"Function", true, Handle<JSValue>(), false, true, nullptr, 0, flag);
 
-    return Handle<FunctionProto>(new (jsobj.val()) FunctionProto());
+    new (jsobj.val()) FunctionProto();
+    return Handle<FunctionProto>(jsobj);
   }
 };
 
@@ -128,7 +129,8 @@ class FunctionObject : public JSObject {
     SET_VALUE(jsobj.val(), kFromBindOffset, from_bind, bool);
     SET_VALUE(jsobj.val(), kStrictOffset, strict, bool);
 
-    Handle<FunctionObject> obj(new (jsobj.val()) FunctionObject());
+    new (jsobj.val()) FunctionObject();
+    Handle<FunctionObject> obj(jsobj);
     // 13.2 Creating Function Objects
     obj.val()->SetPrototype(FunctionProto::Instance());
     // Whether the function is made from bind.
@@ -197,7 +199,8 @@ class BindFunctionObject : public FunctionObject {
     SET_HANDLE_VALUE(func.val(), kBoundThisOffset, bound_this, JSValue);
     SET_HANDLE_VALUE(func.val(), kBoundArgsOffset, FixedArray<JSValue>::New(bound_args), FixedArray<JSValue>);
 
-    return Handle<BindFunctionObject>(new (func.val()) BindFunctionObject());
+    new (func.val()) BindFunctionObject();
+    return Handle<BindFunctionObject>(func);
   }
 
   std::vector<HeapObject**> Pointers() override {
@@ -244,7 +247,8 @@ class FunctionConstructor : public JSObject {
     Handle<JSObject> jsobj = JSObject::New(
       OBJ_FUNC_CONSTRUCTOR, u"Function", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    return Handle<FunctionConstructor>(new (jsobj.val()) FunctionConstructor());
+    new (jsobj.val()) FunctionConstructor();
+    return Handle<FunctionConstructor>(jsobj);
   }
 };
 

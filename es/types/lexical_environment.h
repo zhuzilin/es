@@ -15,7 +15,8 @@ class LexicalEnvironment : public JSValue {
     SET_HANDLE_VALUE(jsval.val(), kOuterOffset, outer, LexicalEnvironment);
     SET_HANDLE_VALUE(jsval.val(), kEnvRecOffset, env_rec, EnvironmentRecord);
 
-    return Handle<LexicalEnvironment>(new (jsval.val()) LexicalEnvironment());
+    new (jsval.val()) LexicalEnvironment();
+    return Handle<LexicalEnvironment>(jsval);
   }
 
   std::vector<HeapObject**> Pointers() override {

@@ -20,7 +20,8 @@ class ArgumentsObject : public JSObject {
 
     SET_HANDLE_VALUE(jsobj.val(), kParameterMapOffset, parameter_map, JSObject);
 
-    Handle<ArgumentsObject> obj(new (jsobj.val()) ArgumentsObject());
+    new (jsobj.val()) ArgumentsObject();
+    Handle<ArgumentsObject> obj(jsobj);
     obj.val()->SetPrototype(ObjectProto::Instance());
     AddValueProperty(obj, String::Length(), Number::New(len), true, false, true);
     return obj;
