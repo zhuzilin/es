@@ -64,7 +64,7 @@ Handle<ArgumentsObject> CreateArgumentsObject(
   while (indx >= 0) {  // 11
     Handle<JSValue> val = args[indx];  // 11.a
     AddValueProperty(obj, NumberToString(indx), val, true, true, true);  // 11.b
-    if (indx < names.val()->size()) {  // 11.c
+    if ((size_t)indx < names.val()->size()) {  // 11.c
       std::u16string name = names.val()->Get(indx).val()->data();  // 11.c.i
       if (!strict && mapped_names.find(name) == mapped_names.end()) {  // 11.c.ii
         mapped_names.insert(name);
@@ -190,7 +190,6 @@ void DeclarationBindingInstantiation(
   if (code_type == CODE_FUNC) {  // 4
     assert(!f.IsNullptr());
     auto names = f.val()->FormalParameters();  // 4.a
-    Function* func_ast = static_cast<Function*>(code);
     size_t arg_count = args.size();  // 4.b
     size_t n = 0;  // 4.c
     for (size_t i = 0; i < names.val()->size(); i++) {

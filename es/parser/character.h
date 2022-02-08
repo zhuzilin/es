@@ -69,7 +69,7 @@ inline bool IsUnicodeConnectorPunctuation(char16_t c) {
 }
 
 inline bool IsHexDigit(char16_t c) {
-  return IsDecimalDigit(c) || u'A' <= c && c <= u'F' || u'a' <= c && c <= u'f';
+  return IsDecimalDigit(c) || (u'A' <= c && c <= u'F') || (u'a' <= c && c <= u'f');
 }
 
 inline bool IsRadixDigit(char16_t c, int radix) {
@@ -78,7 +78,7 @@ inline bool IsRadixDigit(char16_t c, int radix) {
   else if (radix < 10)
     return u'0' <= c && c < u'0' + radix;
   else
-    return IsDecimalDigit(c) || u'A' <= c && c <= u'A' + radix - 10 || u'a' <= c && c <= u'a' + radix - 10;
+    return IsDecimalDigit(c) || (u'A' <= c && c <= u'A' + radix - 10) || (u'a' <= c && c <= u'a' + radix - 10);
 }
 
 inline bool IsSingleEscapeCharacter(char16_t c) {

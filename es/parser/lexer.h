@@ -775,11 +775,11 @@ error:
     return Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start), start, pos_); 
   }
 
+  std::u16string source_;
   char16_t c_;
   size_t pos_;
   size_t end_;
   Token token_;
-  std::u16string source_;
 };
 
 }  // namespace es

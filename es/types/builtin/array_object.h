@@ -387,7 +387,6 @@ Handle<JSValue> ArrayProto::sort(Handle<Error>& e, Handle<JSValue> this_arg, std
   if (!e.val()->IsOk()) return Handle<JSValue>();
   for (size_t i = 0; i < len; i++) {
     Handle<String> istr = NumberToString(i);
-    bool has = indices[i].first;
     Handle<JSValue> val = indices[i].second;
     if (indices[i].first) {
       Put(e, obj, istr, val, true);
@@ -416,7 +415,6 @@ Handle<JSValue> ArrayProto::forEach(Handle<Error>& e, Handle<JSValue> this_arg, 
   } else {
     T = vals[1];
   }
-  Handle<ArrayObject> A = ArrayObject::New(len);
   for (size_t k = 0; k < len; k++) {
     Handle<String> p_k = NumberToString(k);
     bool k_present = HasProperty(O, p_k);
@@ -424,7 +422,7 @@ Handle<JSValue> ArrayProto::forEach(Handle<Error>& e, Handle<JSValue> this_arg, 
     if (k_present) {
       Handle<JSValue> k_value = Get(e, O, p_k);
       if (!e.val()->IsOk()) return Handle<JSValue>();
-      Handle<JSValue> mapped_value = Call(e, callbackfn, T, {k_value, Number::New(k), O});
+      Call(e, callbackfn, T, {k_value, Number::New(k), O});
       if (!e.val()->IsOk()) return Handle<JSValue>();
     }
   }

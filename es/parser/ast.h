@@ -91,9 +91,9 @@ class AST {
 
  private:
   Type type_;
+  std::u16string source_;
   size_t start_;
   size_t end_;
-  std::u16string source_;
   std::u16string label_;
 };
 
@@ -153,7 +153,7 @@ class ObjectLiteral : public AST {
       SET,
     };
 
-    Property(Token k, AST* v, Type t) : key(k), type(t), value(v) {}
+    Property(Token k, AST* v, Type t) : key(k), value(v), type(t) {}
 
     Token key;
     AST* value;

@@ -17,7 +17,6 @@ class Parser {
   Parser(std::u16string source) : source_(source), lexer_(source) {}
 
   AST* ParsePrimaryExpression() {
-    START_POS;
     Token token = lexer_.NextAndRewind();
     switch (token.type()) {
       case Token::TK_KEYWORD:
@@ -103,7 +102,6 @@ error:
 
     Token name(Token::TK_NOT_FOUND, source_, 0, 0);
     std::vector<std::u16string> params;
-    AST* tmp;
     AST* body;
     Function* func;
 
@@ -167,6 +165,7 @@ error:
         default:
           element = ParseAssignmentExpression(false);
           if (element->type() == AST::AST_ILLEGAL) {
+            delete array;
             return element;
           }
       }
@@ -179,9 +178,6 @@ error:
     assert(lexer_.Next().type() == Token::TK_RBRACK);
     array->SetSource(SOURCE_PARSED);
     return array;
-error:
-    delete array;
-    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseObjectLiteral() {
@@ -648,8 +644,6 @@ error:
     if (init->IsIllegal())
       return init;
     return new VarDecl(ident, init, SOURCE_PARSED);
-error:
-    return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
   }
 
   AST* ParseVariableStatement(bool no_in) {

@@ -281,10 +281,10 @@ bool Delete__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<Strin
 // 8.12.8 [[DefaultValue]] (hint)
 Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16string hint) {
   Handle<String> first, second;
-  if (hint == u"String" || hint == u"" && O.val()->IsDateObject()) {
+  if (hint == u"String" || (hint == u"" && O.val()->IsDateObject())) {
     first = String::New(u"toString");
     second = String::New(u"valueOf");
-  } else if (hint == u"Number" || hint == u"" && !O.val()->IsDateObject()) {
+  } else if (hint == u"Number" || (hint == u"" && !O.val()->IsDateObject())) {
     first = String::New(u"valueOf");
     second = String::New(u"toString");
   } else {

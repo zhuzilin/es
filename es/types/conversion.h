@@ -248,7 +248,7 @@ std::u16string NumberToU16String(double m) {
   int k = 0;
   // n - k = -frac_digit
   int n = 0;
-  double tmp, tmp_m;
+  double tmp;
   while (modf(m, &tmp) != 0) {
     frac_digit++;
     m *= 10;
@@ -278,7 +278,7 @@ std::u16string NumberToU16String(double m) {
     return sign + res;
   }
   if (0 < n && n <= 21) {
-    for (size_t i = 0; i < k; i++) {
+    for (int i = 0; i < k; i++) {
       res += u'0' + int(fmod(s, 10));
       if (i + 1 == k - n) {
         res += u'.';
@@ -291,7 +291,7 @@ std::u16string NumberToU16String(double m) {
     return sign + res;
   }
   if (-6 < n && n <= 0) {
-    for (size_t i = 0; i < k; i++) {
+    for (int i = 0; i < k; i++) {
       res += u'0' + int(fmod(s, 10));
       s /= 10;
       modf(s, &tmp);
@@ -311,7 +311,7 @@ std::u16string NumberToU16String(double m) {
     }
     return sign + res;
   }
-  for (size_t i = 0; i < k; i++) {
+  for (int i = 0; i < k; i++) {
     res += u'0' + int(fmod(s, 10));
     if (i + 1 == k - 1) {
       res += u'.';

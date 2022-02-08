@@ -32,8 +32,8 @@ class Heap {
  private:
   Heap() :
     new_space_(kNewSpaceSize),
-    big_object_space_(kBigObjectSegmentSize),
-    constant_space_(kConstantSegmentSize) {}
+    constant_space_(kConstantSegmentSize),
+    big_object_space_(kBigObjectSegmentSize) {}
 
   CopyingCollection new_space_;
   // MarkAndSweepCollection new_space_;

@@ -58,7 +58,7 @@ class StringProto : public JSObject {
     if (!e.val()->IsOk()) return Handle<JSValue>();
     int position = ToInteger(e, vals[0]);
     if (!e.val()->IsOk()) return Handle<JSValue>();
-    if (position < 0 || position >= S.val()->size())
+    if (position < 0 || (size_t)position >= S.val()->size())
       return String::Empty();
     return S.val()->substr(position, 1);
   }
@@ -73,7 +73,7 @@ class StringProto : public JSObject {
     if (!e.val()->IsOk()) return Handle<JSValue>();
     int position = ToInteger(e, vals[0]);
     if (!e.val()->IsOk()) return Handle<JSValue>();
-    if (position < 0 || position >= S.val()->size())
+    if (position < 0 || (size_t)position >= S.val()->size())
       return Number::NaN();
     return Number::New((double)((*S.val())[position]));
   }

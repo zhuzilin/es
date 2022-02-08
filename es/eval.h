@@ -603,7 +603,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
   }
   for (i = 0; i < switch_stmt->after_default_case_clauses().size(); i++) {
     auto C = switch_stmt->after_default_case_clauses()[i];
-    Handle<JSValue> clause_selector = EvalCaseClause(e, C);
+    EvalCaseClause(e, C);
     Completion R = EvalStatementList(C.stmts);
     if (!R.IsEmpty())
       V = R.value();
@@ -673,7 +673,6 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
 
 Completion EvalTryStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_TRY);
-  Handle<Error> e = Error::Ok();
   Try* try_stmt = static_cast<Try*>(ast);
   Completion B = EvalBlockStatement(try_stmt->try_block());
   if (try_stmt->finally_block() == nullptr) {  // try Block Catch
@@ -1028,13 +1027,14 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
         e = Error::SyntaxError(u"repeat object property name " + prop_name);
         return Handle<JSValue>();
       }
-      if (previous_desc.val()->IsDataDescriptor() && desc.val()->IsAccessorDescriptor() ||  // 4.b
-          previous_desc.val()->IsAccessorDescriptor() && desc.val()->IsDataDescriptor()) {  // 4.c
+      if ((previous_desc.val()->IsDataDescriptor() && desc.val()->IsAccessorDescriptor()) ||  // 4.b
+          (previous_desc.val()->IsAccessorDescriptor() && desc.val()->IsDataDescriptor())) {  // 4.c
         e = Error::SyntaxError(u"repeat object property name " + prop_name);
         return Handle<JSValue>();
       }
       if (previous_desc.val()->IsAccessorDescriptor() && desc.val()->IsAccessorDescriptor() &&  // 4.d
-          (previous_desc.val()->HasGet() && desc.val()->HasGet() || previous_desc.val()->HasSet() && desc.val()->HasSet())) {
+          ((previous_desc.val()->HasGet() && desc.val()->HasGet()) ||
+           (previous_desc.val()->HasSet() && desc.val()->HasSet()))) {
         e = Error::SyntaxError(u"repeat object property name " + prop_name);
         return Handle<JSValue>();
       }
@@ -1377,7 +1377,7 @@ Handle<JSValue> EvalLogicalOperator(Handle<Error>& e, std::u16string op, AST* lh
   if (!e.val()->IsOk()) return Handle<JSValue>();
   Handle<JSValue> lval = GetValue(e, lref);
   if (!e.val()->IsOk()) return Handle<JSValue>();
-  if (op == u"&&" && !ToBoolean(lval) || op == u"||" && ToBoolean(lval))
+  if ((op == u"&&" && !ToBoolean(lval)) || (op == u"||" && ToBoolean(lval)))
     return lval;
   Handle<JSValue> rref = EvalExpression(e, rhs);
   if (!e.val()->IsOk()) return Handle<JSValue>();

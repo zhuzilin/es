@@ -36,10 +36,10 @@ class NoCollection : public GC {
     offset_ = 0;
   }
 
+  const size_t segment_size_;
   void* mem_;
   size_t memsize_ = 0;
   size_t offset_ = 0;
-  const size_t segment_size_;
 };
 
 }  // namespace es
