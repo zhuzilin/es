@@ -90,7 +90,8 @@ Handle<JSValue> GetProperty(Handle<JSObject> O, Handle<String> P) {
 
 // [[Get]]
 Handle<JSValue> Get(Handle<Error>& e, Handle<JSObject> O, Handle<String> P) {
-  log::PrintSource("enter Get " + P.ToString() + " from " + std::to_string(O.val()->obj_type()));
+  if (log::Debugger::On())
+    log::PrintSource("enter Get " + P.ToString() + " from " + std::to_string(O.val()->obj_type()));
   if (O.val()->IsFunctionObject()) {
     return Get__Function(e, static_cast<Handle<FunctionObject>>(O), P);
   } else if (O.val()->IsArgumentsObject()) {
@@ -196,7 +197,8 @@ bool CanPut(Handle<JSObject> O, Handle<String> P) {
 // [[Put]]
 // 8.12.5 [[Put]] ( P, V, Throw )
 void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
-  log::PrintSource("enter Put " + P.ToString() + " to " + O.ToString() + " with value " + V.ToString());
+  if (log::Debugger::On())
+    log::PrintSource("enter Put " + P.ToString() + " to " + O.ToString() + " with value " + V.ToString());
   assert(V.val()->IsLanguageType());
   if (!CanPut(O, P)) {  // 1
     if (throw_flag) {  // 1.a
@@ -210,7 +212,8 @@ void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue>
     if (own_desc.val()->IsDataDescriptor()) {  // 3
       Handle<PropertyDescriptor> value_desc = PropertyDescriptor::New();
       value_desc.val()->SetValue(V);
-      log::PrintSource("Overwrite the old desc with " + value_desc.ToString());
+      if (log::Debugger::On())
+        log::PrintSource("Overwrite the old desc with " + value_desc.ToString());
       DefineOwnProperty(e, O, P, value_desc, throw_flag);
       return;
     }
@@ -219,7 +222,8 @@ void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue>
   if (!value.val()->IsUndefined()) {
     Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(value);
     if (desc.val()->IsAccessorDescriptor()) {
-      log::PrintSource("Use parent prototype's setter");
+      if (log::Debugger::On())
+        log::PrintSource("Use parent prototype's setter");
       Handle<JSValue> setter = desc.val()->Set();
       assert(!setter.val()->IsUndefined());
       Handle<JSObject> setter_obj = static_cast<Handle<JSObject>>(setter);
@@ -322,7 +326,8 @@ Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16strin
 bool DefineOwnProperty(
   Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
 ) {
-  log::PrintSource("enter DefineOwnProperty " + P.ToString());
+  if (log::Debugger::On())
+    log::PrintSource("enter DefineOwnProperty " + P.ToString());
   if (O.val()->IsArrayObject()) {
     return DefineOwnProperty__Array(e, static_cast<Handle<ArrayObject>>(O), P, desc, throw_flag);
   } else if (O.val()->IsArgumentsObject()) {
@@ -366,14 +371,17 @@ bool DefineOwnProperty__Base(
       same = same && (desc.val()->Enumerable() == current_desc.val()->Enumerable());
     if (same) return true;  // 6
   }
-  log::PrintSource("desc: " + desc.ToString() + ", current: " + current_desc.ToString());
+  if (log::Debugger::On())
+    log::PrintSource("desc: " + desc.ToString() + ", current: " + current_desc.ToString());
   if (!current_desc.val()->Configurable()) { // 7
     if (desc.val()->Configurable()) {  // 7.a
-      log::PrintSource("DefineOwnProperty: " + P.ToString() + " not configurable, while new value configurable");
+      if (log::Debugger::On())
+        log::PrintSource("DefineOwnProperty: " + P.ToString() + " not configurable, while new value configurable");
       goto reject;
     }
     if (desc.val()->HasEnumerable() && (desc.val()->Enumerable() != current_desc.val()->Enumerable())) {  // 7.b
-      log::PrintSource("DefineOwnProperty: " + P.ToString() + " enumerable value differ");
+      if (log::Debugger::On())
+        log::PrintSource("DefineOwnProperty: " + P.ToString() + " enumerable value differ");
       goto reject;
     }
   }
@@ -410,13 +418,15 @@ bool DefineOwnProperty__Base(
       }
     }
   }
-  log::PrintSource("DefineOwnProperty: " + P.ToString() + " is set to " + desc.val()->Value().ToString());
+  if (log::Debugger::On())
+    log::PrintSource("DefineOwnProperty: " + P.ToString() + " is set to " + desc.val()->Value().ToString());
   // 12.
   current_desc.val()->Set(desc);
   // 13.
   return true;
 reject:
-  log::PrintSource("DefineOwnProperty reject");
+  if (log::Debugger::On())
+    log::PrintSource("DefineOwnProperty reject");
   if (throw_flag) {
     e = Error::TypeError();
   }
@@ -493,7 +503,8 @@ bool DefineOwnProperty__Array(
   }
   return DefineOwnProperty__Base(e, O, P, desc, throw_flag);
 reject:
-  log::PrintSource("Array::DefineOwnProperty reject " + P.ToString() + " " + desc.ToString());
+  if (log::Debugger::On())
+    log::PrintSource("Array::DefineOwnProperty reject " + P.ToString() + " " + desc.ToString());
   if (throw_flag) {
     e = Error::TypeError();
   }
@@ -591,7 +602,8 @@ void AddValueProperty(
   Handle<JSObject> O, Handle<String> name, Handle<JSValue> value, bool writable,
   bool enumerable, bool configurable
 ) {
-  log::PrintSource("AddValueProperty " + name.ToString() + " to " + value.ToString());
+  if (log::Debugger::On())
+    log::PrintSource("AddValueProperty " + name.ToString() + " to " + value.ToString());
   Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
   desc.val()->SetDataDescriptor(value, writable, enumerable, configurable);
   // This should just like named_properties_[name] = desc

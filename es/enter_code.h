@@ -179,7 +179,8 @@ void DeclarationBindingInstantiation(
   Handle<Error>& e, ExecutionContext* context, AST* code, CodeType code_type,
   Handle<FunctionObject> f = Handle<FunctionObject>(), std::vector<Handle<JSValue>> args = {}
 ) {
-  log::PrintSource("enter DeclarationBindingInstantiation");
+  if (log::Debugger::On())
+    log::PrintSource("enter DeclarationBindingInstantiation");
   Handle<EnvironmentRecord> env = context->variable_env().val()->env_rec();  // 1
   bool configurable_bindings = false;
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
@@ -320,7 +321,8 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
 
 // 15.1.2.1 eval(X)
 Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-  log::PrintSource("enter GlobalObject::eval");
+  if (log::Debugger::On())
+    log::PrintSource("enter GlobalObject::eval");
   if (vals.size() == 0)
     return Undefined::Instance();
   if (!vals[0].val()->IsString())

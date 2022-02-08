@@ -76,7 +76,8 @@ Handle<JSValue> Call__Function(
   Handle<Error>& e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   ProgramOrFunctionBody* code = O.val()->Code();
-  log::PrintSource("enter FunctionObject::Call ", code->source().substr(0, 100));
+  if (log::Debugger::On())
+    log::PrintSource("enter FunctionObject::Call ", code->source().substr(0, 100));
   EnterFunctionCode(e, O, code, this_arg, arguments, O.val()->strict());
   if (!e.val()->IsOk()) return Handle<JSValue>();
 
@@ -85,26 +86,31 @@ Handle<JSValue> Call__Function(
     result = EvalProgram(code);
   }
   Runtime::Global()->PopContext();   // 3
-
-  log::PrintSource("exit FunctionObject::Call", code->source().substr(0, 100));
+  if (log::Debugger::On())
+    log::PrintSource("exit FunctionObject::Call", code->source().substr(0, 100));
   switch (result.type()) {
     case Completion::RETURN:
-      log::PrintSource("exit FunctionObject::Call RETURN");
+      if (log::Debugger::On())
+        log::PrintSource("exit FunctionObject::Call RETURN");
       return result.value();
     case Completion::THROW: {
-      log::PrintSource("exit FunctionObject::Call THROW");
+      if (log::Debugger::On())
+        log::PrintSource("exit FunctionObject::Call THROW");
       Handle<JSValue> throw_value = result.value();
       if (throw_value.val()->IsErrorObject()) {
         e = static_cast<Handle<ErrorObject>>(throw_value).val()->e();
-        log::PrintSource("message: " + e.ToString());
+        if (log::Debugger::On())
+          log::PrintSource("message: " + e.ToString());
         return Handle<JSValue>();
       }
-      log::PrintSource("message: " + throw_value.ToString());
+      if (log::Debugger::On())
+        log::PrintSource("message: " + throw_value.ToString());
       e = Error::NativeError(throw_value);
       return Handle<JSValue>();
     }
     default:
-      log::PrintSource("exit FunctionObject::Call NORMAL");
+      if (log::Debugger::On())
+        log::PrintSource("exit FunctionObject::Call NORMAL");
       assert(result.type() == Completion::NORMAL);
       return Undefined::Instance();
   }
@@ -113,7 +119,8 @@ Handle<JSValue> Call__Function(
 Handle<JSValue> Call__BindFunction(
   Handle<Error>& e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> extra_args
 ) {
-  log::PrintSource("enter BindFunctionObject::Call");
+  if (log::Debugger::On())
+    log::PrintSource("enter BindFunctionObject::Call");
   Handle<FixedArray<JSValue>> bound_args = O.val()->BoundArgs();
   Handle<JSObject> target_function = O.val()->TargetFunction();
 

@@ -55,7 +55,8 @@ Handle<JSObject> Construct(Handle<Error>& e, Handle<JSObject> O, std::vector<Han
 Handle<JSObject> Construct__Function(
   Handle<Error>& e, Handle<FunctionObject> O, std::vector<Handle<JSValue>> arguments
 ) {
-  log::PrintSource("enter FunctionObject::Construct");
+  if (log::Debugger::On())
+    log::PrintSource("enter FunctionObject::Construct");
   // NOTE(zhuzilin) I'm not sure if the object type should be OBJ_OBJECT or OBJ_OTHER...
   Handle<JSObject> obj = JSObject::New(JSObject::OBJ_OBJECT, u"Object", true, Handle<JSValue>(), false, false, nullptr, 0);
   Handle<JSValue> proto = Get(e, O, String::Prototype());
@@ -134,7 +135,8 @@ Handle<JSObject> Construct__ErrorConstructor(
 Handle<JSObject> Construct__FunctionConstructor(
   Handle<Error>& e, Handle<FunctionConstructor> O, std::vector<Handle<JSValue>> arguments
 ) {
-  log::PrintSource("enter FunctionConstructor::Construct");
+  if (log::Debugger::On())
+    log::PrintSource("enter FunctionConstructor::Construct");
   size_t arg_count = arguments.size();
   std::u16string P = u"";
   std::u16string body = u"";

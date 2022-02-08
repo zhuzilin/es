@@ -54,7 +54,8 @@ class Reference : public JSValue {
 };
 
 Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
-  log::PrintSource("GetValue V:" + V.ToString());
+  if (log::Debugger::On())
+    log::PrintSource("GetValue V:" + V.ToString());
   if (!V.val()->IsReference()) {
     return V;
   }
@@ -97,7 +98,8 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
 }
 
 void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
-  log::PrintSource("PutValue V: " + V.ToString() + ", W: " + W.ToString());
+  if (log::Debugger::On())
+    log::PrintSource("PutValue V: " + V.ToString() + ", W: " + W.ToString());
   if (!V.val()->IsReference()) {
     e = Error::ReferenceError(u"put value to non-reference.");
     return;

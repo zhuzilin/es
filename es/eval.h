@@ -106,7 +106,8 @@ Completion EvalProgram(AST* ast) {
 }
 
 Completion EvalStatement(AST* ast) {
-  log::PrintSource("EvalStatement ", ast->source().substr(0, 50));
+  if (log::Debugger::On())
+    log::PrintSource("EvalStatement ", ast->source().substr(0, 50));
   Completion C(Completion::NORMAL, Handle<JSValue>(), u"");
   JSValue* val = nullptr;
   {
@@ -739,7 +740,8 @@ Handle<JSValue> EvalExpression(Handle<Error>& e, AST* ast) {
       val = EvalFunction(e, ast);
       break;
     default:
-      log::PrintSource("ast: ", ast->source(), "type: " + std::to_string(ast->type()));
+      if (log::Debugger::On())
+        log::PrintSource("ast: ", ast->source(), "type: " + std::to_string(ast->type()));
       assert(false);
   }
   if (!e.val()->IsOk()) return Handle<JSValue>();

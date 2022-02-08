@@ -72,7 +72,8 @@ void SetMutableBinding(
 void SetMutableBinding__Declarative(
   Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
 ) {
-  log::PrintSource("enter SetMutableBinding__Declarative ", N.val()->data(), " to " + V.ToString());
+  if (log::Debugger::On())
+    log::PrintSource("enter SetMutableBinding__Declarative ", N.val()->data(), " to " + V.ToString());
   assert(V.val()->IsLanguageType());
   assert(HasBinding(env_rec, N));
   // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,
@@ -88,7 +89,8 @@ void SetMutableBinding__Declarative(
 void SetMutableBinding__Object(
   Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
 ) {
-  log::PrintSource("enter SetMutableBinding__Object " + N.ToString() + " to " + V.ToString());
+  if (log::Debugger::On())
+    log::PrintSource("enter SetMutableBinding__Object " + N.ToString() + " to " + V.ToString());
   assert(V.val()->IsLanguageType());
   Put(e, env_rec.val()->bindings(), N, V, S);
 }
@@ -108,7 +110,8 @@ Handle<JSValue> GetBindingValue(
 Handle<JSValue> GetBindingValue__Declarative(
   Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
-  log::PrintSource("enter GetBindingValue__Declarative " + N.ToString());
+  if (log::Debugger::On())
+    log::PrintSource("enter GetBindingValue__Declarative " + N.ToString());
   assert(HasBinding(env_rec, N));
   DeclarativeEnvironmentRecord::Binding* b = env_rec.val()->bindings()->GetRaw(N);
   if (b->value().val()->IsUndefined() && !b->is_mutable()) {
@@ -116,11 +119,13 @@ Handle<JSValue> GetBindingValue__Declarative(
       e = Error::ReferenceError(N.val()->data() + u" is not defined");
       return Handle<JSValue>();
     } else {
-      log::PrintSource("GetBindingValue ", N.val()->data(), " undefined");
+      if (log::Debugger::On())
+        log::PrintSource("GetBindingValue ", N.val()->data(), " undefined");
       return Undefined::Instance();
     }
   }
-  log::PrintSource("GetBindingValue ", N.val()->data(), " " + b->value().ToString());
+  if (log::Debugger::On())
+    log::PrintSource("GetBindingValue ", N.val()->data(), " " + b->value().ToString());
   return b->value();
 }
 
@@ -128,7 +133,8 @@ Handle<JSValue> GetBindingValue__Declarative(
 Handle<JSValue> GetBindingValue__Object(
   Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
-  log::PrintSource("enter GetBindingValue__Object " + N.ToString());
+  if (log::Debugger::On())
+    log::PrintSource("enter GetBindingValue__Object " + N.ToString());
   bool value = HasBinding(env_rec, N);
   if (!value) {
     if (S) {
