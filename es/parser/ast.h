@@ -196,7 +196,7 @@ class Binary : public AST {
 
   AST* lhs() { return lhs_; }
   AST* rhs() { return rhs_; }
-  std::u16string op() { return op_.source(); }
+  Token& op() { return op_; }
 
  private:
   AST* lhs_;
@@ -214,7 +214,7 @@ class Unary : public AST {
   }
 
   AST* node() { return node_; }
-  Token op() { return op_; }
+  Token& op() { return op_; }
   bool prefix() { return prefix_; }
 
  private:

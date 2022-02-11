@@ -43,20 +43,22 @@ class Token {
     TK_EQ3,  // ===
     TK_NE3,  // !==
 
+    TK_INC,  // ++
+    TK_DEC,  // --
+
     TK_ADD,  // +
     TK_SUB,  // -
     TK_MUL,  // *
+    TK_DIV,  // /
     TK_MOD,  // %
-    TK_INC,  // ++
-    TK_DEC,  // --
 
     TK_BIT_LSH,   // <<
     TK_BIT_RSH,   // >>
     TK_BIT_URSH,  // >>>, unsigned right shift
-
     TK_BIT_AND,  // &
     TK_BIT_OR,   // |
     TK_BIT_XOR,  // ^
+
     TK_BIT_NOT,  // ~
 
     TK_LOGICAL_AND,  // &&
@@ -64,9 +66,12 @@ class Token {
     TK_LOGICAL_NOT,  // !
 
     TK_ASSIGN,      // =
+    // The compound assign order should be the same as their 
+    // calculate op.
     TK_ADD_ASSIGN,  // +=
     TK_SUB_ASSIGN,  // -=
     TK_MUL_ASSIGN,  // *=
+    TK_DIV_ASSIGN,  // /=
     TK_MOD_ASSIGN,  // %=
 
     TK_BIT_LSH_ASSIGN,   // <<=
@@ -75,10 +80,6 @@ class Token {
     TK_BIT_AND_ASSIGN,   // &=
     TK_BIT_OR_ASSIGN,    // |=
     TK_BIT_XOR_ASSIGN,   // ^=
-
-    // DivPunctuator
-    TK_DIV,  // /
-    TK_DIV_ASSIGN, // /=
 
     // Null Literal
     TK_NULL,  // null
@@ -139,6 +140,10 @@ class Token {
   inline bool IsSemiColon() { return type_ == TK_SEMICOLON; }
 
   inline bool IsIdentifier() { return type_ == TK_IDENT; }
+
+  inline bool IsBinaryLogical() { return type_ == TK_LOGICAL_AND || type_ == TK_LOGICAL_OR; }
+
+  inline bool IsCompoundAssign() { return TK_ADD_ASSIGN <= type_ && type_ <= TK_BIT_XOR_ASSIGN; }
 
   inline int BinaryPriority(bool no_in) {
     switch (type_) {
@@ -216,6 +221,11 @@ class Token {
       default:
         return -1;
     }
+  }
+
+  Token ToCalc() {
+    assert(IsCompoundAssign());
+    return Token((Type)(type_ - TK_ADD_ASSIGN + TK_ADD), source_.substr(0, source_.size()-1), start_, end_ - 1);
   }
 
   Type type() { return type_; }

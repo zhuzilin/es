@@ -48,17 +48,17 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast);
 Handle<ArrayObject> EvalArray(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, AST* ast);
-Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, std::u16string op, AST* lval, AST* rval);
-Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval);
-Handle<JSValue> EvalArithmeticOperator(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval);
+Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lval, AST* rval);
+Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval);
+Handle<JSValue> EvalArithmeticOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval);
 Handle<JSValue> EvalAddOperator(Handle<Error>& e, Handle<JSValue> lval, Handle<JSValue> rval);
-Handle<JSValue> EvalBitwiseShiftOperator(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval);
-Handle<JSValue> EvalRelationalOperator(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval);
-Handle<JSValue> EvalEqualityOperator(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval);
-Handle<JSValue> EvalBitwiseOperator(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval);
-Handle<JSValue> EvalLogicalOperator(Handle<Error>& e, std::u16string op, AST* lhs, AST* rhs);
+Handle<JSValue> EvalBitwiseShiftOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval);
+Handle<JSValue> EvalRelationalOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval);
+Handle<JSValue> EvalEqualityOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval);
+Handle<JSValue> EvalBitwiseOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval);
+Handle<JSValue> EvalLogicalOperator(Handle<Error>& e, Token& op, AST* lhs, AST* rhs);
 Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Handle<JSValue> rval);
-Handle<JSValue> EvalCompoundAssignment(Handle<Error>& e, std::u16string op, Handle<JSValue> lref, Handle<JSValue> rval);
+Handle<JSValue> EvalCompoundAssignment(Handle<Error>& e, Token& op, Handle<JSValue> lref, Handle<JSValue> rval);
 Handle<JSValue> EvalTripleConditionExpression(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalAssignmentExpression(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast);
@@ -941,8 +941,9 @@ Handle<String> EvalString(const std::u16string& source) {
           pos++;
         }
         size_t end = pos;
-        auto substr = source.substr(start, end - start);
-        vals.emplace_back(std::u16string(substr.data(), substr.size()));
+        if (end == source.size() - 1 && vals.size() == 0)
+          return String::New(source.substr(start, end - start));
+        vals.emplace_back(source.substr(start, end - start));
       }
     }
   }
@@ -1178,14 +1179,12 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, AST* ast) {
   return EvalBinaryExpression(e, b->op(), b->lhs(), b->rhs());
 }
 
-Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, std::u16string op, AST* lhs, AST* rhs) {
+Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lhs, AST* rhs) {
   // && and || are different, as there are not &&= and ||=
-  if (op == u"&&" || op == u"||") {
+  if (op.IsBinaryLogical()) {
     return EvalLogicalOperator(e, op, lhs, rhs);
   }
-  if (op == u"=" || op == u"*=" || op == u"/=" || op == u"%=" ||
-      op == u"+=" || op == u"-=" || op == u"<<=" || op == u">>=" ||
-      op == u">>>=" || op == u"&=" || op == u"^=" || op == u"|=") {
+  if (op.type() == Token::TK_ASSIGN || op.IsCompoundAssign()) {
     Handle<JSValue> lref = EvalLeftHandSideExpression(e, lhs);
     if (!e.val()->IsOk()) return Handle<JSValue>();
     // TODO(zhuzilin) The compound assignment should do lval = GetValue(lref)
@@ -1194,7 +1193,7 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, std::u16string op, AST* l
     if (!e.val()->IsOk()) return Handle<JSValue>();
     Handle<JSValue> rval = GetValue(e, rref);
     if (!e.val()->IsOk()) return Handle<JSValue>();
-    if (op == u"=") {
+    if (op.type() == Token::TK_ASSIGN) {  // ==
       return EvalSimpleAssignment(e, lref, rval);
     } else {
       return EvalCompoundAssignment(e, op, lref, rval);
@@ -1212,38 +1211,55 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, std::u16string op, AST* l
   return EvalBinaryExpression(e, op, lval, rval);
 }
 
-Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval) {
-  if (op == u"*" || op == u"/" || op == u"%" || op == u"-") {
-    return EvalArithmeticOperator(e, op, lval, rval);
-  } else if (op == u"+") {
-    return EvalAddOperator(e, lval, rval);
-  } else if (op == u"<<" || op == u">>" || op == u">>>") {
-    return EvalBitwiseShiftOperator(e, op, lval, rval);
-  } else if (op == u"<" || op == u">" || op == u"<=" || op == u">=" ||
-             op == u"instanceof" || op == u"in") {
-    return EvalRelationalOperator(e, op, lval, rval);
-  } else if (op == u"==" || op == u"!=" || op == u"===" || op == u"!==") {
-    return EvalEqualityOperator(e, op, lval, rval);
-  } else if (op == u"&" || op == u"^" || op == u"|") {
-    return EvalBitwiseOperator(e, op, lval, rval);
+Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
+  switch (op.type()) {
+    case Token::TK_ADD:  // +
+      return EvalAddOperator(e, lval, rval);
+    case Token::TK_SUB:  // -
+    case Token::TK_MUL:  // *
+    case Token::TK_DIV:  // /
+    case Token::TK_MOD:  // %
+      return EvalArithmeticOperator(e, op, lval, rval);
+    case Token::TK_BIT_LSH:   // <<
+    case Token::TK_BIT_RSH:   // >>
+    case Token::TK_BIT_URSH:  // >>>, unsigned right shift
+      return EvalBitwiseShiftOperator(e, op, lval, rval);
+    case Token::TK_EQ:   // ==
+    case Token::TK_NE:   // !=
+    case Token::TK_EQ3:  // ===
+    case Token::TK_NE3:  // !==
+      return EvalEqualityOperator(e, op, lval, rval);
+    case Token::TK_BIT_AND:  // &
+    case Token::TK_BIT_OR:   // |
+    case Token::TK_BIT_XOR:  // ^
+      return EvalBitwiseOperator(e, op, lval, rval);
+    case Token::TK_KEYWORD:
+      if (op.source_ref() != u"instanceof" && op.source_ref() != u"in")
+        assert(false);
+    case Token::TK_LT:   // <
+    case Token::TK_GT:   // >
+    case Token::TK_LE:   // <=
+    case Token::TK_GE:   // >=
+      return EvalRelationalOperator(e, op, lval, rval);
+    default:
+      assert(false);
   }
-  assert(false);
 }
 
 // 11.5 Multiplicative Operators
-Handle<JSValue> EvalArithmeticOperator(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval) {
+Handle<JSValue> EvalArithmeticOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
   double lnum = ToNumber(e, lval);
   if (!e.val()->IsOk()) return Handle<JSValue>();
   double rnum = ToNumber(e, rval);
   if (!e.val()->IsOk()) return Handle<JSValue>();
-  switch (op[0]) {
-    case u'*':
+  switch (op.type()) {
+    case Token::TK_MUL:
       return Number::New(lnum * rnum);
-    case u'/':
+    case Token::TK_DIV:
       return Number::New(lnum / rnum);
-    case u'%':
+    case Token::TK_MOD:
       return Number::New(fmod(lnum, rnum));
-    case u'-':
+    case Token::TK_SUB:
       return Number::New(lnum - rnum);
     default:
       assert(false);
@@ -1273,99 +1289,114 @@ Handle<JSValue> EvalAddOperator(Handle<Error>& e, Handle<JSValue> lval, Handle<J
 }
 
 // 11.7 Bitwise Shift Operators
-Handle<JSValue> EvalBitwiseShiftOperator(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval) {
+Handle<JSValue> EvalBitwiseShiftOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
   int32_t lnum = ToInt32(e, lval);
   if (!e.val()->IsOk()) return Handle<JSValue>();
   uint32_t rnum = ToUint32(e, rval);
   if (!e.val()->IsOk()) return Handle<JSValue>();
   uint32_t shift_count = rnum & 0x1F;
-  if (op == u"<<") {
-    return Number::New(lnum << shift_count);
-  } else if (op == u">>") {
-    return Number::New(lnum >> shift_count);
-  } else if (op == u">>>") {
-    uint32_t lnum = ToUint32(e, lval);
-    return Number::New(lnum >> rnum);
+  switch (op.type()) {
+    case Token::TK_BIT_LSH:  // <<
+      return Number::New(lnum << shift_count);
+    case Token::TK_BIT_RSH:  // >>
+      return Number::New(lnum >> shift_count);
+    case Token::TK_BIT_URSH: {  // >>>
+      uint32_t lnum = ToUint32(e, lval);
+      return Number::New(lnum >> rnum);
+    }
+    default:
+      assert(false);
   }
-  assert(false);
 }
 
 // 11.8 Relational Operators
-Handle<JSValue> EvalRelationalOperator(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval) {
-  if (op == u"<") {
-    Handle<JSValue> r = LessThan(e, lval, rval);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
-    if (r.val()->IsUndefined())
-      return Bool::False();
-    else
-      return r;
-  } else if (op == u">") {
-    Handle<JSValue> r = LessThan(e, rval, lval);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
-    if (r.val()->IsUndefined())
-      return Bool::False();
-    else
-      return r;
-  } else if (op == u"<=") {
-    Handle<JSValue> r = LessThan(e, rval, lval);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
-    if (r.val()->IsUndefined())
-      return Bool::True();
-    return Bool::Wrap(!static_cast<Handle<Bool>>(r).val()->data());
-  } else if (op == u">=") {
-    Handle<JSValue> r = LessThan(e, lval, rval);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
-    if (r.val()->IsUndefined())
-      return Bool::True();
-    return Bool::Wrap(!static_cast<Handle<Bool>>(r).val()->data());
-  } else if (op == u"instanceof") {
-    if (!rval.val()->IsObject()) {
-      e = Error::TypeError(u"Right-hand side of 'instanceof' is not an object");
-      return Handle<JSValue>();
+Handle<JSValue> EvalRelationalOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
+  switch (op.type()) {
+    case Token::TK_LT: {  // <
+      Handle<JSValue> r = LessThan(e, lval, rval);
+      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (r.val()->IsUndefined())
+        return Bool::False();
+      else
+        return r;
     }
-    if (!rval.val()->IsCallable()) {
-      e = Error::TypeError(u"Right-hand side of 'instanceof' is not callable");
-      return Handle<JSValue>();
+    case Token::TK_GT: {  // >
+      Handle<JSValue> r = LessThan(e, rval, lval);
+      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (r.val()->IsUndefined())
+        return Bool::False();
+      else
+        return r;
     }
-    Handle<JSObject> obj = static_cast<Handle<JSObject>>(rval);
-    return Bool::Wrap(HasInstance(e, obj, lval));
-  } else if (op == u"in") {
-    if (!rval.val()->IsObject()) {
-      e = Error::TypeError(u"in called on non-object");
-      return Handle<JSValue>();
+    case Token::TK_LE: {  // <=
+      Handle<JSValue> r = LessThan(e, rval, lval);
+      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (r.val()->IsUndefined())
+        return Bool::True();
+      return Bool::Wrap(!static_cast<Handle<Bool>>(r).val()->data());
     }
-    Handle<JSObject> obj = static_cast<Handle<JSObject>>(rval);
-    return Bool::Wrap(HasProperty(obj, ToString(e, lval)));
+    case Token::TK_GE: {  // >=
+      Handle<JSValue> r = LessThan(e, lval, rval);
+      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (r.val()->IsUndefined())
+        return Bool::True();
+      return Bool::Wrap(!static_cast<Handle<Bool>>(r).val()->data());
+    }
+    case Token::TK_KEYWORD: {
+      if (op.source_ref() == u"instanceof") {
+        if (!rval.val()->IsObject()) {
+          e = Error::TypeError(u"Right-hand side of 'instanceof' is not an object");
+          return Handle<JSValue>();
+        }
+        if (!rval.val()->IsCallable()) {
+          e = Error::TypeError(u"Right-hand side of 'instanceof' is not callable");
+          return Handle<JSValue>();
+        }
+        Handle<JSObject> obj = static_cast<Handle<JSObject>>(rval);
+        return Bool::Wrap(HasInstance(e, obj, lval));
+      } else if (op.source_ref() == u"in") {
+        if (!rval.val()->IsObject()) {
+          e = Error::TypeError(u"in called on non-object");
+          return Handle<JSValue>();
+        }
+        Handle<JSObject> obj = static_cast<Handle<JSObject>>(rval);
+        return Bool::Wrap(HasProperty(obj, ToString(e, lval)));
+      }
+      [[fallthrough]];
+    }
+    default:
+      assert(false);
   }
-  assert(false);
 }
 
 // 11.9 Equality Operators
-Handle<JSValue> EvalEqualityOperator(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval) {
-  if (op == u"==") {
-    return Bool::Wrap(Equal(e, lval, rval));
-  } else if (op == u"!=") {
-    return Bool::Wrap(!Equal(e, lval, rval));
-  } else if (op == u"===") {
-    return Bool::Wrap(StrictEqual(e, lval, rval));
-  } else if (op == u"!==") {
-    return Bool::Wrap(!StrictEqual(e, lval, rval));
+Handle<JSValue> EvalEqualityOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
+  switch (op.type()) {
+    case Token::TK_EQ:   // ==
+      return Bool::Wrap(Equal(e, lval, rval));
+    case Token::TK_NE:
+      return Bool::Wrap(!Equal(e, lval, rval));
+    case Token::TK_EQ3:  // ===
+      return Bool::Wrap(StrictEqual(e, lval, rval));
+    case Token::TK_NE3:
+      return Bool::Wrap(!StrictEqual(e, lval, rval));
+    default:
+      assert(false);
   }
-  assert(false);
 }
 
 // 11.10 Binary Bitwise Operators
-Handle<JSValue> EvalBitwiseOperator(Handle<Error>& e, std::u16string op, Handle<JSValue> lval, Handle<JSValue> rval) {
+Handle<JSValue> EvalBitwiseOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
   int32_t lnum = ToInt32(e, lval);
   if (!e.val()->IsOk()) return Handle<JSValue>();
   int32_t rnum = ToInt32(e, rval);
   if (!e.val()->IsOk()) return Handle<JSValue>();
-  switch (op[0]) {
-    case u'&':
+  switch (op.type()) {
+    case Token::TK_BIT_AND:  // &
       return Number::New(lnum & rnum);
-    case u'^':
+    case Token::TK_BIT_XOR:  // ^
       return Number::New(lnum ^ rnum);
-    case u'|':
+    case Token::TK_BIT_OR:  // |
       return Number::New(lnum | rnum);
     default:
       assert(false);
@@ -1373,12 +1404,13 @@ Handle<JSValue> EvalBitwiseOperator(Handle<Error>& e, std::u16string op, Handle<
 }
 
 // 11.11 Binary Logical Operators
-Handle<JSValue> EvalLogicalOperator(Handle<Error>& e, std::u16string op, AST* lhs, AST* rhs) {
+Handle<JSValue> EvalLogicalOperator(Handle<Error>& e, Token& op, AST* lhs, AST* rhs) {
   Handle<JSValue> lref = EvalExpression(e, lhs);
   if (!e.val()->IsOk()) return Handle<JSValue>();
   Handle<JSValue> lval = GetValue(e, lref);
   if (!e.val()->IsOk()) return Handle<JSValue>();
-  if ((op == u"&&" && !ToBoolean(lval)) || (op == u"||" && ToBoolean(lval)))
+  bool b = ToBoolean(lval);
+  if ((op.type() == Token::TK_LOGICAL_AND && !b) || (op.type() == Token::TK_LOGICAL_OR && b))
     return lval;
   Handle<JSValue> rref = EvalExpression(e, rhs);
   if (!e.val()->IsOk()) return Handle<JSValue>();
@@ -1393,15 +1425,17 @@ Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Han
     Handle<Reference> ref = static_cast<Handle<Reference>>(lref);
     // NOTE in 11.13.1.
     // TODO(zhuzilin) not sure how to implement the type error part of the note.
-    if (ref.val()->IsStrictReference() && ref.val()->IsUnresolvableReference()) {
-      e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
-      return Handle<JSValue>();
-    }
-    if (ref.val()->IsStrictReference() && ref.val()->GetBase().val()->IsEnvironmentRecord() &&
-        (ref.val()->GetReferencedName().val()->data() == u"eval" ||
-         ref.val()->GetReferencedName().val()->data() == u"arguments")) {
-      e = Error::SyntaxError(u"cannot assign on eval or arguments");
-      return Handle<JSValue>();
+    if (ref.val()->IsStrictReference()) {
+      if (ref.val()->IsUnresolvableReference()) {
+        e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
+        return Handle<JSValue>();
+      }
+      if (ref.val()->GetBase().val()->IsEnvironmentRecord() &&
+          (ref.val()->GetReferencedName().val()->data() == u"eval" ||
+          ref.val()->GetReferencedName().val()->data() == u"arguments")) {
+        e = Error::SyntaxError(u"cannot assign on eval or arguments");
+        return Handle<JSValue>();
+      }
     }
   }
   PutValue(e, lref, rval);
@@ -1411,8 +1445,8 @@ Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Han
 }
 
 // 11.13.2 Compound Assignment ( op= )
-Handle<JSValue> EvalCompoundAssignment(Handle<Error>& e, std::u16string op, Handle<JSValue> lref, Handle<JSValue> rval) {
-  std::u16string calc_op = op.substr(0, op.size() - 1);
+Handle<JSValue> EvalCompoundAssignment(Handle<Error>& e, Token& op, Handle<JSValue> lref, Handle<JSValue> rval) {
+  Token calc_op = op.ToCalc();
   Handle<JSValue> lval = GetValue(e, lref);
   if (!e.val()->IsOk()) return Handle<JSValue>();
   Handle<JSValue> rref = EvalBinaryExpression(e, calc_op, lval, rval);
