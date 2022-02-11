@@ -27,7 +27,7 @@ Handle<JSValue> Call(
       return Call__BindFunction(e, static_cast<Handle<BindFunctionObject>>(O), this_arg, arguments);
     }
   } else if (O.val()->IsConstructor()) {
-    switch (O.val()->obj_type()) {
+    switch (O.val()->type()) {
       case JSObject::OBJ_BOOL_CONSTRUCTOR:
         return Call__BoolConstructor(e, static_cast<Handle<BoolConstructor>>(O), this_arg, arguments);
       case JSObject::OBJ_NUMBER_CONSTRUCTOR:
@@ -121,7 +121,7 @@ Handle<JSValue> Call__BindFunction(
 ) {
   if (log::Debugger::On())
     log::PrintSource("enter BindFunctionObject::Call");
-  Handle<FixedArray<JSValue>> bound_args = O.val()->BoundArgs();
+  Handle<FixedArray> bound_args = O.val()->BoundArgs();
   Handle<JSObject> target_function = O.val()->TargetFunction();
 
   std::vector<Handle<JSValue>> args;

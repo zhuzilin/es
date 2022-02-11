@@ -53,9 +53,9 @@ class ObjectProto : public JSObject {
  private:
   static Handle<ObjectProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OBJECT, u"Object", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+      u"Object", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
 
-    new (jsobj.val()) ObjectProto();
+    jsobj.val()->SetType(OBJ_OBJECT);
     return Handle<ObjectProto>(jsobj);
   }
 };
@@ -64,10 +64,10 @@ class Object : public JSObject {
  public:
   static Handle<Object> New() {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OBJECT, u"Object", true, Handle<JSValue>(), false, false, nullptr, 0
+      u"Object", true, Handle<JSValue>(), false, false, nullptr, 0
     );
 
-    new (jsobj.val()) Object();
+    jsobj.val()->SetType(OBJ_OBJECT);
     Handle<Object> obj = Handle<Object>(jsobj);
     obj.val()->SetPrototype(ObjectProto::Instance());
     return obj;
@@ -198,9 +198,9 @@ class ObjectConstructor : public JSObject {
  private:
   static Handle<ObjectConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OBJECT_CONSTRUCTOR, u"Object", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      u"Object", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    new (jsobj.val()) ObjectConstructor();
+    jsobj.val()->SetType(OBJ_OBJECT_CONSTRUCTOR);
     return Handle<ObjectConstructor>(jsobj);
   }
 };

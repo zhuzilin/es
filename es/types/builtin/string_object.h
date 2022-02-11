@@ -26,12 +26,11 @@ class StringProto : public JSObject {
       e = Error::TypeError(u"String.prototype.toString called with non-object");
       return Handle<JSValue>();
     }
-    Handle<JSObject> obj = static_cast<Handle<JSObject>>(val);
-    if (obj.val()->obj_type() != JSObject::OBJ_STRING) {
+    if (!val.val()->IsStringObject()) {
       e = Error::TypeError(u"String.prototype.toString called with non-string");
       return Handle<JSValue>();
     }
-    return obj.val()->PrimitiveValue();
+    return static_cast<JSObject*>(val.val())->PrimitiveValue();
   }
 
   static Handle<JSValue> valueOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
@@ -40,12 +39,11 @@ class StringProto : public JSObject {
       e = Error::TypeError(u"String.prototype.valueOf called with non-object");
       return Handle<JSValue>();
     }
-    Handle<JSObject> obj = static_cast<Handle<JSObject>>(val);
-    if (obj.val()->obj_type() != JSObject::OBJ_STRING) {
+    if (!val.val()->IsStringObject()) {
       e = Error::TypeError(u"String.prototype.valueOf called with non-string");
       return Handle<JSValue>();
     }
-    return obj.val()->PrimitiveValue();
+    return static_cast<JSObject*>(val.val())->PrimitiveValue();
   }
 
   static Handle<JSValue> charAt(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
@@ -240,9 +238,9 @@ class StringProto : public JSObject {
  private:
   static Handle<StringProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"String", true, String::Empty(), false, false, nullptr, 0, flag);
+      u"String", true, String::Empty(), false, false, nullptr, 0, flag);
 
-    new (jsobj.val()) StringProto();
+    jsobj.val()->SetType(OBJ_OTHER);
     return Handle<StringProto>(jsobj);
   }
 };
@@ -251,10 +249,10 @@ class StringObject : public JSObject {
  public:
   static Handle<StringObject> New(Handle<JSValue> primitive_value) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_STRING, u"String", true, primitive_value, false, false, nullptr, 0
+      u"String", true, primitive_value, false, false, nullptr, 0
     );
 
-    new (jsobj.val()) StringObject();
+    jsobj.val()->SetType(OBJ_STRING);
     Handle<StringObject> obj = Handle<StringObject>(jsobj);
     obj.val()->SetPrototype(StringProto::Instance());
     assert(primitive_value.val()->IsString());
@@ -288,9 +286,9 @@ class StringConstructor : public JSObject {
  private:
   static Handle<StringConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_STRING_CONSTRUCTOR, u"String", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      u"String", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    new (jsobj.val()) StringConstructor();
+    jsobj.val()->SetType(OBJ_STRING_CONSTRUCTOR);
     return Handle<StringConstructor>(jsobj);
   }
 };

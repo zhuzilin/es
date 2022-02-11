@@ -82,13 +82,13 @@ class MarkAndSweepCollection : public GC {
 
   void Collect() override {
 #ifdef GC_DEBUG
-    std::cout << "enter MarkAndSweepCollection::Collect " << FreeSpace() / 1024U / 1024 << std::endl;
+    std::cout << "enter MarkAndSweepCollection::Collect " << FreeSpace() / 1024U / 1024 << "\n";
 #endif
     ClearFreeList();
     MarkFromRoot();
     Sweep();
 #ifdef GC_DEBUG
-    std::cout << "exit MarkAndSweepCollection::Collect " << FreeSpace() / 1024U / 1024 << std::endl;
+    std::cout << "exit MarkAndSweepCollection::Collect " << FreeSpace() / 1024U / 1024 << "\n";
 #endif
   }
 
@@ -110,7 +110,7 @@ class MarkAndSweepCollection : public GC {
     while (!worklist.empty()) {
       HeapObject* ref = worklist.top();
       worklist.pop();
-      for (HeapObject** fld : ref->Pointers()) {
+      for (HeapObject** fld : HeapObject::Pointers(ref)) {
         HeapObject* child = *fld;
         if (child != nullptr && !IsMarked(child) && !(Flag(child) & GCFlag::CONST)) {
           SetMarked(child);

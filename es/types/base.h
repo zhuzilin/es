@@ -13,88 +13,20 @@ namespace es {
 
 class JSValue : public HeapObject {
  public:
-  enum Type {
-    JS_UNDEFINED = 0,
-    JS_NULL,
-    JS_BOOL,
-    JS_STRING,
-    JS_NUMBER,
-    JS_OBJECT,
-
-    LANG_TO_SPEC,
-
-    JS_REF,
-    JS_PROP_DESC,
-    JS_ENV_REC,
-    JS_LEX_ENV,
-
-    NUM_TYPES,
-  };
-
-  static Handle<JSValue> New(Type type, size_t size, flag_t flag = 0) {
+  static Handle<JSValue> New(size_t size, flag_t flag = 0) {
 #ifdef GC_DEBUG
     if (log::Debugger::On())
-      std::cout << "JSValue::New " << type << " " << size << " " << std::endl;
+      std::cout << "JSValue::New " << " " << size << " " << "\n";
 #endif
-    Handle<HeapObject> mem = HeapObject::New(kIntSize + size, flag);
-
-    SET_VALUE(mem.val(), kTypeOffset, type, Type);
-
+    Handle<HeapObject> mem = HeapObject::New(size, flag);
     return Handle<JSValue>(mem);
   }
 
-  inline Type type() { return READ_VALUE(this, kTypeOffset, Type); }
-  inline bool IsJSValue() override { return true; }
-  inline bool IsLanguageType() { return type() < LANG_TO_SPEC; }
-  inline bool IsSpecificationType() { return type() > LANG_TO_SPEC; }
-  inline bool IsPrimitive() { return type() < JS_OBJECT; }
+  bool IsCallable();
+  bool IsConstructor();
 
-  inline bool IsUndefined() { return type() == JS_UNDEFINED; }
-  inline bool IsNull() { return type() == JS_NULL; }
-  inline bool IsBool() { return type() == JS_BOOL; }
-  inline bool IsString() { return type() == JS_STRING; }
-  inline bool IsNumber() { return type() == JS_NUMBER; }
-  inline bool IsObject() { return type() == JS_OBJECT; }
-
-  inline bool IsNumberObject();
-  inline bool IsArrayObject();
-  inline bool IsRegExpObject();
-  inline bool IsErrorObject();
-  inline bool IsFunctionObject();
-  inline bool IsStringObject();
-  inline bool IsDateObject();
-  inline bool IsArgumentsObject();
-
-  inline bool IsFunctionProto();
-
-  inline bool IsBoolConstructor();
-  inline bool IsNumberConstructor();
-  inline bool IsObjectConstructor();
-  inline bool IsRegExpConstructor();
-  inline bool IsStringConstructor();
-
-  inline bool IsReference() { return type() == JS_REF; }
-  inline bool IsPropertyDescriptor() { return type() == JS_PROP_DESC; }
-  inline bool IsEnvironmentRecord() { return type() == JS_ENV_REC; }
-  inline bool IsLexicalEnvironment() { return type() == JS_LEX_ENV; }
-
-  inline bool IsPrototype() { return IsNull() || IsObject(); }
-
-  virtual bool IsCallable() {
-    // JSObject need to implement its own IsCallable
-    assert(!IsObject());
-    return false;
-  }
-
-  virtual bool IsConstructor() {
-    // JSObject need to implement its own IsConstructor
-    assert(!IsObject());
-    return false;
-  }
-
- protected:
-  static constexpr size_t kTypeOffset = kHeapObjectOffset;
-  static constexpr size_t kJSValueOffset = kTypeOffset + kIntSize;
+ public:
+  static constexpr size_t kJSValueOffset = kHeapObjectOffset;
 };
 
 class Undefined : public JSValue {
@@ -104,14 +36,11 @@ class Undefined : public JSValue {
     return singleton;
   }
 
-  inline std::string ToString() override { return "Undefined"; }
-  inline std::vector<HeapObject**> Pointers() override { return {}; }
-
  private:
   static Handle<Undefined> New(flag_t flag) {
-    Handle<JSValue> jsval = JSValue::New(JS_UNDEFINED, 0, flag);
+    Handle<JSValue> jsval = JSValue::New(0, flag);
 
-    new (jsval.val()) Undefined();
+    jsval.val()->SetType(JS_UNDEFINED);
     return Handle<Undefined>(jsval);
   }
 };
@@ -123,14 +52,11 @@ class Null : public JSValue {
     return singleton;
   }
 
-  std::string ToString() override { return "Null"; }
-  inline std::vector<HeapObject**> Pointers() override { return {}; }
-
  private:
   static Handle<Null> New(flag_t flag) {
-    Handle<JSValue> jsval = JSValue::New(JS_NULL, 0, flag);
+    Handle<JSValue> jsval = JSValue::New(0, flag);
 
-    new (jsval.val()) Null();
+    jsval.val()->SetType(JS_NULL);
     return Handle<Null>(jsval);
   }
 };
@@ -152,16 +78,13 @@ class Bool : public JSValue {
 
   inline bool data() { return READ_VALUE(this, kJSValueOffset, bool); }
 
-  inline std::string ToString() override { return data() ? "true" : "false"; }
-  inline std::vector<HeapObject**> Pointers() override { return {}; }
-
  private:
   static Handle<Bool> New(bool val, flag_t flag) {
-    Handle<JSValue> jsval = JSValue::New(JS_BOOL, kBoolSize, flag);
+    Handle<JSValue> jsval = JSValue::New(kBoolSize, flag);
 
     SET_VALUE(jsval.val(), kJSValueOffset, val, bool);
 
-    new (jsval.val()) Bool();
+    jsval.val()->SetType(JS_BOOL);
     return Handle<Bool>(jsval);
   }
 };
@@ -169,32 +92,32 @@ class Bool : public JSValue {
 class String : public JSValue {
  public:
   static Handle<String> New(std::u16string data, flag_t flag = 0) {
-    Handle<JSValue> jsval = JSValue::New(JS_STRING, kSizeTSize + data.size() * kChar16Size, flag);
+    Handle<JSValue> jsval = JSValue::New(kSizeTSize + data.size() * kChar16Size, flag);
 
     SET_VALUE(jsval.val(), kLengthOffset, data.size(), size_t);
     memcpy(PTR(jsval.val(), kStringDataOffset), data.data(), data.size() * kChar16Size);
 
-    new (jsval.val()) String();
+    jsval.val()->SetType(JS_STRING);
     return Handle<String>(jsval);
   }
 
   static Handle<String> New(char16_t* data, flag_t flag = 0) {
     size_t size = std::char_traits<char16_t>::length(data);
-    Handle<JSValue> jsval = JSValue::New(JS_STRING, kSizeTSize + size * kChar16Size, flag);
+    Handle<JSValue> jsval = JSValue::New(kSizeTSize + size * kChar16Size, flag);
 
     SET_VALUE(jsval.val(), kLengthOffset, size, size_t);
     memcpy(PTR(jsval.val(), kStringDataOffset), data, size * kChar16Size);
 
-    new (jsval.val()) String();
+    jsval.val()->SetType(JS_STRING);
     return Handle<String>(jsval);
   }
 
   static Handle<String> New(size_t n) {
-    Handle<JSValue> jsval = JSValue::New(JS_STRING, kSizeTSize + n * kChar16Size);
+    Handle<JSValue> jsval = JSValue::New(kSizeTSize + n * kChar16Size);
 
     SET_VALUE(jsval.val(), kLengthOffset, n, int);
 
-    new (jsval.val()) String();
+    jsval.val()->SetType(JS_STRING);
     return Handle<String>(jsval);
   }
 
@@ -309,9 +232,6 @@ class String : public JSValue {
     return singleton;
   }
 
-  inline std::string ToString() override { return log::ToString(data()); }
-  inline std::vector<HeapObject**> Pointers() override { return {}; }
-
  private:
   static constexpr size_t kLengthOffset = kJSValueOffset;
   static constexpr size_t kStringDataOffset = kLengthOffset + kSizeTSize;
@@ -346,11 +266,11 @@ bool operator <(String& a, String& b) {
 class Number : public JSValue {
  public:
   static Handle<Number> New(double data, flag_t flag = 0) {
-    Handle<JSValue> jsval = JSValue::New(JS_NUMBER, kDoubleSize, flag);
+    Handle<JSValue> jsval = JSValue::New(kDoubleSize, flag);
 
     SET_VALUE(jsval.val(), kJSValueOffset, data, double);
 
-    new (jsval.val()) Number();
+    jsval.val()->SetType(JS_NUMBER);
     return Handle<Number>(jsval);
   }
 
@@ -392,9 +312,6 @@ class Number : public JSValue {
   inline bool IsNaN() { return isnan(data()); }
 
   inline double data() { return READ_VALUE(this, kJSValueOffset, double); }
-
-  inline std::string ToString() override { return std::to_string(data()); }
-  inline std::vector<HeapObject**> Pointers() override { return {}; }
 };
 
 class Error;

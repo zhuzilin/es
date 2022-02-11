@@ -93,9 +93,9 @@ class FunctionProto : public JSObject {
  private:
   static Handle<FunctionProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_FUNC_PROTO, u"Function", true, Handle<JSValue>(), false, true, nullptr, 0, flag);
+      u"Function", true, Handle<JSValue>(), false, true, nullptr, 0, flag);
 
-    new (jsobj.val()) FunctionProto();
+    jsobj.val()->SetType(OBJ_FUNC_PROTO);
     return Handle<FunctionProto>(jsobj);
   }
 };
@@ -103,19 +103,19 @@ class FunctionProto : public JSObject {
 class FunctionObject : public JSObject {
  public:
   static Handle<FunctionObject> New(
-    std::vector<std::u16string> names, AST* body, Handle<LexicalEnvironment> scope, bool from_bind = false, size_t size = 0
+    std::vector<std::u16string> names, AST* body, Handle<LexicalEnvironment> scope, size_t size = 0
   ) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_FUNC, u"Function", true, Handle<JSValue>(), true, true, nullptr,
+      u"Function", true, Handle<JSValue>(), true, true, nullptr,
       kFunctionObjectOffset - kJSObjectOffset + size
     );
     std::vector<Handle<String>> name_handles(names.size());
     for (size_t i = 0; i < names.size(); i++) {
       name_handles[i] = String::New(names[i]);
     }
-    Handle<FixedArray<String>> formal_parameter = FixedArray<String>::New(name_handles);
+    Handle<FixedArray> formal_parameter = FixedArray::New<String>(name_handles);
 
-    SET_HANDLE_VALUE(jsobj.val(), kFormalParametersOffset, formal_parameter, FixedArray<String>);
+    SET_HANDLE_VALUE(jsobj.val(), kFormalParametersOffset, formal_parameter, FixedArray);
     bool strict = Runtime::TopContext()->strict();
     if (body != nullptr) {
       assert(body->type() == AST::AST_FUNC_BODY);
@@ -126,10 +126,9 @@ class FunctionObject : public JSObject {
       SET_VALUE(jsobj.val(), kCodeOffset, nullptr, ProgramOrFunctionBody*);
     }
     SET_HANDLE_VALUE(jsobj.val(), kScopeOffset, scope, LexicalEnvironment);
-    SET_VALUE(jsobj.val(), kFromBindOffset, from_bind, bool);
     SET_VALUE(jsobj.val(), kStrictOffset, strict, bool);
+    jsobj.val()->SetType(OBJ_FUNC);
 
-    new (jsobj.val()) FunctionObject();
     Handle<FunctionObject> obj(jsobj);
     // 13.2 Creating Function Objects
     obj.val()->SetPrototype(FunctionProto::Instance());
@@ -147,42 +146,29 @@ class FunctionObject : public JSObject {
     return obj;
   }
 
-  std::vector<HeapObject**> Pointers() override {
-    std::vector<HeapObject**> pointers = JSObject::Pointers();
-    pointers.emplace_back(HEAP_PTR(kFormalParametersOffset));
-    pointers.emplace_back(HEAP_PTR(kScopeOffset));
-    return pointers;
-  }
-
-  virtual Handle<LexicalEnvironment> Scope() {
+  Handle<LexicalEnvironment> Scope() {
+    assert(!from_bind());
     return READ_HANDLE_VALUE(this, kScopeOffset, LexicalEnvironment);
   };
-  virtual Handle<FixedArray<String>> FormalParameters() {
-    return READ_HANDLE_VALUE(this, kFormalParametersOffset, FixedArray<String>);
+  Handle<FixedArray> FormalParameters() {
+    assert(!from_bind());
+    return READ_HANDLE_VALUE(this, kFormalParametersOffset, FixedArray);
   };
-  virtual ProgramOrFunctionBody* Code() { return READ_VALUE(this, kCodeOffset, ProgramOrFunctionBody*); }
-  virtual bool strict() { return READ_VALUE(this, kStrictOffset, bool); }
-  bool from_bind() { return READ_VALUE(this, kFromBindOffset, bool); }
-
-  virtual std::string ToString() override {
-    std::string result = "Function(";
-    FixedArray<String>* params = READ_VALUE(this, kFormalParametersOffset, FixedArray<String>*);
-    if (params->size() > 0) {
-      result += params->GetRaw(0)->ToString();
-      for (size_t i = 1; i < params->size(); i++) {
-        result += "," + params->GetRaw(i)->ToString();
-      }
-    }
-    result += ")";
-    return result;
+  ProgramOrFunctionBody* Code() {
+    assert(!from_bind());
+    return READ_VALUE(this, kCodeOffset, ProgramOrFunctionBody*);
   }
+  bool strict() {
+    assert(!from_bind());
+    return READ_VALUE(this, kStrictOffset, bool);
+  }
+  bool from_bind() { return type() == OBJ_BIND_FUNC; }
 
- protected:
+ public:
   static constexpr size_t kFormalParametersOffset = kJSObjectOffset;
   static constexpr size_t kCodeOffset = kFormalParametersOffset + kPtrSize;
   static constexpr size_t kScopeOffset = kCodeOffset + kPtrSize;
-  static constexpr size_t kFromBindOffset = kScopeOffset + kPtrSize;
-  static constexpr size_t kStrictOffset = kFromBindOffset + kBoolSize;
+  static constexpr size_t kStrictOffset = kScopeOffset + kPtrSize;
   static constexpr size_t kFunctionObjectOffset = kStrictOffset + kBoolSize;
 };
 
@@ -192,39 +178,21 @@ class BindFunctionObject : public FunctionObject {
     Handle<JSObject> target_function, Handle<JSValue> bound_this, std::vector<Handle<JSValue>> bound_args
   ) {
     Handle<FunctionObject> func = FunctionObject::New(
-      {}, nullptr, Handle<JSValue>(), true,
+      {}, nullptr, Handle<JSValue>(),
       kBindFunctionObjectOffset - kFunctionObjectOffset);
 
     SET_HANDLE_VALUE(func.val(), kTargetFunctionOffset, target_function, JSObject);
     SET_HANDLE_VALUE(func.val(), kBoundThisOffset, bound_this, JSValue);
-    SET_HANDLE_VALUE(func.val(), kBoundArgsOffset, FixedArray<JSValue>::New(bound_args), FixedArray<JSValue>);
-
-    new (func.val()) BindFunctionObject();
+    SET_HANDLE_VALUE(func.val(), kBoundArgsOffset, FixedArray::New<JSValue>(bound_args), FixedArray);
+    func.val()->SetType(OBJ_BIND_FUNC);
     return Handle<BindFunctionObject>(func);
   }
 
-  std::vector<HeapObject**> Pointers() override {
-    std::vector<HeapObject**> pointers = JSObject::Pointers();
-    pointers.emplace_back(HEAP_PTR(kTargetFunctionOffset));
-    pointers.emplace_back(HEAP_PTR(kBoundThisOffset));
-    pointers.emplace_back(HEAP_PTR(kBoundArgsOffset));
-    return pointers;
-  }
-
-  Handle<LexicalEnvironment> Scope() override { assert(false); };
-  Handle<FixedArray<String>> FormalParameters() override { assert(false); };
-  ProgramOrFunctionBody* Code() override { assert(false); }
-  bool strict() override { assert(false); }
-
   Handle<JSObject> TargetFunction() { return READ_HANDLE_VALUE(this, kTargetFunctionOffset, JSObject); }
   Handle<JSValue> BoundThis() { return READ_HANDLE_VALUE(this, kBoundThisOffset, JSValue); }
-  Handle<FixedArray<JSValue>> BoundArgs() { return READ_HANDLE_VALUE(this, kBoundArgsOffset, FixedArray<JSValue>); }
+  Handle<FixedArray> BoundArgs() { return READ_HANDLE_VALUE(this, kBoundArgsOffset, FixedArray); }
 
-  std::string ToString() override {
-    return "BindFunctionObject";
-  }
-
- private:
+ public:
   static constexpr size_t kTargetFunctionOffset = kFunctionObjectOffset;
   static constexpr size_t kBoundThisOffset = kTargetFunctionOffset + kPtrSize;
   static constexpr size_t kBoundArgsOffset = kBoundThisOffset + kPtrSize;
@@ -245,9 +213,9 @@ class FunctionConstructor : public JSObject {
  private:
   static Handle<FunctionConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_FUNC_CONSTRUCTOR, u"Function", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      u"Function", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    new (jsobj.val()) FunctionConstructor();
+    jsobj.val()->SetType(OBJ_FUNC_CONSTRUCTOR);
     return Handle<FunctionConstructor>(jsobj);
   }
 };
@@ -258,18 +226,17 @@ Handle<JSValue> FunctionProto::toString(Handle<Error>& e, Handle<JSValue> this_a
     e = Error::TypeError(u"Function.prototype.toString called on non-object");
     return Handle<JSValue>();
   }
-  Handle<JSObject> obj = static_cast<Handle<JSObject>>(val);
-  if (obj.val()->obj_type() != JSObject::OBJ_FUNC) {
+  if (!val.val()->IsFunctionObject()) {
     e = Error::TypeError(u"Function.prototype.toString called on non-function");
     return Handle<JSValue>();
   }
-  Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(obj);
+  Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(val);
   std::u16string str = u"function (";
   auto params = func.val()->FormalParameters();
   if (params.val()->size() > 0) {
-    str += params.val()->Get(0).val()->data();
+    str += static_cast<String*>(params.val()->Get(0).val())->data();
     for (size_t i = 1; i < params.val()->size(); i++) {
-      str += u"," + params.val()->Get(i).val()->data();
+      str += u"," + static_cast<String*>(params.val()->Get(i).val())->data();
     }
   }
   str += u")";
@@ -373,7 +340,8 @@ void AddFuncProperty(
   bool enumerable, bool configurable
 ) {
   Handle<JSObject> value = JSObject::New(
-    JSObject::OBJ_INNER_FUNC, u"InternalFunc", false, Handle<JSValue>(), false, true, callable, 0);
+    u"InternalFunc", false, Handle<JSValue>(), false, true, callable, 0);
+  value.val()->SetType(JSObject::OBJ_INNER_FUNC);
   value.val()->SetPrototype(FunctionProto::Instance());
   AddValueProperty(O, name, value, writable, enumerable, configurable);
 }

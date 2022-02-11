@@ -39,10 +39,10 @@ bool ToBoolean(Handle<JSValue> input) {
     case JSValue::JS_STRING: {
       Handle<String> str = static_cast<Handle<String>>(input);
       return str.val()->data() != u"";
-    } 
-    case JSValue::JS_OBJECT:
-      return true;
+    }
     default:
+      if (input.val()->IsObject())
+        return true;
       assert(false);
   }
 }
@@ -169,12 +169,12 @@ double ToNumber(Handle<Error>& e, Handle<JSValue> input) {
       return static_cast<Handle<Number>>(input).val()->data();
     case JSValue::JS_STRING:
       return StringToNumber(static_cast<Handle<String>>(input));
-    case JSValue::JS_OBJECT: {
-      Handle<JSValue> prim_value = ToPrimitive(e, input, u"Number");
-      if (!e.val()->IsOk()) return 0.0;
-      return ToNumber(e, prim_value);
-    }
     default:
+      if (input.val()->IsObject()) {
+        Handle<JSValue> prim_value = ToPrimitive(e, input, u"Number");
+        if (!e.val()->IsOk()) return 0.0;
+        return ToNumber(e, prim_value);
+      }
       assert(false);
   }
 }
@@ -358,12 +358,12 @@ Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input) {
       return NumberToString(static_cast<Handle<Number>>(input));
     case JSValue::JS_STRING:
       return static_cast<Handle<String>>(input);
-    case JSValue::JS_OBJECT: {
-      Handle<JSValue> prim_value = ToPrimitive(e, input, u"String");
-      if (!e.val()->IsOk()) return String::Empty();
-      return ToString(e, prim_value);
-    }
     default:
+      if (input.val()->IsObject()) {
+        Handle<JSValue> prim_value = ToPrimitive(e, input, u"String");
+        if (!e.val()->IsOk()) return String::Empty();
+        return ToString(e, prim_value);
+      }
       assert(false);
   }
 }
@@ -391,9 +391,10 @@ Handle<JSObject> ToObject(Handle<Error>& e, Handle<JSValue> input) {
       return NumberObject::New(input);
     case JSValue::JS_STRING:
       return StringObject::New(input);
-    case JSValue::JS_OBJECT:
-      return static_cast<Handle<JSObject>>(input);
     default:
+      if (input.val()->IsObject()) {
+        return static_cast<Handle<JSObject>>(input);
+      }
       assert(false);
 }
 

@@ -32,7 +32,7 @@ std::u16string ReadUTF8FileToUTF16String(std::string filename) {
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
-    std::cout << "no filename presented" << std::endl;
+    std::cout << "no filename presented" << "\n";
     return 0;
   }
   std::string filename(argv[1]);
@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
     std::cout << "\033[1;31m" << "ParserError: " << "\033[0m"
               << log::ToString(source.substr(start, ast->start() - start))
               << "\033[1;31m" << log::ToString(ast->source()) << "\033[0m"
-              << log::ToString(source.substr(ast->end(), end - ast->end())) << std::endl;
+              << log::ToString(source.substr(ast->end(), end - ast->end())) << "\n";
     return 0;
   }
 
@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
   Handle<Error> e = Error::Ok();
   EnterGlobalCode(e, ast);
   if (!e.val()->IsOk()) {
-    std::cout << "enter global failed" << std::endl;
+    std::cout << "enter global failed" << "\n";
     return 0;
   }
   Completion res = EvalProgram(ast);
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
           }
         }
       }
-      std::cout << "Error: " << res.value().ToString() << "\033[0m" << std::endl;
+      std::cout << "Error: " << res.value().ToString() << "\033[0m" << "\n";
       break;
     }
     default:

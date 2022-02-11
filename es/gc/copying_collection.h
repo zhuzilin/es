@@ -44,20 +44,20 @@ class CopyingCollection : public GC {
 
   void Collect() override {
 #ifdef GC_DEBUG
-    std::cout << "enter CopyingCollection::Collect" << std::endl;
+    std::cout << "enter CopyingCollection::Collect" << "\n";
 #endif
     Flip();
     Initialise(worklist_);
     auto root_pointers = Runtime::Global()->Pointers();
     assert(root_pointers.size() > 0);
 #ifdef GC_DEBUG
-    std::cout << "root_pointers size: " << root_pointers.size() << std::endl;
+    std::cout << "root_pointers size: " << root_pointers.size() << "\n";
 #endif
     for (HeapObject** fld : root_pointers) {
       Process(fld);
     }
 #ifdef GC_DEBUG
-    std::cout << "finish root_pointers" << std::endl;
+    std::cout << "finish root_pointers" << "\n";
 #endif
     while (!IsEmpty(worklist_)) {
       void* ref = Remove(worklist_);
@@ -65,7 +65,7 @@ class CopyingCollection : public GC {
     }
     memset(fromspace_, 0, extent_);
 #ifdef GC_DEBUG
-    std::cout << "exit CopyingCollection::Collect " << (free_ - tospace_) / 1024U / 1024U << std::endl;
+    std::cout << "exit CopyingCollection::Collect " << (free_ - tospace_) / 1024U / 1024U << "\n";
 #endif
   }
 
@@ -79,7 +79,7 @@ class CopyingCollection : public GC {
   void Scan(void* ref) {
     HeapObject* heap_ref = static_cast<HeapObject*>(ref);
     assert(heap_ref != nullptr);
-    auto ref_pointers = heap_ref->Pointers();
+    auto ref_pointers = HeapObject::Pointers(heap_ref);
     for (HeapObject** fld : ref_pointers) {
       Process(fld);
     }

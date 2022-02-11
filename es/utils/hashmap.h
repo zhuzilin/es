@@ -16,14 +16,41 @@ std::unordered_map<size_t, size_t> kExpandHashMapSize = {
   {67, 67},
 };
 
-// NOTE(zhuzilin) For now, the key type will be String*.
-template<typename T>
-class HashMap : public HeapObject {
- public:
-  static Handle<HashMap<T>> New(size_t num_bucket = kDefaultHashMapSize) {
+class ListNode : public HeapObject {
+  public:
+  static Handle<ListNode> New(Handle<String> key, Handle<HeapObject> val) {
 #ifdef GC_DEBUG
     if (log::Debugger::On())
-      std::cout << "HashMap::New" << std::endl;
+      std::cout << "ListNode::New" << "\n";
+#endif
+    Handle<HeapObject> heap_obj = HeapObject::New(3 * kPtrSize);
+
+    SET_HANDLE_VALUE(heap_obj.val(), kKeyOffset, key, String);
+    SET_HANDLE_VALUE(heap_obj.val(), kValOffset, val, HeapObject);
+    SET_HANDLE_VALUE(heap_obj.val(), kNextOffset, Handle<ListNode>(), ListNode);
+    heap_obj.val()->SetType(LIST_NODE);
+    return Handle<ListNode>(heap_obj);
+  }
+
+  String* key() { return READ_VALUE(this, kKeyOffset, String*); }
+  HeapObject* val() { return READ_VALUE(this, kValOffset, HeapObject*); }
+  void SetVal(HeapObject* val) { SET_VALUE(this, kValOffset, val, HeapObject*); }
+  ListNode* next() { return READ_VALUE(this, kNextOffset, ListNode*); }
+  void SetNext(ListNode* next) { SET_VALUE(this, kNextOffset, next, ListNode*); }
+
+  public:
+  static constexpr size_t kKeyOffset = kHeapObjectOffset;
+  static constexpr size_t kValOffset = kKeyOffset + kPtrSize;
+  static constexpr size_t kNextOffset = kValOffset + kPtrSize;
+};
+
+// NOTE(zhuzilin) For now, the key type will be String*.
+class HashMap : public HeapObject {
+ public:
+  static Handle<HashMap> New(size_t num_bucket = kDefaultHashMapSize) {
+#ifdef GC_DEBUG
+    if (log::Debugger::On())
+      std::cout << "HashMap::New" << "\n";
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(2 * kSizeTSize + num_bucket * kPtrSize);
 
@@ -33,17 +60,8 @@ class HashMap : public HeapObject {
       SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, Handle<ListNode>(), ListNode);
     }
 
-    new (heap_obj.val()) HashMap<T>();
-    return Handle<HashMap<T>>(heap_obj);
-  }
-
-  std::vector<HeapObject**> Pointers() override {
-    size_t n = num_bucket();
-    std::vector<HeapObject**> pointers(n);
-    for (size_t i = 0; i < n; i++) {
-      pointers[i] = HEAP_PTR(kElementOffset + i * kPtrSize);
-    }
-    return pointers;
+    heap_obj.val()->SetType(HASHMAP);
+    return Handle<HashMap>(heap_obj);
   }
 
   size_t size() { return READ_VALUE(this, kSizeOffset, size_t); }
@@ -51,7 +69,7 @@ class HashMap : public HeapObject {
   size_t num_bucket() { return READ_VALUE(this, kNumBucketOffset, size_t); }
 
   // Set can not be method as there can be gc happening inside.
-  static Handle<HashMap<T>> Set(Handle<HashMap<T>> map, Handle<String> key, Handle<T> val) {
+  static Handle<HashMap> Set(Handle<HashMap> map, Handle<String> key, Handle<HeapObject> val) {
     ListNode* old_node = map.val()->GetListNodeRaw(key);
     if (old_node != nullptr) {
       old_node->SetVal(val.val());
@@ -86,12 +104,12 @@ class HashMap : public HeapObject {
     return map;
   }
 
-  static Handle<HashMap<T>> Rehash(Handle<HashMap<T>> map) {
+  static Handle<HashMap> Rehash(Handle<HashMap> map) {
     size_t old_num_bucket = map.val()->num_bucket();
     size_t new_num_bucket = kExpandHashMapSize[old_num_bucket];
     if (new_num_bucket == old_num_bucket)
       return map;
-    Handle<HashMap<T>> new_map = HashMap<T>::New(new_num_bucket);
+    Handle<HashMap> new_map = HashMap::New(new_num_bucket);
     size_t count = 0;
     for (size_t i = 0; i < old_num_bucket; i++) {
       size_t offset = kElementOffset + i * kPtrSize;
@@ -131,11 +149,11 @@ class HashMap : public HeapObject {
     return new_map;
   }
 
-  Handle<T> Get(Handle<String> key) {
-    return Handle<T>(GetRaw(key));
+  Handle<HeapObject> Get(Handle<String> key) {
+    return Handle<HeapObject>(GetRaw(key));
   }
 
-  T* GetRaw(Handle<String> key) {
+  HeapObject* GetRaw(Handle<String> key) {
     ListNode* node = GetListNodeRaw(key);
     if (node == nullptr)
       return nullptr;
@@ -164,7 +182,7 @@ class HashMap : public HeapObject {
     }
   }
 
-  std::vector<std::pair<String*, T*>> SortedKeyValPairs(bool (*filter)(T*)) {
+  std::vector<std::pair<String*, HeapObject*>> SortedKeyValPairs(bool (*filter)(HeapObject*)) {
     std::priority_queue<ListNode*, std::vector<ListNode*>, CompareListNode> pq;
     for (size_t i = 0; i < num_bucket(); i++) {
       size_t offset = kElementOffset + i * kPtrSize;
@@ -173,7 +191,7 @@ class HashMap : public HeapObject {
         pq.push(head);
       }
     }
-    std::vector<std::pair<String*, T*>> result;
+    std::vector<std::pair<String*, HeapObject*>> result;
     while (!pq.empty()) {
       ListNode* node = pq.top();
       pq.pop();
@@ -187,44 +205,7 @@ class HashMap : public HeapObject {
     return result;
   }
 
-  std::string ToString() override { return "HashMap(" + std::to_string(size()) + ")"; }
-
  private:
-  class ListNode : public HeapObject {
-   public:
-    static Handle<ListNode> New(Handle<String> key, Handle<T> val) {
-#ifdef GC_DEBUG
-      if (log::Debugger::On())
-        std::cout << "ListNode::New" << std::endl;
-#endif
-      Handle<HeapObject> heap_obj = HeapObject::New(3 * kPtrSize);
-
-      SET_HANDLE_VALUE(heap_obj.val(), kKeyOffset, key, String);
-      SET_HANDLE_VALUE(heap_obj.val(), kValOffset, val, T);
-      SET_HANDLE_VALUE(heap_obj.val(), kNextOffset, Handle<ListNode>(), ListNode);
-
-      new (heap_obj.val()) ListNode();
-      return Handle<ListNode>(heap_obj);
-    }
-
-    std::vector<HeapObject**> Pointers() override {
-      return {HEAP_PTR(kKeyOffset), HEAP_PTR(kValOffset), HEAP_PTR(kNextOffset)};
-    }
-
-    String* key() { return READ_VALUE(this, kKeyOffset, String*); }
-    T* val() { return READ_VALUE(this, kValOffset, T*); }
-    void SetVal(T* val) { SET_VALUE(this, kValOffset, val, T*); }
-    ListNode* next() { return READ_VALUE(this, kNextOffset, ListNode*); }
-    void SetNext(ListNode* next) { SET_VALUE(this, kNextOffset, next, ListNode*); }
-
-    std::string ToString() override { return "ListNode(" + key()->ToString() + ")"; }
-
-   private:
-    static constexpr size_t kKeyOffset = kHeapObjectOffset;
-    static constexpr size_t kValOffset = kKeyOffset + kPtrSize;
-    static constexpr size_t kNextOffset = kValOffset + kPtrSize;
-  };
-
   static bool IsIntegerIndices(String& a) {
     if (a.size() == 1 && a[0] == u'0') {
       return true;
@@ -285,6 +266,7 @@ class HashMap : public HeapObject {
     return nullptr;
   }
 
+ public:
   static constexpr size_t kNumBucketOffset = kHeapObjectOffset;
   static constexpr size_t kSizeOffset = kNumBucketOffset + kSizeTSize;
   static constexpr size_t kElementOffset = kSizeOffset + kSizeTSize;

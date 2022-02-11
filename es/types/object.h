@@ -21,41 +21,7 @@ typedef Handle<JSValue> (*inner_func)(Handle<Error>&, Handle<JSValue>, std::vect
 
 class JSObject : public JSValue {
  public:
-  enum ObjType {
-    OBJ_GLOBAL,
-    OBJ_OBJECT,
-    OBJ_FUNC,
-    OBJ_ARRAY,
-    OBJ_STRING,
-    OBJ_BOOL,
-    OBJ_NUMBER,
-    OBJ_MATH,
-    OBJ_DATE,
-    OBJ_REGEXP,
-    OBJ_JSON,
-    OBJ_ERROR,
-
-    OBJ_FUNC_PROTO,
-
-    OBJ_ARRAY_CONSTRUCTOR,
-    OBJ_BOOL_CONSTRUCTOR,
-    OBJ_DATE_CONSTRUCTOR,
-    OBJ_ERROR_CONSTRUCTOR,
-    OBJ_FUNC_CONSTRUCTOR,
-    OBJ_NUMBER_CONSTRUCTOR,
-    OBJ_OBJECT_CONSTRUCTOR,
-    OBJ_REGEXP_CONSTRUCTOR,
-    OBJ_STRING_CONSTRUCTOR,
-
-    OBJ_ARGUMENTS,
-
-    OBJ_INNER_FUNC,
-    OBJ_HOST,
-    OBJ_OTHER,
-  };
-
   static Handle<JSObject> New(
-    ObjType obj_type,
     std::u16string klass,
     bool extensible,
     Handle<JSValue> primitive_value,
@@ -67,16 +33,15 @@ class JSObject : public JSValue {
   ) {
 #ifdef GC_DEBUG
     if (log::Debugger::On())
-      std::cout << "JSObject::New " << log::ToString(klass) << std::endl;
+      std::cout << "JSObject::New " << log::ToString(klass) << "\n";
 #endif
-    Handle<JSValue> jsval = JSValue::New(JS_OBJECT, kJSObjectOffset - kJSValueOffset + size, flag);
+    Handle<JSValue> jsval = JSValue::New(kJSObjectOffset - kJSValueOffset + size, flag);
     // NOTE(zhuzilin) We need to put the operation that may need memory allocation to
     // the front, because the jsval is not initialized with JSObject vptr and therefore
     // could not forward the pointers.
     auto class_str = String::New(klass);
-    auto property_map = HashMap<PropertyDescriptor>::New();
+    auto property_map = HashMap::New();
 
-    SET_VALUE(jsval.val(), kObjTypeOffset, obj_type, ObjType);
     SET_HANDLE_VALUE(jsval.val(), kClassOffset, class_str, String);
     SET_VALUE(jsval.val(), kExtensibleOffset, extensible, bool);
     SET_HANDLE_VALUE(jsval.val(), kPrimitiveValueOffset, primitive_value, JSValue);
@@ -85,29 +50,18 @@ class JSObject : public JSValue {
     // NOTE(zhuzilin) function pointer is different.
     TYPED_PTR(jsval.val(), kCallableOffset, inner_func)[0] = callable;
     SET_HANDLE_VALUE(jsval.val(), kPrototypeOffset, Null::Instance(), JSValue);
-    SET_HANDLE_VALUE(jsval.val(), kNamedPropertiesOffset, property_map, HashMap<PropertyDescriptor>);
+    SET_HANDLE_VALUE(jsval.val(), kNamedPropertiesOffset, property_map, HashMap);
 
-    new (jsval.val()) JSObject();
+    jsval.val()->SetType(JS_OBJECT);
     return Handle<JSObject>(jsval);
   }
 
-  std::vector<HeapObject**> Pointers() override {
-    return {
-      HEAP_PTR(kClassOffset),
-      HEAP_PTR(kPrimitiveValueOffset),
-      HEAP_PTR(kPrototypeOffset),
-      HEAP_PTR(kNamedPropertiesOffset) 
-    };
-  }
-
-  ObjType obj_type() { return READ_VALUE(this, kObjTypeOffset, ObjType); }
-  HashMap<PropertyDescriptor>* named_properties() {
-    return READ_VALUE(this, kNamedPropertiesOffset, HashMap<PropertyDescriptor>*);
+  HashMap* named_properties() {
+    return READ_VALUE(this, kNamedPropertiesOffset, HashMap*);
   };
-  void SetNamedProperties(Handle<HashMap<PropertyDescriptor>> new_named_properties) {
-    SET_HANDLE_VALUE(this, kNamedPropertiesOffset, new_named_properties, HashMap<PropertyDescriptor>);
+  void SetNamedProperties(Handle<HashMap> new_named_properties) {
+    SET_HANDLE_VALUE(this, kNamedPropertiesOffset, new_named_properties, HashMap);
   }
-  bool IsFunction() { return obj_type() == OBJ_FUNC; }
 
   // Internal Preperties Common to All Objects
   Handle<JSValue> Prototype() { return READ_HANDLE_VALUE(this, kPrototypeOffset, JSValue); }
@@ -126,21 +80,24 @@ class JSObject : public JSValue {
     return primitive_value;
   };
   bool HasPrimitiveValue() {
-    return obj_type() == OBJ_BOOL || obj_type() == OBJ_DATE ||
-           obj_type() == OBJ_NUMBER || obj_type() == OBJ_STRING;
+    return type() == OBJ_BOOL || type() == OBJ_DATE ||
+           type() == OBJ_NUMBER || type() == OBJ_STRING;
   }
-  bool IsConstructor() override { return READ_VALUE(this, kIsConstructorOffset, bool); }
-  bool IsCallable() override { return READ_VALUE(this, kIsCallableOffset, bool); }
   inner_func callable() { return TYPED_PTR(this, kCallableOffset, inner_func)[0]; }
 
   // This for for-in statement.
   std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> AllEnumerableProperties() {
-    auto filter = [](PropertyDescriptor* desc) {
+    auto filter = [](HeapObject* heap_obj) {
+      assert(heap_obj->IsPropertyDescriptor());
+      PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(heap_obj);
       return desc->HasEnumerable() && desc->Enumerable();
     };
     std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> result;
     for (auto pair : named_properties()->SortedKeyValPairs(filter)) {
-      result.emplace_back(std::make_pair(Handle<String>(pair.first), Handle<PropertyDescriptor>(pair.second)));
+      result.emplace_back(std::make_pair(
+        Handle<String>(pair.first),
+        Handle<PropertyDescriptor>(static_cast<PropertyDescriptor*>(pair.second))
+      ));
     }
     if (!Prototype().val()->IsNull()) {
       Handle<JSObject> proto = static_cast<Handle<JSObject>>(Prototype());
@@ -153,11 +110,8 @@ class JSObject : public JSValue {
     return result;
   }
 
-  virtual std::string ToString() override { return (READ_VALUE(this, kClassOffset, String*))->ToString(); }
-
- protected:
-  static constexpr size_t kObjTypeOffset = kJSValueOffset;
-  static constexpr size_t kClassOffset = kObjTypeOffset + kIntSize;
+ public:
+  static constexpr size_t kClassOffset = kJSValueOffset;
   static constexpr size_t kExtensibleOffset = kClassOffset + kPtrSize;
   static constexpr size_t kPrimitiveValueOffset = kExtensibleOffset + kBoolSize;
   static constexpr size_t kIsConstructorOffset = kPrimitiveValueOffset + kPtrSize;
@@ -167,26 +121,6 @@ class JSObject : public JSValue {
   static constexpr size_t kNamedPropertiesOffset = kPrototypeOffset + kPtrSize;
   static constexpr size_t kJSObjectOffset = kNamedPropertiesOffset + kPtrSize;
 };
-
-bool Is(JSValue* val, JSObject::ObjType obj_type) {
-  return val->IsObject() ? (static_cast<JSObject*>(val)->obj_type() == obj_type) : false;
-}
-bool JSValue::IsNumberObject() { return Is(this, JSObject::OBJ_NUMBER); }
-bool JSValue::IsArrayObject() { return Is(this, JSObject::OBJ_ARRAY); }
-bool JSValue::IsRegExpObject() { return Is(this, JSObject::OBJ_REGEXP); }
-bool JSValue::IsErrorObject() { return Is(this, JSObject::OBJ_ERROR); }
-bool JSValue::IsFunctionObject() { return Is(this, JSObject::OBJ_FUNC); }
-bool JSValue::IsStringObject() { return Is(this, JSObject::OBJ_STRING); }
-bool JSValue::IsDateObject() { return Is(this, JSObject::OBJ_DATE); }
-bool JSValue::IsArgumentsObject() { return Is(this, JSObject::OBJ_ARGUMENTS); }
-
-bool JSValue::IsFunctionProto() { return Is(this, JSObject::OBJ_FUNC_PROTO); }
-
-bool JSValue::IsBoolConstructor() { return Is(this, JSObject::OBJ_BOOL_CONSTRUCTOR); }
-bool JSValue::IsNumberConstructor() { return Is(this, JSObject::OBJ_NUMBER_CONSTRUCTOR); }
-bool JSValue::IsObjectConstructor() { return Is(this, JSObject::OBJ_OBJECT_CONSTRUCTOR); }
-bool JSValue::IsRegExpConstructor() { return Is(this, JSObject::OBJ_REGEXP_CONSTRUCTOR); }
-bool JSValue::IsStringConstructor() { return Is(this, JSObject::OBJ_STRING_CONSTRUCTOR); }
 
 Handle<JSValue> Get(Handle<Error>& e, Handle<JSObject> O, Handle<String> P);
 Handle<JSValue> Get__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P);

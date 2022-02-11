@@ -18,8 +18,8 @@ constexpr size_t kFuncPtrSize = sizeof(void* (*));
 #define TYPED_PTR(ptr, offset, type) \
   reinterpret_cast<type*>((reinterpret_cast<char*>(ptr) + offset))
 
-#define HEAP_PTR(offset) \
-  reinterpret_cast<HeapObject**>((reinterpret_cast<char*>(this) + offset))
+#define HEAP_PTR(ptr, offset) \
+  reinterpret_cast<HeapObject**>(PTR(ptr, offset))
 
 #define SET_HANDLE_VALUE(ptr, offset, handle, type) \
   *reinterpret_cast<type**>(PTR(ptr, offset)) = handle.val()

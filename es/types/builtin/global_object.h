@@ -115,12 +115,9 @@ class GlobalObject : public JSObject {
     assert(false);
   }
 
-  inline std::string ToString() override { return "GlobalObject"; }
-
  private:
   static Handle<GlobalObject> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_GLOBAL,
       // 15.1 The values of the [[Prototype]] and [[Class]]
       // of the global object are implementation-dependent.
       u"Global",
@@ -131,8 +128,7 @@ class GlobalObject : public JSObject {
     );
 
     SET_VALUE(jsobj.val(), kDirectEvalOffset, false, bool);
-
-    new (jsobj.val()) GlobalObject();
+    jsobj.val()->SetType(OBJ_GLOBAL);
     return Handle<GlobalObject>(jsobj);
   }
 

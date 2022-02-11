@@ -208,9 +208,9 @@ class ArrayProto : public JSObject {
  private:
   static Handle<ArrayProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_OTHER, u"Array", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+      u"Array", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
 
-    new (jsobj.val()) ArrayProto();
+    jsobj.val()->SetType(OBJ_OTHER);
     return Handle<ArrayProto>(jsobj);
   }
 };
@@ -219,10 +219,10 @@ class ArrayObject : public JSObject {
  public:
   static Handle<ArrayObject> New(double len) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_ARRAY, u"Array", true, Handle<JSValue>(), false, false, nullptr, 0
+      u"Array", true, Handle<JSValue>(), false, false, nullptr, 0
     );
 
-    new (jsobj.val()) ArrayObject();
+    jsobj.val()->SetType(OBJ_ARRAY);
     Handle<ArrayObject> obj(jsobj);
     obj.val()->SetPrototype(ArrayProto::Instance());
     Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
@@ -230,11 +230,6 @@ class ArrayObject : public JSObject {
     desc.val()->SetDataDescriptor(Number::New(len), true, false, false);
     DefineOwnProperty__Base(Error::Empty(), obj, String::Length(), desc, false);
     return obj;
-  }
-
-  std::string ToString() override {
-    size_t num = ToNumber(Error::Empty(), Get(Error::Empty(), Handle<JSObject>(this), String::Length()));
-    return "Array(" + std::to_string(num) + ")";
   }
 };
 
@@ -259,9 +254,9 @@ class ArrayConstructor : public JSObject {
  private:
   static Handle<ArrayConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_ARRAY_CONSTRUCTOR, u"Array", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      u"Array", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    new (jsobj.val()) ArrayConstructor();
+    jsobj.val()->SetType(OBJ_ARRAY_CONSTRUCTOR);
     return Handle<ArrayConstructor>(jsobj);
   }
 };

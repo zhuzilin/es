@@ -50,7 +50,7 @@ void PrintSource(std::string comment, std::u16string str = u"", std::string post
   std::cout << comment;
   for (const auto& c: str)
     std::cout << static_cast<char>(c);
-  std::cout << postfix << std::endl;
+  std::cout << postfix << "\n";
 }
 
 std::string ToString(std::u16string str) {

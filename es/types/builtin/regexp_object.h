@@ -28,9 +28,9 @@ class RegExpProto : public JSObject {
  private:
   static Handle<RegExpProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_REGEXP, u"RegExp", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+      u"RegExp", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
 
-    new (jsobj.val()) RegExpProto();
+    jsobj.val()->SetType(OBJ_OTHER);
     return Handle<RegExpProto>(jsobj);
   }
 };
@@ -39,7 +39,7 @@ class RegExpObject : public JSObject {
  public:
   static Handle<RegExpObject> New(Handle<String> pattern, Handle<String> flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_REGEXP, u"RegExp", true, Handle<JSValue>(), false, false, nullptr,
+      u"RegExp", true, Handle<JSValue>(), false, false, nullptr,
       kRegExpObjectOffset - kJSObjectOffset
     );
 
@@ -62,8 +62,8 @@ class RegExpObject : public JSObject {
     SET_VALUE(jsobj.val(), kGlobalOffset, global, bool);
     SET_VALUE(jsobj.val(), kIgnoreCaseOffset, ignore_case, bool);
     SET_VALUE(jsobj.val(), kMultilineOffset, multiline, bool);
+    jsobj.val()->SetType(OBJ_REGEXP);
 
-    new (jsobj.val()) RegExpObject();
     Handle<RegExpObject> obj = Handle<RegExpObject>(jsobj);
     obj.val()->SetPrototype(RegExpProto::Instance());
     AddValueProperty(obj, u"source", pattern, false, false, false);
@@ -75,27 +75,19 @@ class RegExpObject : public JSObject {
     return obj;
   }
 
-  std::vector<HeapObject**> Pointers() override {
-    std::vector<HeapObject**> pointers = JSObject::Pointers();
-    pointers.emplace_back(HEAP_PTR(kPatternOffset));
-    pointers.emplace_back(HEAP_PTR(kFlagOffset));
-    return pointers;
-  }
-
-  static constexpr size_t kPatternOffset = kJSObjectOffset;
-  static constexpr size_t kFlagOffset = kPatternOffset + kPtrSize;
-  static constexpr size_t kGlobalOffset = kFlagOffset + kPtrSize;
-  static constexpr size_t kIgnoreCaseOffset = kGlobalOffset + kBoolSize;
-  static constexpr size_t kMultilineOffset = kIgnoreCaseOffset + kBoolSize;
-  static constexpr size_t kRegExpObjectOffset = kMultilineOffset + kBoolSize;
-
   Handle<String> pattern() { return READ_HANDLE_VALUE(this, kPatternOffset, String); }
   Handle<String> flag() { return READ_HANDLE_VALUE(this, kFlagOffset, String); }
   bool global() { return READ_VALUE(this, kGlobalOffset, bool); }
   bool ignore_case() { return READ_VALUE(this, kIgnoreCaseOffset, bool); }
   bool multiline() { return READ_VALUE(this, kMultilineOffset, bool); }
 
-  std::string ToString() override { return "/" + log::ToString(pattern().val()) + "/" + log::ToString(flag().val()); }
+ public:
+  static constexpr size_t kPatternOffset = kJSObjectOffset;
+  static constexpr size_t kFlagOffset = kPatternOffset + kPtrSize;
+  static constexpr size_t kGlobalOffset = kFlagOffset + kPtrSize;
+  static constexpr size_t kIgnoreCaseOffset = kGlobalOffset + kBoolSize;
+  static constexpr size_t kMultilineOffset = kIgnoreCaseOffset + kBoolSize;
+  static constexpr size_t kRegExpObjectOffset = kMultilineOffset + kBoolSize;
 };
 
 class RegExpConstructor : public JSObject {
@@ -112,9 +104,9 @@ class RegExpConstructor : public JSObject {
  private:
   static Handle<RegExpConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_REGEXP_CONSTRUCTOR, u"RegExp", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      u"RegExp", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    new (jsobj.val()) RegExpConstructor();
+    jsobj.val()->SetType(OBJ_REGEXP_CONSTRUCTOR);
     return Handle<RegExpConstructor>(jsobj);
   }
 };

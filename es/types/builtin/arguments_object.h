@@ -14,30 +14,22 @@ class ArgumentsObject : public JSObject {
  public:
   static Handle<ArgumentsObject> New(Handle<JSObject> parameter_map, size_t len) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_ARGUMENTS, u"Arguments", true, Handle<JSValue>(), false, false, nullptr,
+      u"Arguments", true, Handle<JSValue>(), false, false, nullptr,
       kParameterMapOffset + kPtrSize - kJSObjectOffset
     );
 
     SET_HANDLE_VALUE(jsobj.val(), kParameterMapOffset, parameter_map, JSObject);
+    jsobj.val()->SetType(OBJ_ARGUMENTS);
 
-    new (jsobj.val()) ArgumentsObject();
     Handle<ArgumentsObject> obj(jsobj);
     obj.val()->SetPrototype(ObjectProto::Instance());
     AddValueProperty(obj, String::Length(), Number::New(len), true, false, true);
     return obj;
   }
 
-  std::vector<HeapObject**> Pointers() override {
-    std::vector<HeapObject**> pointers = JSObject::Pointers();
-    pointers.emplace_back(HEAP_PTR(kParameterMapOffset));
-    return pointers;
-  }
-
   Handle<JSObject> ParameterMap() { return READ_HANDLE_VALUE(this, kParameterMapOffset, JSObject); }
 
-  inline std::string ToString() override { return "ArgumentsObject"; }
-
- private:
+ public:
   static constexpr size_t kParameterMapOffset = kJSObjectOffset;
 };
 

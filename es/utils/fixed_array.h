@@ -1,51 +1,39 @@
-#ifndef ES_UTILS_FIXED_ARRAY_H
-#define ES_UTILS_FIXED_ARRAY_H
+#ifndef ES_UHeapObjectILS_FIXED_ARRAY_H
+#define ES_UHeapObjectILS_FIXED_ARRAY_H
 
 #include <es/gc/heap_object.h>
 
 namespace es {
 
-template<typename T>
 class FixedArray : public HeapObject {
  public:
-  static Handle<FixedArray<T>> New(std::vector<Handle<T>> elements) {
+  template<typename T>
+  static Handle<FixedArray> New(std::vector<Handle<T>> elements) {
     size_t n = elements.size();
 #ifdef GC_DEBUG
     if (log::Debugger::On())
-      std::cout << "FixedArray::New " << n << std::endl;
+      std::cout << "FixedArray::New " << n << "\n";
 #endif
-    Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + n * kPtrSize);
+    Handle<HeapObject> heap_obj = HeapObject::New(kSizeTSize + n * kPtrSize);
 
     SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);
     for (size_t i = 0; i < n; i++) {
-      SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, elements[i], T);
+      SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, elements[i], HeapObject);
     }
-
-    new (heap_obj.val()) FixedArray<T>();
-    return Handle<FixedArray<T>>(heap_obj);
-  }
-
-  std::vector<HeapObject**> Pointers() override {
-    size_t n = size();
-    std::vector<HeapObject**> pointers(n);
-    for (size_t i = 0; i < n; i++) {
-      pointers[i] = HEAP_PTR(kElementOffset + i * kPtrSize);
-    }
-    return pointers;
+    heap_obj.val()->SetType(FIXED_ARRAY);
+    return Handle<FixedArray>(heap_obj);
   }
 
   size_t size() { return READ_VALUE(this, kSizeOffset, size_t); }
-  Handle<T> Get(size_t i) { return READ_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, T); }
-  T* GetRaw(size_t i) { return READ_VALUE(this, kElementOffset + i * kPtrSize, T*); }
-  void Set(size_t i, Handle<T> val) { SET_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, val, T); }
+  Handle<HeapObject> Get(size_t i) { return READ_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, HeapObject); }
+  HeapObject* GetRaw(size_t i) { return READ_VALUE(this, kElementOffset + i * kPtrSize, HeapObject*); }
+  void Set(size_t i, Handle<HeapObject> val) { SET_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, val, HeapObject); }
 
-  std::string ToString() override { return "FixedArray(" + std::to_string(size()) + ")"; }
-
- private:
+ public:
   static constexpr size_t kSizeOffset = kHeapObjectOffset;
   static constexpr size_t kElementOffset = kSizeOffset + kSizeTSize;
 };
 
 }  // namespace es
 
-#endif  // ES_UTILS_FIXED_ARRAY_H
+#endif  // ES_UHeapObjectILS_FIXED_ARRAY_H

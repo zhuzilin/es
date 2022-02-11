@@ -17,13 +17,13 @@ class Reference : public JSValue {
     Handle<String> reference_name,
     bool strict_reference
   ) {
-    Handle<JSValue> jsval = JSValue::New(JS_REF, kStrictReferenceOffset + kBoolSize - kJSValueOffset);
+    Handle<JSValue> jsval = JSValue::New(kStrictReferenceOffset + kBoolSize - kJSValueOffset);
 
     SET_HANDLE_VALUE(jsval.val(), kBaseOffset, base, JSValue);
     SET_HANDLE_VALUE(jsval.val(), kReferenceNameOffset, reference_name, String);
     SET_VALUE(jsval.val(), kStrictReferenceOffset, strict_reference, bool);
 
-    new (jsval.val()) Reference();
+    jsval.val()->SetType(JS_REF);
     return Handle<Reference>(jsval);
   }
 
@@ -38,16 +38,7 @@ class Reference : public JSValue {
   }
   bool IsUnresolvableReference() { return GetBase().val()->IsUndefined(); }
 
-  std::string ToString() override {
-    String* name = READ_VALUE(this, kReferenceNameOffset, String*);
-    return "ref(" + name->ToString() + ")";
-  }
-
-  std::vector<HeapObject**> Pointers() override {
-    return {HEAP_PTR(kBaseOffset), HEAP_PTR(kReferenceNameOffset)};
-  }
-
- private:
+ public:
   static constexpr size_t kBaseOffset = kJSValueOffset;
   static constexpr size_t kReferenceNameOffset = kBaseOffset + kPtrSize;
   static constexpr size_t kStrictReferenceOffset = kReferenceNameOffset + kPtrSize;

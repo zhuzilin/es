@@ -87,31 +87,22 @@ class Error : public HeapObject {
 
   bool IsOk() { return type() == E_OK; }
 
-  std::string ToString() override {
-    return IsOk() ?
-      "ok" :
-      ("error(" + (READ_VALUE(this, kValueOffset, String*))->ToString() + ")");
-  }
-
-  virtual std::vector<HeapObject**> Pointers() override {
-    return {HEAP_PTR(kValueOffset)};
-  }
-
  private:
   static Handle<Error> New(ErrorType t, Handle<JSValue> val, uint8_t flag) {
 #ifdef GC_DEBUG
     if (log::Debugger::On())
-      std::cout << "Error::New " << std::endl;
+      std::cout << "Error::New " << "\n";
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + kPtrSize, flag);
 
     SET_VALUE(heap_obj.val(), kErrorTypeOffset, t, ErrorType);
     SET_HANDLE_VALUE(heap_obj.val(), kValueOffset, val, JSValue);
+    heap_obj.val()->SetType(ERROR);
 
-    new (heap_obj.val()) Error();
     return Handle<Error>(heap_obj);
   }
 
+ public:
   static constexpr size_t kErrorTypeOffset = kHeapObjectOffset;
   static constexpr size_t kValueOffset = kErrorTypeOffset + kIntSize;
 };

@@ -75,6 +75,7 @@ class AST {
 
   Type type() { return type_; }
   std::u16string source() { return source_; }
+  const std::u16string& source_ref() { return source_; }
   size_t start() { return start_; }
   size_t end() { return end_; }
 

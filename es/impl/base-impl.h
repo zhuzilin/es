@@ -12,6 +12,14 @@ void CheckObjectCoercible(Handle<Error>& e, Handle<JSValue> val) {
   }
 }
 
+bool JSValue::IsCallable() {
+  return IsObject() && READ_VALUE(this, JSObject::kIsCallableOffset, bool);
+}
+
+bool JSValue::IsConstructor() {
+  return IsObject() && READ_VALUE(this, JSObject::kIsConstructorOffset, bool);
+}
+
 }  // namespace es
 
 #endif  // ES_IMPL_BASE_IMPL_H

@@ -21,17 +21,17 @@ class Console : public JSObject {
     for (size_t i = 1; i < vals.size(); i++) {
       std::cout << " " << vals[i].ToString();
     }
-    std::cout << std::endl;
+    std::cout << "\n";
     return Number::Zero();
   }
 
  private:
   static Handle<Console> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_HOST, u"Console", true, Handle<JSValue>(), false, false, nullptr, 0, flag
+      u"Console", true, Handle<JSValue>(), false, false, nullptr, 0, flag
     );
 
-    new (jsobj.val()) Console();
+    jsobj.val()->SetType(OBJ_HOST);
     Handle<Console> obj(jsobj);
     AddFuncProperty(obj, u"log", log, false, false, false);
     return obj;

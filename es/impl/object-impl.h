@@ -91,7 +91,7 @@ Handle<JSValue> GetProperty(Handle<JSObject> O, Handle<String> P) {
 // [[Get]]
 Handle<JSValue> Get(Handle<Error>& e, Handle<JSObject> O, Handle<String> P) {
   if (log::Debugger::On())
-    log::PrintSource("enter Get " + P.ToString() + " from " + std::to_string(O.val()->obj_type()));
+    log::PrintSource("enter Get " + P.ToString() + " from " + std::to_string(O.val()->type()));
   if (O.val()->IsFunctionObject()) {
     return Get__Function(e, static_cast<Handle<FunctionObject>>(O), P);
   } else if (O.val()->IsArgumentsObject()) {
@@ -126,14 +126,11 @@ Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle
   Handle<JSValue> V = Get__Base(e, O, P);
   if (!e.val()->IsOk()) return Handle<JSValue>();
   if (P.val()->data() == u"caller") {  // 2
-    if (V.val()->IsObject()) {
-      Handle<JSObject> obj = static_cast<Handle<JSObject>>(V);
-      if (obj.val()->IsFunction()) {
-        Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
-        if (func.val()->strict()) {
-          e = Error::TypeError();
-          return Handle<JSValue>();
-        }
+    if (V.val()->IsFunctionObject()) {
+      Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
+      if (func.val()->strict()) {
+        e = Error::TypeError();
+        return Handle<JSValue>();
       }
     }
   }
@@ -148,13 +145,10 @@ Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Hand
     Handle<JSValue> V = Get__Base(e, O, P);
     if (!e.val()->IsOk()) return Handle<JSValue>();
     if (P.val()->data() == u"caller") {
-      if (V.val()->IsObject()) {
-        Handle<JSObject> obj = static_cast<Handle<JSObject>>(V);
-        if (obj.val()->IsFunction()) {
-          Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(obj);
-          if (func.val()->strict()) {
-            e = Error::TypeError(u"caller could not be function object");
-          }
+      if (V.val()->IsFunctionObject()) {
+        Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
+        if (func.val()->strict()) {
+          e = Error::TypeError(u"caller could not be function object");
         }
       }
     }
@@ -346,8 +340,7 @@ bool DefineOwnProperty__Base(
     if(!O.val()->Extensible())  // 3
       goto reject;
     // 4.
-    auto new_named_properties = HashMap<PropertyDescriptor>::Set(
-      Handle<HashMap<PropertyDescriptor>>(O.val()->named_properties()), P, desc);
+    auto new_named_properties = HashMap::Set(Handle<HashMap>(O.val()->named_properties()), P, desc);
     O.val()->SetNamedProperties(new_named_properties);
     return true;
   }
@@ -396,8 +389,7 @@ bool DefineOwnProperty__Base(
       new_property.val()->SetConfigurable(old_property.val()->Configurable());
       new_property.val()->SetEnumerable(old_property.val()->Enumerable());
       new_property.val()->SetBitMask(old_property.val()->bitmask());
-      auto new_named_properties = HashMap<PropertyDescriptor>::Set(
-        Handle<HashMap<PropertyDescriptor>>(O.val()->named_properties()), P, desc);
+      auto new_named_properties = HashMap::Set(Handle<HashMap>(O.val()->named_properties()), P, desc);
       O.val()->SetNamedProperties(new_named_properties);
     } else if (current_desc.val()->IsDataDescriptor() && desc.val()->IsDataDescriptor()) {  // 10.
       if (!current_desc.val()->Configurable()) {  // 10.a

@@ -192,7 +192,7 @@ TEST(TestEvalExpr, Function) {
     AST* ast = parser.ParseFunction(false);
     EnterGlobalCode(e, ast);
     Handle<JSValue> val = EvalFunction(e, ast);
-    EXPECT_EQ(JSValue::JS_OBJECT, val.val()->type());
+    EXPECT_EQ(JSValue::OBJ_FUNC, val.val()->type());
     Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(val);
     EXPECT_EQ(1, func.val()->FormalParameters().val()->size());
   }
@@ -201,7 +201,7 @@ TEST(TestEvalExpr, Function) {
     Parser parser(u"function a(b) { return b; }");
     AST* ast = parser.ParseFunction(false);
     Handle<JSValue> val = EvalFunction(e, ast);
-    EXPECT_EQ(JSValue::JS_OBJECT, val.val()->type());
+    EXPECT_EQ(JSValue::OBJ_FUNC, val.val()->type());
     Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(val);
     EXPECT_EQ(1, func.val()->FormalParameters().val()->size());
   }
@@ -214,7 +214,7 @@ TEST(TestEvalExpr, Object) {
     AST* ast = parser.ParseObjectLiteral();
     EnterGlobalCode(e, ast);
     Handle<JSValue> val = EvalObject(e, ast);
-    EXPECT_EQ(JSValue::JS_OBJECT, val.val()->type());
+    EXPECT_EQ(JSValue::OBJ_OBJECT, val.val()->type());
     Handle<Object> obj = static_cast<Handle<Object>>(val);
     EXPECT_EQ(2, obj.val()->AllEnumerableProperties().size());
   }
@@ -231,7 +231,7 @@ TEST(TestEvalExpr, Array) {
       Parser parser(pair.first);
       AST* ast = parser.ParseArrayLiteral();
       Handle<JSValue> val = EvalArray(e, ast);
-      EXPECT_EQ(JSValue::JS_OBJECT, val.val()->type());
+      EXPECT_EQ(JSValue::OBJ_ARRAY, val.val()->type());
       Handle<ArrayObject> arr = static_cast<Handle<ArrayObject>>(val);
       EXPECT_EQ(pair.second, static_cast<Handle<Number>>(Get(e, arr, String::Length())).val()->data());
     }

@@ -11,7 +11,7 @@ namespace es {
 class PropertyDescriptor : public JSValue {
  public:
   static Handle<PropertyDescriptor> New() {
-    Handle<JSValue> jsval = JSValue::New(JS_PROP_DESC, kConfigurableOffset + kBoolSize - kBitmapOffset);
+    Handle<JSValue> jsval = JSValue::New(kConfigurableOffset + kBoolSize - kBitmapOffset);
 
     SET_VALUE(jsval.val(), kBitmapOffset, 0, char);
     SET_HANDLE_VALUE(jsval.val(), kValueOffset, Undefined::Instance(), JSValue);
@@ -21,12 +21,8 @@ class PropertyDescriptor : public JSValue {
     SET_VALUE(jsval.val(), kEnumerableOffset, false, bool);
     SET_VALUE(jsval.val(), kConfigurableOffset, false, bool);
 
-    new (jsval.val()) PropertyDescriptor();
+    jsval.val()->SetType(JS_PROP_DESC);
     return Handle<PropertyDescriptor>(jsval);
-  }
-
-  std::vector<HeapObject**> Pointers() override {
-    return {HEAP_PTR(kValueOffset), HEAP_PTR(kGetOffset), HEAP_PTR(kSetOffset)};
   }
 
   inline bool IsAccessorDescriptor() {
@@ -121,19 +117,7 @@ class PropertyDescriptor : public JSValue {
   char bitmask() { return READ_VALUE(this, kBitmapOffset, char); }
   void SetBitMask(char bitmask) { SET_VALUE(this, kBitmapOffset, bitmask, char); }
 
-  std::string ToString() override { 
-    std::string res = "PropertyDescriptor{";
-    if (HasValue()) res += "v: " + (READ_VALUE(this, kValueOffset, JSValue*))->ToString() + ", ";
-    if (HasWritable()) res += "w: " + log::ToString(Writable()) + ", ";
-    if (HasGet()) res += "get: " + (READ_VALUE(this, kGetOffset, JSValue*))->ToString() + ", ";
-    if (HasSet()) res += "set: " + (READ_VALUE(this, kSetOffset, JSValue*))->ToString() + ", ";
-    if (HasEnumerable()) res += "e: " + log::ToString(Enumerable()) + ", ";
-    if (HasConfigurable()) res += "c: " + log::ToString(Configurable());
-    res += '}';
-    return res;
-  }
-
- private:
+ public:
   static constexpr size_t kBitmapOffset = kJSValueOffset;
   static constexpr size_t kValueOffset = kBitmapOffset + kCharSize;
   static constexpr size_t kGetOffset = kValueOffset + kPtrSize;
@@ -142,6 +126,7 @@ class PropertyDescriptor : public JSValue {
   static constexpr size_t kEnumerableOffset = kWritableOffset + kBoolSize;
   static constexpr size_t kConfigurableOffset = kEnumerableOffset + kBoolSize;
 
+ private:
   enum Field {
     VALUE        = 1 << 0,
     WRITABLE     = 1 << 1,

@@ -784,7 +784,7 @@ Handle<JSValue> EvalPrimaryExpression(Handle<Error>& e, AST* ast) {
       break;
     }
     default:
-      std::cout << "Not primary expression, type " << ast->type() << std::endl;
+      std::cout << "Not primary expression, type " << ast->type() << "\n";
       assert(false);
   }
   return val;
@@ -803,7 +803,7 @@ Handle<Reference> EvalIdentifier(AST* ast) {
   return IdentifierResolution(ast->source());
 }
 
-Handle<Number> EvalNumber(std::u16string source) {
+Handle<Number> EvalNumber(const std::u16string& source) {
   double val = 0;
   double frac = 1;
   size_t pos = 0;
@@ -862,15 +862,14 @@ Handle<Number> EvalNumber(std::u16string source) {
 
 Handle<Number> EvalNumber(AST* ast) {
   assert(ast->type() == AST::AST_EXPR_NUMBER);
-  auto source = ast->source();
+  const std::u16string& source = ast->source();
   return EvalNumber(source);
 }
 
-Handle<String> EvalString(std::u16string source) {
-  source = source.substr(1, source.size() - 2);
-  size_t pos = 0;
+Handle<String> EvalString(const std::u16string& source) {
+  size_t pos = 1;
   std::vector<std::u16string> vals;
-  while (pos < source.size()) {
+  while (pos < source.size() - 1) {
     char16_t c = source[pos];
     switch (c) {
       case u'\\': {
@@ -937,7 +936,7 @@ Handle<String> EvalString(std::u16string source) {
       default: {
         size_t start = pos;
         while (true) {
-          if (pos == source.size() || source[pos] == u'\\')
+          if (pos == source.size() - 1 || source[pos] == u'\\')
             break;
           pos++;
         }
@@ -957,7 +956,7 @@ Handle<String> EvalString(std::u16string source) {
 
 Handle<String> EvalString(AST* ast) {
   assert(ast->type() == AST::AST_EXPR_STRING);
-  auto source = ast->source();
+  const std::u16string& source = ast->source_ref();
   return EvalString(source);
 }
 
@@ -968,9 +967,9 @@ std::u16string EvalPropertyName(Handle<Error>& e, Token token) {
     case Token::TK_FUTURE:
       return token.source();
     case Token::TK_NUMBER:
-      return ToU16String(e, EvalNumber(token.source()));
+      return ToU16String(e, EvalNumber(token.source_ref()));
     case Token::TK_STRING:
-      return ToU16String(e, EvalString(token.source()));
+      return ToU16String(e, EvalString(token.source_ref()));
     default:
       assert(false);
   }
@@ -1398,7 +1397,7 @@ Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Han
       e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
       return Handle<JSValue>();
     }
-    if (ref.val()->IsStrictReference() && ref.val()->GetBase().val()->type() == JSValue::JS_ENV_REC &&
+    if (ref.val()->IsStrictReference() && ref.val()->GetBase().val()->IsEnvironmentRecord() &&
         (ref.val()->GetReferencedName().val()->data() == u"eval" ||
          ref.val()->GetReferencedName().val()->data() == u"arguments")) {
       e = Error::SyntaxError(u"cannot assign on eval or arguments");

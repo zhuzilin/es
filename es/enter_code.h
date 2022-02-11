@@ -55,7 +55,7 @@ Handle<ArgumentsObject> CreateArgumentsObject(
   Handle<FunctionObject> func, std::vector<Handle<JSValue>>& args,
   Handle<LexicalEnvironment> env, bool strict
 ) {
-  Handle<es::FixedArray<es::String>> names = func.val()->FormalParameters();
+  Handle<FixedArray> names = func.val()->FormalParameters();
   int len = args.size();
   Handle<Object> map = Object::New();  // 8
   Handle<JSObject> obj = ArgumentsObject::New(map, len);
@@ -65,7 +65,7 @@ Handle<ArgumentsObject> CreateArgumentsObject(
     Handle<JSValue> val = args[indx];  // 11.a
     AddValueProperty(obj, NumberToString(indx), val, true, true, true);  // 11.b
     if ((size_t)indx < names.val()->size()) {  // 11.c
-      std::u16string name = names.val()->Get(indx).val()->data();  // 11.c.i
+      std::u16string name = static_cast<String*>(names.val()->Get(indx).val())->data();  // 11.c.i
       if (!strict && mapped_names.find(name) == mapped_names.end()) {  // 11.c.ii
         mapped_names.insert(name);
         Handle<JSValue> g = MakeArgGetter(name, env);
@@ -363,7 +363,7 @@ void EnterFunctionCode(
   Handle<Error>& e, Handle<JSObject> F, ProgramOrFunctionBody* body,
   Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict
 ) {
-  assert(F.val()->obj_type() == JSObject::OBJ_FUNC);
+  assert(F.val()->type() == JSObject::OBJ_FUNC);
   Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(F);
   Handle<JSValue> this_binding;
   if (strict) {  // 1

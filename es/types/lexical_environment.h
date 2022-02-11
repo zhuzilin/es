@@ -10,17 +10,13 @@ namespace es {
 class LexicalEnvironment : public JSValue {
  public:
   static Handle<LexicalEnvironment> New(Handle<LexicalEnvironment> outer, Handle<EnvironmentRecord> env_rec) {
-    Handle<JSValue> jsval = JSValue::New(JS_LEX_ENV, 2 * kPtrSize);
+    Handle<JSValue> jsval = JSValue::New(2 * kPtrSize);
 
     SET_HANDLE_VALUE(jsval.val(), kOuterOffset, outer, LexicalEnvironment);
     SET_HANDLE_VALUE(jsval.val(), kEnvRecOffset, env_rec, EnvironmentRecord);
 
-    new (jsval.val()) LexicalEnvironment();
+    jsval.val()->SetType(JS_LEX_ENV);
     return Handle<LexicalEnvironment>(jsval);
-  }
-
-  std::vector<HeapObject**> Pointers() override {
-    return {HEAP_PTR(kOuterOffset), HEAP_PTR(kEnvRecOffset)};
   }
 
   Handle<LexicalEnvironment> outer() { return READ_HANDLE_VALUE(this, kOuterOffset, LexicalEnvironment); }
@@ -32,9 +28,7 @@ class LexicalEnvironment : public JSValue {
     return singleton;
   }
 
-  std::string ToString() override { return "LexicalEnvironment"; }
-
- private:
+ public:
   static constexpr size_t kOuterOffset = kJSValueOffset;
   static constexpr size_t kEnvRecOffset = kOuterOffset + kPtrSize;
 };

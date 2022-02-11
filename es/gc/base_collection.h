@@ -25,7 +25,7 @@ class GC {
 #ifdef TIMER
       gettimeofday(&end, nullptr);
       time += (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000;
-      std::cout << "Garbage Collection time: " << time << std::endl;
+      std::cout << "Garbage Collection time: " << time << "\n";
 #endif
       ref = Allocate(size_with_header, flag);
       if (ref == nullptr) {

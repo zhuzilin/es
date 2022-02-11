@@ -187,9 +187,9 @@ class DateProto : public JSObject {
  private:
   static Handle<DateProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_DATE, u"Date", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+      u"Date", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
 
-    new (jsobj.val()) DateProto();
+    jsobj.val()->SetType(OBJ_OTHER);
     return Handle<DateProto>(jsobj);
   }
 };
@@ -198,10 +198,10 @@ class DateObject : public JSObject {
  public:
   static Handle<DateObject> New(Handle<JSValue> primitive_value) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_DATE, u"Date", true, Handle<JSValue>(), false, false, nullptr, 0
+      u"Date", true, Handle<JSValue>(), false, false, nullptr, 0
     );
 
-    new (jsobj.val()) DateObject();
+    jsobj.val()->SetType(OBJ_DATE);
     Handle<DateObject> obj(jsobj);
     obj.val()->SetPrototype(DateProto::Instance());
     return obj;
@@ -236,9 +236,9 @@ class DateConstructor : public JSObject {
  private:
   static Handle<DateConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_DATE_CONSTRUCTOR, u"Date", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      u"Date", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    new (jsobj.val()) DateConstructor();
+    jsobj.val()->SetType(OBJ_DATE_CONSTRUCTOR);
     return Handle<DateConstructor>(jsobj);
   }
 };

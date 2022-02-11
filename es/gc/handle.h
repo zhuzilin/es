@@ -170,12 +170,12 @@ class Handle {
  public:
   explicit Handle(T* value) {
     if (value != nullptr) {
-// #ifdef GC_DEBUG
-//       if (log::Debugger::On()) {
-//         Handle<T> tmp;
-//         std::cout << "Add " << typeid(tmp).name() << std::endl;
-//       }
-// #endif
+#ifdef GC_DEBUG
+      if (log::Debugger::On()) {
+        Handle<T> tmp;
+        std::cout << "Add value " << typeid(tmp).name() << " flag: " << int(Flag(value)) << "\n";
+      }
+#endif
       ptr_ = reinterpret_cast<T**>(HandleScope::Add(value));
     } else {
       ptr_ = nullptr;
@@ -206,11 +206,7 @@ class Handle {
 
   bool IsNullptr() { return ptr() == nullptr; }
 
-  std::string ToString() {
-    if (IsNullptr())
-      return "nullptr";
-    return val()->ToString();
-  }
+  std::string ToString();
 
  private:
   T** ptr_;

@@ -25,9 +25,9 @@ class BoolProto : public JSObject {
  private:
   static Handle<BoolProto> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_BOOL, u"Boolean", true, Bool::False(), false, false, nullptr, 0, flag);
+      u"Boolean", true, Bool::False(), false, false, nullptr, 0, flag);
 
-    new (jsobj.val()) BoolProto();
+    jsobj.val()->SetType(OBJ_OTHER);
     return Handle<BoolProto>(jsobj);
   }
 };
@@ -36,10 +36,11 @@ class BoolObject : public JSObject {
  public:
   static Handle<BoolObject> New(Handle<JSValue> primitive_value) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_BOOL, u"Boolean", true, primitive_value, false, false, nullptr, 0
+      u"Boolean", true, primitive_value, false, false, nullptr, 0
     );
 
-    new (jsobj.val()) BoolObject();
+    jsobj.val()->SetType(OBJ_BOOL);
+
     Handle<BoolObject> obj(jsobj);
     obj.val()->SetPrototype(BoolProto::Instance());
     return obj;
@@ -60,9 +61,9 @@ class BoolConstructor : public JSObject {
  private:
   static Handle<BoolConstructor> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
-      OBJ_BOOL_CONSTRUCTOR, u"Boolean", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+      u"Boolean", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
 
-    new (jsobj.val()) BoolConstructor();
+    jsobj.val()->SetType(OBJ_BOOL_CONSTRUCTOR);
     return Handle<BoolConstructor>(jsobj);
   }
 };

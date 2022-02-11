@@ -25,7 +25,7 @@ Handle<JSObject> Construct(Handle<Error>& e, Handle<JSObject> O, std::vector<Han
       return Construct__BindFunction(e, static_cast<Handle<BindFunctionObject>>(O), arguments);
     }
   } else if (O.val()->IsConstructor()) {
-    switch (O.val()->obj_type()) {
+    switch (O.val()->type()) {
       case JSObject::OBJ_BOOL_CONSTRUCTOR:
         return Construct__BoolConstructor(e, static_cast<Handle<BoolConstructor>>(O), arguments);
       case JSObject::OBJ_NUMBER_CONSTRUCTOR:
@@ -58,7 +58,8 @@ Handle<JSObject> Construct__Function(
   if (log::Debugger::On())
     log::PrintSource("enter FunctionObject::Construct");
   // NOTE(zhuzilin) I'm not sure if the object type should be OBJ_OBJECT or OBJ_OTHER...
-  Handle<JSObject> obj = JSObject::New(JSObject::OBJ_OBJECT, u"Object", true, Handle<JSValue>(), false, false, nullptr, 0);
+  Handle<JSObject> obj = JSObject::New(u"Object", true, Handle<JSValue>(), false, false, nullptr, 0);
+  obj.val()->SetType(HeapObject::OBJ_OBJECT);
   Handle<JSValue> proto = Get(e, O, String::Prototype());
   if (!e.val()->IsOk()) return Handle<JSValue>();
   if (proto.val()->IsObject()) {  // 6
