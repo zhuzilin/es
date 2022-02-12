@@ -10,6 +10,21 @@
 
 namespace es {
 
+inline void MemCopy(void* dst, void* src, size_t size) {
+  void** dst_p = reinterpret_cast<void**>(dst);
+  void** src_p = reinterpret_cast<void**>(src);
+  size_t count = size / kPtrSize;
+  // This constant is taken from v8.
+  if (count < 16) {
+    do {
+      count--;
+      *dst_p++ = *src_p++;
+    } while (count > 0);
+  } else {
+    memcpy(dst, src, size);
+  }
+}
+
 class CopyingCollection : public GC {
  public:
   CopyingCollection(size_t size) {
@@ -50,15 +65,9 @@ class CopyingCollection : public GC {
     Initialise(worklist_);
     auto root_pointers = Runtime::Global()->Pointers();
     assert(root_pointers.size() > 0);
-#ifdef GC_DEBUG
-    std::cout << "root_pointers size: " << root_pointers.size() << "\n";
-#endif
     for (HeapObject** fld : root_pointers) {
       Process(fld);
     }
-#ifdef GC_DEBUG
-    std::cout << "finish root_pointers" << "\n";
-#endif
     while (!IsEmpty(worklist_)) {
       void* ref = Remove(worklist_);
       Scan(ref);
@@ -121,7 +130,7 @@ class CopyingCollection : public GC {
     assert(InToSpace(free_) || free_ == tospace_ + extent_);
     assert(ForwardAddress(from_ref) == nullptr);
 #endif
-    memcpy(H(to_ref), H(from_ref), size);
+    MemCopy(H(to_ref), H(from_ref), size);
     SetForwardAddress(from_ref, to_ref);
 #ifdef GC_DEBUG
     assert(ForwardAddress(to_ref) == nullptr);

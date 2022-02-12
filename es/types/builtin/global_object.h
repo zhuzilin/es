@@ -76,7 +76,7 @@ class GlobalObject : public JSObject {
       number *= R;
       number += character::Digit(input_string[i]);
     }
-    return Number::New(number);
+    return Number::New(sign * number);
   }
 
   // 15.1.2.3 parseFloat (string)

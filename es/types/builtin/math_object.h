@@ -23,8 +23,8 @@ class Math : public JSObject {
       return Number::NegativeInfinity();
     double value1 = ToNumber(e, vals[0]);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    double value2;
-    if (vals.size() < 2) {
+    double value2 = nan("");
+    if (likely(vals.size() >= 2)) {
       value2 = ToNumber(e, vals[1]);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     }

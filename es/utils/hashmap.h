@@ -111,7 +111,6 @@ class HashMap : public HeapObject {
     if (new_num_bucket == old_num_bucket)
       return map;
     Handle<HashMap> new_map = HashMap::New(new_num_bucket);
-    size_t count = 0;
     for (size_t i = 0; i < old_num_bucket; i++) {
       size_t offset = kElementOffset + i * kPtrSize;
       ListNode* node = map.val()->GetListHead(offset);
@@ -145,7 +144,6 @@ class HashMap : public HeapObject {
         node = next_node;
       }
     }
-    count = 0;
     new_map.val()->SetSize(map.val()->size());
     return new_map;
   }

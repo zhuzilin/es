@@ -8,12 +8,15 @@
 
 namespace es {
 
+constexpr size_t kAlignmentBits = 3;
+constexpr size_t kAlignmentMask = (1 << kAlignmentBits) - 1;
+
 class GC {
  public:
   void* New(size_t size, flag_t flag) {
     size_t size_with_header = size + sizeof(Header);
-    if (size_with_header % 8 != 0) {
-      size_with_header += 8 - size_with_header % 8;
+    if (size_with_header & kAlignmentMask) {
+      size_with_header = ((size_with_header >> 3) + 1) << 3;
     }
     void* ref = Allocate(size_with_header, flag);
     if (ref == nullptr) {

@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
   Init();
   Handle<Error> e = Error::Ok();
   EnterGlobalCode(e, ast);
-  if (!e.val()->IsOk()) {
+  if (unlikely(!e.val()->IsOk())) {
     std::cout << "enter global failed" << "\n";
     return 0;
   }

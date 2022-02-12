@@ -506,8 +506,6 @@ reject:
 bool DefineOwnProperty__Arguments(
   Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
 ) {
-  Handle<JSObject> map = O.val()->ParameterMap();
-  Handle<JSValue> is_mapped = GetOwnProperty(map, P);
   bool allowed = DefineOwnProperty__Base(e, O, P, desc, false);
   if (!allowed) {
     if (throw_flag) {
@@ -515,6 +513,8 @@ bool DefineOwnProperty__Arguments(
     }
     return false;
   }
+  Handle<JSObject> map = O.val()->ParameterMap();
+  Handle<JSValue> is_mapped = GetOwnProperty(map, P);
   if (!is_mapped.val()->IsUndefined()) {  // 5
     if (desc.val()->IsAccessorDescriptor()) {
       Delete(e, map, P, false);

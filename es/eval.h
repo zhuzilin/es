@@ -1232,6 +1232,7 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, Handle<JSValue
     case Token::TK_KEYWORD:
       if (op.source_ref() != u"instanceof" && op.source_ref() != u"in")
         assert(false);
+      [[fallthrough]];
     case Token::TK_LT:   // <
     case Token::TK_GT:   // >
     case Token::TK_LE:   // <=

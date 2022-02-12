@@ -1,6 +1,8 @@
 #ifndef ES_UTILS_MACROS_H
 #define ES_UTILS_MACROS_H
 
+#include <stdlib.h>
+
 namespace es {
 
 constexpr size_t kIntSize = sizeof(int);
