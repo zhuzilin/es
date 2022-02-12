@@ -656,13 +656,9 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
   Handle<LexicalEnvironment> catch_env = NewDeclarativeEnvironment(old_env);
   Handle<String> ident_str = String::New(try_stmt->catch_ident());
-  CreateMutableBinding(e, catch_env.val()->env_rec(), ident_str, false);  // 4
-  if (!e.val()->IsOk()) {
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
-  }
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
-  SetMutableBinding(e, catch_env.val()->env_rec(), ident_str, C.value(), false);  // 5
+  CreateAndSetMutableBinding(e, catch_env.val()->env_rec(), ident_str, false, C.value(), false);  // 4 & 5
   if (!e.val()->IsOk()) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }

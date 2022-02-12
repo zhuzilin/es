@@ -201,11 +201,12 @@ void DeclarationBindingInstantiation(
       bool arg_already_declared = HasBinding(env, arg_name);  // 4.d.iii
       if (!arg_already_declared) {  // 4.d.iv
         // NOTE(zhuzlin) I'm not sure if this should be false.
-        CreateMutableBinding(e, env, arg_name, false);
+        CreateAndSetMutableBinding(e, env, arg_name, false, v, strict);
+        if (!e.val()->IsOk()) return;
+      } else {
+        SetMutableBinding(e, env, arg_name, v, strict);  // 4.d.v
         if (!e.val()->IsOk()) return;
       }
-      SetMutableBinding(e, env,arg_name, v, strict);  // 4.d.v
-      if (!e.val()->IsOk()) return;
     }
   }
   // 5
@@ -216,7 +217,7 @@ void DeclarationBindingInstantiation(
     if (!e.val()->IsOk()) return;
     bool func_already_declared = HasBinding(env, fn);
     if (!func_already_declared) {  // 5.d
-      CreateMutableBinding(e, env, fn, configurable_bindings);
+      CreateAndSetMutableBinding(e, env, fn, configurable_bindings, fo, strict);
       if (!e.val()->IsOk()) return;
     } else {  // 5.e
       auto go = GlobalObject::Instance();
@@ -236,22 +237,22 @@ void DeclarationBindingInstantiation(
           return;
         }
       }
+      SetMutableBinding(e, env, fn, fo, strict);  // 5.f
     }
-    SetMutableBinding(e, env,fn, fo, strict);  // 5.f
   }
-  // 6
-  bool arguments_already_declared = HasBinding(env, String::Arguments());
   // 7
-  if (code_type == CODE_FUNC && !arguments_already_declared) {
-    auto args_obj = CreateArgumentsObject(f, args, context->variable_env(), strict);
-    if (strict) {  // 7.b
-      Handle<DeclarativeEnvironmentRecord> decl_env = static_cast<Handle<DeclarativeEnvironmentRecord>>(env);
-      CreateImmutableBinding(decl_env, String::Arguments());
-      InitializeImmutableBinding(decl_env, String::Arguments(), args_obj);
-    } else {  // 7.c
-      // NOTE(zhuzlin) I'm not sure if this should be false.
-      CreateMutableBinding(e, env, String::Arguments(), false);
-      SetMutableBinding(e, env,String::Arguments(), args_obj, false);
+  if (code_type == CODE_FUNC) {
+    // 6
+    bool arguments_already_declared = HasBinding(env, String::Arguments());
+    if (!arguments_already_declared) {
+      auto args_obj = CreateArgumentsObject(f, args, context->variable_env(), strict);
+      if (strict) {  // 7.b
+        Handle<DeclarativeEnvironmentRecord> decl_env = static_cast<Handle<DeclarativeEnvironmentRecord>>(env);
+        CreateAndInitializeImmutableBinding(decl_env, String::Arguments(), args_obj);
+      } else {  // 7.c
+        // NOTE(zhuzlin) I'm not sure if this should be false.
+        CreateAndSetMutableBinding(e, env, String::Arguments(), false, args_obj, false);
+      }
     }
   }
   // 8
@@ -261,9 +262,7 @@ void DeclarationBindingInstantiation(
     Handle<String> dn = String::New(d->ident());
     bool var_already_declared = HasBinding(env, dn);
     if (!var_already_declared) {
-      CreateMutableBinding(e, env, dn, configurable_bindings);
-      if (!e.val()->IsOk()) return;
-      SetMutableBinding(e, env,dn, Undefined::Instance(), strict);
+      CreateAndSetMutableBinding(e, env, dn, configurable_bindings, Undefined::Instance(), strict);
       if (!e.val()->IsOk()) return;
     }
   }

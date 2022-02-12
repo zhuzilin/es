@@ -10,6 +10,7 @@
 namespace es {
 
 std::unordered_map<size_t, size_t> kExpandHashMapSize = {
+  {3, 7},
   {7, 17},
   {17, 37},
   {37, 67},
@@ -271,7 +272,7 @@ class HashMap : public HeapObject {
   static constexpr size_t kSizeOffset = kNumBucketOffset + kSizeTSize;
   static constexpr size_t kElementOffset = kSizeOffset + kSizeTSize;
 
-  static constexpr size_t kDefaultHashMapSize = 7;
+  static constexpr size_t kDefaultHashMapSize = 3;
 
   static constexpr std::hash<std::u16string> U16Hash = std::hash<std::u16string>{};
 };

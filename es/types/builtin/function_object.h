@@ -279,7 +279,6 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function
     );
     auto env_rec = static_cast<Handle<DeclarativeEnvironmentRecord>>(func_env.val()->env_rec());  // 2
     Handle<String> identifier_str = String::New(identifier);
-    CreateImmutableBinding(env_rec, identifier_str);  // 3
     auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
     bool strict = body->strict() || Runtime::TopContext()->strict();
     if (strict) {
@@ -301,7 +300,7 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function
     }
     Handle<FunctionObject> closure = FunctionObject::New(
       func_ast->params(), func_ast->body(), func_env);  // 4
-    InitializeImmutableBinding(env_rec, identifier_str, closure);  // 5
+    CreateAndInitializeImmutableBinding(env_rec, identifier_str, closure);  // 5
     return closure;  // 6
 }
 
