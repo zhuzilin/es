@@ -90,7 +90,7 @@ Handle<JSValue> GetProperty(Handle<JSObject> O, Handle<String> P) {
 
 // [[Get]]
 Handle<JSValue> Get(Handle<Error>& e, Handle<JSObject> O, Handle<String> P) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("enter Get " + P.ToString() + " from " + std::to_string(O.val()->type()));
   if (O.val()->IsFunctionObject()) {
     return Get__Function(e, static_cast<Handle<FunctionObject>>(O), P);
@@ -124,7 +124,7 @@ Handle<JSValue> Get__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P
 // 15.3.5.4 [[Get]] (P)
 Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle<String> P) {
   Handle<JSValue> V = Get__Base(e, O, P);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   if (P.val()->data() == u"caller") {  // 2
     if (V.val()->IsFunctionObject()) {
       Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
@@ -143,7 +143,7 @@ Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Hand
   Handle<JSValue> is_mapped = GetOwnProperty(map, P);
   if (is_mapped.val()->IsUndefined()) {  // 3
     Handle<JSValue> V = Get__Base(e, O, P);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (P.val()->data() == u"caller") {
       if (V.val()->IsFunctionObject()) {
         Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
@@ -191,7 +191,7 @@ bool CanPut(Handle<JSObject> O, Handle<String> P) {
 // [[Put]]
 // 8.12.5 [[Put]] ( P, V, Throw )
 void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("enter Put " + P.ToString() + " to " + O.ToString() + " with value " + V.ToString());
   assert(V.val()->IsLanguageType());
   if (!CanPut(O, P)) {  // 1
@@ -206,7 +206,7 @@ void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue>
     if (own_desc.val()->IsDataDescriptor()) {  // 3
       Handle<PropertyDescriptor> value_desc = PropertyDescriptor::New();
       value_desc.val()->SetValue(V);
-      if (log::Debugger::On())
+      if (unlikely(log::Debugger::On()))
         log::PrintSource("Overwrite the old desc with " + value_desc.ToString());
       DefineOwnProperty(e, O, P, value_desc, throw_flag);
       return;
@@ -216,7 +216,7 @@ void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue>
   if (!value.val()->IsUndefined()) {
     Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(value);
     if (desc.val()->IsAccessorDescriptor()) {
-      if (log::Debugger::On())
+      if (unlikely(log::Debugger::On()))
         log::PrintSource("Use parent prototype's setter");
       Handle<JSValue> setter = desc.val()->Set();
       assert(!setter.val()->IsUndefined());
@@ -268,7 +268,7 @@ bool Delete__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<Strin
   Handle<JSObject> map = O.val()->ParameterMap();
   Handle<JSValue> is_mapped = GetOwnProperty(map, P);
   bool result = Delete__Base(e, O, P, throw_flag);
-  if (!e.val()->IsOk()) return false;
+  if (unlikely(!e.val()->IsOk())) return false;
   if (result && !is_mapped.val()->IsUndefined()) {
     Delete(e, map, P, false);
   }
@@ -293,21 +293,21 @@ Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16strin
   guard.AddValue(O);
 
   Handle<JSValue> to_string = Get(e, O, first);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   if (to_string.val()->IsCallable()) {
     Handle<JSObject> to_string_obj = static_cast<Handle<JSObject>>(to_string);
     Handle<JSValue> str = Call(e, to_string_obj, O);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (str.val()->IsPrimitive()) {
       return str;
     }
   }
   Handle<JSValue> value_of = Get(e, O, second);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   if (value_of.val()->IsCallable()) {
     Handle<JSObject> value_of_obj = static_cast<Handle<JSObject>>(value_of);
     Handle<JSValue> val = Call(e, value_of_obj, O);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (val.val()->IsPrimitive()) {
       return val;
     }
@@ -320,7 +320,7 @@ Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16strin
 bool DefineOwnProperty(
   Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
 ) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("enter DefineOwnProperty " + P.ToString());
   if (O.val()->IsArrayObject()) {
     return DefineOwnProperty__Array(e, static_cast<Handle<ArrayObject>>(O), P, desc, throw_flag);
@@ -364,16 +364,16 @@ bool DefineOwnProperty__Base(
       same = same && (desc.val()->Enumerable() == current_desc.val()->Enumerable());
     if (same) return true;  // 6
   }
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("desc: " + desc.ToString() + ", current: " + current_desc.ToString());
   if (!current_desc.val()->Configurable()) { // 7
     if (desc.val()->Configurable()) {  // 7.a
-      if (log::Debugger::On())
+      if (unlikely(log::Debugger::On()))
         log::PrintSource("DefineOwnProperty: " + P.ToString() + " not configurable, while new value configurable");
       goto reject;
     }
     if (desc.val()->HasEnumerable() && (desc.val()->Enumerable() != current_desc.val()->Enumerable())) {  // 7.b
-      if (log::Debugger::On())
+      if (unlikely(log::Debugger::On()))
         log::PrintSource("DefineOwnProperty: " + P.ToString() + " enumerable value differ");
       goto reject;
     }
@@ -410,14 +410,14 @@ bool DefineOwnProperty__Base(
       }
     }
   }
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("DefineOwnProperty: " + P.ToString() + " is set to " + desc.val()->Value().ToString());
   // 12.
   current_desc.val()->Set(desc);
   // 13.
   return true;
 reject:
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("DefineOwnProperty reject");
   if (throw_flag) {
     e = Error::TypeError();
@@ -438,9 +438,9 @@ bool DefineOwnProperty__Array(
     Handle<PropertyDescriptor> new_len_desc = PropertyDescriptor::New();
     new_len_desc.val()->Set(desc);
     double new_len = ToUint32(e, desc.val()->Value());
-    if (!e.val()->IsOk()) goto reject;
+    if (unlikely(!e.val()->IsOk())) goto reject;
     double new_num = ToNumber(e, desc.val()->Value());
-    if (!e.val()->IsOk()) goto reject;
+    if (unlikely(!e.val()->IsOk())) goto reject;
     if (new_len != new_num) {
       e = Error::RangeError(u"length of array need to be uint32.");
       return false;
@@ -495,7 +495,7 @@ bool DefineOwnProperty__Array(
   }
   return DefineOwnProperty__Base(e, O, P, desc, throw_flag);
 reject:
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("Array::DefineOwnProperty reject " + P.ToString() + " " + desc.ToString());
   if (throw_flag) {
     e = Error::TypeError();
@@ -551,7 +551,7 @@ bool HasInstance__Base(Handle<Error>& e, Handle<JSObject> obj, Handle<JSValue> V
   if (!V.val()->IsObject())
     return false;
   Handle<JSValue> O = Get(e, obj, String::Prototype());
-  if (!e.val()->IsOk()) return false;
+  if (unlikely(!e.val()->IsOk())) return false;
   if (!O.val()->IsObject()) {
     e = Error::TypeError(u"non-object prototype.");
     return false;
@@ -561,7 +561,7 @@ bool HasInstance__Base(Handle<Error>& e, Handle<JSObject> obj, Handle<JSValue> V
       return true;
     assert(V.val()->IsObject());
     V = static_cast<Handle<JSObject>>(V).val()->Prototype();
-    if (!e.val()->IsOk()) return false;
+    if (unlikely(!e.val()->IsOk())) return false;
   }
   return false; 
 }
@@ -571,7 +571,7 @@ bool HasInstance__Function(Handle<Error>& e, Handle<FunctionObject> obj, Handle<
   if (!V.val()->IsObject())
     return false;
   Handle<JSValue> O = Get(e, obj, String::Prototype());
-  if (!e.val()->IsOk()) return false;
+  if (unlikely(!e.val()->IsOk())) return false;
   if (!O.val()->IsObject()) {
     e = Error::TypeError();
     return false;
@@ -580,7 +580,7 @@ bool HasInstance__Function(Handle<Error>& e, Handle<FunctionObject> obj, Handle<
     if (V.val() == O.val())
       return true;
     V = Get(e, static_cast<Handle<JSObject>>(V), String::Prototype());
-    if (!e.val()->IsOk()) return false;
+    if (unlikely(!e.val()->IsOk())) return false;
   }
   return false;
 }
@@ -594,7 +594,7 @@ void AddValueProperty(
   Handle<JSObject> O, Handle<String> name, Handle<JSValue> value, bool writable,
   bool enumerable, bool configurable
 ) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("AddValueProperty " + name.ToString() + " to " + value.ToString());
   Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
   desc.val()->SetDataDescriptor(value, writable, enumerable, configurable);

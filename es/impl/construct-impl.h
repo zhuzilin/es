@@ -55,20 +55,20 @@ Handle<JSObject> Construct(Handle<Error>& e, Handle<JSObject> O, std::vector<Han
 Handle<JSObject> Construct__Function(
   Handle<Error>& e, Handle<FunctionObject> O, std::vector<Handle<JSValue>> arguments
 ) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("enter FunctionObject::Construct");
   // NOTE(zhuzilin) I'm not sure if the object type should be OBJ_OBJECT or OBJ_OTHER...
   Handle<JSObject> obj = JSObject::New(u"Object", true, Handle<JSValue>(), false, false, nullptr, 0);
   obj.val()->SetType(HeapObject::OBJ_OBJECT);
   Handle<JSValue> proto = Get(e, O, String::Prototype());
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   if (proto.val()->IsObject()) {  // 6
     obj.val()->SetPrototype(proto);
   } else {  // 7
     obj.val()->SetPrototype(ObjectProto::Instance());
   }
   Handle<JSValue> result = Call(e, O, obj, arguments);  // 8
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   if (result.val()->IsObject())  // 9
     return static_cast<Handle<JSObject>>(result);
   return obj;  // 10
@@ -136,23 +136,23 @@ Handle<JSObject> Construct__ErrorConstructor(
 Handle<JSObject> Construct__FunctionConstructor(
   Handle<Error>& e, Handle<FunctionConstructor> O, std::vector<Handle<JSValue>> arguments
 ) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("enter FunctionConstructor::Construct");
   size_t arg_count = arguments.size();
   std::u16string P = u"";
   std::u16string body = u"";
   if (arg_count == 1) {
     body = ToU16String(e, arguments[0]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   } else if (arg_count > 1) {
     P += ToU16String(e, arguments[0]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     for (size_t i = 1; i < arg_count - 1; i++) {
       P += u"," + ToU16String(e, arguments[i]);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     }
     body = ToU16String(e, arguments[arg_count - 1]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   }
   std::u16string P_view = Runtime::Global()->AddSource(std::move(P));
   std::vector<std::u16string> names;
@@ -200,7 +200,7 @@ Handle<JSObject> Construct__NumberConstructor(
     js_num = Number::Zero();
   } else {
     double num = ToNumber(e, arguments[0]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     js_num = Number::New(num);
   }
   return NumberObject::New(js_num);
@@ -246,13 +246,13 @@ Handle<JSObject> Construct__RegExpConstructor(
     }
   } else {
     P = ::es::ToString(e, arguments[0]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   }
   if (arguments.size() < 2 || arguments[1].val()->IsUndefined()) {
     F = String::Empty();
   } else {
     F = ::es::ToString(e, arguments[1]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   }
   // Check is flag is valid
   std::unordered_map<char16_t, size_t> count;
@@ -282,7 +282,7 @@ Handle<JSObject> Construct__StringConstructor(
   if (arguments.size() == 0)
     return StringObject::New(String::Empty());
   Handle<String> str = ::es::ToString(e, arguments[0]);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   return StringObject::New(str);
 }
 

@@ -74,7 +74,7 @@ void SetMutableBinding(
 void SetMutableBinding__Declarative(
   Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
 ) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("enter SetMutableBinding__Declarative ", N.val()->data(), " to " + V.ToString());
   assert(V.val()->IsLanguageType());
   // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,
@@ -91,7 +91,7 @@ void SetMutableBinding__Declarative(
 void SetMutableBinding__Object(
   Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
 ) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("enter SetMutableBinding__Object " + N.ToString() + " to " + V.ToString());
   assert(V.val()->IsLanguageType());
   Put(e, env_rec.val()->bindings(), N, V, S);
@@ -112,7 +112,7 @@ Handle<JSValue> GetBindingValue(
 Handle<JSValue> GetBindingValue__Declarative(
   Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("enter GetBindingValue__Declarative " + N.ToString());
   Binding* b = static_cast<Binding*>(env_rec.val()->bindings()->GetRaw(N));
   assert(b != nullptr);
@@ -121,12 +121,12 @@ Handle<JSValue> GetBindingValue__Declarative(
       e = Error::ReferenceError(N.val()->data() + u" is not defined");
       return Handle<JSValue>();
     } else {
-      if (log::Debugger::On())
+      if (unlikely(log::Debugger::On()))
         log::PrintSource("GetBindingValue ", N.val()->data(), " undefined");
       return Undefined::Instance();
     }
   }
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("GetBindingValue ", N.val()->data(), " " + b->value().ToString());
   return b->value();
 }
@@ -135,7 +135,7 @@ Handle<JSValue> GetBindingValue__Declarative(
 Handle<JSValue> GetBindingValue__Object(
   Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("enter GetBindingValue__Object " + N.ToString());
   bool value = HasBinding(env_rec, N);
   if (!value) {

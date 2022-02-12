@@ -33,7 +33,7 @@ class ObjectProto : public JSObject {
   static Handle<JSValue> valueOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSValue> val = Runtime::TopValue();
     Handle<JSObject> O = ToObject(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     // TODO(zhuzilin) Host object
     return O;
   }
@@ -108,7 +108,7 @@ class ObjectConstructor : public JSObject {
     obj.val()->SetPrototype(vals[0]);
     if (vals.size() > 1 && !vals[1].val()->IsUndefined()) {
       ObjectConstructor::defineProperties(e, this_arg, vals);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     }
     return obj;
   }
@@ -124,9 +124,9 @@ class ObjectConstructor : public JSObject {
       return Handle<JSValue>();
     }
     Handle<String> name = ::es::ToString(e, vals[1]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<PropertyDescriptor> desc = ToPropertyDescriptor(e, vals[2]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     DefineOwnProperty(e, O, name, desc, true);
     return O;
   }
@@ -179,7 +179,7 @@ class ObjectConstructor : public JSObject {
       return Handle<JSValue>(); 
     }
     CheckObjectCoercible(e, vals[0]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (!(vals[1].val()->IsNull() || vals[1].val()->IsObject())) {
       e = Error::TypeError(u"");
       return Handle<JSValue>();

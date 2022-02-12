@@ -22,11 +22,11 @@ class Math : public JSObject {
     if (vals.size() == 0)
       return Number::NegativeInfinity();
     double value1 = ToNumber(e, vals[0]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     double value2;
     if (vals.size() < 2) {
       value2 = ToNumber(e, vals[1]);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     }
     if (isnan(value1) || isnan(value2))
       return Number::NaN();

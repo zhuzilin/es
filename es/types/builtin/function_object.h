@@ -54,15 +54,15 @@ class FunctionProto : public JSObject {
     }
     Handle<JSObject> arg_array = static_cast<Handle<JSObject>>(vals[1]);
     Handle<JSValue> len = Get(e, arg_array, String::Length());
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     size_t n = ToNumber(e, len);
     std::vector<Handle<JSValue>> arg_list;  // 6
     size_t index = 0;  // 7
     while (index < n) {  // 8
       Handle<String> index_name = ::es::NumberToString(index);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       Handle<JSValue> next_arg = Get(e, arg_array, index_name);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       arg_list.emplace_back(next_arg);
       index++;
     }

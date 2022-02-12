@@ -34,12 +34,12 @@ class GlobalObject : public JSObject {
     }
     std::u16string input_string = ToU16String(e, vals[0]);
     size_t len = input_string.size();
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     double R = 10;
     bool strip_prefix = true;
     if (vals.size() >= 2 && !vals[1].val()->IsUndefined()) {
       R = ToInt32(e, vals[0]);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (R < 2 || R > 36)
         return Number::NaN();
       if (R != 0 && R != 16)

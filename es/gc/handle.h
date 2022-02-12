@@ -171,7 +171,7 @@ class Handle {
   explicit Handle(T* value) {
     if (value != nullptr) {
 #ifdef GC_DEBUG
-      if (log::Debugger::On()) {
+      if (unlikely(log::Debugger::On())) {
         Handle<T> tmp;
         std::cout << "Add value " << typeid(tmp).name() << " flag: " << int(Flag(value)) << "\n";
       }

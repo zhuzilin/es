@@ -32,12 +32,12 @@ class ArrayProto : public JSObject {
   // 15.4.4.2 Array.prototype.toString ( )
   static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSObject> array = ToObject(e, Runtime::TopValue());
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<JSValue> func = Get(e, array, String::New(u"join"));
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (!func.val()->IsCallable()) {
       func = Get(e, ObjectProto::Instance(), String::New(u"toString"));
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     }
     return Call(e, static_cast<Handle<JSObject>>(func), this_arg, vals);
   }
@@ -50,26 +50,26 @@ class ArrayProto : public JSObject {
 
   static Handle<JSValue> join(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSObject> O = ToObject(e, Runtime::TopValue());
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<Number> len_val = static_cast<Handle<Number>>(Get(e, O, String::Length()));
     size_t len = len_val.val()->data();
 
     std::u16string sep = u",";
     if (vals.size() > 0 && !vals[0].val()->IsUndefined()) {
       sep = ToU16String(e, vals[0]);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     }
     if (len == 0)
       return String::Empty();
     Handle<JSValue> element0 = Get(e, O, String::New(u"0"));
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     std::u16string R = u"";
     if (!element0.val()->IsUndefined() && !element0.val()->IsNull()) {
       R = ToU16String(e, element0);
     }
     for (double k = 1; k < len; k++) {
       Handle<JSValue> element = Get(e, O, NumberToString(k));
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       std::u16string next = u"";
       if (!element.val()->IsUndefined() && !element.val()->IsNull()) {
         next = ToU16String(e, element);
@@ -82,22 +82,22 @@ class ArrayProto : public JSObject {
   // 15.4.4.6 Array.prototype.pop ( )
   static Handle<JSValue> pop(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSObject> O = ToObject(e, Runtime::TopValue());
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     size_t len = ToNumber(e, Get(e, O, String::Length()));
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (len == 0) {
       Put(e, O, String::Length(), Number::Zero(), true);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       return Undefined::Instance();
     } else {
       assert(len > 0);
       Handle<String> indx = NumberToString(len - 1);
       Handle<JSValue> element = Get(e, O, indx);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       Delete(e, O, indx, true);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       Put(e, O, String::Length(), Number::New(len - 1), true);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       return element;
     }
   }
@@ -105,17 +105,17 @@ class ArrayProto : public JSObject {
   // 15.4.4.7 Array.prototype.push ( [ item1 [ , item2 [ , … ] ] ] )
   static Handle<JSValue> push(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSObject> O = ToObject(e, Runtime::TopValue());
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     double n = ToNumber(e, Get(e, O, String::Length()));
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     for (Handle<JSValue> E : vals) {
       Put(e, O, NumberToString(n), E, true);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       n++;      
     }
     Handle<Number> num = Number::New(n);
     Put(e, O, String::Length(), num, true);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     return num;
   }
 
@@ -126,16 +126,16 @@ class ArrayProto : public JSObject {
   // 15.4.4.9 Array.prototype.shift ( )
   static Handle<JSValue> shift(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSObject> O = ToObject(e, Runtime::TopValue());
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     size_t len = ToNumber(e, Get(e, O, String::Length()));
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (len == 0) {
       Put(e, O, String::Length(), Number::Zero(), true);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       return Undefined::Instance();
     }
     Handle<JSValue> first = Get(e, O, String::Zero());
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     size_t k = 1;
     while (k < len) {  // 7
       Handle<String> from = NumberToString(k);
@@ -143,19 +143,19 @@ class ArrayProto : public JSObject {
       bool from_present = HasProperty(O, from);
       if (from_present) {
         Handle<JSValue> from_val = Get(e, O, from);
-        if (!e.val()->IsOk()) return Handle<JSValue>();
+        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         Put(e, O, to, from_val, true);
-        if (!e.val()->IsOk()) return Handle<JSValue>();
+        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       } else {
         Delete(e, O, to, true);
-        if (!e.val()->IsOk()) return Handle<JSValue>();
+        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       }
       k++;
     }
     Delete(e, O, NumberToString(len - 1), true);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Put(e, O, String::Length(), Number::New(len - 1), true);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     return first;
   }
 
@@ -271,12 +271,12 @@ Handle<JSValue> ArrayProto::concat(Handle<Error>& e, Handle<JSValue> this_arg, s
     if (E.val()->IsArrayObject()) {
       Handle<ArrayObject> O = static_cast<Handle<ArrayObject>>(E);
       size_t len = ToNumber(e, Get(e, O, String::Length()));
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       for (size_t k = 0; k < len; k++) {  // 5.b.iii
         Handle<String> P = NumberToString(k);
         if (HasProperty(O, P)) {
           Handle<JSValue> sub_element = Get(e, O, P);
-          if (!e.val()->IsOk()) return Handle<JSValue>();
+          if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
           AddValueProperty(A, NumberToU16String(n), sub_element, true, true, true);
         }
         n++;
@@ -292,14 +292,14 @@ Handle<JSValue> ArrayProto::concat(Handle<Error>& e, Handle<JSValue> this_arg, s
 // 15.4.4.10 Array.prototype.slice (start, end)
 Handle<JSValue> ArrayProto::slice(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   Handle<JSObject> O = ToObject(e, Runtime::TopValue());
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   double len = ToNumber(e, Get(e, O, String::Length()));
   Handle<ArrayObject> A = ArrayObject::New(0);
   if (vals.size() == 0 || vals[0].val()->IsUndefined()) {
     e = Error::TypeError(u"start of Array.prototype.slice cannot be undefined");
   }
   int relative_start = ToInteger(e, vals[0]);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   int k;
   if (relative_start < 0)
     k = fmax(relative_start + len, 0);
@@ -310,7 +310,7 @@ Handle<JSValue> ArrayProto::slice(Handle<Error>& e, Handle<JSValue> this_arg, st
     relative_end = len;
   } else {
     relative_end = ToInteger(e, vals[1]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   }
   int final;
   int n = 0;
@@ -322,7 +322,7 @@ Handle<JSValue> ArrayProto::slice(Handle<Error>& e, Handle<JSValue> this_arg, st
     Handle<String> Pk = NumberToString(k);
     if (HasProperty(O, Pk)) {
       Handle<JSValue> k_value = Get(e, O, Pk);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       AddValueProperty(A, NumberToU16String(n), k_value, true, true, true);
     }
     k++;
@@ -334,7 +334,7 @@ Handle<JSValue> ArrayProto::slice(Handle<Error>& e, Handle<JSValue> this_arg, st
 // 15.4.4.11 Array.prototype.sort (comparefn)
 Handle<JSValue> ArrayProto::sort(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   Handle<JSObject> obj = ToObject(e, Runtime::TopValue());
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   size_t len = ToNumber(e, Get(e, obj, String::Length()));
   // TODO(zhuzilin) Check the implementation dependecy cases would not cause error.
   Handle<JSValue> comparefn;
@@ -351,7 +351,7 @@ Handle<JSValue> ArrayProto::sort(Handle<Error>& e, Handle<JSValue> this_arg, std
     Handle<String> istr = NumberToString(i);
     if (HasProperty(obj, istr)) {
       Handle<JSValue> val = Get(e, obj, istr);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       indices.emplace_back(std::make_pair(true, val));
     } else {
       indices.emplace_back(std::make_pair(false, Handle<JSValue>()));
@@ -374,7 +374,7 @@ Handle<JSValue> ArrayProto::sort(Handle<Error>& e, Handle<JSValue> this_arg, std
         return true;
       if (!comparefn.val()->IsUndefined()) {
         Handle<JSValue> res = Call(e, static_cast<Handle<JSObject>>(comparefn), Undefined::Instance(), {x, y});
-        if (!e.val()->IsOk()) return false;
+        if (unlikely(!e.val()->IsOk())) return false;
         return ToNumber(e, res) < 0;
       }
       // NOTE(zhuzilin) 123 will be smaller 21... which I've checked with V8.
@@ -382,16 +382,16 @@ Handle<JSValue> ArrayProto::sort(Handle<Error>& e, Handle<JSValue> this_arg, std
       std::u16string ystr = ToU16String(e, y);
       return xstr < ystr;
     });
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   for (size_t i = 0; i < len; i++) {
     Handle<String> istr = NumberToString(i);
     Handle<JSValue> val = indices[i].second;
     if (indices[i].first) {
       Put(e, obj, istr, val, true);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     } else {
       Delete(e, obj, istr, true);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     }
   }
   return obj;
@@ -400,7 +400,7 @@ Handle<JSValue> ArrayProto::sort(Handle<Error>& e, Handle<JSValue> this_arg, std
 // 15.4.4.18 Array.prototype.forEach ( callbackfn [ , thisArg ] )
 Handle<JSValue> ArrayProto::forEach(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   Handle<JSObject> O = ToObject(e, Runtime::TopValue());
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   size_t len = ToNumber(e, Get(e, O, String::Length()));
   if (vals.size() == 0 || !vals[0].val()->IsCallable()) {  // 4
     e = Error::TypeError(u"Array.prototype.forEach called on non-callable");
@@ -416,12 +416,12 @@ Handle<JSValue> ArrayProto::forEach(Handle<Error>& e, Handle<JSValue> this_arg, 
   for (size_t k = 0; k < len; k++) {
     Handle<String> p_k = NumberToString(k);
     bool k_present = HasProperty(O, p_k);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (k_present) {
       Handle<JSValue> k_value = Get(e, O, p_k);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       Call(e, callbackfn, T, {k_value, Number::New(k), O});
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     }
   }
   return Undefined::Instance();
@@ -430,7 +430,7 @@ Handle<JSValue> ArrayProto::forEach(Handle<Error>& e, Handle<JSValue> this_arg, 
 // 15.4.4.19 Array.prototype.map ( callbackfn [ , thisArg ] )
 Handle<JSValue> ArrayProto::map(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   Handle<JSObject> O = ToObject(e, Runtime::TopValue());
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   size_t len = ToNumber(e, Get(e, O, String::Length()));
   if (vals.size() == 0 || !vals[0].val()->IsCallable()) {  // 4
     e = Error::TypeError(u"Array.prototype.map called on non-callable");
@@ -447,12 +447,12 @@ Handle<JSValue> ArrayProto::map(Handle<Error>& e, Handle<JSValue> this_arg, std:
   for (size_t k = 0; k < len; k++) {
     Handle<String> p_k = NumberToString(k);
     bool k_present = HasProperty(O, p_k);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (k_present) {
       Handle<JSValue> k_value = Get(e, O, p_k);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       Handle<JSValue> mapped_value = Call(e, callbackfn, T, {k_value, Number::New(k), O});
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       AddValueProperty(A, p_k.val()->data(), mapped_value, true, true, true);
     }
   }
@@ -462,7 +462,7 @@ Handle<JSValue> ArrayProto::map(Handle<Error>& e, Handle<JSValue> this_arg, std:
 // 15.4.4.20 Array.prototype.filter ( callbackfn [ , thisArg ] )
 Handle<JSValue> ArrayProto::filter(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   Handle<JSObject> O = ToObject(e, Runtime::TopValue());
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   size_t len = ToNumber(e, Get(e, O, String::Length()));
   if (vals.size() == 0 || !vals[0].val()->IsCallable()) {  // 4
     e = Error::TypeError(u"Array.prototype.filter called on non-callable");
@@ -480,12 +480,12 @@ Handle<JSValue> ArrayProto::filter(Handle<Error>& e, Handle<JSValue> this_arg, s
   for (size_t k = 0; k < len; k++) {
     Handle<String> p_k = NumberToString(k);
     bool k_present = HasProperty(O, p_k);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (k_present) {
       Handle<JSValue> k_value = Get(e, O, p_k);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       Handle<JSValue> selected = Call(e, callbackfn, T, {k_value, Number::New(k), O});
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (ToBoolean(selected)) {
         AddValueProperty(A, NumberToU16String(to), k_value, true, true, true);
         to++;

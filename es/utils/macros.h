@@ -33,6 +33,9 @@ constexpr size_t kFuncPtrSize = sizeof(void* (*));
 #define SET_VALUE(ptr, offset, val, type) \
   *reinterpret_cast<type*>(PTR(ptr, offset)) = val
 
+#define likely(x)   __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+
 }  // namespace es
 
 #endif  // ES_UTILS_MACROS_H

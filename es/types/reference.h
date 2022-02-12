@@ -45,7 +45,7 @@ class Reference : public JSValue {
 };
 
 Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("GetValue V:" + V.ToString());
   if (!V.val()->IsReference()) {
     return V;
@@ -64,7 +64,7 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
       return Get(e, obj, ref.val()->GetReferencedName());
     } else {  // special [[Get]]
       Handle<JSObject> O = ToObject(e, base);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       Handle<JSValue> tmp = GetProperty(O, ref.val()->GetReferencedName());
       if (tmp.val()->IsUndefined())
         return Undefined::Instance();
@@ -89,7 +89,7 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
 }
 
 void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("PutValue V: " + V.ToString() + ", W: " + W.ToString());
   if (!V.val()->IsReference()) {
     e = Error::ReferenceError(u"put value to non-reference.");

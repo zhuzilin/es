@@ -15,7 +15,7 @@ class JSValue : public HeapObject {
  public:
   static Handle<JSValue> New(size_t size, flag_t flag = 0) {
 #ifdef GC_DEBUG
-    if (log::Debugger::On())
+    if (unlikely(log::Debugger::On()))
       std::cout << "JSValue::New " << " " << size << " " << "\n";
 #endif
     Handle<HeapObject> mem = HeapObject::New(size, flag);

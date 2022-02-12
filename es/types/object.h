@@ -32,7 +32,7 @@ class JSObject : public JSValue {
     flag_t flag = 0
   ) {
 #ifdef GC_DEBUG
-    if (log::Debugger::On())
+    if (unlikely(log::Debugger::On()))
       std::cout << "JSObject::New " << log::ToString(klass) << "\n";
 #endif
     Handle<JSValue> jsval = JSValue::New(kJSObjectOffset - kJSValueOffset + size, flag);

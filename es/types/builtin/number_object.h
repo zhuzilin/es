@@ -26,11 +26,11 @@ class NumberProto : public JSObject {
       return Handle<JSValue>();
     }
     double num = ToNumber(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     int radix = 10;
     if (vals.size() > 0 && !vals[0].val()->IsUndefined()) {
       radix = ToInteger(e, vals[0]);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (radix < 2 || radix > 36) {
         e = Error::RangeError(u"Number.prototype.toString radix not in [2, 36]");
         return Handle<JSValue>();

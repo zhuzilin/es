@@ -11,7 +11,7 @@ class FixedArray : public HeapObject {
   static Handle<FixedArray> New(std::vector<Handle<T>> elements) {
     size_t n = elements.size();
 #ifdef GC_DEBUG
-    if (log::Debugger::On())
+    if (unlikely(log::Debugger::On()))
       std::cout << "FixedArray::New " << n << "\n";
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(kSizeTSize + n * kPtrSize);

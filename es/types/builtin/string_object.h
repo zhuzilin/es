@@ -51,11 +51,11 @@ class StringProto : public JSObject {
       return String::Empty();
     Handle<JSValue> val = Runtime::TopValue();
     CheckObjectCoercible(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<String> S = ::es::ToString(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     int position = ToInteger(e, vals[0]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (position < 0 || (size_t)position >= S.val()->size())
       return String::Empty();
     return S.val()->substr(position, 1);
@@ -66,11 +66,11 @@ class StringProto : public JSObject {
       return Number::NaN();
     Handle<JSValue> val = Runtime::TopValue();
     CheckObjectCoercible(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<String> S = ::es::ToString(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     int position = ToInteger(e, vals[0]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (position < 0 || (size_t)position >= S.val()->size())
       return Number::NaN();
     return Number::New((double)((*S.val())[position]));
@@ -79,14 +79,14 @@ class StringProto : public JSObject {
   static Handle<JSValue> concat(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSValue> val = Runtime::TopValue();
     CheckObjectCoercible(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<String> S = ::es::ToString(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     std::u16string R = S.val()->data();
     std::vector<Handle<JSValue>> args = vals;
     for (auto arg : args) {
       std::u16string next = ToU16String(e, arg);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       R += next;
     }
     return String::New(R);
@@ -95,22 +95,22 @@ class StringProto : public JSObject {
   static Handle<JSValue> indexOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSValue> val = Runtime::TopValue();
     CheckObjectCoercible(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     std::u16string S = ToU16String(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<JSValue> search_string;
     if (vals.size() == 0)
       search_string = Undefined::Instance();
     else
       search_string = vals[0];
     std::u16string search_str = ToU16String(e, search_string);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     double pos;
     if (vals.size() < 2 || vals[1].val()->IsUndefined())
       pos = 0;
     else {
       pos = ToInteger(e, vals[1]);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     }
     int start = fmin(fmax(pos, 0), S.size());
     size_t find_pos = S.find(search_str, start);
@@ -123,22 +123,22 @@ class StringProto : public JSObject {
   static Handle<JSValue> lastIndexOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSValue> val = Runtime::TopValue();
     CheckObjectCoercible(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     std::u16string S = ToU16String(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<JSValue> search_string;
     if (vals.size() == 0)
       search_string = Undefined::Instance();
     else
       search_string = vals[0];
     std::u16string search_str = ToU16String(e, search_string);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     double pos;
     if (vals.size() < 2 || vals[1].val()->IsUndefined())
       pos = nan("");
     else {
       pos = ToNumber(e, vals[1]);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     }
     int start;
     if (isnan(pos))
@@ -179,18 +179,18 @@ class StringProto : public JSObject {
       return Number::NaN();
     Handle<JSValue> val = Runtime::TopValue();
     CheckObjectCoercible(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<String> S = ::es::ToString(e, val);
     int len = S.val()->size();
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     int int_start = ToInteger(e, vals[0]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     int int_end;
     if (vals.size() < 2 || vals[0].val()->IsUndefined()) {
       int_end = S.val()->size();
     } else {
       int_end = ToInteger(e, vals[1]);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     }
     int final_start = fmin(fmax(int_start, 0), len);
     int final_end = fmin(fmax(int_end, 0), len);
@@ -202,9 +202,9 @@ class StringProto : public JSObject {
   static Handle<JSValue> toLowerCase(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSValue> val = Runtime::TopValue();
     CheckObjectCoercible(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<String> S = ::es::ToString(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     std::u16string L = S.val()->data();
     std::transform(L.begin(), L.end(), L.begin(), character::ToLowerCase);
     return String::New(L);
@@ -218,9 +218,9 @@ class StringProto : public JSObject {
   static Handle<JSValue> toUpperCase(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSValue> val = Runtime::TopValue();
     CheckObjectCoercible(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<String> S = ::es::ToString(e, val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     std::u16string U = S.val()->data();
     std::transform(U.begin(), U.end(), U.begin(), character::ToUpperCase);
     return String::New(U);
@@ -273,7 +273,7 @@ class StringConstructor : public JSObject {
     std::u16string result = u"";
     for (Handle<JSValue> val : vals) {
       char16_t c = ToUint16(e, val);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       result += c;
     }
     return String::New(result);

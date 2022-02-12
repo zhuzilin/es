@@ -172,7 +172,7 @@ double ToNumber(Handle<Error>& e, Handle<JSValue> input) {
     default:
       if (input.val()->IsObject()) {
         Handle<JSValue> prim_value = ToPrimitive(e, input, u"Number");
-        if (!e.val()->IsOk()) return 0.0;
+        if (unlikely(!e.val()->IsOk())) return 0.0;
         return ToNumber(e, prim_value);
       }
       assert(false);
@@ -181,7 +181,7 @@ double ToNumber(Handle<Error>& e, Handle<JSValue> input) {
 
 double ToInteger(Handle<Error>& e, Handle<JSValue> input) {
   double num = ToNumber(e, input);
-  if (!e.val()->IsOk()) return 0.0;
+  if (unlikely(!e.val()->IsOk())) return 0.0;
   if (isnan(num)) {
     return 0.0;
   }
@@ -193,7 +193,7 @@ double ToInteger(Handle<Error>& e, Handle<JSValue> input) {
 
 double ToInt32(Handle<Error>& e, Handle<JSValue> input) {
   double num = ToNumber(e, input);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return 0;
   if (isnan(num) || isinf(num) || num == 0) {
     return 0.0;
@@ -212,7 +212,7 @@ double ToInt32(Handle<Error>& e, Handle<JSValue> input) {
 
 double ToUint(Handle<Error>& e, Handle<JSValue> input, char bits) {
   double num = ToNumber(e, input);
-  if (!e.val()->IsOk()) return 0.0;
+  if (unlikely(!e.val()->IsOk())) return 0.0;
   if (isnan(num) || isinf(num) || num == 0) {
     return 0.0;
   }
@@ -361,7 +361,7 @@ Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input) {
     default:
       if (input.val()->IsObject()) {
         Handle<JSValue> prim_value = ToPrimitive(e, input, u"String");
-        if (!e.val()->IsOk()) return String::Empty();
+        if (unlikely(!e.val()->IsOk())) return String::Empty();
         return ToString(e, prim_value);
       }
       assert(false);

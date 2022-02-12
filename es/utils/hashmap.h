@@ -21,7 +21,7 @@ class ListNode : public HeapObject {
   public:
   static Handle<ListNode> New(Handle<String> key, Handle<HeapObject> val) {
 #ifdef GC_DEBUG
-    if (log::Debugger::On())
+    if (unlikely(log::Debugger::On()))
       std::cout << "ListNode::New" << "\n";
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(3 * kPtrSize);
@@ -50,7 +50,7 @@ class HashMap : public HeapObject {
  public:
   static Handle<HashMap> New(size_t num_bucket = kDefaultHashMapSize) {
 #ifdef GC_DEBUG
-    if (log::Debugger::On())
+    if (unlikely(log::Debugger::On()))
       std::cout << "HashMap::New" << "\n";
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(2 * kSizeTSize + num_bucket * kPtrSize);

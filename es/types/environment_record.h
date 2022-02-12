@@ -29,7 +29,7 @@ class Binding : public HeapObject {
  public:
   static Handle<Binding> New(Handle<JSValue> value, bool can_delete, bool is_mutable) {
 #ifdef GC_DEBUG
-    if (log::Debugger::On())
+    if (unlikely(log::Debugger::On()))
       std::cout << "Binding::New" << "\n";
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(kBindingOffset - kHeapObjectOffset);

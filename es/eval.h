@@ -106,7 +106,7 @@ Completion EvalProgram(AST* ast) {
 }
 
 Completion EvalStatement(AST* ast) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("EvalStatement ", ast->source().substr(0, 50));
   Completion C(Completion::NORMAL, Handle<JSValue>(), u"");
   JSValue* val = nullptr;
@@ -202,11 +202,11 @@ std::u16string EvalVarDecl(Handle<Error>& e, AST* ast) {
     return decl->ident();
   Handle<JSValue> lhs = IdentifierResolution(decl->ident());
   Handle<JSValue> rhs = EvalAssignmentExpression(e, decl->init());
-  if (!e.val()->IsOk()) return decl->ident();
+  if (unlikely(!e.val()->IsOk())) return decl->ident();
   Handle<JSValue> value = GetValue(e, rhs);
-  if (!e.val()->IsOk()) return decl->ident();
+  if (unlikely(!e.val()->IsOk())) return decl->ident();
   PutValue(e, lhs, value);
-  if (!e.val()->IsOk()) return decl->ident();
+  if (unlikely(!e.val()->IsOk())) return decl->ident();
   return decl->ident();
 }
 
@@ -218,7 +218,7 @@ Completion EvalVarStatement(AST* ast) {
     if (decl->init() == nullptr)
       continue;
     EvalVarDecl(e, decl);
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
   }
   return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
 error:
@@ -230,10 +230,10 @@ Completion EvalIfStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   If* if_stmt = static_cast<If*>(ast);
   Handle<JSValue> expr_ref = EvalExpression(e, if_stmt->cond());
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   Handle<JSValue> expr = GetValue(e, expr_ref);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   if (ToBoolean(expr)) {
     return EvalStatement(if_stmt->if_block());
@@ -271,9 +271,9 @@ Completion EvalDoWhileStatement(AST* ast) {
     }
 
     expr_ref = EvalExpression(e, loop_stmt->expr());
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
     val = GetValue(e, expr_ref);
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
     if (!ToBoolean(val))
       break;
   }
@@ -297,9 +297,9 @@ Completion EvalWhileStatement(AST* ast) {
   bool has_label;
   while (true) {
     expr_ref = EvalExpression(e, loop_stmt->expr());
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
     val = GetValue(e, expr_ref);
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
     if (!ToBoolean(val))
       break;
 
@@ -337,20 +337,20 @@ Completion EvalForStatement(AST* ast) {
   for (auto expr : for_stmt->expr0s()) {
     if (expr->type() == AST::AST_STMT_VAR_DECL) {
       EvalVarDecl(e, expr);
-      if (!e.val()->IsOk()) goto error;
+      if (unlikely(!e.val()->IsOk())) goto error;
     } else {
       Handle<JSValue> expr_ref = EvalExpression(e, expr);
-      if (!e.val()->IsOk()) goto error;
+      if (unlikely(!e.val()->IsOk())) goto error;
       GetValue(e, expr_ref);
-      if (!e.val()->IsOk()) goto error;
+      if (unlikely(!e.val()->IsOk())) goto error;
     }
   }
   while (true) {
     if (for_stmt->expr1() != nullptr) {
       Handle<JSValue> test_expr_ref = EvalExpression(e, for_stmt->expr1());
-      if (!e.val()->IsOk()) goto error;
+      if (unlikely(!e.val()->IsOk())) goto error;
       Handle<JSValue> test_value = GetValue(e, test_expr_ref);
-      if (!e.val()->IsOk()) goto error;
+      if (unlikely(!e.val()->IsOk())) goto error;
       if (!ToBoolean(test_value))
         break;
     }
@@ -372,9 +372,9 @@ Completion EvalForStatement(AST* ast) {
 
     if (for_stmt->expr2() != nullptr) {
       Handle<JSValue> inc_expr_ref = EvalExpression(e, for_stmt->expr2());
-      if (!e.val()->IsOk()) goto error;
+      if (unlikely(!e.val()->IsOk())) goto error;
       GetValue(e, inc_expr_ref);
-      if (!e.val()->IsOk()) goto error;
+      if (unlikely(!e.val()->IsOk())) goto error;
     }
   }
   Runtime::TopContext()->ExitIteration();
@@ -399,23 +399,23 @@ Completion EvalForInStatement(AST* ast) {
   if (for_in_stmt->expr0()->type() == AST::AST_STMT_VAR_DECL) {
     VarDecl* decl = static_cast<VarDecl*>(for_in_stmt->expr0());
     std::u16string var_name = EvalVarDecl(e, decl);
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
     expr_ref = EvalExpression(e, for_in_stmt->expr1());
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
     expr_val = GetValue(e, expr_ref);
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
     if (expr_val.val()->IsUndefined() || expr_val.val()->IsNull()) {
       Runtime::TopContext()->ExitIteration();
       return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
     }
     obj = ToObject(e, expr_val);
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
 
     for (auto pair : obj.val()->AllEnumerableProperties()) {
       Handle<String> P = pair.first;
       Handle<Reference> var_ref = IdentifierResolution(var_name);
       PutValue(e, var_ref, P);
-      if (!e.val()->IsOk()) goto error;
+      if (unlikely(!e.val()->IsOk())) goto error;
 
       stmt = EvalStatement(for_in_stmt->statement());
       if (!stmt.IsEmpty())
@@ -434,11 +434,11 @@ Completion EvalForInStatement(AST* ast) {
     }
   } else {
     expr_ref = EvalExpression(e, for_in_stmt->expr1());
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
     expr_ref = EvalExpression(e, for_in_stmt->expr1());
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
     expr_val = GetValue(e, expr_ref);
-    if (!e.val()->IsOk()) goto error;
+    if (unlikely(!e.val()->IsOk())) goto error;
     if (expr_val.val()->IsUndefined() || expr_val.val()->IsNull()) {
       Runtime::TopContext()->ExitIteration();
       return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
@@ -447,9 +447,9 @@ Completion EvalForInStatement(AST* ast) {
     for (auto pair : obj.val()->AllEnumerableProperties()) {
       Handle<String> P = pair.first;
       Handle<JSValue> lhs_ref = EvalExpression(e, for_in_stmt->expr0());
-      if (!e.val()->IsOk()) goto error;
+      if (unlikely(!e.val()->IsOk())) goto error;
       PutValue(e, lhs_ref, P);
-      if (!e.val()->IsOk()) goto error;
+      if (unlikely(!e.val()->IsOk())) goto error;
 
       stmt = EvalStatement(for_in_stmt->statement());
       if (!stmt.IsEmpty())
@@ -504,7 +504,7 @@ Completion EvalReturnStatement(AST* ast) {
     return Completion(Completion::RETURN, Undefined::Instance(), u"");
   }
   Handle<JSValue> exp_ref = EvalExpression(e, return_stmt->expr());
-  if (!e.val()->IsOk()) {
+  if (unlikely(!e.val()->IsOk())) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
   return Completion(Completion::RETURN, GetValue(e, exp_ref), u"");
@@ -533,13 +533,13 @@ Completion EvalWithStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   WhileOrWith* with_stmt = static_cast<WhileOrWith*>(ast);
   Handle<JSValue> ref = EvalExpression(e, with_stmt->expr());
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   Handle<JSValue> val = GetValue(e, ref);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   Handle<JSObject> obj = ToObject(e, val);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   // Prevent garbage collect old env.
   Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
@@ -552,7 +552,7 @@ Completion EvalWithStatement(AST* ast) {
 
 Handle<JSValue> EvalCaseClause(Handle<Error>& e, Switch::CaseClause C) {
   Handle<JSValue> exp_ref = EvalExpression(e, C.expr);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   return GetValue(e, exp_ref);
 }
@@ -565,7 +565,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
     if (!found) {  // 5.a
       Handle<JSValue> clause_selector = EvalCaseClause(e, C);
       bool b = StrictEqual(e, input, clause_selector);
-      if (!e.val()->IsOk())
+      if (unlikely(!e.val()->IsOk()))
         return Completion(Completion::THROW, ErrorObject::New(e), u"");
       if (b)
         found = true;
@@ -584,7 +584,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
     auto C = switch_stmt->after_default_case_clauses()[i];
     Handle<JSValue> clause_selector = EvalCaseClause(e, C);
     bool b = StrictEqual(e, input, clause_selector);
-    if (!e.val()->IsOk())
+    if (unlikely(!e.val()->IsOk()))
       return Completion(Completion::THROW, ErrorObject::New(e), u"");
     if (b) {
       found_in_b = true;
@@ -620,10 +620,10 @@ Completion EvalSwitchStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   Switch* switch_stmt = static_cast<Switch*>(ast);
   Handle<JSValue> expr_ref = EvalExpression(e, switch_stmt->expr());
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   Handle<JSValue> expr_val = GetValue(e, expr_ref);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   Runtime::TopContext()->EnterSwitch();
   Completion R = EvalCaseBlock(switch_stmt, expr_val);
@@ -642,10 +642,10 @@ Completion EvalThrowStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   Throw* throw_stmt = static_cast<Throw*>(ast);
   Handle<JSValue> exp_ref = EvalExpression(e, throw_stmt->expr());
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   Handle<JSValue> val = GetValue(e, exp_ref);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   return Completion(Completion::THROW, val, u"");
 }
@@ -659,7 +659,7 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
   CreateAndSetMutableBinding(e, catch_env.val()->env_rec(), ident_str, false, C.value(), false);  // 4 & 5
-  if (!e.val()->IsOk()) {
+  if (unlikely(!e.val()->IsOk())) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
   Runtime::TopContext()->SetLexicalEnv(catch_env);
@@ -696,7 +696,7 @@ Completion EvalTryStatement(AST* ast) {
 Completion EvalExpressionStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   Handle<JSValue> val = EvalExpression(e, ast);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   return Completion(Completion::NORMAL, val, u"");
 }
@@ -736,11 +736,11 @@ Handle<JSValue> EvalExpression(Handle<Error>& e, AST* ast) {
       val = EvalFunction(e, ast);
       break;
     default:
-      if (log::Debugger::On())
+      if (unlikely(log::Debugger::On()))
         log::PrintSource("ast: ", ast->source(), "type: " + std::to_string(ast->type()));
       assert(false);
   }
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   return val;
 }
 
@@ -984,9 +984,9 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
     switch (property.type) {
       case ObjectLiteral::Property::NORMAL: {
         Handle<JSValue> expr_value = EvalAssignmentExpression(e, property.value);
-        if (!e.val()->IsOk()) return Handle<JSValue>();
+        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         Handle<JSValue> prop_value = GetValue(e, expr_value);
-        if (!e.val()->IsOk()) return Handle<JSValue>();
+        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         desc.val()->SetDataDescriptor(prop_value, true, true, true);
         break;
       }
@@ -1049,9 +1049,9 @@ Handle<ArrayObject> EvalArray(Handle<Error>& e, AST* ast) {
   Handle<ArrayObject> arr = ArrayObject::New(array_ast->length());
   for (auto pair : array_ast->elements()) {
     Handle<JSValue> init_result = EvalAssignmentExpression(e, pair.second);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<JSValue> init_value = GetValue(e, init_result);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     AddValueProperty(arr, NumberToString(pair.first), init_value, true, true, true);
   }
   return arr;
@@ -1066,7 +1066,7 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
   Unary* u = static_cast<Unary*>(ast);
 
   Handle<JSValue> expr = EvalExpression(e, u->node());
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   std::u16string op = u->op().source();
 
   if (op == u"++" || op == u"--") {  // a++, ++a, a--, --a
@@ -1079,9 +1079,9 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
       }
     }
     Handle<JSValue> old_val = GetValue(e, expr);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     double num = ToNumber(e, old_val);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<JSValue> new_value;
     if (op == u"++") {
       new_value = Number::New(num + 1);
@@ -1089,7 +1089,7 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
       new_value = Number::New(num - 1);
     }
     PutValue(e, expr, new_value);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (u->prefix()) {
       return new_value;
     } else {
@@ -1109,7 +1109,7 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
     }
     if (ref.val()->IsPropertyReference()) {  // 4
       Handle<JSObject> obj = ToObject(e, ref.val()->GetBase());
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       return Bool::Wrap(Delete(e, obj, ref.val()->GetReferencedName(), ref.val()->IsStrictReference()));
     } else {
       if (ref.val()->IsStrictReference()) {
@@ -1126,7 +1126,7 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
         return String::Undefined();
     }
     Handle<JSValue> val = GetValue(e, expr);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     switch (val.val()->type()) {
       case JSValue::JS_UNDEFINED:
         return String::Undefined();
@@ -1143,21 +1143,21 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
     }
   } else {  // +, -, ~, !, void
     Handle<JSValue> val = GetValue(e, expr);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
 
     if (op == u"+") {
       double num = ToNumber(e, val);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       return Number::New(num);
     } else if (op == u"-") {
       double num = ToNumber(e, val);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (isnan(num))
         return Number::NaN();
       return Number::New(-num);
     } else if (op == u"~") {
       int32_t num = ToInt32(e, val);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       return Number::New(~num);
     } else if (op == u"!") {
       bool b = ToBoolean(val);
@@ -1182,13 +1182,13 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lhs, AST*
   }
   if (op.type() == Token::TK_ASSIGN || op.IsCompoundAssign()) {
     Handle<JSValue> lref = EvalLeftHandSideExpression(e, lhs);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     // TODO(zhuzilin) The compound assignment should do lval = GetValue(lref)
     // here. Check if changing the order will have any influence.
     Handle<JSValue> rref = EvalExpression(e, rhs);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<JSValue> rval = GetValue(e, rref);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (op.type() == Token::TK_ASSIGN) {  // ==
       return EvalSimpleAssignment(e, lref, rval);
     } else {
@@ -1197,13 +1197,13 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lhs, AST*
   }
 
   Handle<JSValue> lref = EvalExpression(e, lhs);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Handle<JSValue> lval = GetValue(e, lref);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Handle<JSValue> rref = EvalExpression(e, rhs);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Handle<JSValue> rval = GetValue(e, rref);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   return EvalBinaryExpression(e, op, lval, rval);
 }
 
@@ -1245,9 +1245,9 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, Handle<JSValue
 // 11.5 Multiplicative Operators
 Handle<JSValue> EvalArithmeticOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
   double lnum = ToNumber(e, lval);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   double rnum = ToNumber(e, rval);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   switch (op.type()) {
     case Token::TK_MUL:
       return Number::New(lnum * rnum);
@@ -1265,31 +1265,31 @@ Handle<JSValue> EvalArithmeticOperator(Handle<Error>& e, Token& op, Handle<JSVal
 // 11.6 Additive Operators
 Handle<JSValue> EvalAddOperator(Handle<Error>& e, Handle<JSValue> lval, Handle<JSValue> rval) {
   Handle<JSValue> lprim = ToPrimitive(e, lval, u"");
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Handle<JSValue> rprim = ToPrimitive(e, rval, u"");
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
 
   if (lprim.val()->IsString() || rprim.val()->IsString()) {
     std::u16string lstr = ToU16String(e, lprim);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     std::u16string rstr = ToU16String(e, rprim);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     return String::New(lstr + rstr);
   }
 
   double lnum = ToNumber(e, lprim);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   double rnum = ToNumber(e, rprim);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   return Number::New(lnum + rnum);
 }
 
 // 11.7 Bitwise Shift Operators
 Handle<JSValue> EvalBitwiseShiftOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
   int32_t lnum = ToInt32(e, lval);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   uint32_t rnum = ToUint32(e, rval);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   uint32_t shift_count = rnum & 0x1F;
   switch (op.type()) {
     case Token::TK_BIT_LSH:  // <<
@@ -1310,7 +1310,7 @@ Handle<JSValue> EvalRelationalOperator(Handle<Error>& e, Token& op, Handle<JSVal
   switch (op.type()) {
     case Token::TK_LT: {  // <
       Handle<JSValue> r = LessThan(e, lval, rval);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (r.val()->IsUndefined())
         return Bool::False();
       else
@@ -1318,7 +1318,7 @@ Handle<JSValue> EvalRelationalOperator(Handle<Error>& e, Token& op, Handle<JSVal
     }
     case Token::TK_GT: {  // >
       Handle<JSValue> r = LessThan(e, rval, lval);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (r.val()->IsUndefined())
         return Bool::False();
       else
@@ -1326,14 +1326,14 @@ Handle<JSValue> EvalRelationalOperator(Handle<Error>& e, Token& op, Handle<JSVal
     }
     case Token::TK_LE: {  // <=
       Handle<JSValue> r = LessThan(e, rval, lval);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (r.val()->IsUndefined())
         return Bool::True();
       return Bool::Wrap(!static_cast<Handle<Bool>>(r).val()->data());
     }
     case Token::TK_GE: {  // >=
       Handle<JSValue> r = LessThan(e, lval, rval);
-      if (!e.val()->IsOk()) return Handle<JSValue>();
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (r.val()->IsUndefined())
         return Bool::True();
       return Bool::Wrap(!static_cast<Handle<Bool>>(r).val()->data());
@@ -1384,9 +1384,9 @@ Handle<JSValue> EvalEqualityOperator(Handle<Error>& e, Token& op, Handle<JSValue
 // 11.10 Binary Bitwise Operators
 Handle<JSValue> EvalBitwiseOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
   int32_t lnum = ToInt32(e, lval);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   int32_t rnum = ToInt32(e, rval);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   switch (op.type()) {
     case Token::TK_BIT_AND:  // &
       return Number::New(lnum & rnum);
@@ -1402,16 +1402,16 @@ Handle<JSValue> EvalBitwiseOperator(Handle<Error>& e, Token& op, Handle<JSValue>
 // 11.11 Binary Logical Operators
 Handle<JSValue> EvalLogicalOperator(Handle<Error>& e, Token& op, AST* lhs, AST* rhs) {
   Handle<JSValue> lref = EvalExpression(e, lhs);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Handle<JSValue> lval = GetValue(e, lref);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   bool b = ToBoolean(lval);
   if ((op.type() == Token::TK_LOGICAL_AND && !b) || (op.type() == Token::TK_LOGICAL_OR && b))
     return lval;
   Handle<JSValue> rref = EvalExpression(e, rhs);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Handle<JSValue> rval = GetValue(e, rref);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   return rval;
 }
 
@@ -1435,7 +1435,7 @@ Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Han
     }
   }
   PutValue(e, lref, rval);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   return rval;
 }
@@ -1444,11 +1444,11 @@ Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Han
 Handle<JSValue> EvalCompoundAssignment(Handle<Error>& e, Token& op, Handle<JSValue> lref, Handle<JSValue> rval) {
   Token calc_op = op.ToCalc();
   Handle<JSValue> lval = GetValue(e, lref);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Handle<JSValue> rref = EvalBinaryExpression(e, calc_op, lval, rval);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Handle<JSValue> val = GetValue(e, rref);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   return EvalSimpleAssignment(e, lref, val);
 }
 
@@ -1457,16 +1457,16 @@ Handle<JSValue> EvalTripleConditionExpression(Handle<Error>& e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_TRIPLE);
   TripleCondition* t = static_cast<TripleCondition*>(ast);
   Handle<JSValue> lref = EvalExpression(e, t->cond());
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Handle<JSValue> lval = GetValue(e, lref);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   if (ToBoolean(lval)) {
     Handle<JSValue> true_ref = EvalAssignmentExpression(e, t->true_expr());
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     return GetValue(e, true_ref);
   } else {
     Handle<JSValue> false_ref = EvalAssignmentExpression(e, t->false_expr());
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     return GetValue(e, false_ref);
   }
 }
@@ -1477,7 +1477,7 @@ Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast) {
 
   ValueGuard guard;
   Handle<JSValue> base = EvalExpression(e, lhs->base());
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
 
   size_t new_count = lhs->new_count();
   for (auto pair : lhs->order()) {
@@ -1485,34 +1485,34 @@ Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast) {
       case LHS::PostfixType::CALL: {
         auto args = lhs->args_list()[pair.first];
         auto arg_list = EvalArgumentsList(e, args);
-        if (!e.val()->IsOk()) return Handle<JSValue>();
+        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         if (new_count > 0) {
           base = GetValue(e, base);
-          if (!e.val()->IsOk()) return Handle<JSValue>();
+          if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
           if (!base.val()->IsConstructor()) {
             e = Error::TypeError(u"base value is not a constructor");
             return Handle<JSValue>();
           }
           Handle<JSObject> constructor = static_cast<Handle<JSObject>>(base);
           base = Construct(e, constructor, arg_list);
-          if (!e.val()->IsOk()) return Handle<JSValue>();
+          if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
           new_count--;
         } else {
           base = EvalCallExpression(e, base, arg_list);
-          if (!e.val()->IsOk()) return Handle<JSValue>();
+          if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         }
         break;
       }
       case LHS::PostfixType::INDEX: {
         auto index = lhs->index_list()[pair.first];
         base = EvalIndexExpression(e, base, index, guard);
-        if (!e.val()->IsOk()) return Handle<JSValue>();
+        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         break;
       }
       case LHS::PostfixType::PROP: {
         auto prop = lhs->prop_name_list()[pair.first];
         base = EvalIndexExpression(e, base, String::New(prop), guard);
-        if (!e.val()->IsOk()) return Handle<JSValue>();
+        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         break;
       }
       default:
@@ -1521,14 +1521,14 @@ Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast) {
   }
   while (new_count > 0) {
     base = GetValue(e, base);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (!base.val()->IsConstructor()) {
       e = Error::TypeError(u"base value is not a constructor");
       return Handle<JSValue>();
     }
     Handle<JSObject> constructor = static_cast<Handle<JSObject>>(base);
     base = Construct(e, constructor, {});
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     new_count--;
   }
   return base;
@@ -1538,10 +1538,10 @@ std::vector<Handle<JSValue>> EvalArgumentsList(Handle<Error>& e, Arguments* ast)
   std::vector<Handle<JSValue>> arg_list;
   for (AST* arg_ast : ast->args()) {
     Handle<JSValue> ref = EvalExpression(e, arg_ast);
-    if (!e.val()->IsOk())
+    if (unlikely(!e.val()->IsOk()))
       return {};
     Handle<JSValue> arg = GetValue(e, ref);
-    if (!e.val()->IsOk())
+    if (unlikely(!e.val()->IsOk()))
       return {};
     arg_list.emplace_back(arg);
   }
@@ -1551,7 +1551,7 @@ std::vector<Handle<JSValue>> EvalArgumentsList(Handle<Error>& e, Arguments* ast)
 // 11.2.3
 Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::vector<Handle<JSValue>> arg_list) {
   Handle<JSValue> val = GetValue(e, ref);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   if (!val.val()->IsObject()) {  // 4
     e = Error::TypeError(u"calling non-object.");
@@ -1588,11 +1588,11 @@ Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::v
 // 11.2.1 Property Accessors
 Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, Handle<String> identifier_name, ValueGuard& guard) {
   Handle<JSValue> base_value = GetValue(e, base_ref);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   guard.AddValue(base_value);
   CheckObjectCoercible(e, base_value);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   bool strict = Runtime::TopContext()->strict();
   return Reference::New(base_value, identifier_name, strict);
@@ -1600,13 +1600,13 @@ Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, 
 
 Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, AST* expr, ValueGuard& guard) {
   Handle<JSValue> property_name_ref = EvalExpression(e, expr);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   Handle<JSValue> property_name_value = GetValue(e, property_name_ref);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   Handle<String> property_name_str = ToString(e, property_name_value);
-  if (!e.val()->IsOk())
+  if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   return EvalIndexExpression(e, base_ref, property_name_str, guard);
 }
@@ -1618,9 +1618,9 @@ Handle<JSValue> EvalExpressionList(Handle<Error>& e, AST* ast) {
   Handle<JSValue> val;
   for (AST* expr : exprs->elements()) {
     Handle<JSValue> ref = EvalAssignmentExpression(e, expr);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     val = GetValue(e, ref);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   }
   return val;
 }

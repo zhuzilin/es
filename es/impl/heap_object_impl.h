@@ -195,7 +195,10 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
           case OBJ_REGEXP: {
             pointers.emplace_back(HEAP_PTR(heap_obj, RegExpObject::kPatternOffset));
             pointers.emplace_back(HEAP_PTR(heap_obj, RegExpObject::kFlagOffset));
+            break;
            }
+           default:
+            break;
         }
         return pointers;
       }

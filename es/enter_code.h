@@ -179,7 +179,7 @@ void DeclarationBindingInstantiation(
   Handle<Error>& e, ExecutionContext* context, AST* code, CodeType code_type,
   Handle<FunctionObject> f = Handle<FunctionObject>(), std::vector<Handle<JSValue>> args = {}
 ) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("enter DeclarationBindingInstantiation");
   Handle<EnvironmentRecord> env = context->variable_env().val()->env_rec();  // 1
   bool configurable_bindings = false;
@@ -202,10 +202,10 @@ void DeclarationBindingInstantiation(
       if (!arg_already_declared) {  // 4.d.iv
         // NOTE(zhuzlin) I'm not sure if this should be false.
         CreateAndSetMutableBinding(e, env, arg_name, false, v, strict);
-        if (!e.val()->IsOk()) return;
+        if (unlikely(!e.val()->IsOk())) return;
       } else {
         SetMutableBinding(e, env, arg_name, v, strict);  // 4.d.v
-        if (!e.val()->IsOk()) return;
+        if (unlikely(!e.val()->IsOk())) return;
       }
     }
   }
@@ -214,11 +214,11 @@ void DeclarationBindingInstantiation(
     assert(func_decl->is_named());
     Handle<String> fn = String::New(func_decl->name());
     Handle<FunctionObject> fo = InstantiateFunctionDeclaration(e, func_decl);
-    if (!e.val()->IsOk()) return;
+    if (unlikely(!e.val()->IsOk())) return;
     bool func_already_declared = HasBinding(env, fn);
     if (!func_already_declared) {  // 5.d
       CreateAndSetMutableBinding(e, env, fn, configurable_bindings, fo, strict);
-      if (!e.val()->IsOk()) return;
+      if (unlikely(!e.val()->IsOk())) return;
     } else {  // 5.e
       auto go = GlobalObject::Instance();
       auto existing_prop = GetProperty(go, fn);
@@ -228,7 +228,7 @@ void DeclarationBindingInstantiation(
         auto new_desc = PropertyDescriptor::New();
         new_desc.val()->SetDataDescriptor(Undefined::Instance(), true, true, configurable_bindings);
         DefineOwnProperty(e, go, fn, new_desc, true);
-        if (!e.val()->IsOk()) return;
+        if (unlikely(!e.val()->IsOk())) return;
       } else {  // 5.e.iv
         if (existing_prop_desc.val()->IsAccessorDescriptor() ||
             !(existing_prop_desc.val()->HasConfigurable() && existing_prop_desc.val()->Configurable() &&
@@ -263,7 +263,7 @@ void DeclarationBindingInstantiation(
     bool var_already_declared = HasBinding(env, dn);
     if (!var_already_declared) {
       CreateAndSetMutableBinding(e, env, dn, configurable_bindings, Undefined::Instance(), strict);
-      if (!e.val()->IsOk()) return;
+      if (unlikely(!e.val()->IsOk())) return;
     }
   }
 }
@@ -320,7 +320,7 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
 
 // 15.1.2.1 eval(X)
 Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-  if (log::Debugger::On())
+  if (unlikely(log::Debugger::On()))
     log::PrintSource("enter GlobalObject::eval");
   if (vals.size() == 0)
     return Undefined::Instance();
@@ -334,7 +334,7 @@ Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, s
     return Handle<JSValue>();
   }
   EnterEvalCode(e, program);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Completion result = EvalProgram(program);
   Runtime::Global()->PopContext();
 
@@ -699,15 +699,15 @@ void Init() {
 Handle<JSValue> StringProto::split(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   Handle<JSValue> val = Runtime::TopValue();
   CheckObjectCoercible(e, val);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   std::u16string S = ToU16String(e, val);
-  if (!e.val()->IsOk()) return Handle<JSValue>();
+  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Handle<ArrayObject> A = ArrayObject::New(0);
   size_t length_A = 0;
   size_t lim = 4294967295.0;
   if (vals.size() >= 2 && !vals[1].val()->IsUndefined()) {
     lim = ToUint32(e, vals[1]);
-    if (!e.val()->IsOk()) return Handle<JSValue>();
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   }
   size_t s = S.size();
   size_t p = 0;

@@ -77,7 +77,7 @@ class HeapObject {
 
   static Handle<HeapObject> New(size_t size, flag_t flag = 0) {
 #ifdef GC_DEBUG
-    if (log::Debugger::On())
+    if (unlikely(log::Debugger::On()))
       std::cout << "HeapObject::New " << size << " " << int(flag) << "\n";
 #endif
     Handle<HeapObject> heap_obj(static_cast<HeapObject*>(Allocate(size + kIntSize, flag)));
