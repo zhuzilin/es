@@ -46,9 +46,9 @@ class HandleScope {
   ~HandleScope() {
     // The base scope won't be deleted, so we don't need to
     // consider the case where start_block_ was created for this HandleScope.
-    if (start_block_->next != nullptr) {
-      delete start_block_->next;
-      start_block_->next = nullptr;
+    if (start_block_->next != nullptr && start_block_->next->next != nullptr) {
+      delete start_block_->next->next;
+      start_block_->next->next = nullptr;
     }
     HandleScope::Stack().pop_back();
   }
@@ -84,9 +84,13 @@ class HandleScope {
 
     HandleScope* scope = HandleScope::Stack().back();
     if (scope->count_ == kHandleBlockSize) {
-      HandleBlock* block = new HandleBlock();
+      HandleBlock* block = scope->block_->next;
+      if (block == nullptr) {
+        block = new HandleBlock();
+        scope->block_->next = block;
+      }
       scope->count_ = 0;
-      scope->block_->next = block;
+      
       scope->block_ = block;
     }
     size_t count = scope->count_;
@@ -109,8 +113,10 @@ class HandleScope {
     }
     HandleBlock* block = base.start_block_;
     size_t end = kHandleBlockSize;
-    while (block != nullptr) {
-      if (block->next == nullptr) {
+    // The last block may not be needed
+    HandleBlock* end_ptr = Stack().back()->block_->next;
+    while (block != end_ptr) {
+      if (block->next == end_ptr) {
         end = Stack().back()->count_;
       }
       for (size_t i = 0; i < end; i++) {
@@ -118,11 +124,13 @@ class HandleScope {
       }
       block = block->next;
     }
+#ifdef TEST
     size_t helper_sum = singleton_pointers_count_;
     for (auto s : Stack()) {
       helper_sum += s->helper_count_;
     }
     assert(helper_sum == pointers.size());
+#endif
     return pointers;
   }
 
