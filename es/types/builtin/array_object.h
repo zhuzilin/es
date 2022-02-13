@@ -266,7 +266,17 @@ class ArrayConstructor : public JSObject {
 Handle<JSValue> ArrayProto::concat(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
   std::vector<Handle<JSValue>> items = {Runtime::TopValue()};
   items.insert(items.end(), vals.begin(), vals.end());
-  Handle<ArrayObject> A = ArrayObject::New(0);
+  size_t total_len = 0;
+  for (auto E : items) {
+    if (E.val()->IsArrayObject()) {
+      Handle<ArrayObject> O = static_cast<Handle<ArrayObject>>(E);
+      size_t len = ToNumber(e, Get(e, O, String::Length()));
+      total_len += len;
+    } else {
+      total_len++;
+    }
+  }
+  Handle<ArrayObject> A = ArrayObject::New(total_len);
   size_t n = 0;
   for (auto E : items) {
     if (E.val()->IsArrayObject()) {
@@ -295,7 +305,6 @@ Handle<JSValue> ArrayProto::slice(Handle<Error>& e, Handle<JSValue> this_arg, st
   Handle<JSObject> O = ToObject(e, Runtime::TopValue());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   double len = ToNumber(e, Get(e, O, String::Length()));
-  Handle<ArrayObject> A = ArrayObject::New(0);
   if (vals.size() == 0 || vals[0].val()->IsUndefined()) {
     e = Error::TypeError(u"start of Array.prototype.slice cannot be undefined");
   }
@@ -314,11 +323,12 @@ Handle<JSValue> ArrayProto::slice(Handle<Error>& e, Handle<JSValue> this_arg, st
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   }
   int final;
-  int n = 0;
   if (relative_end < 0)
     final = fmax(relative_end + len, 0);
   else
     final = fmin(relative_end, len);
+  Handle<ArrayObject> A = ArrayObject::New(final - k);
+  int n = 0;
   while (k < final) {
     Handle<String> Pk = NumberToString(k);
     if (HasProperty(O, Pk)) {
