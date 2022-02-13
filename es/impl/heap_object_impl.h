@@ -162,6 +162,7 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
       for (size_t i = 0; i < n; i++) {
         pointers[i] = HEAP_PTR(heap_obj, HashMap::kElementOffset + i * kPtrSize);
       }
+      pointers.emplace_back(HEAP_PTR(heap_obj, HashMap::kInlineCacheOffset));
       return pointers;
     }
     case BINDING: {
