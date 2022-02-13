@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include <algorithm>
+#include <map>
 
 #include <es/gc/base_collection.h>
 #include <es/utils/helper.h>
@@ -61,6 +62,9 @@ class CopyingCollection : public GC {
 #ifdef GC_DEBUG
     std::cout << "enter CopyingCollection::Collect" << "\n";
 #endif
+#ifdef STATS
+    Stats();
+#endif
     Flip();
     Initialise(worklist_);
     auto root_pointers = Runtime::Global()->Pointers();
@@ -75,6 +79,9 @@ class CopyingCollection : public GC {
     memset(fromspace_, 0, extent_);
 #ifdef GC_DEBUG
     std::cout << "exit CopyingCollection::Collect " << (free_ - tospace_) / 1024U / 1024U << "\n";
+#endif
+#ifdef STATS
+    Stats();
 #endif
   }
 
@@ -170,6 +177,21 @@ class CopyingCollection : public GC {
     return ref;
   }
   void Add(void* worklist, void* ref) {}
+
+  void Stats() {
+    std::map<HeapObject::Type, size_t> stats;
+    char* ptr = tospace_;
+    while (ptr != free_) {
+      Header* header = reinterpret_cast<Header*>(ptr);
+      HeapObject* heap_obj = reinterpret_cast<HeapObject*>(header + 1);
+      stats[heap_obj->type()] += header->size;
+      ptr += header->size;
+    }
+    for (auto pair : stats) {
+      if (pair.second / 1024 / 1024)
+        std::cout << HeapObject::ToString(pair.first) << ": " << pair.second / 1024 / 1024 << " MB" << std::endl;
+    }
+  }
 
   void* worklist_ = nullptr;
   void* scan_;

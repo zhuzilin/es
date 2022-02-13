@@ -37,7 +37,7 @@ class GetterSetter : public JSValue {
     return Handle<GetterSetter>(jsval);
   }
 
-  Handle<Reference> ref() { return READ_HANDLE_VALUE(this, kReferenceOffset, String); }
+  Handle<Reference> ref() { return READ_HANDLE_VALUE(this, kReferenceOffset, Reference); }
 
  public:
   static constexpr size_t kReferenceOffset = kHeapObjectOffset;

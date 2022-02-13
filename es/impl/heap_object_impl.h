@@ -36,7 +36,7 @@ std::string HeapObject::ToString(HeapObject* heap_obj) {
     case JS_STRING:
       return log::ToString(static_cast<String*>(heap_obj)->data());
     case JS_NUMBER:
-      return std::to_string(static_cast<Number*>(heap_obj)->data());
+      return NumberToStdString(static_cast<Number*>(heap_obj)->data());
     case JS_REF: {
       String* name = READ_VALUE(heap_obj, Reference::kReferenceNameOffset, String*);
       return "ref(" + ToString(name) + ")";

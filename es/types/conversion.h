@@ -329,6 +329,104 @@ std::u16string NumberToU16String(double m) {
   return sign + res;
 }
 
+std::string NumberToStdString(double m) {
+  if (m == 0)
+    return "0";
+  if (isnan(m))
+    return "NaN";
+  // TODO(zhuzilin) Figure out how to solve the large number error.
+  std::string sign = "";
+  if (m < 0) {
+    m = -m;
+    sign = "-";
+  }
+  // the fraction digits, e.g. 1.23's frac_digit = 2, 4200's = -2
+  int frac_digit = 0;
+  // the total digits, e.g. 1.23's k = 3, 4200's k = 2
+  int k = 0;
+  // n - k = -frac_digit
+  int n = 0;
+  double tmp;
+  while (modf(m, &tmp) != 0) {
+    frac_digit++;
+    m *= 10;
+  }
+  while (m != 0 && fmod(m, 10) < 1e-6) {
+    frac_digit--;
+    m /= 10;
+  }
+  double s = m;
+  while (m > 0.5) {
+    k++;
+    m /= 10;
+    modf(m, &tmp);
+    m = tmp;
+  }
+  n = k - frac_digit;
+  std::string res = "";
+  if (k <= n && n <= 21) {
+    while (s > 0.5) {
+      res += '0' + int(fmod(s, 10));
+      s /= 10;
+      modf(s, &tmp);
+      s = tmp;
+    }
+    reverse(res.begin(), res.end());
+    res += std::string(n - k, '0');
+    return sign + res;
+  }
+  if (0 < n && n <= 21) {
+    for (int i = 0; i < k; i++) {
+      res += '0' + int(fmod(s, 10));
+      if (i + 1 == k - n) {
+        res += '.';
+      }
+      s /= 10;
+      modf(s, &tmp);
+      s = tmp;
+    }
+    reverse(res.begin(), res.end());
+    return sign + res;
+  }
+  if (-6 < n && n <= 0) {
+    for (int i = 0; i < k; i++) {
+      res += '0' + int(fmod(s, 10));
+      s /= 10;
+      modf(s, &tmp);
+      s = tmp;
+    }
+    reverse(res.begin(), res.end());
+    res = "0." + std::string(-n, '0') + res;
+    return sign + res;
+  }
+  if (k == 1) {
+    res += '0' + int(s);
+    res += "e";
+    if (n - 1 > 0) {
+      res += "+" + NumberToStdString(n - 1);
+    } else {
+      res += "-" + NumberToStdString(1 - n);
+    }
+    return sign + res;
+  }
+  for (int i = 0; i < k; i++) {
+    res += '0' + int(fmod(s, 10));
+    if (i + 1 == k - 1) {
+      res += '.';
+    }
+    s /= 10;
+    modf(s, &tmp);
+    s = tmp;
+  }
+  res += "e";
+  if (n - 1 > 0) {
+    res += "+" + NumberToStdString(n - 1);
+  } else {
+    res += "-" + NumberToStdString(1 - n);
+  }
+  return sign + res;
+}
+
 Handle<String> NumberToString(double m) {
   if (isnan(m))
     return String::NaN();
