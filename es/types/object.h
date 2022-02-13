@@ -155,7 +155,7 @@ void AddFuncProperty(
   bool enumerable, bool configurable
 );
 
-Handle<JSValue> Call(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSValue> Call(Handle<Error>& e, Handle<JSValue> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 Handle<JSValue> Call__Base(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 Handle<JSValue> Call__Construct(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 

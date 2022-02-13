@@ -57,25 +57,29 @@ Handle<ArgumentsObject> CreateArgumentsObject(
 ) {
   Handle<FixedArray> names = func.val()->FormalParameters();
   int len = args.size();
-  Handle<Object> map = Object::New();  // 8
-  Handle<JSObject> obj = ArgumentsObject::New(map, len);
+  Handle<JSObject> obj = ArgumentsObject::New(len);
   int indx = len - 1;  // 10
   std::set<std::u16string> mapped_names;
   while (indx >= 0) {  // 11
-    Handle<JSValue> val = args[indx];  // 11.a
-    AddValueProperty(obj, NumberToString(indx), val, true, true, true);  // 11.b
+    bool is_accessor_desc = false;
     if ((size_t)indx < names.val()->size()) {  // 11.c
-      std::u16string name = static_cast<String*>(names.val()->Get(indx).val())->data();  // 11.c.i
-      if (!strict && mapped_names.find(name) == mapped_names.end()) {  // 11.c.ii
-        mapped_names.insert(name);
-        Handle<JSValue> g = MakeArgGetter(name, env);
-        Handle<JSValue> p = MakeArgSetter(name, env);
+      Handle<String> name = static_cast<Handle<String>>(names.val()->Get(indx));
+      std::u16string name_str = name.val()->data();  // 11.c.i
+      if (!strict && mapped_names.find(name_str) == mapped_names.end()) {  // 11.c.ii
+        mapped_names.insert(name_str);
+        is_accessor_desc = true;
+        Handle<Reference> ref = Reference::New(env.val()->env_rec(), name, true);
+        Handle<GetterSetter> gs = GetterSetter::New(ref);
         Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
-        desc.val()->SetSet(p);
-        desc.val()->SetGet(g);
+        desc.val()->SetSet(gs);
+        desc.val()->SetGet(gs);
         desc.val()->SetConfigurable(true);
-        DefineOwnProperty(Error::Empty(), map, NumberToString(indx), desc, false);
+        DefineOwnProperty(Error::Empty(), obj, NumberToString(indx), desc, false);
       }
+    }
+    if (!is_accessor_desc) {
+      Handle<JSValue> val = args[indx];  // 11.a
+      AddValueProperty(obj, NumberToString(indx), val, true, true, true);  // 11.b
     }
     indx--;  // 11.d
   }

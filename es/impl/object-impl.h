@@ -54,22 +54,15 @@ Handle<JSValue> GetOwnProperty__String(Handle<StringObject> O, Handle<String> P)
   if (len <= index)
     return Undefined::Instance();
   Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
-  desc.val()->SetDataDescriptor(String::New(str.substr(index, 1)), true, false, false);
+  Handle<String> substr = String::New(str.substr(index, 1));
+  desc.val()->SetDataDescriptor(substr, true, false, false);
   return desc;
 }
 
 // 10.6
 Handle<JSValue> GetOwnProperty__Arguments(Handle<ArgumentsObject> O, Handle<String> P) {
   Handle<JSValue> val = GetOwnProperty__Base(O, P);
-  if (val.val()->IsUndefined())
-    return val;
-  Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(val);
-  Handle<JSObject> map = O.val()->ParameterMap();
-  Handle<JSValue> is_mapped = GetOwnProperty(map, P);
-  if (!is_mapped.val()->IsUndefined()) {  // 5
-    desc.val()->SetValue(Get(Error::Empty(), map, P));
-  }
-  return desc;
+  return val;
 }
 
 // [[GetProperty]]
@@ -108,16 +101,15 @@ Handle<JSValue> Get__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P
     return Undefined::Instance();
   }
   Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(value);
+  assert(desc.val()->IsPropertyDescriptor());
   if (desc.val()->IsDataDescriptor()) {
     return desc.val()->Value();
   } else {
     assert(desc.val()->IsAccessorDescriptor());
     Handle<JSValue> getter = desc.val()->Get();
-    if (getter.val()->IsUndefined()) {
+    if (getter.val()->IsUndefined())
       return Undefined::Instance();
-    }
-    Handle<JSObject> getter_obj = static_cast<Handle<JSObject>>(getter);
-    return Call(e, getter_obj, O);
+    return Call(e, getter, O);
   }
 }
 
@@ -139,23 +131,8 @@ Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle
 
 // 10.6
 Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P) {
-  Handle<JSObject> map = O.val()->ParameterMap();
-  Handle<JSValue> is_mapped = GetOwnProperty(map, P);
-  if (is_mapped.val()->IsUndefined()) {  // 3
-    Handle<JSValue> V = Get__Base(e, O, P);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    if (P.val()->data() == u"caller") {
-      if (V.val()->IsFunctionObject()) {
-        Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
-        if (func.val()->strict()) {
-          e = Error::TypeError(u"caller could not be function object");
-        }
-      }
-    }
-    return V;
-  }
-  // 4
-  return Get(e, map, P);
+  Handle<JSValue> V = Get__Base(e, O, P);
+  return V;
 }
 
 // [[CanPut]]
@@ -220,8 +197,7 @@ void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue>
         log::PrintSource("Use parent prototype's setter");
       Handle<JSValue> setter = desc.val()->Set();
       assert(!setter.val()->IsUndefined());
-      Handle<JSObject> setter_obj = static_cast<Handle<JSObject>>(setter);
-      Call(e, setter_obj, O, {V});
+      Call(e, setter, O, {V});
       return;
     }
   }
@@ -265,13 +241,7 @@ bool Delete__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool t
 }
 
 bool Delete__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, bool throw_flag) {
-  Handle<JSObject> map = O.val()->ParameterMap();
-  Handle<JSValue> is_mapped = GetOwnProperty(map, P);
   bool result = Delete__Base(e, O, P, throw_flag);
-  if (unlikely(!e.val()->IsOk())) return false;
-  if (result && !is_mapped.val()->IsUndefined()) {
-    Delete(e, map, P, false);
-  }
   return result;
 }
 
@@ -445,7 +415,8 @@ bool DefineOwnProperty__Array(
       e = Error::RangeError(u"length of array need to be uint32.");
       return false;
     }
-    new_len_desc.val()->SetValue(Number::New(new_len));
+    Handle<Number> new_len_handle = Number::New(new_len);
+    new_len_desc.val()->SetValue(new_len_handle);
     if (new_len >= old_len) {  // 3.f
       return DefineOwnProperty__Base(e, O, String::Length(), new_len_desc, throw_flag);
     }
@@ -464,7 +435,8 @@ bool DefineOwnProperty__Array(
       old_len--;
       bool delete_succeeded = Delete(e, O, ::es::ToString(e, Number::New(old_len)), false);
       if (!delete_succeeded) {  // 3.l.iii
-        new_len_desc.val()->SetValue(Number::New(old_len + 1));
+        Handle<Number> new_len_handle = Number::New(old_len + 1);
+        new_len_desc.val()->SetValue(new_len_handle);
         if (!new_writable)  // 3.l.iii.2
           new_len_desc.val()->SetWritable(false);
         DefineOwnProperty__Base(e, O, String::Length(), new_len_desc, false);
@@ -487,7 +459,8 @@ bool DefineOwnProperty__Array(
       if (!succeeded)
         goto reject;
       if (index >= old_len) {  // 4.e
-        old_len_desc.val()->SetValue(Number::New(index + 1));
+        Handle<Number> len_handle = Number::New(index + 1);
+        old_len_desc.val()->SetValue(len_handle);
         return DefineOwnProperty__Base(e, O, String::Length(), old_len_desc, false);
       }
       return true;
@@ -506,28 +479,8 @@ reject:
 bool DefineOwnProperty__Arguments(
   Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
 ) {
-  bool allowed = DefineOwnProperty__Base(e, O, P, desc, false);
-  if (!allowed) {
-    if (throw_flag) {
-      e = Error::TypeError(u"DefineOwnProperty " + P.val()->data() + u" failed");
-    }
-    return false;
-  }
-  Handle<JSObject> map = O.val()->ParameterMap();
-  Handle<JSValue> is_mapped = GetOwnProperty(map, P);
-  if (!is_mapped.val()->IsUndefined()) {  // 5
-    if (desc.val()->IsAccessorDescriptor()) {
-      Delete(e, map, P, false);
-    } else {
-      if (desc.val()->HasValue()) {
-        Put(e, map, P, desc.val()->Value(), false);
-      }
-      if (desc.val()->HasWritable() && !desc.val()->Writable()) {
-        Delete(e, map, P, false);
-      }
-    }
-  }
-  return true;
+  bool allowed = DefineOwnProperty__Base(e, O, P, desc, throw_flag);
+  return allowed;
 }
 
 // [[HasInstance]]

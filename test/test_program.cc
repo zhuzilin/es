@@ -742,3 +742,51 @@ TEST(TestProgram, Eval0) {
     EXPECT_EQ(6, num.val()->data());
   }
 }
+
+TEST(TestProgram, Arguments0) {
+  Init();
+  {
+    Handle<Error> e = Error::Ok();
+    Parser parser(
+      u"a = function(b, b) { b = 10; return arguments[0]; }; a(1, 2)"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(ast);
+    EXPECT_EQ(Error::E_OK, e.val()->type());
+    Handle<Number> num = static_cast<Handle<Number>>(res.value());
+    EXPECT_EQ(1, num.val()->data());
+  }
+}
+
+TEST(TestProgram, Arguments1) {
+  Init();
+  {
+    Handle<Error> e = Error::Ok();
+    Parser parser(
+      u"a = function(b, b) { b = 10; return arguments[1]; }; a(1, 2)"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(ast);
+    EXPECT_EQ(Error::E_OK, e.val()->type());
+    Handle<Number> num = static_cast<Handle<Number>>(res.value());
+    EXPECT_EQ(10, num.val()->data());
+  }
+}
+
+TEST(TestProgram, Arguments2) {
+  Init();
+  {
+    Handle<Error> e = Error::Ok();
+    Parser parser(
+      u"a = function(b) { arguments[0] = 10; return b; }; a(1)"
+    );
+    AST* ast = parser.ParseProgram();
+    EnterGlobalCode(e, ast);
+    Completion res = EvalProgram(ast);
+    EXPECT_EQ(Error::E_OK, e.val()->type());
+    Handle<Number> num = static_cast<Handle<Number>>(res.value());
+    EXPECT_EQ(10, num.val()->data());
+  }
+}

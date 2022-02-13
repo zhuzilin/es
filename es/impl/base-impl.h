@@ -13,7 +13,7 @@ void CheckObjectCoercible(Handle<Error>& e, Handle<JSValue> val) {
 }
 
 bool JSValue::IsCallable() {
-  return IsObject() && READ_VALUE(this, JSObject::kIsCallableOffset, bool);
+  return IsObject() && READ_VALUE(this, JSObject::kIsCallableOffset, bool) || IsGetterSetter();
 }
 
 bool JSValue::IsConstructor() {

@@ -17,7 +17,7 @@
 namespace es {
 
 Handle<JSValue> Call(
-  Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<JSValue> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   if (O.val()->IsFunctionObject()) {
     Handle<FunctionObject> F = static_cast<Handle<FunctionObject>>(O);
@@ -52,6 +52,8 @@ Handle<JSValue> Call(
     }
   } else if (O.val()->IsFunctionProto()) {
     return Call__FunctionProto(e, static_cast<Handle<FunctionProto>>(O), this_arg, arguments);
+  } else if (O.val()->IsGetterSetter()) {
+    return Call__GetterSetter(e, static_cast<Handle<GetterSetter>>(O), this_arg, arguments);
   } else {
     return Call__Base(e, O, this_arg, arguments);
   }
@@ -197,6 +199,19 @@ Handle<JSValue> Call__StringConstructor(
   if (arguments.size() == 0)
     return String::Empty();
   return ::es::ToString(e, arguments[0]);
+}
+
+Handle<JSValue> Call__GetterSetter(
+  Handle<Error>& e, Handle<GetterSetter> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+) {
+  assert(arguments.size() < 2);
+  Handle<Reference> ref = O.val()->ref();
+  if (arguments.size() == 0) {
+    return GetValue(e, ref);
+  } else {
+    PutValue(e, ref, arguments[0]);
+    return Handle<JSValue>();
+  }
 }
 
 }  // namespace es

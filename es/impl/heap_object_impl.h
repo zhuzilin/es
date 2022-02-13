@@ -59,10 +59,12 @@ std::string HeapObject::ToString(HeapObject* heap_obj) {
       return "ObjectEnvRec(" + log::ToString(heap_obj) + ")";
     case JS_LEX_ENV:
       return "LexicalEnvironment";
+    case JS_GET_SET:
+      return "GetterSetter(" + ToString(READ_VALUE(heap_obj, GetterSetter::kReferenceOffset, Reference*)) + ")";
     case ERROR:
       return static_cast<Error*>(heap_obj)->IsOk() ?
         "ok" :
-        ("error(" + ToString(READ_VALUE(heap_obj, Error::kValueOffset, String*)) + ")");
+        ("error(" + ToString(READ_VALUE(heap_obj, Error::kValueOffset, JSValue*)) + ")");
     case FIXED_ARRAY:
       return "FixedArray(" + std::to_string(READ_VALUE(heap_obj, FixedArray::kSizeOffset, size_t)) + ")";
     case HASHMAP:
@@ -138,6 +140,10 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
         HEAP_PTR(heap_obj, LexicalEnvironment::kOuterOffset),
         HEAP_PTR(heap_obj, LexicalEnvironment::kEnvRecOffset)
       };
+    case JS_GET_SET:
+      return {
+        HEAP_PTR(heap_obj, GetterSetter::kReferenceOffset)
+      };
     case ERROR:
       return {
         HEAP_PTR(heap_obj, Error::kValueOffset)
@@ -177,10 +183,6 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
           HEAP_PTR(heap_obj, JSObject::kNamedPropertiesOffset) 
         };
         switch (heap_obj->type()) {
-          case OBJ_ARGUMENTS: {
-            pointers.emplace_back(HEAP_PTR(heap_obj, ArgumentsObject::kParameterMapOffset));
-            break;
-          }
           case OBJ_FUNC: {
             pointers.emplace_back(HEAP_PTR(heap_obj, FunctionObject::kFormalParametersOffset));
             pointers.emplace_back(HEAP_PTR(heap_obj, FunctionObject::kScopeOffset));
@@ -296,6 +298,8 @@ std::string HeapObject::ToString(Type type) {
       return "JS_ENV_REC_OBJ";
     case JS_LEX_ENV:
       return "JS_LEX_ENV";
+    case JS_GET_SET:
+      return "JS_GET_SET";
 
     case NON_JSVALUE:
       return "NON_JSVALUE";

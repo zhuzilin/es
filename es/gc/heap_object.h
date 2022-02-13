@@ -65,6 +65,8 @@ class HeapObject {
     JS_ENV_REC_OBJ  = 1 << 8 | 4,
     JS_LEX_ENV      = 1 << 8 | 5,
 
+    JS_GET_SET      = 1 << 8 | 6,
+
     NON_JSVALUE  = 1 << 16,
 
     ERROR       = 1 << 16 | 1,
@@ -125,6 +127,8 @@ class HeapObject {
   inline bool IsPropertyDescriptor() { return type() == JS_PROP_DESC; }
   inline bool IsEnvironmentRecord() { return type() == JS_ENV_REC_DECL || type() == JS_ENV_REC_OBJ; }
   inline bool IsLexicalEnvironment() { return type() == JS_LEX_ENV; }
+
+  inline bool IsGetterSetter() { return type() == JS_GET_SET; }
 
   inline bool IsPrototype() { return IsNull() || IsObject(); }
 
