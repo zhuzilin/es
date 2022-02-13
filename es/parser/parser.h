@@ -1,6 +1,8 @@
 #ifndef ES_PARSER_PARSER_H
 #define ES_PARSER_PARSER_H
 
+#include <stack>
+
 #include <es/parser/lexer.h>
 #include <es/parser/ast.h>
 
@@ -14,7 +16,10 @@ namespace es {
 
 class Parser {
  public:
-  Parser(std::u16string source) : source_(source), lexer_(source) {}
+  Parser(std::u16string source) : source_(source), lexer_(source) {
+    // For test
+    var_decl_stack_.push({});
+  }
 
   AST* ParsePrimaryExpression() {
     Token token = lexer_.NextAndRewind();
@@ -523,8 +528,9 @@ error:
     }
 
     ProgramOrFunctionBody* prog = new ProgramOrFunctionBody(program_or_function, strict);
-    AST* element;
+    var_decl_stack_.push({});
 
+    AST* element;
     token = lexer_.NextAndRewind();
     while (token.type() != ending_token_type) {
       if (token.source() == u"function") {
@@ -545,6 +551,8 @@ error:
       token = lexer_.NextAndRewind();
     }
     assert(token.type() == ending_token_type);
+    prog->SetVarDecls(std::move(var_decl_stack_.top()));
+    var_decl_stack_.pop();
     prog->SetSource(SOURCE_PARSED);
     return prog;
   }
@@ -637,13 +645,17 @@ error:
     AST* init;
     assert(ident.IsIdentifier());
     if (lexer_.NextAndRewind().type() != Token::TK_ASSIGN) {
-      return new VarDecl(ident, SOURCE_PARSED);
+      VarDecl* var_decl = new VarDecl(ident, SOURCE_PARSED);
+      var_decl_stack_.top().emplace_back(var_decl);
+      return var_decl;
     }
     lexer_.Next();  // skip =
     init = ParseAssignmentExpression(no_in);
     if (init->IsIllegal())
       return init;
-    return new VarDecl(ident, init, SOURCE_PARSED);
+    VarDecl* var_decl =  new VarDecl(ident, init, SOURCE_PARSED);
+    var_decl_stack_.top().emplace_back(var_decl);
+    return var_decl;
   }
 
   AST* ParseVariableStatement(bool no_in) {
@@ -1185,6 +1197,8 @@ error:
  private:
   std::u16string source_;
   Lexer lexer_;
+
+  std::stack<std::vector<VarDecl*>> var_decl_stack_;
 };
 
 }  // namespace es

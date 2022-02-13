@@ -354,6 +354,7 @@ class Function : public AST {
   AST* body_;
 };
 
+class VarDecl;
 class ProgramOrFunctionBody : public AST {
  public:
   ProgramOrFunctionBody(Type type, bool strict) : AST(type), strict_(strict) {}
@@ -376,10 +377,15 @@ class ProgramOrFunctionBody : public AST {
   std::vector<Function*> func_decls() { return func_decls_; }
   std::vector<AST*> statements() { return stmts_; }
 
+  std::vector<VarDecl*>& var_decls() { return var_decls_; }
+  void SetVarDecls(std::vector<VarDecl*>&& var_decls) { var_decls_ = var_decls; }
+
  private:
   bool strict_;
   std::vector<Function*> func_decls_;
   std::vector<AST*> stmts_;
+
+  std::vector<VarDecl*> var_decls_;
 };
 
 class LabelledStmt : public AST {

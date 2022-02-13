@@ -67,93 +67,6 @@ Handle<ArgumentsObject> CreateArgumentsObject(
   return obj;  // 15
 }
 
-void FindAllVarDecl(std::vector<AST*> stmts, std::vector<VarDecl*>& decls) {
-  for (auto stmt : stmts) {
-    switch (stmt->type()) {
-      case AST::AST_STMT_BLOCK: {
-        Block* block = static_cast<Block*>(stmt);
-        FindAllVarDecl(block->statements(), decls);
-        break;
-      }
-      case AST::AST_STMT_VAR: {
-        VarStmt* var_stmt = static_cast<VarStmt*>(stmt);
-        for (auto d : var_stmt->decls()) {
-          decls.emplace_back(d);
-        }
-        break;
-      }
-      case AST::AST_STMT_IF: {
-        If* if_stmt = static_cast<If*>(stmt);
-        FindAllVarDecl({if_stmt->if_block()}, decls);
-        if (if_stmt->else_block() != nullptr)
-          FindAllVarDecl({if_stmt->else_block()}, decls);
-        break;
-      }
-      case AST::AST_STMT_WHILE:
-      case AST::AST_STMT_WITH: {
-        WhileOrWith* while_stmt = static_cast<WhileOrWith*>(stmt);
-        FindAllVarDecl({while_stmt->stmt()}, decls);
-        break;
-      }
-      case AST::AST_STMT_DO_WHILE: {
-        DoWhile* do_while_stmt = static_cast<DoWhile*>(stmt);
-        FindAllVarDecl({do_while_stmt->stmt()}, decls);
-        break;
-      }
-      case AST::AST_STMT_FOR: {
-        For* for_stmt = static_cast<For*>(stmt);
-        if (for_stmt->expr0s().size() > 0 && for_stmt->expr0s()[0]->type() == AST::AST_STMT_VAR_DECL) {
-          for (AST* ast : for_stmt->expr0s()) {
-            VarDecl* d = static_cast<VarDecl*>(ast);
-            decls.emplace_back(d);
-          }
-        }
-        FindAllVarDecl({for_stmt->statement()}, decls);
-        break;
-      }
-      case AST::AST_STMT_FOR_IN: {
-        ForIn* for_in_stmt = static_cast<ForIn*>(stmt);
-        if (for_in_stmt->expr0()->type() == AST::AST_STMT_VAR_DECL) {
-            VarDecl* d = static_cast<VarDecl*>(for_in_stmt->expr0());
-            decls.emplace_back(d);
-        }
-        FindAllVarDecl({for_in_stmt->statement()}, decls);
-        break;
-      }
-      case AST::AST_STMT_LABEL: {
-        LabelledStmt* label = static_cast<LabelledStmt*>(stmt);
-        FindAllVarDecl({label->statement()}, decls);
-        break;
-      }
-      case AST::AST_STMT_SWITCH: {
-        Switch* switch_stmt = static_cast<Switch*>(stmt);
-        for (auto clause : switch_stmt->before_default_case_clauses()) {
-          FindAllVarDecl(clause.stmts, decls);
-        }
-        if (switch_stmt->has_default_clause()) {
-          FindAllVarDecl(switch_stmt->default_clause().stmts, decls);
-        }
-        for (auto clause : switch_stmt->after_default_case_clauses()) {
-          FindAllVarDecl(clause.stmts, decls);
-        }
-        break;
-      }
-      case AST::AST_STMT_TRY: {
-        Try* try_stmt = static_cast<Try*>(stmt);
-        FindAllVarDecl({try_stmt->try_block()}, decls);
-        if (try_stmt->catch_block() != nullptr)
-          FindAllVarDecl({try_stmt->catch_block()}, decls);
-        if (try_stmt->finally_block() != nullptr)
-          FindAllVarDecl({try_stmt->finally_block()}, decls);
-        break;
-      }
-      // TODO(zhuzilin) fill the other statements.
-      default:
-        break;
-    }
-  }
-}
-
 // 10.5 Declaration Binding Instantiation
 void DeclarationBindingInstantiation(
   Handle<Error>& e, ExecutionContext* context, AST* code, CodeType code_type,
@@ -236,8 +149,7 @@ void DeclarationBindingInstantiation(
     }
   }
   // 8
-  std::vector<VarDecl*> decls;
-  FindAllVarDecl(body->statements(), decls);
+  std::vector<VarDecl*>& decls = body->var_decls();
   for (VarDecl* d : decls) {
     Handle<String> dn = String::New(d->ident());
     bool var_already_declared = HasBinding(env, dn);

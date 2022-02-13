@@ -236,6 +236,8 @@ std::u16string NumberToU16String(double m) {
     return u"0";
   if (isnan(m))
     return u"NaN";
+  if (isinf(m))
+    return u"Infinity";
   // TODO(zhuzilin) Figure out how to solve the large number error.
   std::u16string sign = u"";
   if (m < 0) {
@@ -334,6 +336,8 @@ std::string NumberToStdString(double m) {
     return "0";
   if (isnan(m))
     return "NaN";
+  if (isinf(m))
+    return "Infinity";
   // TODO(zhuzilin) Figure out how to solve the large number error.
   std::string sign = "";
   if (m < 0) {
@@ -432,6 +436,8 @@ Handle<String> NumberToString(double m) {
     return String::NaN();
   if (m == 0)
     return String::Zero();
+  if (isinf(m))
+    return String::Infinity();
   return String::New(NumberToU16String(m));
 }
 
