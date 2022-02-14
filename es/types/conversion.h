@@ -36,6 +36,7 @@ bool ToBoolean(Handle<JSValue> input) {
       }
       return true;
     }
+    case JSValue::JS_LONG_STRING:
     case JSValue::JS_STRING: {
       Handle<String> str = static_cast<Handle<String>>(input);
       return str.val()->data() != u"";
@@ -167,6 +168,7 @@ double ToNumber(Handle<Error>& e, Handle<JSValue> input) {
       return static_cast<Handle<Bool>>(input).val()->data() ? 1.0 : 0.0;
     case JSValue::JS_NUMBER:
       return static_cast<Handle<Number>>(input).val()->data();
+    case JSValue::JS_LONG_STRING:
     case JSValue::JS_STRING:
       return StringToNumber(static_cast<Handle<String>>(input));
     default:
@@ -460,6 +462,7 @@ Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input) {
       return static_cast<Handle<Bool>>(input).val()->data() ? String::True() : String::False();
     case JSValue::JS_NUMBER:
       return NumberToString(static_cast<Handle<Number>>(input));
+    case JSValue::JS_LONG_STRING:
     case JSValue::JS_STRING:
       return static_cast<Handle<String>>(input);
     default:
@@ -493,6 +496,7 @@ Handle<JSObject> ToObject(Handle<Error>& e, Handle<JSValue> input) {
       return BoolObject::New(input);
     case JSValue::JS_NUMBER:
       return NumberObject::New(input);
+    case JSValue::JS_LONG_STRING:
     case JSValue::JS_STRING:
       return StringObject::New(input);
     default:

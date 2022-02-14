@@ -121,6 +121,7 @@ bool StrictEqual(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y) {
       double dy = num_y.val()->data();
       return dx == dy;
     }
+    case JSValue::JS_LONG_STRING:
     case JSValue::JS_STRING: {
       Handle<String> str_x = static_cast<Handle<String>>(x);
       Handle<String> str_y = static_cast<Handle<String>>(y);

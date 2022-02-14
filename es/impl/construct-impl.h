@@ -216,6 +216,7 @@ Handle<JSObject> Construct__ObjectConstructor(
       case JSValue::JS_OBJECT:
         // TODO(zhuzilin) deal with host object.
         return static_cast<Handle<JSObject>>(value);
+      case JSValue::JS_LONG_STRING:
       case JSValue::JS_STRING:
       case JSValue::JS_BOOL:
       case JSValue::JS_NUMBER:

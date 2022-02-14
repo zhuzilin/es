@@ -33,6 +33,7 @@ std::string HeapObject::ToString(HeapObject* heap_obj) {
       return "Null";
     case JS_BOOL:
       return static_cast<Bool*>(heap_obj)->data() ? "true" : "false";
+    case JS_LONG_STRING:
     case JS_STRING:
       return log::ToString(static_cast<String*>(heap_obj)->data());
     case JS_NUMBER:
@@ -113,6 +114,7 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
     case JS_UNDEFINED:
     case JS_NULL:
     case JS_BOOL:
+    case JS_LONG_STRING:
     case JS_STRING:
     case JS_NUMBER:
       return {};
@@ -219,6 +221,8 @@ std::string HeapObject::ToString(Type type) {
       return "JS_NULL";
     case JS_BOOL:
       return "JS_BOOL";
+    case JS_LONG_STRING:
+      return "JS_LONG_STRING";
     case JS_STRING:
       return "JS_STRING";
     case JS_NUMBER:

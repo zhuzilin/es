@@ -1134,6 +1134,7 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
         return String::New(u"object");
       case JSValue::JS_NUMBER:
         return String::New(u"number");
+      case JSValue::JS_LONG_STRING:
       case JSValue::JS_STRING:
         return String::New(u"string");
       default:

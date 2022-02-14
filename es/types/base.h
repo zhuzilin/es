@@ -92,38 +92,51 @@ class Bool : public JSValue {
 class String : public JSValue {
  public:
   static Handle<String> New(std::u16string data, flag_t flag = 0) {
-    Handle<JSValue> jsval = JSValue::New(kSizeTSize + data.size() * kChar16Size, flag);
+    size_t n = data.size();
+    Handle<String> str = String::New(n, flag);
 
-    SET_VALUE(jsval.val(), kLengthOffset, data.size(), size_t);
-    memcpy(PTR(jsval.val(), kStringDataOffset), data.data(), data.size() * kChar16Size);
+    memcpy(PTR(str.val(), kStringDataOffset), data.data(), n * kChar16Size);
 
-    jsval.val()->SetType(JS_STRING);
-    return Handle<String>(jsval);
+    return str;
   }
 
-  static Handle<String> New(char16_t* data, flag_t flag = 0) {
-    size_t size = std::char_traits<char16_t>::length(data);
-    Handle<JSValue> jsval = JSValue::New(kSizeTSize + size * kChar16Size, flag);
+  static Handle<String> New(size_t n, flag_t flag = 0) {
+    Handle<JSValue> jsval = JSValue::New(kSizeTSize + n * kChar16Size, flag);
 
-    SET_VALUE(jsval.val(), kLengthOffset, size, size_t);
-    memcpy(PTR(jsval.val(), kStringDataOffset), data, size * kChar16Size);
-
-    jsval.val()->SetType(JS_STRING);
-    return Handle<String>(jsval);
-  }
-
-  static Handle<String> New(size_t n) {
-    Handle<JSValue> jsval = JSValue::New(kSizeTSize + n * kChar16Size);
-
-    SET_VALUE(jsval.val(), kLengthOffset, n, int);
-
-    jsval.val()->SetType(JS_STRING);
+    if (n < kLongStringSize) {
+      // The last digit is for decide whether hash is calculated.
+      SET_VALUE(jsval.val(), kLengthOffset, n << 16, size_t);
+      jsval.val()->SetType(JS_STRING);
+    } else {
+      SET_VALUE(jsval.val(), kLengthOffset, n << 1, size_t);
+      jsval.val()->SetType(JS_LONG_STRING);
+    }
     return Handle<String>(jsval);
   }
 
   std::u16string data() { return std::u16string(c_str(), size()); }
   char16_t* c_str() { return TYPED_PTR(this, kStringDataOffset, char16_t); }
-  size_t size() { return READ_VALUE(this, kLengthOffset, size_t); }
+  size_t length_slot() { return READ_VALUE(this, kLengthOffset, size_t); }
+  size_t size() {
+    size_t slot = length_slot();
+    switch (type()) {
+      case JS_STRING:
+        return slot >> 16;
+      case JS_LONG_STRING:
+        return slot >> 1;
+      default:
+        assert(false);
+    }
+  }
+  size_t Hash() {
+    size_t slot = length_slot();
+    if (slot & 1) return slot >> 1;
+    size_t hash = U16Hash(data());
+    hash = hash << 1 | 1;
+    hash = slot | (0x0000FFFF & hash);
+    SET_VALUE(this, kLengthOffset, hash, size_t);
+    return hash >> 1;
+  }
 
   char16_t& operator [](int index) {
     return c_str()[index];
@@ -235,6 +248,10 @@ class String : public JSValue {
  private:
   static constexpr size_t kLengthOffset = kJSValueOffset;
   static constexpr size_t kStringDataOffset = kLengthOffset + kSizeTSize;
+
+  static constexpr size_t kLongStringSize = 65536;
+
+  static constexpr std::hash<std::u16string> U16Hash = std::hash<std::u16string>{};
 };
 
 bool operator ==(String& a, String& b) {

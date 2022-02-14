@@ -276,7 +276,7 @@ class HashMap : public HeapObject {
   }
 
   inline size_t ListHeadOffset(String* key) {
-    return kElementOffset + U16Hash(key->data()) % num_bucket() * kPtrSize;
+    return kElementOffset + key->Hash() % num_bucket() * kPtrSize;
   }
 
   ListNode* GetListNodeRaw(Handle<String> key) {
@@ -302,8 +302,6 @@ class HashMap : public HeapObject {
   static constexpr size_t kElementOffset = kSizeOffset + kSizeTSize;
 
   static constexpr size_t kDefaultHashMapSize = 3;
-
-  static constexpr std::hash<std::u16string> U16Hash = std::hash<std::u16string>{};
 };
 
 }  // namespace es

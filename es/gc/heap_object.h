@@ -21,7 +21,8 @@ class HeapObject {
     JS_NULL = 2,
     JS_BOOL = 3,
     JS_STRING = 4,
-    JS_NUMBER = 5,
+    JS_LONG_STRING = 5,
+    JS_NUMBER = 6,
 
     JS_OBJECT = 1 << 6,
 
@@ -100,7 +101,7 @@ class HeapObject {
   inline bool IsUndefined() { return type() == JS_UNDEFINED; }
   inline bool IsNull() { return type() == JS_NULL; }
   inline bool IsBool() { return type() == JS_BOOL; }
-  inline bool IsString() { return type() == JS_STRING; }
+  inline bool IsString() { return type() == JS_STRING || type() == JS_LONG_STRING; }
   inline bool IsNumber() { return type() == JS_NUMBER; }
   inline bool IsPrimitive() { return !IsObject(); }
 
