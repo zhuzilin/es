@@ -252,7 +252,6 @@ bool operator !=(String& a, String& b) {
 }
 
 bool operator <(String& a, String& b) {
-  if (a.size() != b.size()) return false;
   size_t size = a.size();
   if (b.size() < size)
     size = b.size();
