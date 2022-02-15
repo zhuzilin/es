@@ -13,7 +13,20 @@ class ErrorProto : public JSObject {
   }
 
   static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
+    Handle<JSValue> val = Runtime::TopValue();
+    if (!val.val()->IsObject()) {
+      e = Error::TypeError(u"Error.prototype.toString called with non-object value");
+      return Handle<JSValue>();
+    }
+    Handle<JSObject> O = static_cast<Handle<JSObject>>(val);
+    // TODO(zhuzilin) add name
+    Handle<JSValue> msg = Get(e, O, String::New(u"message"));
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+    if (msg.val()->IsUndefined())
+      return Undefined::Instance();
+    Handle<String> msg_str = ::es::ToString(e, msg);
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+    return msg_str;
   }
 
  private:
@@ -46,9 +59,7 @@ class ErrorObject : public JSObject {
   Error::ErrorType ErrorType() { return e().val()->type(); }
   Handle<JSValue> ErrorValue() { return e().val()->value(); }
 
-  std::string ToString() { return ErrorValue().ToString(); }
-
- private:
+ public:
   static constexpr size_t kErrorOffset = kJSObjectOffset;
 };
 

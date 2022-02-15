@@ -23,12 +23,11 @@ class Lexer {
     Token token = Token(Token::Type::TK_NOT_FOUND, u"", 0, 0);
     do {
       size_t start = pos_;
+      if (pos_ == source_.size()) {
+        token = Token(Token::Type::TK_EOS, u"", start, start);
+        break;
+      }
       switch (c_) {
-        case character::EOS: {
-          token = Token(Token::Type::TK_EOS, u"", start, start);
-          break;
-        }
-
         case u'{': {
           Advance();
           token = Token(Token::Type::TK_LBRACE, source_.substr(start, 1), start, start + 1);
@@ -382,27 +381,26 @@ class Lexer {
       return false;
     }
     size_t start = pos_;
-    while(c_ != character::EOS && c_ != u'/' && !character::IsLineTerminator(c_)) {
+    while(pos_ != source_.size() && c_ != u'/' && !character::IsLineTerminator(c_)) {
       switch (c_) {
         case u'\\': {  // Regular Expression
-          if (!SkipRegularExpressionBackslashSequence()) {
+          if (!SkipRegularExpressionBackslashSequence(pattern)) {
             Advance();
             return false;
           }
           break;
         }
         case u'[': {
-          if (!SkipRegularExpressionClass()) {
+          if (!SkipRegularExpressionClass(pattern)) {
             Advance();
             return false;
           }
           break;
         }
         default:
-          SkipRegularExpressionChars();
+          SkipRegularExpressionChars(pattern);
       }
     }
-    pattern = source_.substr(start, pos_ - start);
     return true;
   }
 
@@ -414,15 +412,15 @@ class Lexer {
       while (character::IsIdentifierPart(c_)) {
         if (c_ == u'\\') {
           Advance();
-          if (!SkipUnicodeEscapeSequence()) {
+          if (!SkipUnicodeEscapeSequence(flag)) {
             Advance();
             return false;
           }
         } else {
+          flag += c_;
           Advance();
         }
       }
-      flag = source_.substr(start, pos_ - start);
       return true;
     }
     return false;
@@ -452,6 +450,7 @@ error:
  private:
   inline char16_t LookAhead() {
     if (pos_ + 1 >= end_) {
+      // TODO(zhuzilin) distinguish EOS and \0.
       return character::EOS;
     }
     return source_[pos_ + 1];
@@ -473,34 +472,39 @@ error:
   }
 
 
-  bool SkipRegularExpressionBackslashSequence() {
+  bool SkipRegularExpressionBackslashSequence(std::u16string& pattern) {
     assert(c_ == u'\\');
+    pattern += c_;
     Advance();
     if (character::IsLineTerminator(c_)) {
       return false;
     }
+    pattern += c_;
     Advance();
     return true;
   }
 
-  void SkipRegularExpressionChars() {
-    while (c_ != character::EOS && character::IsRegularExpressionChar(c_)) {
+  void SkipRegularExpressionChars(std::u16string& pattern) {
+    while (pos_ != source_.size() && character::IsRegularExpressionChar(c_)) {
+      pattern += c_;
       Advance();
     }
   }
 
-  bool SkipRegularExpressionClass() {
+  bool SkipRegularExpressionClass(std::u16string& pattern) {
     assert(c_ == u'[');
+    pattern += c_;
     Advance();
-    while (c_ != character::EOS && character::IsRegularExpressionClassChar(c_)) {
+    while (pos_ != source_.size() && character::IsRegularExpressionClassChar(c_)) {
       switch (c_) {
         case u'\\': {
-          if (!SkipRegularExpressionBackslashSequence()) {
+          if (!SkipRegularExpressionBackslashSequence(pattern)) {
             return false;
           }
           break;
         }
         default:
+          pattern += c_;
           Advance();
       }
     }
@@ -511,7 +515,7 @@ error:
   }
 
   void SkipMultiLineComment() {
-    while (c_ != character::EOS) {
+    while (pos_ != source_.size()) {
       if (c_ == u'*') {
         Advance();
         if (c_ == u'/') {
@@ -526,7 +530,7 @@ error:
 
   void SkipSingleLineComment() {
     // This will not skip line terminators.
-    while (c_ != character::EOS && !character::IsLineTerminator(c_)) {
+    while (pos_ != source_.size() && !character::IsLineTerminator(c_)) {
       Advance();
     }
   }
@@ -560,8 +564,9 @@ error:
   Token ScanStringLiteral() {
     char16_t quote = c_;
     size_t start = pos_;
+    std::u16string tmp;
     Advance();
-    while(c_ != character::EOS && c_ != quote && !character::IsLineTerminator(c_)) {
+    while(pos_ != source_.size() && c_ != quote && !character::IsLineTerminator(c_)) {
       switch (c_) {
         case u'\\': {
           Advance();
@@ -587,7 +592,8 @@ error:
               break;
             }
             case u'u': {  // UnicodeEscapeSequence
-              if (!SkipUnicodeEscapeSequence()) {
+              // TODO(zhuzilin) May need to interpret unicode here
+              if (!SkipUnicodeEscapeSequence(tmp)) {
                 Advance();
                 goto error;
               }
@@ -616,6 +622,12 @@ error:
     }
 error:
     return Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start), start, pos_);
+  }
+
+  void SkipDecimalDigit() {
+    while (character::IsDecimalDigit(c_)) {
+      Advance();
+    }
   }
 
   bool SkipAtLeastOneDecimalDigit() {
@@ -659,10 +671,7 @@ error:
           }
           case u'.': {
             Advance();
-            if (!SkipAtLeastOneDecimalDigit()) {
-              Advance();
-              goto error;
-            }
+            SkipDecimalDigit();
             break;
           }
         }
@@ -680,10 +689,7 @@ error:
         SkipAtLeastOneDecimalDigit();
         if (c_ == u'.') {
           Advance();
-          if (!SkipAtLeastOneDecimalDigit()) {
-            Advance();
-            goto error;
-          }
+          SkipDecimalDigit();
         }
     }
 
@@ -711,47 +717,50 @@ error:
     return Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start), start, pos_);
   }
 
-  bool SkipUnicodeEscapeSequence() {
+  bool SkipUnicodeEscapeSequence(std::u16string& source) {
     if (c_ != u'u') {
       return false;
     }
     Advance();
+    char16_t c = 0;
     for (size_t i = 0; i < 4; i++) {
       if (!character::IsHexDigit(c_)) {
         return false;
       }
+      c = c << 4 | character::Digit(c_);
       Advance();
     }
+    source += c;
     return true;
   }
 
   Token ScanIdentifier() {
     assert(character::IsIdentifierStart(c_));
     size_t start = pos_;
-    std::u16string source;
+    std::u16string source = u"";
     if (c_ == u'\\') {
       Advance();
-      if (!SkipUnicodeEscapeSequence()) {
+      if (!SkipUnicodeEscapeSequence(source)) {
         Advance();
         goto error;
       }
     } else {
+      source += c_;
       Advance();
     }
 
     while (character::IsIdentifierPart(c_)) {
       if (c_ == u'\\') {
         Advance();
-        if (!SkipUnicodeEscapeSequence()) {
+        if (!SkipUnicodeEscapeSequence(source)) {
           Advance();
           goto error;
         }
       } else {
+        source += c_;
         Advance();
       }
     }
-
-    source = source_.substr(start, pos_ - start);
     if (source == u"null") {
       return Token(Token::Type::TK_NULL, source, start, pos_);
     }
@@ -767,8 +776,11 @@ error:
       if (source == future) {
         return Token(Token::Type::TK_FUTURE, source, start, pos_);
       }
-      // TODO(zhuzilin) Check if source in kStrictModeFutureReservedWords
-      // when stric mode code is supported.
+    }
+    for (auto future : kStrictModeFutureReservedWords) {
+      if (source == future) {
+        return Token(Token::Type::TK_STRICT_FUTURE, source, start, pos_);
+      }
     }
     return Token(Token::Type::TK_IDENT, source, start, pos_);
 error:

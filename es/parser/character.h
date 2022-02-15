@@ -20,7 +20,7 @@ static const char16_t BOM  = 0xFEFF;  // Byte Order Mark
 // White Space
 static const char16_t TAB     = 0x0009;  // Tab
 static const char16_t VT      = 0x000B;  // Vertical Tab
-static const char16_t FF      = 0x0020;  // Form Feed
+static const char16_t FF      = 0x000C;  // Form Feed
 static const char16_t SP      = 0x0020;  // Space
 static const char16_t hashx0a = 0x00A0;  // No-break space
 // static const char16_t BOM  = 0xFEFF;  // Byte Order Mark
@@ -123,7 +123,7 @@ inline bool IsRegularExpressionClassChar(char16_t c) {
   return !IsLineTerminator(c) && c != u']';
 }
 
-inline double Digit(char16_t c) {
+inline size_t Digit(char16_t c) {
   switch (c) {
     case u'0':
     case u'1':

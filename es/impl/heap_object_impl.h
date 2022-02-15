@@ -65,7 +65,7 @@ std::string HeapObject::ToString(HeapObject* heap_obj) {
     case ERROR:
       return static_cast<Error*>(heap_obj)->IsOk() ?
         "ok" :
-        ("error(" + ToString(READ_VALUE(heap_obj, Error::kValueOffset, JSValue*)) + ")");
+        ToString(READ_VALUE(heap_obj, Error::kValueOffset, JSValue*));
     case FIXED_ARRAY:
       return "FixedArray(" + std::to_string(READ_VALUE(heap_obj, FixedArray::kSizeOffset, size_t)) + ")";
     case HASHMAP:
@@ -99,6 +99,9 @@ std::string HeapObject::ToString(HeapObject* heap_obj) {
     case OBJ_REGEXP: {
       return "/" + ToString(READ_VALUE(heap_obj, RegExpObject::kPatternOffset, String*)) +
              "/" + ToString(READ_VALUE(heap_obj, RegExpObject::kFlagOffset, String*));
+    }
+    case OBJ_ERROR: {
+      return ToString(READ_VALUE(heap_obj, ErrorObject::kErrorOffset, Error*));
     }
     default:
       if (heap_obj->IsObject()) {

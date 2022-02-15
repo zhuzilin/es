@@ -19,6 +19,7 @@ class Token {
 
     // Future Reserved Words
     TK_FUTURE,
+    TK_STRICT_FUTURE,
 
     // Punctuator
     TK_LBRACE,  // {
@@ -130,7 +131,9 @@ class Token {
   inline bool IsLineTerminator() { return type_ == TK_LINE_TERM; }
 
   inline bool IsIdentifierName() {
-    return type_ == TK_IDENT || type_ == TK_KEYWORD || type_ == TK_FUTURE;
+    return type_ == TK_IDENT || type_ == TK_KEYWORD ||
+           type_ == TK_FUTURE || type_ == TK_STRICT_FUTURE ||
+           type_ == TK_NULL || type_ == TK_BOOL;
   }
 
   inline bool IsPropertyName() {
@@ -139,7 +142,7 @@ class Token {
 
   inline bool IsSemiColon() { return type_ == TK_SEMICOLON; }
 
-  inline bool IsIdentifier() { return type_ == TK_IDENT; }
+  inline bool IsIdentifier() { return type_ == TK_IDENT || type_ == TK_STRICT_FUTURE; }
 
   inline bool IsBinaryLogical() { return type_ == TK_LOGICAL_AND || type_ == TK_LOGICAL_OR; }
 
@@ -228,11 +231,11 @@ class Token {
     return Token((Type)(type_ - TK_ADD_ASSIGN + TK_ADD), source_.substr(0, source_.size()-1), start_, end_ - 1);
   }
 
-  Type type() { return type_; }
-  std::u16string source() { return source_; }
-  const std::u16string& source_ref() { return source_; }
-  size_t start() { return start_; }
-  size_t end() { return end_; }
+  inline Type type() { return type_; }
+  inline std::u16string source() { return source_; }
+  inline const std::u16string& source_ref() { return source_; }
+  inline size_t start() { return start_; }
+  inline size_t end() { return end_; }
 
  private:
   Type type_;
@@ -257,7 +260,7 @@ const std::array<std::u16string, 7> kFutureReservedWords = {
 };
 
 const std::array<std::u16string, 9> kStrictModeFutureReservedWords = {
-  u"implements", u"let",    u"private",    u"public", u"yield"
+  u"implements", u"let",     u"private",   u"public", u"yield",
   u"interface",  u"package", u"protected", u"static"
 };
 

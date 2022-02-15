@@ -8,6 +8,7 @@ namespace es {
 std::u16string ToU16String(Handle<Error>& e, Handle<JSValue> input);
 double ToInt32(Handle<Error>& e, Handle<JSValue> input);
 double StringToNumber(std::u16string source);
+double ToNumber(Handle<Error>& e, Handle<JSValue> input);
 
 // 15.1 The Global Object
 class GlobalObject : public JSObject {
@@ -107,7 +108,11 @@ class GlobalObject : public JSObject {
 
   // 15.1.2.4 isNaN (number)
   static Handle<JSValue> isNaN(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
+    if (vals.size() == 0)
+      return Bool::True();
+    double num = ToNumber(e, vals[0]);
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+    return Bool::Wrap(isnan(num));
   }
 
   // 15.1.2.5 isFinite (number)

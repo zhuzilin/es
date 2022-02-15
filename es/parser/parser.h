@@ -30,6 +30,9 @@ class Parser {
           return new AST(AST::AST_EXPR_THIS, TOKEN_SOURCE);
         }
         goto error;
+      case Token::TK_STRICT_FUTURE:
+        lexer_.Next();
+        return new AST(AST::AST_EXPR_STRICT_FUTURE, TOKEN_SOURCE);
       case Token::TK_IDENT:
         lexer_.Next();
         return new AST(AST::AST_EXPR_IDENT, TOKEN_SOURCE);
@@ -60,9 +63,12 @@ class Parser {
         }
         return new Paren(value, value->source(), value->start(), value->end());
       }
+      case Token::TK_DIV_ASSIGN:
       case Token::TK_DIV: {  // /
         lexer_.Next(); // skip /
         lexer_.Back(); // back to /
+        if (token.type() == Token::TK_DIV_ASSIGN)
+          lexer_.Back();
         std::u16string pattern, flag;
         token = lexer_.ScanRegExpLiteral(pattern, flag);
         if (token.type() == Token::TK_REGEX) {
@@ -92,7 +98,7 @@ error:
       }
       lexer_.Next();  // skip ,
       token = lexer_.Next();
-      if (token.type() != Token::TK_IDENT) {
+      if (!token.IsIdentifier()) {
         return {};
       }
       params.emplace_back(token.source());
@@ -112,7 +118,7 @@ error:
 
     // Identifier_opt
     Token token = lexer_.Next();
-    if (token.type() == Token::TK_IDENT) {
+    if (token.IsIdentifier()) {
       name = token;
       token = lexer_.Next();  // skip "("
     } else if (must_be_named) {
@@ -122,7 +128,7 @@ error:
       goto error;
     }
     token = lexer_.NextAndRewind();
-    if (token.type() == Token::TK_IDENT) {
+    if (token.IsIdentifier()) {
       params = ParseFormalParameterList();
     }
     if (lexer_.Next().type() != Token::TK_RPAREN) {  // skip )
@@ -602,6 +608,7 @@ error:
         }
         break;
       }
+      case Token::TK_STRICT_FUTURE:
       case Token::TK_IDENT: {
         size_t old_pos = lexer_.Pos();
         Token old_token = lexer_.Last();
@@ -1124,11 +1131,15 @@ error:
     START_POS;
     assert(lexer_.Next().source() == u"try");
 
-    AST* try_block;
+    AST* try_block = nullptr;
     Token catch_ident(Token::TK_NOT_FOUND, source_, 0, 0);
     AST* catch_block = nullptr;
     AST* finally_block = nullptr;
 
+    if (lexer_.NextAndRewind().type() != Token::TK_LBRACE) {
+      lexer_.Next();
+      goto error;
+    }
     try_block = ParseBlockStatement();
     if (try_block->IsIllegal())
       return try_block;
@@ -1165,17 +1176,18 @@ error:
     if (catch_block == nullptr && finally_block == nullptr) {
       goto error;
     } else if (finally_block == nullptr) {
-      assert(catch_block != nullptr && catch_ident.type() == Token::TK_IDENT);
+      assert(catch_block != nullptr && catch_ident.IsIdentifier());
       return new Try(try_block, catch_ident, catch_block, SOURCE_PARSED);
     } else if (catch_block == nullptr) {
       assert(finally_block != nullptr);
       return new Try(try_block, finally_block, SOURCE_PARSED);
     }
-    assert(catch_block != nullptr && catch_ident.type() == Token::TK_IDENT);
+    assert(catch_block != nullptr && catch_ident.IsIdentifier());
     assert(finally_block != nullptr);
     return new Try(try_block, catch_ident, catch_block, finally_block, SOURCE_PARSED);
 error:
-    delete try_block;
+    if (try_block != nullptr)
+      delete try_block;
     if (catch_block != nullptr)
       delete try_block;
     if (finally_block != nullptr)

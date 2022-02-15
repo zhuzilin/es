@@ -43,7 +43,7 @@ Handle<JSValue> EvalExpression(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalPrimaryExpression(Handle<Error>& e, AST* ast);
 Handle<Reference> EvalIdentifier(AST* ast);
 Handle<Number> EvalNumber(AST* ast);
-Handle<String> EvalString(AST* ast);
+Handle<String> EvalString(Handle<Error>& e, AST* ast);
 Handle<Object> EvalObject(Handle<Error>& e, AST* ast);
 Handle<ArrayObject> EvalArray(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast);
@@ -198,16 +198,21 @@ Completion EvalBlockStatement(AST* ast) {
 std::u16string EvalVarDecl(Handle<Error>& e, AST* ast) {
   assert(ast->type() == AST::AST_STMT_VAR_DECL);
   VarDecl* decl = static_cast<VarDecl*>(ast);
+  std::u16string ident = decl->ident().source();
+  if (Runtime::TopContext()->strict() && decl->ident().type() == Token::TK_STRICT_FUTURE) {
+    e = Error::SyntaxError(u"future reserved word " + ident + u" used");
+    return ident;
+  }
   if (decl->init() == nullptr)
-    return decl->ident();
-  Handle<JSValue> lhs = IdentifierResolution(decl->ident());
+    return ident;
+  Handle<JSValue> lhs = IdentifierResolution(ident);
   Handle<JSValue> rhs = EvalAssignmentExpression(e, decl->init());
-  if (unlikely(!e.val()->IsOk())) return decl->ident();
+  if (unlikely(!e.val()->IsOk())) return ident;
   Handle<JSValue> value = GetValue(e, rhs);
-  if (unlikely(!e.val()->IsOk())) return decl->ident();
+  if (unlikely(!e.val()->IsOk())) return ident;
   PutValue(e, lhs, value);
-  if (unlikely(!e.val()->IsOk())) return decl->ident();
-  return decl->ident();
+  if (unlikely(!e.val()->IsOk())) return ident;
+  return ident;
 }
 
 Completion EvalVarStatement(AST* ast) {
@@ -705,6 +710,12 @@ Handle<JSValue> EvalExpression(Handle<Error>& e, AST* ast) {
   assert(ast->type() <= AST::AST_EXPR || ast->type() == AST::AST_FUNC);
   Handle<JSValue> val;
   switch (ast->type()) {
+    case AST::AST_EXPR_STRICT_FUTURE:
+      if (Runtime::TopContext()->strict()) {
+        e = Error::SyntaxError(u"future reserved word " + ast->source() + u" used");
+        return Handle<JSValue>();
+      }
+      [[fallthrough]];
     case AST::AST_EXPR_THIS:
     case AST::AST_EXPR_IDENT:
     case AST::AST_EXPR_NULL:
@@ -763,7 +774,7 @@ Handle<JSValue> EvalPrimaryExpression(Handle<Error>& e, AST* ast) {
       val = EvalNumber(ast);
       break;
     case AST::AST_EXPR_STRING:
-      val = EvalString(ast);
+      val = EvalString(e, ast);
       break;
     case AST::AST_EXPR_OBJ:
       val = EvalObject(e, ast);
@@ -815,6 +826,7 @@ Handle<Number> EvalNumber(const std::u16string& source) {
         double exp = 0;
         bool sign = true;
         pos++;  // skip e/E
+        c = source[pos];
         if (c == u'-') {
           sign = false;
           pos++;  // skip -
@@ -823,8 +835,10 @@ Handle<Number> EvalNumber(const std::u16string& source) {
           pos++; // skip +;
         }
         while (pos < source.size()) {
+          c = source[pos];
           exp *= 10;
           exp += character::Digit(c);
+          pos++;
         }
         if (!sign)
           exp = -exp;
@@ -862,7 +876,7 @@ Handle<Number> EvalNumber(AST* ast) {
   return EvalNumber(source);
 }
 
-Handle<String> EvalString(const std::u16string& source) {
+Handle<String> EvalString(Handle<Error>& e, const std::u16string& source) {
   size_t pos = 1;
   std::vector<std::u16string> vals;
   while (pos < source.size() - 1) {
@@ -896,6 +910,15 @@ Handle<String> EvalString(const std::u16string& source) {
             pos++;
             vals.emplace_back(u"\r");
             break;
+          case u'0': {
+            pos++;
+            if (pos < source.size() && character::IsDecimalDigit(source[pos])) {
+              e = Error::SyntaxError(u"decimal digit after \\0");
+              return Handle<String>();
+            }
+            vals.emplace_back(std::u16string(1, 0));
+            break;
+          }
           case u'x': {
             pos++;  // skip 'x'
             char16_t hex = 0;
@@ -951,22 +974,28 @@ Handle<String> EvalString(const std::u16string& source) {
   return String::New(StrCat(vals));
 }
 
-Handle<String> EvalString(AST* ast) {
+Handle<String> EvalString(Handle<Error>& e, AST* ast) {
   assert(ast->type() == AST::AST_EXPR_STRING);
   const std::u16string& source = ast->source_ref();
-  return EvalString(source);
+  return EvalString(e, source);
 }
 
 std::u16string EvalPropertyName(Handle<Error>& e, Token token) {
   switch (token.type()) {
+    case Token::TK_STRICT_FUTURE:
     case Token::TK_IDENT:
     case Token::TK_KEYWORD:
     case Token::TK_FUTURE:
+    case Token::TK_NULL:
+    case Token::TK_BOOL:
       return token.source();
     case Token::TK_NUMBER:
       return ToU16String(e, EvalNumber(token.source_ref()));
-    case Token::TK_STRING:
-      return ToU16String(e, EvalString(token.source_ref()));
+    case Token::TK_STRING: {
+      Handle<String> s = EvalString(e, token.source_ref());
+      if (unlikely(!e.val()->IsOk())) return u"";
+      return ToU16String(e, s);
+    }
     default:
       assert(false);
   }

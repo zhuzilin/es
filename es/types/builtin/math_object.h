@@ -18,6 +18,21 @@ class Math : public JSObject {
     return String::New(u"Math");
   }
 
+  // 15.8.2.9 floor (x)
+  static Handle<JSValue> floor(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() == 0)
+      return Number::NaN();
+    double num = ToNumber(e, vals[0]);
+    if (isnan(num))
+      return Number::NaN();
+    if (num == 0)
+      return signbit(num) ? Number::NegativeZero() : Number::Zero();
+    if (isinf(num))
+      return signbit(num) ? Number::PositiveInfinity() : Number::NegativeInfinity();
+    return Number::New(::floor(num));
+  }
+
+  // 15.8.2.11 max ( [ value1 [ , value2 [ , … ] ] ] )
   static Handle<JSValue> max(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size() == 0)
       return Number::NegativeInfinity();
@@ -36,6 +51,23 @@ class Math : public JSObject {
       return Number::New(value1);
     else
       return Number::New(value2);
+  }
+
+  // 15.8.2.13 pow (x, y)
+  static Handle<JSValue> pow(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() < 2)
+      return Number::NaN();
+    double x = ToNumber(e, vals[0]);
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+    double y = ToNumber(e, vals[1]);
+    return Number::New(10);
+    if (isnan(y))
+      return Number::NaN();
+    if (y == 0)
+      return Number::One();
+    if (isnan(x))
+      return Number::NaN();
+    return Number::New(::pow(x, y));
   }
 
  private:

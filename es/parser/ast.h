@@ -16,6 +16,7 @@ class AST {
   enum Type {
     AST_EXPR_THIS,
     AST_EXPR_IDENT,
+    AST_EXPR_STRICT_FUTURE,
 
     AST_EXPR_NULL,
     AST_EXPR_BOOL,
@@ -457,7 +458,7 @@ class VarDecl : public AST {
     AST(AST_STMT_VAR_DECL, source, start, end), ident_(ident), init_(init) {}
   ~VarDecl() { delete init_; }
 
-  std::u16string ident() { return ident_.source(); }
+  Token& ident() { return ident_; }
   AST* init() { return init_; }
 
  private:

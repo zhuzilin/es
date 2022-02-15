@@ -151,7 +151,7 @@ void DeclarationBindingInstantiation(
   // 8
   std::vector<VarDecl*>& decls = body->var_decls();
   for (VarDecl* d : decls) {
-    Handle<String> dn = String::New(d->ident());
+    Handle<String> dn = String::New(d->ident().source());
     bool var_already_declared = HasBinding(env, dn);
     if (!var_already_declared) {
       CreateAndSetMutableBinding(e, env, dn, configurable_bindings, Undefined::Instance(), strict);
@@ -222,7 +222,7 @@ Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, s
   Parser parser(x);
   AST* program = parser.ParseProgram();
   if (program->IsIllegal()) {
-    e = Error::SyntaxError(u"failed to parse eval");
+    e = Error::SyntaxError(u"failed to parse eval (" + program->source() + u")");
     return Handle<JSValue>();
   }
   EnterEvalCode(e, program);
@@ -391,8 +391,6 @@ void InitError() {
   constructor.val()->SetPrototype(FunctionProto::Instance());
   // 15.11.3 Properties of the Error Constructor
   AddValueProperty(constructor, String::Prototype(), ErrorProto::Instance(), false, false, false);
-  AddValueProperty(constructor, String::Length(), Number::One(), false, false, false);
-  AddFuncProperty(constructor, u"toString", NumberConstructor::toString, true, false, false);
 
   Handle<ErrorProto> proto = ErrorProto::Instance();
   proto.val()->SetPrototype(ObjectProto::Instance());
@@ -400,7 +398,7 @@ void InitError() {
   AddValueProperty(proto, String::Constructor(), ErrorConstructor::Instance(), false, false, false);
   AddValueProperty(proto, u"name", String::New(u"Error"), false, false, false);
   AddValueProperty(proto, u"message", String::Empty(), true, false, false);
-  AddFuncProperty(proto, u"call", ErrorProto::toString, true, false, false);
+  AddFuncProperty(proto, u"toString", ErrorProto::toString, true, false, false);
 }
 
 void InitBool() {
@@ -555,19 +553,21 @@ void InitDate() {
 void InitMath() {
   HandleScope scope;
   Handle<JSObject> math = Math::Instance();
+  AddFuncProperty(math, u"floor", Math::floor, false, false, false);
   AddFuncProperty(math, u"max", Math::max, false, false, false);
+  AddFuncProperty(math, u"pow", Math::pow, false, false, false);
 }
 
 void InitRegExp() {
   HandleScope scope;
   Handle<RegExpConstructor> constructor = RegExpConstructor::Instance();
   constructor.val()->SetPrototype(FunctionProto::Instance());
-  // 15.6.3 Properties of the RegExpean Constructor
+  // 15.6.3 Properties of the RegExp Constructor
   AddValueProperty(constructor, String::Prototype(), RegExpProto::Instance(), false, false, false);
 
   Handle<RegExpProto> proto = RegExpProto::Instance();
   proto.val()->SetPrototype(ObjectProto::Instance());
-  // 15.6.4 Properties of the RegExpean Prototype Object
+  // 15.6.4 Properties of the RegExp Prototype Object
   AddValueProperty(proto, String::Constructor(), RegExpConstructor::Instance(), false, false, false);
   AddFuncProperty(proto, u"exec", RegExpProto::exec, true, false, false);
   AddFuncProperty(proto, u"test", RegExpProto::test, true, false, false);

@@ -39,7 +39,19 @@ class ObjectProto : public JSObject {
   }
 
   static Handle<JSValue> hasOwnProperty(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
+    Handle<String> P;
+    if (vals.size() == 0)
+      P = ::es::ToString(e, Undefined::Instance());
+    else
+      P = ::es::ToString(e, vals[0]);
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+
+    Handle<JSValue> val = Runtime::TopValue();
+    Handle<JSObject> O = ToObject(e, val);
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+
+    Handle<JSValue> desc = GetOwnProperty(O, P);
+    return Bool::Wrap(!desc.val()->IsUndefined());
   }
 
   static Handle<JSValue> isPrototypeOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {

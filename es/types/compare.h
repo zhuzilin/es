@@ -62,7 +62,10 @@ bool Equal(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y) {
       Handle<Number> numy = static_cast<Handle<Number>>(y);
       if (numx.val()->IsNaN() || numy.val()->IsNaN())
         return false;
-      return numx.val()->data() == numy.val()->data();
+      if (numx.val()->IsInfinity() || numy.val()->IsInfinity()) {
+        return numx.val()->data() == numy.val()->data();
+      }
+      return ApproximatelyEqual(numx.val()->data(), numy.val()->data());
     } else if (x.val()->IsString()) {
       Handle<String> sx = static_cast<Handle<String>>(x);
       Handle<String> sy = static_cast<Handle<String>>(y);
@@ -117,9 +120,12 @@ bool StrictEqual(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y) {
       Handle<Number> num_y = static_cast<Handle<Number>>(y);
       if (num_x.val()->IsNaN() || num_y.val()->IsNaN())
         return false;
+      if (num_x.val()->IsInfinity() || num_y.val()->IsInfinity()) {
+        return num_x.val()->data() == num_y.val()->data();
+      }
       double dx = num_x.val()->data();
       double dy = num_y.val()->data();
-      return dx == dy;
+      return ApproximatelyEqual(dx, dy);
     }
     case JSValue::JS_LONG_STRING:
     case JSValue::JS_STRING: {

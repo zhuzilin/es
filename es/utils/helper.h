@@ -1,6 +1,7 @@
 #ifndef ES_UTILS_HELPER_H
 #define ES_UTILS_HELPER_H
 
+#include <math.h>
 #include <string.h>
 
 #include <iostream>
@@ -21,6 +22,7 @@ class Debugger {
   }
 
   static void Turn() { Debugger::Instance()->on_ = !Debugger::Instance()->on_; }
+  static void TurnOff() { Debugger::Instance()->on_ = false; }
   static bool On() { return Debugger::Instance()->on_; }
 
  private:
@@ -92,6 +94,24 @@ bool HaveDuplicate(std::vector<std::u16string> vals) {
     }
   }
   return false;
+}
+
+// From Knuth https://stackoverflow.com/a/253874/5163915
+static constexpr double kEpsilon = 1e-15;
+bool ApproximatelyEqual(double a, double b) {
+  return fabs(a - b) <= ((fabs(a) < fabs(b) ? fabs(b) : fabs(a)) * kEpsilon);
+}
+
+bool EssentiallyEqual(double a, double b) {
+  return fabs(a - b) <= ((fabs(a) > fabs(b) ? fabs(b) : fabs(a)) * kEpsilon);
+}
+
+bool DefinitelyGreaterThan(double a, double b) {
+  return (a - b) > ((fabs(a) < fabs(b) ? fabs(b) : fabs(a)) * kEpsilon);
+}
+
+bool DefinitelyLessThan(double a, double b) {
+  return (b - a) > ((fabs(a) < fabs(b) ? fabs(b) : fabs(a)) * kEpsilon);
 }
 
 }  // namespace es
