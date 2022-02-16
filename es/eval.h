@@ -199,10 +199,6 @@ std::u16string EvalVarDecl(Handle<Error>& e, AST* ast) {
   assert(ast->type() == AST::AST_STMT_VAR_DECL);
   VarDecl* decl = static_cast<VarDecl*>(ast);
   std::u16string ident = decl->ident().source();
-  if (Runtime::TopContext()->strict() && decl->ident().type() == Token::TK_STRICT_FUTURE) {
-    e = Error::SyntaxError(u"future reserved word " + ident + u" used");
-    return ident;
-  }
   if (decl->init() == nullptr)
     return ident;
   Handle<JSValue> lhs = IdentifierResolution(ident);
@@ -707,7 +703,10 @@ Completion EvalTryStatement(AST* ast) {
 
 Completion EvalExpressionStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
-  Handle<JSValue> val = EvalExpression(e, ast);
+  Handle<JSValue> ref = EvalExpression(e, ast);
+  if (unlikely(!e.val()->IsOk()))
+    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+  Handle<JSValue> val = GetValue(e, ref);
   if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   return Completion(Completion::NORMAL, val, u"");
@@ -768,6 +767,7 @@ Handle<JSValue> EvalPrimaryExpression(Handle<Error>& e, AST* ast) {
     case AST::AST_EXPR_THIS:
       val = Runtime::TopContext()->this_binding();
       break;
+    case AST::AST_EXPR_STRICT_FUTURE:
     case AST::AST_EXPR_IDENT:
       val = EvalIdentifier(ast);
       break;
@@ -813,7 +813,7 @@ Handle<Reference> IdentifierResolution(std::u16string name) {
 }
 
 Handle<Reference> EvalIdentifier(AST* ast) {
-  assert(ast->type() == AST::AST_EXPR_IDENT);
+  assert(ast->type() == AST::AST_EXPR_IDENT || ast->type() == AST::AST_EXPR_STRICT_FUTURE);
   return IdentifierResolution(ast->source());
 }
 
@@ -1041,7 +1041,8 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
         }
         Handle<FunctionObject> closure = FunctionObject::New(
           func_ast->params(), func_ast->body(),
-          Runtime::TopLexicalEnv()
+          Runtime::TopLexicalEnv(),
+          strict || strict_func
         );
         if (property.type == ObjectLiteral::Property::GET) {
           desc.val()->SetGet(closure);
@@ -1358,7 +1359,7 @@ Handle<JSValue> EvalRelationalOperator(Handle<Error>& e, Token& op, Handle<JSVal
         return r;
     }
     case Token::TK_GT: {  // >
-      Handle<JSValue> r = LessThan(e, rval, lval);
+      Handle<JSValue> r = LessThan(e, rval, lval, false);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (r.val()->IsUndefined())
         return Bool::False();
@@ -1366,7 +1367,7 @@ Handle<JSValue> EvalRelationalOperator(Handle<Error>& e, Token& op, Handle<JSVal
         return r;
     }
     case Token::TK_LE: {  // <=
-      Handle<JSValue> r = LessThan(e, rval, lval);
+      Handle<JSValue> r = LessThan(e, rval, lval, false);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (r.val()->IsUndefined())
         return Bool::False();

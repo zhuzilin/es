@@ -189,7 +189,7 @@ Handle<JSObject> Construct__FunctionConstructor(
       }
     }
   }
-  return FunctionObject::New(names, body_ast, scope);
+  return FunctionObject::New(names, body_ast, scope, strict);
 }
 
 Handle<JSObject> Construct__NumberConstructor(

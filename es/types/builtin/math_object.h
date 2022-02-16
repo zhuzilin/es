@@ -18,6 +18,34 @@ class Math : public JSObject {
     return String::New(u"Math");
   }
 
+  // 15.8.2.9 ceil (x)
+  static Handle<JSValue> ceil(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() == 0)
+      return Number::NaN();
+    double num = ToNumber(e, vals[0]);
+    if (isnan(num))
+      return Number::NaN();
+    if (num == 0)
+      return signbit(num) ? Number::NegativeZero() : Number::Zero();
+    if (isinf(num))
+      return signbit(num) ? Number::Infinity() : Number::NegativeInfinity();
+    return Number::New(::ceil(num));
+  }
+
+  // 15.8.2.8 exp (x)
+  static Handle<JSValue> exp(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() == 0)
+      return Number::NaN();
+    double num = ToNumber(e, vals[0]);
+    if (isnan(num))
+      return Number::NaN();
+    if (num == 0)
+      return Number::One();
+    if (isinf(num))
+      return signbit(num) ? Number::Infinity() : Number::Zero();
+    return Number::New(::exp(num));
+  }
+
   // 15.8.2.9 floor (x)
   static Handle<JSValue> floor(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size() == 0)

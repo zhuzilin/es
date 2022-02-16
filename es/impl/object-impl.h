@@ -448,7 +448,7 @@ bool DefineOwnProperty__Array(
     if (!succeeded) return false;  // 3.k
     while (new_len < old_len) {  // 3.l
       old_len--;
-      bool delete_succeeded = Delete(e, O, ::es::ToString(e, Number::New(old_len)), false);
+      bool delete_succeeded = Delete(e, O, NumberToString(old_len), false);
       if (!delete_succeeded) {  // 3.l.iii
         Handle<Number> new_len_handle = Number::New(old_len + 1);
         new_len_desc.val()->SetValue(new_len_handle);
@@ -486,7 +486,7 @@ reject:
   if (unlikely(log::Debugger::On()))
     log::PrintSource("Array::DefineOwnProperty reject " + P.ToString() + " " + desc.ToString());
   if (throw_flag) {
-    e = Error::TypeError();
+    e = Error::TypeError(u"failed to DefineOwnProperty on Array");
   }
   return false;
 }

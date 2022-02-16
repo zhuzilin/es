@@ -526,7 +526,7 @@ error:
     Token token = lexer_.NextAndRewind();
     if (token.source() == u"\"use strict\"" || token.source() == u"'use strict'") {
       lexer_.Next();
-      if (lexer_.Next().IsSemiColon()) {
+      if (lexer_.TrySkipSemiColon()) {
         strict = true;
       } else {
         lexer_.Rewind(old_pos, old_token);
@@ -708,7 +708,11 @@ error:
   AST* ParseExpressionStatement() {
     START_POS;
     Token token = lexer_.NextAndRewind();
-    assert(token.type() != Token::TK_LBRACE && token.source() != u"function");
+    if (token.source() == u"function") {
+      lexer_.Next();
+      return new AST(AST::AST_ILLEGAL, SOURCE_PARSED);
+    }
+    assert(token.type() != Token::TK_LBRACE);
     AST* exp = ParseExpression(false);
     if (exp->IsIllegal())
       return exp;

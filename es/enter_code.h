@@ -80,7 +80,7 @@ void DeclarationBindingInstantiation(
   if (code_type == CODE_EVAL) {
     configurable_bindings = true;  // 2
   }
-  bool strict = body->strict();  // 3
+  bool strict = body->strict() || Runtime::TopContext()->strict();  // 3
   if (code_type == CODE_FUNC) {  // 4
     assert(!f.IsNullptr());
     auto names = f.val()->FormalParameters();  // 4.a
@@ -112,24 +112,26 @@ void DeclarationBindingInstantiation(
     if (!func_already_declared) {  // 5.d
       CreateAndSetMutableBinding(e, env, fn, configurable_bindings, fo, strict);
       if (unlikely(!e.val()->IsOk())) return;
-    } else {  // 5.e
-      auto go = GlobalObject::Instance();
-      auto existing_prop = GetProperty(go, fn);
-      assert(!existing_prop.val()->IsUndefined());
-      auto existing_prop_desc = static_cast<Handle<PropertyDescriptor>>(existing_prop);
-      if (existing_prop_desc.val()->Configurable()) {  // 5.e.iii
-        auto new_desc = PropertyDescriptor::New();
-        new_desc.val()->SetDataDescriptor(Undefined::Instance(), true, true, configurable_bindings);
-        DefineOwnProperty(e, go, fn, new_desc, true);
-        if (unlikely(!e.val()->IsOk())) return;
-      } else {  // 5.e.iv
-        if (existing_prop_desc.val()->IsAccessorDescriptor() ||
-            !(existing_prop_desc.val()->HasConfigurable() && existing_prop_desc.val()->Configurable() &&
-              existing_prop_desc.val()->HasEnumerable() && existing_prop_desc.val()->Enumerable())) {
-          e = Error::TypeError(
-            u"existing desc of " + func_decl->name() + " is accessor "
-            u"but not both configurable and enumerable");
-          return;
+    } else {
+      if (env.val() == LexicalEnvironment::Global().val()->env_rec().val()) {  // 5.e
+        auto go = GlobalObject::Instance();
+        auto existing_prop = GetProperty(go, fn);
+        assert(existing_prop.val()->IsPropertyDescriptor());
+        auto existing_prop_desc = static_cast<Handle<PropertyDescriptor>>(existing_prop);
+        if (existing_prop_desc.val()->Configurable()) {  // 5.e.iii
+          auto new_desc = PropertyDescriptor::New();
+          new_desc.val()->SetDataDescriptor(Undefined::Instance(), true, true, configurable_bindings);
+          DefineOwnProperty(e, go, fn, new_desc, true);
+          if (unlikely(!e.val()->IsOk())) return;
+        } else {  // 5.e.iv
+          if (existing_prop_desc.val()->IsAccessorDescriptor() ||
+              !(existing_prop_desc.val()->HasWritable() && existing_prop_desc.val()->Writable() &&
+                existing_prop_desc.val()->HasEnumerable() && existing_prop_desc.val()->Enumerable())) {
+            e = Error::TypeError(
+              u"existing desc of " + func_decl->name() + " is accessor "
+              u"but not both configurable and enumerable");
+            return;
+          }
         }
       }
       SetMutableBinding(e, env, fn, fo, strict);  // 5.f
@@ -172,6 +174,16 @@ void EnterGlobalCode(Handle<Error>& e, AST* ast) {
     program = new ProgramOrFunctionBody(AST::AST_PROGRAM, false);
     program->AddStatement(ast);
   }
+  for (VarDecl* d : program->var_decls()) {
+    if (d->ident().type() == Token::TK_STRICT_FUTURE) {
+      e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
+      return;
+    }
+    if (d->ident().source_ref() == u"eval" || d->ident().source_ref() == u"arguments") {
+      e = Error::SyntaxError(u"Unexpected eval or arguments in strict mode");
+      return;
+    }
+  }
   // 1 10.4.1.1
   Handle<LexicalEnvironment> global_env = LexicalEnvironment::Global();
   ExecutionContext* context = new ExecutionContext(global_env, global_env, GlobalObject::Instance(), program->strict());
@@ -183,7 +195,7 @@ void EnterGlobalCode(Handle<Error>& e, AST* ast) {
 // 10.4.2
 void EnterEvalCode(Handle<Error>& e, AST* ast) {
   assert(ast->type() == AST::AST_PROGRAM);
-  ProgramOrFunctionBody* program = static_cast<ProgramOrFunctionBody*>(ast);
+  ProgramOrFunctionBody* program = static_cast<ProgramOrFunctionBody*>(ast);  
   ExecutionContext* context;
   Handle<LexicalEnvironment> variable_env;
   Handle<LexicalEnvironment> lexical_env;
@@ -205,50 +217,22 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
     Handle<LexicalEnvironment> strict_var_env = NewDeclarativeEnvironment(lexical_env);
     lexical_env = strict_var_env;
     variable_env = strict_var_env;
+
+    for (VarDecl* d : program->var_decls()) {
+      if (d->ident().type() == Token::TK_STRICT_FUTURE) {
+        e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
+        return;
+      }
+      if (d->ident().source_ref() == u"eval" || d->ident().source_ref() == u"arguments") {
+        e = Error::SyntaxError(u"Unexpected eval or arguments in strict mode");
+        return;
+      }
+    }
   }
   context = new ExecutionContext(variable_env, lexical_env, this_binding, strict);
   Runtime::Global()->AddContext(context);
   // 4
   DeclarationBindingInstantiation(e, context, program, CODE_EVAL);
-}
-
-// 15.1.2.1 eval(X)
-Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("enter GlobalObject::eval");
-  if (vals.size() == 0)
-    return Undefined::Instance();
-  if (!vals[0].val()->IsString())
-    return vals[0];
-  std::u16string x = static_cast<Handle<String>>(vals[0]).val()->data();
-  Parser parser(x);
-  AST* program = parser.ParseProgram();
-  if (program->IsIllegal()) {
-    e = Error::SyntaxError(u"failed to parse eval (" + program->source() + u")");
-    return Handle<JSValue>();
-  }
-  EnterEvalCode(e, program);
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  Completion result = EvalProgram(program);
-  Runtime::Global()->PopContext();
-
-  switch (result.type()) {
-    case Completion::NORMAL:
-      if (!result.IsEmpty())
-        return result.value();
-      else
-        return Undefined::Instance();
-    default: {
-      assert(result.type() == Completion::THROW);
-      Handle<JSValue> return_value = result.value();
-      if (return_value.val()->IsErrorObject()) {
-        e = static_cast<Handle<ErrorObject>>(return_value).val()->e();
-      } else {
-        e = Error::NativeError(return_value);
-      }
-      return return_value;
-    }
-  }
 }
 
 // 10.4.3
@@ -261,9 +245,12 @@ void EnterFunctionCode(
   Handle<JSValue> this_binding;
   if (strict) {  // 1
     this_binding = this_arg;
-  } else {  // 2 & 3
-    this_binding = (this_arg.val()->IsUndefined() || this_arg.val()->IsNull()) ?
-      static_cast<Handle<JSValue>>(GlobalObject::Instance()) : this_arg;
+  } else if (this_arg.val()->IsUndefined() || this_arg.val()->IsNull()) {  // 2 
+    this_binding = GlobalObject::Instance();
+  } else if (!this_arg.val()->IsObject()) {  // 3
+    this_binding = ToObject(e, this_arg);
+  } else {
+    this_binding = this_arg;
   }
   Handle<LexicalEnvironment> local_env = NewDeclarativeEnvironment(func.val()->Scope());
   ExecutionContext* context = new ExecutionContext(local_env, local_env, this_binding, strict);  // 8
@@ -286,7 +273,10 @@ void InitGlobalObject() {
   AddFuncProperty(global_obj, u"isNaN", GlobalObject::isNaN, true, false, true);
   AddFuncProperty(global_obj, u"isFinite", GlobalObject::isFinite, true, false, true);
   // 15.1.3 URI Handling Function Properties
-  // TODO(zhuzilin)
+  AddFuncProperty(global_obj, u"decodeURI", GlobalObject::decodeURI, true, false, true);
+  AddFuncProperty(global_obj, u"decodeURIComponent", GlobalObject::decodeURIComponent, true, false, true);
+  AddFuncProperty(global_obj, u"encodeURI", GlobalObject::encodeURI, true, false, true);
+  AddFuncProperty(global_obj, u"encodeURIComponent", GlobalObject::encodeURIComponent, true, false, true);
   // 15.1.4 Constructor Properties of the Global Object
   AddValueProperty(global_obj, u"Object", ObjectConstructor::Instance(), true, false, true);
   AddValueProperty(global_obj, u"Function", FunctionConstructor::Instance(), true, false, true);
@@ -356,6 +346,7 @@ void InitFunction() {
   proto.val()->SetPrototype(ObjectProto::Instance());
   // 15.2.4 Properties of the Function Prototype Function
   AddValueProperty(proto, String::Constructor(), FunctionConstructor::Instance(), false, false, false);
+  AddValueProperty(proto, String::Length(), Number::Zero(), true, false, false);
   AddFuncProperty(proto, u"toString", FunctionProto::toString, true, false, false);
   AddFuncProperty(proto, u"apply", FunctionProto::apply, true, false, false);
   AddFuncProperty(proto, u"call", FunctionProto::call, true, false, false);
@@ -433,6 +424,7 @@ void InitString() {
   proto.val()->SetPrototype(ObjectProto::Instance());
   // 15.2.4 Properties of the String Prototype String
   AddValueProperty(proto, String::Constructor(), StringConstructor::Instance(), false, false, false);
+  AddValueProperty(proto, String::Length(), Number::Zero(), true, false, false);
   AddFuncProperty(proto, u"toString", StringProto::toString, true, false, false);
   AddFuncProperty(proto, u"valueOf", StringProto::valueOf, true, false, false);
   AddFuncProperty(proto, u"charAt", StringProto::charAt, true, false, false);
@@ -565,6 +557,8 @@ void InitMath() {
   AddValueProperty(math, String::New(u"SQRT1_2"), Number::New(0.7071067811865476), false, false, false);
   AddValueProperty(math, String::New(u"SQRT2"), Number::New(1.4142135623730951), false, false, false);
   // 15.8.2 Function Properties of the Math Object
+  AddFuncProperty(math, u"ceil", Math::ceil, false, false, false);
+  AddFuncProperty(math, u"exp", Math::exp, false, false, false);
   AddFuncProperty(math, u"floor", Math::floor, false, false, false);
   AddFuncProperty(math, u"max", Math::max, false, false, false);
   AddFuncProperty(math, u"pow", Math::pow, false, false, false);

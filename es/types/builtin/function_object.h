@@ -103,7 +103,8 @@ class FunctionProto : public JSObject {
 class FunctionObject : public JSObject {
  public:
   static Handle<FunctionObject> New(
-    std::vector<std::u16string> names, AST* body, Handle<LexicalEnvironment> scope, size_t size = 0
+    std::vector<std::u16string> names, AST* body, Handle<LexicalEnvironment> scope,
+    bool strict, size_t size = 0
   ) {
     Handle<JSObject> jsobj = JSObject::New(
       u"Function", true, Handle<JSValue>(), true, true, nullptr,
@@ -116,7 +117,6 @@ class FunctionObject : public JSObject {
     Handle<FixedArray> formal_parameter = FixedArray::New<String>(name_handles);
 
     SET_HANDLE_VALUE(jsobj.val(), kFormalParametersOffset, formal_parameter, FixedArray);
-    bool strict = Runtime::TopContext()->strict();
     if (body != nullptr) {
       assert(body->type() == AST::AST_FUNC_BODY);
       ProgramOrFunctionBody* func_body = static_cast<ProgramOrFunctionBody*>(body);
@@ -178,7 +178,7 @@ class BindFunctionObject : public FunctionObject {
     Handle<JSObject> target_function, Handle<JSValue> bound_this, std::vector<Handle<JSValue>> bound_args
   ) {
     Handle<FunctionObject> func = FunctionObject::New(
-      {}, nullptr, Handle<JSValue>(),
+      {}, nullptr, Handle<JSValue>(), Runtime::TopContext()->strict(),
       kBindFunctionObjectOffset - kFunctionObjectOffset);
 
     SET_HANDLE_VALUE(func.val(), kTargetFunctionOffset, target_function, JSObject);
@@ -279,7 +279,7 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function
     );
     auto env_rec = static_cast<Handle<DeclarativeEnvironmentRecord>>(func_env.val()->env_rec());  // 2
     Handle<String> identifier_str = String::New(identifier);
-    auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
+    ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
     bool strict = body->strict() || Runtime::TopContext()->strict();
     if (strict) {
       // 13.1
@@ -297,9 +297,19 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function
         e = Error::SyntaxError(u"function name cannot be eval or arguments in strict mode");
         return Handle<JSValue>();
       }
+      for (VarDecl* d : body->var_decls()) {
+        if (d->ident().type() == Token::TK_STRICT_FUTURE) {
+          e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
+          return Handle<JSValue>();
+        }
+        if (d->ident().source_ref() == u"eval" || d->ident().source_ref() == u"arguments") {
+          e = Error::SyntaxError(u"Unexpected eval or arguments in strict mode");
+          return Handle<JSValue>();
+        }
+      }
     }
     Handle<FunctionObject> closure = FunctionObject::New(
-      func_ast->params(), func_ast->body(), func_env);  // 4
+      func_ast->params(), func_ast->body(), func_env, strict);  // 4
     CreateAndInitializeImmutableBinding(env_rec, identifier_str, closure);  // 5
     return closure;  // 6
 }
@@ -328,7 +338,7 @@ Handle<JSValue> EvalFunction(Handle<Error>& e, AST* ast) {
     }
     return FunctionObject::New(
       func_ast->params(), func_ast->body(),
-      Runtime::TopLexicalEnv()
+      Runtime::TopLexicalEnv(), strict
     );
   }
 }
