@@ -107,6 +107,7 @@ class HeapObject {
 
   inline bool IsObject() { return (type() & JS_OBJECT) != 0; }
 
+  inline bool IsBoolObject() { return type() == OBJ_BOOL; }
   inline bool IsNumberObject() { return type() == OBJ_NUMBER; }
   inline bool IsArrayObject() { return type() == OBJ_ARRAY; }
   inline bool IsRegExpObject() { return type() == OBJ_REGEXP; }
@@ -130,6 +131,8 @@ class HeapObject {
   inline bool IsLexicalEnvironment() { return type() == JS_LEX_ENV; }
 
   inline bool IsGetterSetter() { return type() == JS_GET_SET; }
+
+  inline bool IsError() { return type() == ERROR; }
 
   inline bool IsPrototype() { return IsNull() || IsObject(); }
 

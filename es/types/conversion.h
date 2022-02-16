@@ -144,6 +144,8 @@ double StringToNumber(std::u16string source) {
       exp = exp * 10 + character::Digit(c);
       start++;
     }
+    if (!exp_positive)
+      exp = -exp;
     if (start == end) {
       val = val * pow(10, exp);
       return positive ? val : -val;

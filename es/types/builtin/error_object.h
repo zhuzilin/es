@@ -56,7 +56,7 @@ class ErrorObject : public JSObject {
   }
 
   Handle<Error> e() { return READ_HANDLE_VALUE(this, kErrorOffset, Error); }
-  Error::ErrorType ErrorType() { return e().val()->type(); }
+  Error::ErrorType ErrorType() { return e().val()->error_type(); }
   Handle<JSValue> ErrorValue() { return e().val()->value(); }
 
  public:

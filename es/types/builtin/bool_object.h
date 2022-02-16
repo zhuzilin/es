@@ -14,12 +14,31 @@ class BoolProto : public JSObject {
     return singleton;
   }
 
+  // 15.6.4.2 Boolean.prototype.toString ( )
   static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    return ToBoolean(Runtime::TopValue()) ? String::True() : String::False();
+    Handle<JSValue> val = Runtime::TopValue();
+    if (val.val()->IsBool()) {
+      return ToBoolean(val) ? String::True() : String::False();
+    } else if (val.val()->IsBoolObject()) {
+      return ToBoolean(static_cast<Handle<JSObject>>(val).val()->PrimitiveValue()) ?
+        String::True() : String::False();
+    } else {
+      e = Error::TypeError(u"Boolean.prototype.toString called on non-boolean");
+      return Handle<JSValue>();
+    }
   }
 
+  // 15.6.4.3 Boolean.prototype.valueOf ( )
   static Handle<JSValue> valueOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
+    Handle<JSValue> val = Runtime::TopValue();
+    if (val.val()->IsBool()) {
+      return val;
+    } else if (val.val()->IsBoolObject()) {
+      return static_cast<Handle<JSObject>>(val).val()->PrimitiveValue();
+    } else {
+      e = Error::TypeError(u"Boolean.prototype.valueOf called on non-boolean");
+      return Handle<JSValue>();
+    }
   }
 
  private:

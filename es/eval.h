@@ -663,7 +663,14 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   Handle<String> ident_str = String::New(try_stmt->catch_ident());
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
-  CreateAndSetMutableBinding(e, catch_env.val()->env_rec(), ident_str, false, C.value(), false);  // 4 & 5
+  Handle<JSValue> val = C.value();
+  if (val.val()->IsErrorObject()) {
+    Handle<ErrorObject> error = static_cast<Handle<ErrorObject>>(val);
+    if (error.val()->ErrorType() == Error::E_NATIVE) {
+      val = error.val()->ErrorValue();
+    }
+  }
+  CreateAndSetMutableBinding(e, catch_env.val()->env_rec(), ident_str, false, val, false);  // 4 & 5
   if (unlikely(!e.val()->IsOk())) {
     return Completion(Completion::THROW, ErrorObject::New(e), u"");
   }
@@ -810,6 +817,7 @@ Handle<Reference> EvalIdentifier(AST* ast) {
   return IdentifierResolution(ast->source());
 }
 
+// This verson of string to number assumes the string is valid.
 Handle<Number> EvalNumber(const std::u16string& source) {
   double val = 0;
   double frac = 1;

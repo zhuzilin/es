@@ -73,7 +73,7 @@ class Error : public HeapObject {
     return singleton;
   }
 
-  ErrorType type() { return READ_VALUE(this, kErrorTypeOffset, ErrorType); }
+  ErrorType error_type() { return READ_VALUE(this, kErrorTypeOffset, ErrorType); }
   Handle<JSValue> value() { return READ_HANDLE_VALUE(this, kValueOffset, JSValue); }
   void SetValue(Handle<JSValue> val) { SET_HANDLE_VALUE(this, kValueOffset, val, JSValue); }
 
@@ -85,7 +85,7 @@ class Error : public HeapObject {
     }
   }
 
-  bool IsOk() { return type() == E_OK; }
+  bool IsOk() { return error_type() == E_OK; }
 
  private:
   static Handle<Error> New(ErrorType t, Handle<JSValue> val, uint8_t flag) {
