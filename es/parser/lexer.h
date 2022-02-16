@@ -380,7 +380,6 @@ class Lexer {
       Advance();
       return false;
     }
-    size_t start = pos_;
     while(pos_ != source_.size() && c_ != u'/' && !character::IsLineTerminator(c_)) {
       switch (c_) {
         case u'\\': {  // Regular Expression
@@ -407,7 +406,6 @@ class Lexer {
   bool ScanRegExpFlag(std::u16string& flag) {
     if (c_ == u'/') {
       Advance();
-      size_t start = pos_;
       // RegularExpressionFlags
       while (character::IsIdentifierPart(c_)) {
         if (c_ == u'\\') {

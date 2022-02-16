@@ -190,6 +190,7 @@ class Token {
         } else if (!no_in && source() == u"in") {
           return 8;
         }
+        [[fallthrough]];
       default:
         return -1;
     }
@@ -210,6 +211,7 @@ class Token {
         if (source() == u"delete" || source() == u"void" || source() == u"typeof") {
           return 100;
         }
+        [[fallthrough]];
       default:
         return -1;
     }

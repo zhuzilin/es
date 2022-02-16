@@ -91,7 +91,16 @@ class Bool : public JSValue {
 
 class String : public JSValue {
  public:
-  static Handle<String> New(std::u16string data, flag_t flag = 0) {
+  static Handle<String> New(const std::u16string& data, flag_t flag = 0) {
+    size_t n = data.size();
+    Handle<String> str = String::New(n, flag);
+
+    memcpy(PTR(str.val(), kStringDataOffset), data.data(), n * kChar16Size);
+
+    return str;
+  }
+
+  static Handle<String> New(std::u16string&& data, flag_t flag = 0) {
     size_t n = data.size();
     Handle<String> str = String::New(n, flag);
 
@@ -137,6 +146,8 @@ class String : public JSValue {
     SET_VALUE(this, kLengthOffset, hash, size_t);
     return hash >> 1;
   }
+
+  bool HasHash() { return length_slot() & 1; }
 
   char16_t& operator [](int index) {
     return c_str()[index];
@@ -259,8 +270,13 @@ class String : public JSValue {
   static constexpr std::hash<std::u16string> U16Hash = std::hash<std::u16string>{};
 };
 
-bool operator ==(String& a, String& b) {
-  if (a.size() != b.size()) return false;
+inline bool operator ==(String& a, String& b) {
+  if (a.HasHash() && b.HasHash()) {
+    if (a.length_slot() != b.length_slot())
+      return false;
+  } else if (a.size() != b.size()) {
+    return false;
+  }
   size_t size = a.size();
   for (size_t i = 0; i < size; i++) {
     if (a[i] != b[i])
@@ -269,7 +285,7 @@ bool operator ==(String& a, String& b) {
   return true;
 }
 
-bool operator !=(String& a, String& b) {
+inline bool operator !=(String& a, String& b) {
   return !(a == b);
 }
 
