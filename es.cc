@@ -71,39 +71,42 @@ int main(int argc, char* argv[]) {
   switch (res.type()) {
     case Completion::THROW: {
       std::cout << "\033[1;31m" << "Uncaught ";
-      Handle<JSValue> val = res.value();
-      if (val.val()->IsErrorObject()) {
-        Handle<ErrorObject> error = static_cast<Handle<ErrorObject>>(val);
-        switch (error.val()->ErrorType()) {
+      Handle<JSValue> val;
+      if (res.value().val()->IsError()) {
+        Handle<Error> error = static_cast<Handle<Error>>(res.value());
+        val = error.val()->value();
+        switch (error.val()->error_type()) {
           case Error::E_EVAL:
-            std::cout << "Eval";
+            std::cout << "EvalError: ";
             break;
           case Error::E_RANGE:
-            std::cout << "Range";
+            std::cout << "RangeError: ";
             break;
           case Error::E_REFERENCE:
-            std::cout << "Reference";
+            std::cout << "ReferenceError: ";
             break;
           case Error::E_SYNTAX:
-            std::cout << "Syntax";
+            std::cout << "SyntaxError: ";
             break;
           case Error::E_TYPE:
-            std::cout << "Type";
+            std::cout << "TypeError: ";
             break;
           case Error::E_URI:
-            std::cout << "URI";
+            std::cout << "URIError: ";
             break;
           default:
             break;
         }
+      } else {
+        val = res.value();
       }
       log::Debugger::TurnOff();
       Handle<Error> e = Error::Ok();
       Handle<String> msg = ToString(e, val);
       if (unlikely(!e.val()->IsOk()))
-        std::cout << "Error: " << val.ToString() << "\033[0m" << "\n";
+        std::cout << val.ToString() << "\033[0m" << "\n";
       else
-        std::cout << "Error: " << log::ToString(msg.val()->data()) << "\033[0m" << "\n";
+        std::cout << log::ToString(msg.val()->data()) << "\033[0m" << "\n";
       break;
     }
     default:

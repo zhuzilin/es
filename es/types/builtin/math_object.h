@@ -28,7 +28,7 @@ class Math : public JSObject {
     if (num == 0)
       return signbit(num) ? Number::NegativeZero() : Number::Zero();
     if (isinf(num))
-      return signbit(num) ? Number::Infinity() : Number::NegativeInfinity();
+      return signbit(num) ? Number::NegativeInfinity() : Number::Infinity();
     return Number::New(::ceil(num));
   }
 
@@ -56,7 +56,7 @@ class Math : public JSObject {
     if (num == 0)
       return signbit(num) ? Number::NegativeZero() : Number::Zero();
     if (isinf(num))
-      return signbit(num) ? Number::Infinity() : Number::NegativeInfinity();
+      return signbit(num) ? Number::NegativeInfinity() : Number::Infinity();
     return Number::New(::floor(num));
   }
 

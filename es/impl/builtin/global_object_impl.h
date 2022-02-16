@@ -45,9 +45,9 @@ Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, s
         return Undefined::Instance();
     default: {
       assert(result.type() == Completion::THROW);
-      Handle<JSValue> return_value = result.value();
-      if (return_value.val()->IsErrorObject()) {
-        e = static_cast<Handle<ErrorObject>>(return_value).val()->e();
+      Handle<HeapObject> return_value = result.value();
+      if (return_value.val()->IsError()) {
+        e = return_value;
       } else {
         e = Error::NativeError(return_value);
       }

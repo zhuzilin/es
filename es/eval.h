@@ -81,7 +81,7 @@ Completion EvalProgram(AST* ast) {
       if (stmt->type() == AST::AST_STMT_RETURN) {
         return Completion(
           Completion::THROW,
-          ErrorObject::New(Error::SyntaxError(u"return statement must exist in return statement.")),
+          Error::SyntaxError(u"return statement must exist in return statement."),
           u"");
       }
     }
@@ -109,7 +109,7 @@ Completion EvalStatement(AST* ast) {
   if (unlikely(log::Debugger::On()))
     log::PrintSource("EvalStatement ", ast->source().substr(0, 50));
   Completion C(Completion::NORMAL, Handle<JSValue>(), u"");
-  JSValue* val = nullptr;
+  HeapObject* val = nullptr;
   {
     HandleScope scope;
     switch(ast->type()) {
@@ -223,7 +223,7 @@ Completion EvalVarStatement(AST* ast) {
   }
   return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
 error:
-  return Completion(Completion::THROW, ErrorObject::New(e), u"");
+  return Completion(Completion::THROW, e, u"");
 }
 
 Completion EvalIfStatement(AST* ast) {
@@ -232,10 +232,10 @@ Completion EvalIfStatement(AST* ast) {
   If* if_stmt = static_cast<If*>(ast);
   Handle<JSValue> expr_ref = EvalExpression(e, if_stmt->cond());
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   Handle<JSValue> expr = GetValue(e, expr_ref);
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   if (ToBoolean(expr)) {
     return EvalStatement(if_stmt->if_block());
   } else if (if_stmt->else_block() != nullptr){
@@ -282,7 +282,7 @@ Completion EvalDoWhileStatement(AST* ast) {
   return Completion(Completion::NORMAL, V, u"");
 error:
   Runtime::TopContext()->ExitIteration();
-  return Completion(Completion::THROW, ErrorObject::New(e), u"");
+  return Completion(Completion::THROW, e, u"");
 }
 
 // 12.6.2 The while Statement
@@ -323,7 +323,7 @@ Completion EvalWhileStatement(AST* ast) {
   return Completion(Completion::NORMAL, V, u"");
 error:
   Runtime::TopContext()->ExitIteration();
-  return Completion(Completion::THROW, ErrorObject::New(e), u"");
+  return Completion(Completion::THROW, e, u"");
 }
 
 // 12.6.3 The for Statement
@@ -382,7 +382,7 @@ Completion EvalForStatement(AST* ast) {
   return Completion(Completion::NORMAL, V, u"");
 error:
   Runtime::TopContext()->ExitIteration();
-  return Completion(Completion::THROW, ErrorObject::New(e), u"");
+  return Completion(Completion::THROW, e, u"");
 }
 
 // 12.6.4 The for-in Statement
@@ -472,7 +472,7 @@ Completion EvalForInStatement(AST* ast) {
   return Completion(Completion::NORMAL, V, u"");
 error:
   Runtime::TopContext()->ExitIteration();
-  return Completion(Completion::THROW, ErrorObject::New(e), u"");
+  return Completion(Completion::THROW, e, u"");
 }
 
 Completion EvalContinueStatement(AST* ast) {
@@ -480,7 +480,7 @@ Completion EvalContinueStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   if (!Runtime::TopContext()->InIteration()) {
     e = Error::SyntaxError(u"continue not in iteration");
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   }
   ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
   return Completion(Completion::CONTINUE, Handle<JSValue>(), stmt->ident());
@@ -491,7 +491,7 @@ Completion EvalBreakStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   if (!Runtime::TopContext()->InIteration() && !Runtime::TopContext()->InSwitch()) {
     e = Error::SyntaxError(u"break not in iteration or switch");
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   }
   ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
   return Completion(Completion::BREAK, Handle<JSValue>(), stmt->ident());
@@ -506,7 +506,7 @@ Completion EvalReturnStatement(AST* ast) {
   }
   Handle<JSValue> exp_ref = EvalExpression(e, return_stmt->expr());
   if (unlikely(!e.val()->IsOk())) {
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   }
   return Completion(Completion::RETURN, GetValue(e, exp_ref), u"");
 }
@@ -528,20 +528,20 @@ Completion EvalWithStatement(AST* ast) {
   if (Runtime::TopContext()->strict()) {
     return Completion(
       Completion::THROW,
-      ErrorObject::New(Error::SyntaxError(u"cannot have with statement in strict mode")),
+      Error::SyntaxError(u"cannot have with statement in strict mode"),
       u"");
   }
   Handle<Error> e = Error::Ok();
   WhileOrWith* with_stmt = static_cast<WhileOrWith*>(ast);
   Handle<JSValue> ref = EvalExpression(e, with_stmt->expr());
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   Handle<JSValue> val = GetValue(e, ref);
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   Handle<JSObject> obj = ToObject(e, val);
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   // Prevent garbage collect old env.
   Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
   Handle<LexicalEnvironment> new_env = NewObjectEnvironment(obj, old_env, true);
@@ -567,7 +567,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
       Handle<JSValue> clause_selector = EvalCaseClause(e, C);
       bool b = StrictEqual(e, input, clause_selector);
       if (unlikely(!e.val()->IsOk()))
-        return Completion(Completion::THROW, ErrorObject::New(e), u"");
+        return Completion(Completion::THROW, e, u"");
       if (b)
         found = true;
     }
@@ -586,7 +586,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
     Handle<JSValue> clause_selector = EvalCaseClause(e, C);
     bool b = StrictEqual(e, input, clause_selector);
     if (unlikely(!e.val()->IsOk()))
-      return Completion(Completion::THROW, ErrorObject::New(e), u"");
+      return Completion(Completion::THROW, e, u"");
     if (b) {
       found_in_b = true;
       Completion R = EvalStatementList(C.stmts);
@@ -622,10 +622,10 @@ Completion EvalSwitchStatement(AST* ast) {
   Switch* switch_stmt = static_cast<Switch*>(ast);
   Handle<JSValue> expr_ref = EvalExpression(e, switch_stmt->expr());
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   Handle<JSValue> expr_val = GetValue(e, expr_ref);
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   Runtime::TopContext()->EnterSwitch();
   Completion R = EvalCaseBlock(switch_stmt, expr_val);
   Runtime::TopContext()->ExitSwitch();
@@ -644,10 +644,10 @@ Completion EvalThrowStatement(AST* ast) {
   Throw* throw_stmt = static_cast<Throw*>(ast);
   Handle<JSValue> exp_ref = EvalExpression(e, throw_stmt->expr());
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   Handle<JSValue> val = GetValue(e, exp_ref);
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   return Completion(Completion::THROW, val, u"");
 }
 
@@ -659,16 +659,21 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   Handle<String> ident_str = String::New(try_stmt->catch_ident());
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
-  Handle<JSValue> val = C.value();
-  if (val.val()->IsErrorObject()) {
-    Handle<ErrorObject> error = static_cast<Handle<ErrorObject>>(val);
-    if (error.val()->ErrorType() == Error::E_NATIVE) {
-      val = error.val()->ErrorValue();
+  Handle<JSValue> val;
+  if (C.value().val()->IsError()) {
+    Handle<Error> error = static_cast<Handle<Error>>(C.value());
+    if (error.val()->IsNativeError()) {
+      val = error.val()->value();
+    } else {
+      val = ErrorObject::New(error);
     }
+  } else {
+    val = static_cast<Handle<JSValue>>(C.value());
   }
-  CreateAndSetMutableBinding(e, catch_env.val()->env_rec(), ident_str, false, val, false);  // 4 & 5
+  CreateAndSetMutableBinding(
+    e, catch_env.val()->env_rec(), ident_str, false, static_cast<Handle<JSValue>>(val), false);  // 4 & 5
   if (unlikely(!e.val()->IsOk())) {
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   }
   Runtime::TopContext()->SetLexicalEnv(catch_env);
   Completion B = EvalBlockStatement(try_stmt->catch_block());
@@ -705,10 +710,10 @@ Completion EvalExpressionStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   Handle<JSValue> ref = EvalExpression(e, ast);
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   Handle<JSValue> val = GetValue(e, ref);
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, ErrorObject::New(e), u"");
+    return Completion(Completion::THROW, e, u"");
   return Completion(Completion::NORMAL, val, u"");
 }
 

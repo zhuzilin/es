@@ -25,15 +25,15 @@ class Completion {
     type_(type), value_(value), target_(target) {}
 
   Type type() { return type_; }
-  Handle<JSValue> value() {
+  Handle<HeapObject> value() {
     // TODO(zhuzilin) Reset the HandleScope to current when value is asked.
     // this is prevent the creation handle was destructed. However, this may
     // not be correct...
-    value_ = Handle<JSValue>(value_.val());
+    value_ = Handle<HeapObject>(value_.val());
     return value_;
   }
-  void SetValue(JSValue* val) {
-    value_ = Handle<JSValue>(val);
+  void SetValue(HeapObject* val) {
+    value_ = Handle<HeapObject>(val);
   }
   std::u16string target() { return target_; }
 
@@ -43,7 +43,7 @@ class Completion {
 
  private:
   Type type_;
-  Handle<JSValue> value_;
+  Handle<HeapObject> value_;
   std::u16string target_;
 };
 

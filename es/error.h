@@ -86,6 +86,7 @@ class Error : public HeapObject {
   }
 
   bool IsOk() { return error_type() == E_OK; }
+  bool IsNativeError() { return error_type() == E_NATIVE; }
 
  private:
   static Handle<Error> New(ErrorType t, Handle<JSValue> val, uint8_t flag) {

@@ -20,13 +20,14 @@ class ErrorProto : public JSObject {
     }
     Handle<JSObject> O = static_cast<Handle<JSObject>>(val);
     // TODO(zhuzilin) add name
+    std::u16string name = u"Error";
     Handle<JSValue> msg = Get(e, O, String::New(u"message"));
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (msg.val()->IsUndefined())
       return Undefined::Instance();
-    Handle<String> msg_str = ::es::ToString(e, msg);
+    std::u16string msg_str = ::es::ToString(e, msg).val()->data();
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    return msg_str;
+    return String::New(name + u": " + msg_str);
   }
 
  private:

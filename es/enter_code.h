@@ -174,14 +174,16 @@ void EnterGlobalCode(Handle<Error>& e, AST* ast) {
     program = new ProgramOrFunctionBody(AST::AST_PROGRAM, false);
     program->AddStatement(ast);
   }
-  for (VarDecl* d : program->var_decls()) {
-    if (d->ident().type() == Token::TK_STRICT_FUTURE) {
-      e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
-      return;
-    }
-    if (d->ident().source_ref() == u"eval" || d->ident().source_ref() == u"arguments") {
-      e = Error::SyntaxError(u"Unexpected eval or arguments in strict mode");
-      return;
+  if (program->strict()) {
+    for (VarDecl* d : program->var_decls()) {
+      if (d->ident().type() == Token::TK_STRICT_FUTURE) {
+        e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
+        return;
+      }
+      if (d->ident().source_ref() == u"eval" || d->ident().source_ref() == u"arguments") {
+        e = Error::SyntaxError(u"Unexpected eval or arguments in strict mode");
+        return;
+      }
     }
   }
   // 1 10.4.1.1

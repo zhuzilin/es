@@ -98,9 +98,9 @@ Handle<JSValue> Call__Function(
     case Completion::THROW: {
       if (unlikely(log::Debugger::On()))
         log::PrintSource("exit FunctionObject::Call THROW");
-      Handle<JSValue> throw_value = result.value();
-      if (throw_value.val()->IsErrorObject()) {
-        e = static_cast<Handle<ErrorObject>>(throw_value).val()->e();
+      Handle<HeapObject> throw_value = result.value();
+      if (throw_value.val()->IsError()) {
+        e = throw_value;
         if (unlikely(log::Debugger::On()))
           log::PrintSource("message: " + e.ToString());
         return Handle<JSValue>();

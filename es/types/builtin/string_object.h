@@ -22,15 +22,14 @@ class StringProto : public JSObject {
 
   static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSValue> val = Runtime::TopValue();
-    if (!val.val()->IsObject()) {
-      e = Error::TypeError(u"String.prototype.toString called with non-object");
-      return Handle<JSValue>();
+    if (val.val()->IsString()) {
+      return val;
     }
     if (!val.val()->IsStringObject()) {
       e = Error::TypeError(u"String.prototype.toString called with non-string");
       return Handle<JSValue>();
     }
-    return static_cast<JSObject*>(val.val())->PrimitiveValue();
+    return static_cast<Handle<JSObject>>(val).val()->PrimitiveValue();
   }
 
   static Handle<JSValue> valueOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
