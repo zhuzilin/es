@@ -92,7 +92,7 @@ double StringToNumber(std::u16string source) {
     goto error;
 
   if (source.substr(start, end - start) == u"Infinity") {
-    return positive ? Number::PositiveInfinity().val()->data() : Number::NegativeInfinity().val()->data();
+    return positive ? Number::Infinity().val()->data() : Number::NegativeInfinity().val()->data();
   }
 
   while (start < end) {
@@ -239,7 +239,7 @@ std::u16string NumberToU16String(double m) {
   if (isnan(m))
     return u"NaN";
   if (isinf(m))
-    return u"Infinity";
+    return signbit(m) ? u"-Infinity" : u"Infinity";
   // TODO(zhuzilin) Figure out how to solve the large number error.
   std::u16string sign = u"";
   if (m < 0) {
@@ -339,7 +339,7 @@ std::string NumberToStdString(double m) {
   if (isnan(m))
     return "NaN";
   if (isinf(m))
-    return "Infinity";
+    return signbit(m) ? "-Infinity" : "Infinity";
   // TODO(zhuzilin) Figure out how to solve the large number error.
   std::string sign = "";
   if (m < 0) {
@@ -439,15 +439,11 @@ Handle<String> NumberToString(double m) {
   if (m == 0)
     return String::Zero();
   if (isinf(m))
-    return String::Infinity();
+    return signbit(m) ? String::NegativeInfinity() : String::Infinity();
   return String::New(NumberToU16String(m));
 }
 
 Handle<String> NumberToString(Handle<Number> num) {
-  if (num.val()->IsNaN())
-    return String::NaN();
-  if (num.val()->IsInfinity())
-    return String::Infinity();
   return NumberToString(num.val()->data());
 }
 

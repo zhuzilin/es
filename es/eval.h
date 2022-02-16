@@ -1161,6 +1161,8 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
         return String::Undefined();
       case JSValue::JS_NULL:
         return String::New(u"object");
+      case JSValue::JS_BOOL:
+        return String::New(u"boolean");
       case JSValue::JS_NUMBER:
         return String::New(u"number");
       case JSValue::JS_LONG_STRING:
@@ -1359,14 +1361,14 @@ Handle<JSValue> EvalRelationalOperator(Handle<Error>& e, Token& op, Handle<JSVal
       Handle<JSValue> r = LessThan(e, rval, lval);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (r.val()->IsUndefined())
-        return Bool::True();
+        return Bool::False();
       return Bool::Wrap(!static_cast<Handle<Bool>>(r).val()->data());
     }
     case Token::TK_GE: {  // >=
       Handle<JSValue> r = LessThan(e, lval, rval);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (r.val()->IsUndefined())
-        return Bool::True();
+        return Bool::False();
       return Bool::Wrap(!static_cast<Handle<Bool>>(r).val()->data());
     }
     case Token::TK_KEYWORD: {

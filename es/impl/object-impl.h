@@ -121,7 +121,7 @@ Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle
     if (V.val()->IsFunctionObject()) {
       Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
       if (func.val()->strict()) {
-        e = Error::TypeError();
+        e = Error::TypeError(u"cannot get caller property from function in strict mode.");
         return Handle<JSValue>();
       }
     }
@@ -173,7 +173,7 @@ void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue>
   assert(V.val()->IsLanguageType());
   if (!CanPut(O, P)) {  // 1
     if (throw_flag) {  // 1.a
-      e = Error::TypeError();
+      e = Error::TypeError(u"cannot put " + P.val()->data());
     }
     return;  // 1.b
   }
@@ -188,8 +188,14 @@ void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue>
       DefineOwnProperty(e, O, P, value_desc, throw_flag);
       return;
     }
+  } else {
+    // expand GetProperty to prevent another GetOwnProperty(O, P)
+    Handle<JSValue> proto = O.val()->Prototype();
+    if (!proto.val()->IsNull()) {
+      assert(proto.val()->IsObject());
+      value = GetProperty(static_cast<Handle<JSObject>>(proto), P);
+    }
   }
-  value = GetProperty(O, P);
   if (!value.val()->IsUndefined()) {
     Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(value);
     if (desc.val()->IsAccessorDescriptor()) {
@@ -209,7 +215,7 @@ void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue>
 // [[HasProperty]]
 // 8.12.6 [[HasProperty]] (P)
 bool HasProperty(Handle<JSObject> O, Handle<String> P) {
-  Handle<JSValue> desc = GetOwnProperty(O, P);
+  Handle<JSValue> desc = GetProperty(O, P);
   return !desc.val()->IsUndefined();
 }
 
@@ -234,7 +240,7 @@ bool Delete__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool t
     return true;
   } else {
     if (throw_flag) {
-      e = Error::TypeError();
+      e = Error::TypeError(P.val()->data() + u" not configurable, therefore failed to delete");
     }
     return false;
   }
@@ -306,9 +312,12 @@ bool DefineOwnProperty__Base(
 ) {
   Handle<JSValue> current = GetOwnProperty(O, P);
   Handle<PropertyDescriptor> current_desc;
+  std::u16string error_msg;
   if (current.val()->IsUndefined()) {
-    if(!O.val()->Extensible())  // 3
+    if(!O.val()->Extensible()) { // 3
+      error_msg = u"failed to DefineOwnProperty " + P.val()->data() + u": object not extensible";
       goto reject;
+    }
     // 4.
     auto new_named_properties = HashMap::Set(Handle<HashMap>(O.val()->named_properties()), P, desc);
     O.val()->SetNamedProperties(new_named_properties);
@@ -338,13 +347,11 @@ bool DefineOwnProperty__Base(
     log::PrintSource("desc: " + desc.ToString() + ", current: " + current_desc.ToString());
   if (!current_desc.val()->Configurable()) { // 7
     if (desc.val()->Configurable()) {  // 7.a
-      if (unlikely(log::Debugger::On()))
-        log::PrintSource("DefineOwnProperty: " + P.ToString() + " not configurable, while new value configurable");
+      error_msg = u"failed to DefineOwnProperty " + P.val()->data() + u": old value not configurable, while new value configurable";
       goto reject;
     }
     if (desc.val()->HasEnumerable() && (desc.val()->Enumerable() != current_desc.val()->Enumerable())) {  // 7.b
-      if (unlikely(log::Debugger::On()))
-        log::PrintSource("DefineOwnProperty: " + P.ToString() + " enumerable value differ");
+      error_msg = u"failed to DefineOwnProperty " + P.val()->data() + u": enumerable value differ";
       goto reject;
     }
   }
@@ -352,21 +359,27 @@ bool DefineOwnProperty__Base(
   if (!desc.val()->IsGenericDescriptor()) {
     if (current_desc.val()->IsDataDescriptor() != desc.val()->IsDataDescriptor()) {  // 9.
       // 9.a
-      if (!current_desc.val()->Configurable()) goto reject;
+      if (!current_desc.val()->Configurable()) {
+        error_msg = u"failed to DefineOwnProperty " + P.val()->data() + u": current value not configurable";
+        goto reject;
+      }
       // 9.b.i & 9.c.i
-      Handle<PropertyDescriptor> old_property = O.val()->named_properties()->Get(P);
-      Handle<PropertyDescriptor> new_property = PropertyDescriptor::New();
-      new_property.val()->SetConfigurable(old_property.val()->Configurable());
-      new_property.val()->SetEnumerable(old_property.val()->Enumerable());
-      new_property.val()->SetBitMask(old_property.val()->bitmask());
-      auto new_named_properties = HashMap::Set(Handle<HashMap>(O.val()->named_properties()), P, desc);
-      O.val()->SetNamedProperties(new_named_properties);
+      current_desc.val()->Reset(
+        desc.val()->bitmask(),
+        current_desc.val()->Enumerable(),
+        current_desc.val()->Configurable());
     } else if (current_desc.val()->IsDataDescriptor() && desc.val()->IsDataDescriptor()) {  // 10.
       if (!current_desc.val()->Configurable()) {  // 10.a
         if (!current_desc.val()->Writable()) {
-          if (desc.val()->Writable()) goto reject;  // 10.a.i
+          if (desc.val()->Writable()) {
+            error_msg = u"failed to DefineOwnProperty " + P.val()->data() + u": current value not writable";
+            goto reject;  // 10.a.i
+          }
           // 10.a.ii.1
-          if (desc.val()->HasValue() && !SameValue(desc.val()->Value(), current_desc.val()->Value())) goto reject;
+          if (desc.val()->HasValue() && !SameValue(desc.val()->Value(), current_desc.val()->Value())) {
+            error_msg = u"failed to DefineOwnProperty " + P.val()->data() + u": current value not writable";
+            goto reject;
+          }
         }
       } else {  // 10.b
         assert(current_desc.val()->Configurable());
@@ -375,8 +388,10 @@ bool DefineOwnProperty__Base(
       assert(current_desc.val()->IsAccessorDescriptor() && desc.val()->IsAccessorDescriptor());
       if (!current_desc.val()->Configurable()) {  // 11.a
         if (!SameValue(desc.val()->Set(), current_desc.val()->Set()) ||  // 11.a.i
-            !SameValue(desc.val()->Get(), current_desc.val()->Get()))    // 11.a.ii
+            !SameValue(desc.val()->Get(), current_desc.val()->Get())) {  // 11.a.ii
+          error_msg = u"failed to DefineOwnProperty " + P.val()->data() + u": different get or set";
           goto reject;
+        }
       }
     }
   }
@@ -388,9 +403,9 @@ bool DefineOwnProperty__Base(
   return true;
 reject:
   if (unlikely(log::Debugger::On()))
-    log::PrintSource("DefineOwnProperty reject");
+    log::PrintSource("reject :", error_msg);
   if (throw_flag) {
-    e = Error::TypeError();
+    e = Error::TypeError(error_msg);
   }
   return false;
 }

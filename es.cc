@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
   Handle<Error> e = Error::Ok();
   EnterGlobalCode(e, ast);
   if (unlikely(!e.val()->IsOk())) {
-    std::cout << "enter global failed" << "\n";
+    std::cout << "\033[1;31m" << "Enter global failed: " << e.ToString() << "\033[0m" << "\n";
     return 0;
   }
   Completion res = EvalProgram(ast);

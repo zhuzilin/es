@@ -26,11 +26,11 @@ class PropertyDescriptor : public JSValue {
   }
 
   inline bool IsAccessorDescriptor() {
-    return (bitmask() & (GET | SET)) == (GET | SET);
+    return (bitmask() & (GET | SET)) != 0;
   }
 
   inline bool IsDataDescriptor() {
-    return (bitmask() & (VALUE | WRITABLE)) == (VALUE | WRITABLE);
+    return (bitmask() & (VALUE | WRITABLE)) != 0;
   }
 
   inline bool IsGenericDescriptor() {
@@ -112,6 +112,16 @@ class PropertyDescriptor : public JSValue {
       SetConfigurable(other.val()->Configurable());
     if (other.val()->HasEnumerable())
       SetEnumerable(other.val()->Enumerable());
+  }
+
+  inline void Reset(char new_bitmask, bool enumerable, bool configurable) {
+    SET_VALUE(this, kBitmapOffset, new_bitmask, char);
+    SET_HANDLE_VALUE(this, kValueOffset, Undefined::Instance(), JSValue);
+    SET_HANDLE_VALUE(this, kGetOffset, Undefined::Instance(), JSValue);
+    SET_HANDLE_VALUE(this, kSetOffset, Undefined::Instance(), JSValue);
+    SET_VALUE(this, kWritableOffset, false, bool);
+    SET_VALUE(this, kEnumerableOffset, enumerable, bool);
+    SET_VALUE(this, kConfigurableOffset, configurable, bool);
   }
 
   char bitmask() { return READ_VALUE(this, kBitmapOffset, char); }

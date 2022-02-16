@@ -126,7 +126,9 @@ void DeclarationBindingInstantiation(
         if (existing_prop_desc.val()->IsAccessorDescriptor() ||
             !(existing_prop_desc.val()->HasConfigurable() && existing_prop_desc.val()->Configurable() &&
               existing_prop_desc.val()->HasEnumerable() && existing_prop_desc.val()->Enumerable())) {
-          e = Error::TypeError();
+          e = Error::TypeError(
+            u"existing desc of " + func_decl->name() + " is accessor "
+            u"but not both configurable and enumerable");
           return;
         }
       }
@@ -275,7 +277,7 @@ void InitGlobalObject() {
   auto global_obj = GlobalObject::Instance();
   // 15.1.1 Value Properties of the Global Object
   AddValueProperty(global_obj, u"NaN", Number::NaN(), false, false, false);
-  AddValueProperty(global_obj, u"Infinity", Number::PositiveInfinity(), false, false, false);
+  AddValueProperty(global_obj, u"Infinity", Number::Infinity(), false, false, false);
   AddValueProperty(global_obj, u"undefined", Undefined::Instance(), false, false, false);
   // 15.1.2 Function Properties of the Global Object
   AddFuncProperty(global_obj, u"eval", GlobalObject::eval, true, false, true);
@@ -370,8 +372,8 @@ void InitNumber() {
   AddValueProperty(constructor, u"MAX_VALUE", Number::New(1.7976931348623157e308), false, false, false);
   AddValueProperty(constructor, u"MIN_VALUE", Number::New(5e-324), false, false, false);
   AddValueProperty(constructor, u"NaN", Number::NaN(), false, false, false);
-  AddValueProperty(constructor, u"NEGATIVE_INFINITY", Number::PositiveInfinity(), false, false, false);
-  AddValueProperty(constructor, u"POSITIVE_INFINITY", Number::NegativeInfinity(), false, false, false);
+  AddValueProperty(constructor, u"NEGATIVE_INFINITY", Number::NegativeInfinity(), false, false, false);
+  AddValueProperty(constructor, u"POSITIVE_INFINITY", Number::Infinity(), false, false, false);
 
   Handle<NumberProto> proto = NumberProto::Instance();
   proto.val()->SetPrototype(ObjectProto::Instance());
@@ -553,6 +555,16 @@ void InitDate() {
 void InitMath() {
   HandleScope scope;
   Handle<JSObject> math = Math::Instance();
+  // 15.8.1 Value Properties of the Math Object
+  AddValueProperty(math, String::New(u"E"), Number::New(2.7182818284590452354), false, false, false);
+  AddValueProperty(math, String::New(u"LN10"), Number::New(2.302585092994046), false, false, false);
+  AddValueProperty(math, String::New(u"LN2"), Number::New(0.6931471805599453), false, false, false);
+  AddValueProperty(math, String::New(u"LOG2E"), Number::New(1.4426950408889634), false, false, false);
+  AddValueProperty(math, String::New(u"LOG10E"), Number::New(0.4342944819032518), false, false, false);
+  AddValueProperty(math, String::New(u"PI"), Number::New(3.1415926535897932), false, false, false);
+  AddValueProperty(math, String::New(u"SQRT1_2"), Number::New(0.7071067811865476), false, false, false);
+  AddValueProperty(math, String::New(u"SQRT2"), Number::New(1.4142135623730951), false, false, false);
+  // 15.8.2 Function Properties of the Math Object
   AddFuncProperty(math, u"floor", Math::floor, false, false, false);
   AddFuncProperty(math, u"max", Math::max, false, false, false);
   AddFuncProperty(math, u"pow", Math::pow, false, false, false);

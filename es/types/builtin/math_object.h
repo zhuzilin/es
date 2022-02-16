@@ -28,7 +28,7 @@ class Math : public JSObject {
     if (num == 0)
       return signbit(num) ? Number::NegativeZero() : Number::Zero();
     if (isinf(num))
-      return signbit(num) ? Number::PositiveInfinity() : Number::NegativeInfinity();
+      return signbit(num) ? Number::Infinity() : Number::NegativeInfinity();
     return Number::New(::floor(num));
   }
 
@@ -60,7 +60,6 @@ class Math : public JSObject {
     double x = ToNumber(e, vals[0]);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     double y = ToNumber(e, vals[1]);
-    return Number::New(10);
     if (isnan(y))
       return Number::NaN();
     if (y == 0)

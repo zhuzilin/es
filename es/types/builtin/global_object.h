@@ -93,7 +93,7 @@ class GlobalObject : public JSObject {
       j--;
     std::u16string trimmed_string = input_string.substr(i, j - i);
     if (trimmed_string == u"Infinity" || trimmed_string == u"+Infinity")
-      return Number::PositiveInfinity();
+      return Number::Infinity();
     if (trimmed_string == u"-Infinity")
       return Number::NegativeInfinity();
     Lexer lexer(trimmed_string);

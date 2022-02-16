@@ -195,6 +195,11 @@ class String : public JSValue {
     return singleton;
   }
 
+  static Handle<String> NegativeInfinity() {
+    static Handle<String> singleton = String::New(u"-Infinity", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
   static Handle<String> Prototype() {
     static Handle<String> singleton = String::New(u"prototype", GCFlag::CONST | GCFlag::SINGLE);
     return singleton;
@@ -295,7 +300,7 @@ class Number : public JSValue {
     return singleton;
   }
 
-  static Handle<Number> PositiveInfinity() {
+  static Handle<Number> Infinity() {
     static Handle<Number> singleton = Number::New(
       std::numeric_limits<double>::infinity(), GCFlag::CONST | GCFlag::SINGLE);
     return singleton;

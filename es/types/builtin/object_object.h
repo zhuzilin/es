@@ -7,6 +7,7 @@
 namespace es {
 
 Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input);
+Handle<JSValue> FromPropertyDescriptor(Handle<JSValue> value);
 Handle<PropertyDescriptor> ToPropertyDescriptor(Handle<Error>& e, Handle<JSValue> obj);
 
 class ObjectProto : public JSObject {
@@ -55,7 +56,18 @@ class ObjectProto : public JSObject {
   }
 
   static Handle<JSValue> isPrototypeOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
+    if (unlikely(vals.size() == 0 || !vals[0].val()->IsObject()))
+      return Bool::False();
+    Handle<JSValue> val = Runtime::TopValue();
+    Handle<JSObject> O = ToObject(e, val);
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+    Handle<JSValue> V = static_cast<Handle<JSObject>>(vals[0]).val()->Prototype();
+    while (!V.val()->IsNull()) {
+      if (V.val() == O.val())
+        return Bool::True();
+      V = static_cast<Handle<JSObject>>(V).val()->Prototype();
+    }
+    return Bool::False();
   }
 
   static Handle<JSValue> propertyIsEnumerable(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
@@ -104,7 +116,14 @@ class ObjectConstructor : public JSObject {
 
   // 15.2.3.3 Object.getOwnPropertyDescriptor ( O, P )
   static Handle<JSValue> getOwnPropertyDescriptor(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
+    if (vals.size() < 1 || !vals[0].val()->IsObject()) {
+      e = Error::TypeError(u"Object.create called on non-object");
+      return Handle<JSValue>();
+    }
+    Handle<String> name = vals.size() < 2 ?
+      ::es::ToString(e, Undefined::Instance()) : ::es::ToString(e, vals[1]);
+    Handle<JSValue> desc = GetOwnProperty(static_cast<Handle<JSObject>>(vals[0]), name);
+    return FromPropertyDescriptor(desc);
   }
 
   static Handle<JSValue> getOwnPropertyNames(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
