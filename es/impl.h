@@ -6,6 +6,7 @@
 #include <es/impl/call-impl.h>
 #include <es/impl/construct-impl.h>
 #include <es/impl/object-impl.h>
+#include <es/impl/reference_impl.h>
 #include <es/impl/environment_record-impl.h>
 #include <es/impl/builtin/global_object_impl.h>
 

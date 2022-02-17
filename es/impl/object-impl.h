@@ -131,6 +131,12 @@ Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle
 
 // 10.6
 Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P) {
+  if (Runtime::TopContext()->strict()) {
+    if (P.val()->data() == u"callee" || P.val()->data() == u"caller") {
+      e = Error::TypeError(u"access callee or caller in strict mode");
+      return Handle<JSValue>();
+    }
+  }
   Handle<JSValue> V = Get__Base(e, O, P);
   return V;
 }

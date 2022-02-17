@@ -62,7 +62,12 @@ Handle<ArgumentsObject> CreateArgumentsObject(
   if (!strict) {  // 13
     AddValueProperty(obj, u"callee", func, true, false, true);
   } else {  // 14
+    Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
     // TODO(zhuzilin) thrower
+    Handle<JSValue> thrower = Undefined::Instance();
+    desc.val()->SetAccessorDescriptor(thrower, thrower, false, false);
+    DefineOwnProperty(Error::Empty(), obj, String::New(u"caller"), desc, false);
+    DefineOwnProperty(Error::Empty(), obj, String::New(u"callee"), desc, false);
   }
   return obj;  // 15
 }
