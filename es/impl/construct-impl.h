@@ -159,8 +159,7 @@ Handle<JSObject> Construct__FunctionConstructor(
   AST* body_ast;
   if (P_view.size() > 0) {
     Parser parser(P_view);
-    names = parser.ParseFormalParameterList();
-    if (names.size() == 0) {
+    if (!parser.ParseFormalParameterList(names)) {
       e = Error::SyntaxError(u"invalid parameter name");
       return Handle<JSValue>();
     }

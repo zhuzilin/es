@@ -86,25 +86,30 @@ error:
     return new AST(AST::AST_ILLEGAL, TOKEN_SOURCE);
   }
 
-  std::vector<std::u16string> ParseFormalParameterList() {
-    assert(lexer_.NextAndRewind().IsIdentifier());
-    std::vector<std::u16string> params;
+  bool ParseFormalParameterList(std::vector<std::u16string>& params) {
+    if (!lexer_.NextAndRewind().IsIdentifier()) {
+      // This only happens in new Function(...)
+      params = {};
+      return lexer_.Next().type() == Token::TK_EOS;
+    }
     params.emplace_back(lexer_.Next().source());
     Token token = lexer_.NextAndRewind();
     // NOTE(zhuzilin) the EOS is for new Function("a,b,c", "")
     while (token.type() != Token::TK_RPAREN && token.type() != Token::TK_EOS) {
       if (token.type() != Token::TK_COMMA) {
-        return {};
+        params = {};
+        return false;
       }
       lexer_.Next();  // skip ,
       token = lexer_.Next();
       if (!token.IsIdentifier()) {
-        return {};
+        params = {};
+        return false;
       }
       params.emplace_back(token.source());
       token = lexer_.NextAndRewind();
     }
-    return params;
+    return true;
   }
 
   AST* ParseFunction(bool must_be_named) {
@@ -129,7 +134,9 @@ error:
     }
     token = lexer_.NextAndRewind();
     if (token.IsIdentifier()) {
-      params = ParseFormalParameterList();
+      if (!ParseFormalParameterList(params)) {
+        goto error;
+      }
     }
     if (lexer_.Next().type() != Token::TK_RPAREN) {  // skip )
       goto error;
@@ -1169,6 +1176,10 @@ error:
     }
     if (lexer_.NextAndRewind().source() == u"finally") {
       lexer_.Next();  // skip finally
+      if (lexer_.NextAndRewind().type() != Token::TK_LBRACE) {
+        lexer_.Next();
+        goto error;
+      }
       finally_block = ParseBlockStatement();
       if (finally_block->IsIllegal()) {
         delete try_block;

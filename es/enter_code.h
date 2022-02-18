@@ -569,6 +569,7 @@ void InitMath() {
   AddFuncProperty(math, u"floor", Math::floor, false, false, false);
   AddFuncProperty(math, u"max", Math::max, false, false, false);
   AddFuncProperty(math, u"pow", Math::pow, false, false, false);
+  AddFuncProperty(math, u"sin", Math::sin, false, false, false);
 }
 
 void InitRegExp() {

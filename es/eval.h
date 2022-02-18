@@ -603,7 +603,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
     if (R.IsAbruptCompletion())
       return Completion(R.type(), V, R.target());
   }
-  for (i = 0; i < switch_stmt->after_default_case_clauses().size(); i++) {
+  for (; i < switch_stmt->after_default_case_clauses().size(); i++) {
     auto C = switch_stmt->after_default_case_clauses()[i];
     EvalCaseClause(e, C);
     Completion R = EvalStatementList(C.stmts);
@@ -684,6 +684,12 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
 Completion EvalTryStatement(AST* ast) {
   assert(ast->type() == AST::AST_STMT_TRY);
   Try* try_stmt = static_cast<Try*>(ast);
+  if (Runtime::TopContext()->strict()) {
+    if (try_stmt->catch_ident() == u"eval" || try_stmt->catch_ident() == u"arguments") {
+      Handle<Error> e = Error::SyntaxError(u"use eval or arguments as identifier of catch in strict mode");
+      return Completion(Completion::THROW, e, u"");
+    }
+  }
   Completion B = EvalBlockStatement(try_stmt->try_block());
   if (try_stmt->finally_block() == nullptr) {  // try Block Catch
     if (B.type() != Completion::THROW)

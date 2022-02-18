@@ -97,6 +97,20 @@ class Math : public JSObject {
     return Number::New(::pow(x, y));
   }
 
+  // 15.8.2.16 sin (x)
+  static Handle<JSValue> sin(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() == 0)
+      return Number::NaN();
+    double num = ToNumber(e, vals[0]);
+    if (isnan(num))
+      return Number::NaN();
+    if (num == 0)
+      return signbit(num) ? Number::NegativeZero() : Number::Zero();
+    if (isinf(num))
+      return Number::NaN();
+    return Number::New(::sin(num));
+  }
+
  private:
   static Handle<Math> New(flag_t flag) {
     Handle<JSObject> jsobj = JSObject::New(
