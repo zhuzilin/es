@@ -44,13 +44,13 @@ class ExecutionContext {
   }
 
   void AddLabel(std::u16string label) {
-    assert(!HasLabel(label));
+    ASSERT(!HasLabel(label));
     label_stack_.push(label);
   }
 
   void RemoveLabel(std::u16string label) {
     if (label == u"") return;
-    assert(HasLabel(label));
+    ASSERT(HasLabel(label));
     label_stack_.pop();
   }
 

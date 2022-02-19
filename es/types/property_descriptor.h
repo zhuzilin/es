@@ -8,6 +8,8 @@
 
 namespace es {
 
+bool SameValue(Handle<JSValue> x, Handle<JSValue> y);
+
 class PropertyDescriptor : public JSValue {
  public:
   static Handle<PropertyDescriptor> New() {
@@ -122,6 +124,22 @@ class PropertyDescriptor : public JSValue {
     SET_VALUE(this, kWritableOffset, false, bool);
     SET_VALUE(this, kEnumerableOffset, enumerable, bool);
     SET_VALUE(this, kConfigurableOffset, configurable, bool);
+  }
+
+  inline bool IsSameAs(Handle<PropertyDescriptor> other) {
+    if (HasValue() && !SameValue(Value(), other.val()->Value()))
+      return false;
+    if (HasWritable() && (Writable() != other.val()->Writable()))
+      return false;
+    if (HasGet() && !SameValue(Get(), other.val()->Get()))
+      return false;
+    if (HasSet() && !SameValue(Set(), other.val()->Set()))
+      return false;
+    if (HasConfigurable() && (Configurable() != other.val()->Configurable()))
+      return false;
+    if (HasEnumerable() && (Enumerable() != other.val()->Enumerable()))
+      return false;
+    return true;
   }
 
   char bitmask() { return READ_VALUE(this, kBitmapOffset, char); }

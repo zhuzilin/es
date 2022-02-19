@@ -175,7 +175,7 @@ inline char16_t ToLowerCase(char16_t c) {
   {
     const std::size_t index = c - 192;
     if (index < kLowerCaseCache.size()) {
-      assert(index < kLowerCaseCache.size());
+      ASSERT(index < kLowerCaseCache.size());
       return kUpperCaseCache[index];
     }
   }
@@ -183,7 +183,7 @@ inline char16_t ToLowerCase(char16_t c) {
       std::upper_bound(kLowerCaseKeys.begin(),
                        kLowerCaseKeys.end(), c) - 1;
   const int result = static_cast<int>(it - kLowerCaseKeys.begin());
-  assert(result < 101);
+  ASSERT(result < 101);
   if (result >= 0) {
     bool by2 = false;
     const char16_t start = kLowerCaseKeys[result];
@@ -216,7 +216,7 @@ inline char16_t ToUpperCase(char16_t c) {
   {
     const std::size_t index = c - 181;
     if (index < kUpperCaseCache.size()) {
-      assert(index < kUpperCaseCache.size());
+      ASSERT(index < kUpperCaseCache.size());
       return kUpperCaseCache[index];
     }
   }
@@ -224,7 +224,7 @@ inline char16_t ToUpperCase(char16_t c) {
       std::upper_bound(kUpperCaseKeys.begin(),
                        kUpperCaseKeys.end(), c) - 1;
   const int result = static_cast<int>(it - kUpperCaseKeys.begin());
-  assert(result < 113);
+  ASSERT(result < 113);
   if (result >= 0) {
     bool by2 = false;
     const char16_t start = *it;

@@ -68,7 +68,7 @@ class CopyingCollection : public GC {
     Flip();
     Initialise(worklist_);
     auto root_pointers = Runtime::Global()->Pointers();
-    assert(root_pointers.size() > 0);
+    ASSERT(root_pointers.size() > 0);
     for (HeapObject** fld : root_pointers) {
       Process(fld);
     }
@@ -94,7 +94,7 @@ class CopyingCollection : public GC {
 
   void Scan(void* ref) {
     HeapObject* heap_ref = static_cast<HeapObject*>(ref);
-    assert(heap_ref != nullptr);
+    ASSERT(heap_ref != nullptr);
     auto ref_pointers = HeapObject::Pointers(heap_ref);
     for (HeapObject** fld : ref_pointers) {
       Process(fld);
@@ -106,13 +106,13 @@ class CopyingCollection : public GC {
       return;
     HeapObject* from_ref = *fld;
 #ifdef GC_DEBUG
-    assert(from_ref != nullptr);
+    ASSERT(from_ref != nullptr);
 #endif
     if (InToSpace(from_ref)) {
       return;
     }
 #ifdef GC_DEBUG
-    assert(InFromSpace(from_ref));
+    ASSERT(InFromSpace(from_ref));
 #endif
     *fld = static_cast<HeapObject*>(Forward(from_ref));
   }
@@ -123,25 +123,25 @@ class CopyingCollection : public GC {
       to_ref = Copy(from_ref);
     }
 #ifdef GC_DEBUG
-    assert(InToSpace(to_ref));
+    ASSERT(InToSpace(to_ref));
 #endif
     return to_ref;
   }
 
   void* Copy(void* from_ref) {
-    assert(InFromSpace(from_ref));
+    ASSERT(InFromSpace(from_ref));
     char* to_ref = free_ + sizeof(Header);
     size_t size = Size(from_ref);
     free_ += size;
 #ifdef GC_DEBUG
-    assert(InToSpace(free_) || free_ == tospace_ + extent_);
-    assert(ForwardAddress(from_ref) == nullptr);
+    ASSERT(InToSpace(free_) || free_ == tospace_ + extent_);
+    ASSERT(ForwardAddress(from_ref) == nullptr);
 #endif
     MemCopy(H(to_ref), H(from_ref), size);
     SetForwardAddress(from_ref, to_ref);
 #ifdef GC_DEBUG
-    assert(ForwardAddress(to_ref) == nullptr);
-    assert(InToSpace(ForwardAddress(from_ref)));
+    ASSERT(ForwardAddress(to_ref) == nullptr);
+    ASSERT(InToSpace(ForwardAddress(from_ref)));
 #endif
     Add(worklist_, to_ref);
     return to_ref;

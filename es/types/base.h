@@ -153,14 +153,11 @@ class String : public JSValue {
     return c_str()[index];
   }
 
-  Handle<String> substr(size_t pos = 0, size_t len = std::u16string::npos) {
-    if (len == std::u16string::npos) {
-      len = size() - pos;
-    }
+  static Handle<String> Substr(Handle<String> str, size_t pos, size_t len) {
     Handle<String> substring = String::New(len);
     memcpy(
       PTR(substring.val(), kStringDataOffset),
-      PTR(this, kStringDataOffset + pos * kChar16Size),
+      str.val()->c_str() + pos,
       len * kChar16Size
     );
     return substring;

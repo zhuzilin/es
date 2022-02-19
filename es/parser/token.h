@@ -229,7 +229,7 @@ class Token {
   }
 
   Token ToCalc() {
-    assert(IsCompoundAssign());
+    ASSERT(IsCompoundAssign());
     return Token((Type)(type_ - TK_ADD_ASSIGN + TK_ADD), source_.substr(0, source_.size()-1), start_, end_ - 1);
   }
 

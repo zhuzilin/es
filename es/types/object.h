@@ -66,7 +66,7 @@ class JSObject : public JSValue {
   // Internal Preperties Common to All Objects
   Handle<JSValue> Prototype() { return READ_HANDLE_VALUE(this, kPrototypeOffset, JSValue); }
   void SetPrototype(Handle<JSValue> proto) {
-    assert(proto.val()->IsPrototype());
+    ASSERT(proto.val()->IsPrototype());
     SET_HANDLE_VALUE(this, kPrototypeOffset, proto, JSValue);
   }
   std::u16string Class() { return (READ_VALUE(this, kClassOffset, String*))->data(); };
@@ -76,7 +76,7 @@ class JSObject : public JSValue {
   // [[PrimitiveValue]]
   Handle<JSValue> PrimitiveValue() {
     Handle<JSValue> primitive_value = READ_HANDLE_VALUE(this, kPrimitiveValueOffset, JSValue);
-    assert(!primitive_value.IsNullptr());
+    ASSERT(!primitive_value.IsNullptr());
     return primitive_value;
   };
   bool HasPrimitiveValue() {
@@ -88,7 +88,7 @@ class JSObject : public JSValue {
   // This for for-in statement.
   std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> AllEnumerableProperties() {
     auto filter = [](HeapObject* heap_obj) {
-      assert(heap_obj->IsPropertyDescriptor());
+      ASSERT(heap_obj->IsPropertyDescriptor());
       PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(heap_obj);
       return desc->HasEnumerable() && desc->Enumerable();
     };

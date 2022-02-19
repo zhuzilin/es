@@ -19,7 +19,7 @@ Handle<JSValue> FromPropertyDescriptor(Handle<JSValue> value) {
     AddValueProperty(obj, String::Value(), desc.val()->Value(), true, true, true);
     AddValueProperty(obj, String::Writable(), Bool::Wrap(desc.val()->Writable()), true, true, true);
   } else {
-    assert(desc.val()->IsAccessorDescriptor());
+    ASSERT(desc.val()->IsAccessorDescriptor());
     AddValueProperty(obj, String::Get(), desc.val()->Get(), true, true, true);
     AddValueProperty(obj, String::Set(), desc.val()->Set(), true, true, true);
   }

@@ -33,14 +33,15 @@ class HandleScope {
   HandleScope() {
     if (HandleScope::Stack().size() == 0) {
       start_block_ = new HandleBlock();
-      start_count_ = 0;
+      current_ = start_block_->pointers;
+      limit_ = start_block_->pointers + kHandleBlockSize;
     } else {
       HandleScope* last_scope = HandleScope::Stack().back();
       start_block_ = last_scope->block_;
-      start_count_ = last_scope->count_;
+      current_ = last_scope->current_;
+      limit_ = last_scope->limit_;
     }
     block_ = start_block_;
-    count_ = start_count_;
     HandleScope::Stack().emplace_back(this);
   }
   ~HandleScope() {
@@ -83,21 +84,23 @@ class HandleScope {
     }
 
     HandleScope* scope = HandleScope::Stack().back();
-    if (scope->count_ == kHandleBlockSize) {
+    if (scope->current_ == scope->limit_) {
       HandleBlock* block = scope->block_->next;
       if (block == nullptr) {
         block = new HandleBlock();
         scope->block_->next = block;
       }
-      scope->count_ = 0;
-      
       scope->block_ = block;
+      scope->current_ = block->pointers;
+      scope->limit_ = block->pointers + kHandleBlockSize;
     }
-    size_t count = scope->count_;
-    HeapObject** ptr = scope->block_->pointers + count;
-    scope->count_++;
-    scope->helper_count_++;
+    HeapObject** ptr = scope->current_;
+    scope->current_++;
     *ptr = val;
+#ifdef TEST
+    scope->helper_count_++;
+#endif
+    
     return ptr;
   }
 
@@ -112,15 +115,15 @@ class HandleScope {
       pointers[i] = singleton_pointers_ + i;
     }
     HandleBlock* block = base.start_block_;
-    size_t end = kHandleBlockSize;
     // The last block may not be needed
     HandleBlock* end_ptr = Stack().back()->block_->next;
     while (block != end_ptr) {
+      HeapObject** end = block->pointers + kHandleBlockSize;
       if (block->next == end_ptr) {
-        end = Stack().back()->count_;
+        end = Stack().back()->limit_;
       }
-      for (size_t i = 0; i < end; i++) {
-        pointers.emplace_back(block->pointers + i);
+      for (HeapObject** i = block->pointers; i != end; i++) {
+        pointers.emplace_back(i);
       }
       block = block->next;
     }
@@ -129,7 +132,7 @@ class HandleScope {
     for (auto s : Stack()) {
       helper_sum += s->helper_count_;
     }
-    assert(helper_sum == pointers.size());
+    ASSERT(helper_sum == pointers.size());
 #endif
     return pointers;
   }
@@ -137,9 +140,11 @@ class HandleScope {
  private:
   HandleBlock* start_block_;
   HandleBlock* block_;
-  size_t start_count_ = 0;
-  size_t count_ = 0;
+  HeapObject** current_;
+  HeapObject** limit_;
+#ifdef TEST
   size_t helper_count_ = 0;
+#endif
 
   static constexpr size_t kNumSingletonHandle = 32;
   static HeapObject* singleton_pointers_[kNumSingletonHandle];

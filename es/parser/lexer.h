@@ -374,7 +374,7 @@ class Lexer {
   }
 
   bool ScanRegExpPattern(std::u16string& pattern) {
-    assert(c_ == u'/');
+    ASSERT(c_ == u'/');
     Advance();
     if (!character::IsRegularExpressionFirstChar(c_)) {
       Advance();
@@ -471,7 +471,7 @@ error:
 
 
   bool SkipRegularExpressionBackslashSequence(std::u16string& pattern) {
-    assert(c_ == u'\\');
+    ASSERT(c_ == u'\\');
     pattern += c_;
     Advance();
     if (character::IsLineTerminator(c_)) {
@@ -490,7 +490,7 @@ error:
   }
 
   bool SkipRegularExpressionClass(std::u16string& pattern) {
-    assert(c_ == u'[');
+    ASSERT(c_ == u'[');
     pattern += c_;
     Advance();
     while (pos_ != source_.size() && character::IsRegularExpressionClassChar(c_)) {
@@ -540,7 +540,7 @@ error:
   }
 
   Token ScanLineTerminatorSequence() {
-    assert(character::IsLineTerminator(c_));
+    ASSERT(character::IsLineTerminator(c_));
     size_t start = pos_;
     if (c_ == character::CR && LookAhead() == character::LF) {
       Advance(); Advance();
@@ -551,7 +551,7 @@ error:
   }
 
   void SkipLineTerminatorSequence() {
-    assert(character::IsLineTerminator(c_));
+    ASSERT(character::IsLineTerminator(c_));
     if (c_ == character::CR && LookAhead() == character::LF) {
       Advance(); Advance();
     } else {
@@ -649,7 +649,7 @@ error:
   }
 
   Token ScanNumericLiteral() {
-    assert(c_ == u'.' || character::IsDecimalDigit(c_));
+    ASSERT(c_ == u'.' || character::IsDecimalDigit(c_));
     size_t start = pos_;
 
     bool is_hex = false;
@@ -733,7 +733,7 @@ error:
   }
 
   Token ScanIdentifier() {
-    assert(character::IsIdentifierStart(c_));
+    ASSERT(character::IsIdentifierStart(c_));
     size_t start = pos_;
     std::u16string source = u"";
     if (c_ == u'\\') {

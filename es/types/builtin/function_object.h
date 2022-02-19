@@ -118,7 +118,7 @@ class FunctionObject : public JSObject {
 
     SET_HANDLE_VALUE(jsobj.val(), kFormalParametersOffset, formal_parameter, FixedArray);
     if (body != nullptr) {
-      assert(body->type() == AST::AST_FUNC_BODY);
+      ASSERT(body->type() == AST::AST_FUNC_BODY);
       ProgramOrFunctionBody* func_body = static_cast<ProgramOrFunctionBody*>(body);
       strict |= func_body->strict();
       SET_VALUE(jsobj.val(), kCodeOffset, func_body, ProgramOrFunctionBody*);
@@ -147,19 +147,19 @@ class FunctionObject : public JSObject {
   }
 
   Handle<LexicalEnvironment> Scope() {
-    assert(!from_bind());
+    ASSERT(!from_bind());
     return READ_HANDLE_VALUE(this, kScopeOffset, LexicalEnvironment);
   };
   Handle<FixedArray> FormalParameters() {
-    assert(!from_bind());
+    ASSERT(!from_bind());
     return READ_HANDLE_VALUE(this, kFormalParametersOffset, FixedArray);
   };
   ProgramOrFunctionBody* Code() {
-    assert(!from_bind());
+    ASSERT(!from_bind());
     return READ_VALUE(this, kCodeOffset, ProgramOrFunctionBody*);
   }
   bool strict() {
-    assert(!from_bind());
+    ASSERT(!from_bind());
     return READ_VALUE(this, kStrictOffset, bool);
   }
   bool from_bind() { return type() == OBJ_BIND_FUNC; }
@@ -272,7 +272,7 @@ Handle<JSValue> FunctionProto::bind(Handle<Error>& e, Handle<JSValue> this_arg, 
 }
 
 Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function* func_ast) {
-    assert(func_ast->is_named());
+    ASSERT(func_ast->is_named());
     std::u16string identifier = func_ast->name();
     Handle<es::LexicalEnvironment> func_env = NewDeclarativeEnvironment(  // 1
       Runtime::TopLexicalEnv()
@@ -315,7 +315,7 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function
 }
 
 Handle<JSValue> EvalFunction(Handle<Error>& e, AST* ast) {
-  assert(ast->type() == AST::AST_FUNC);
+  ASSERT(ast->type() == AST::AST_FUNC);
   Function* func_ast = static_cast<Function*>(ast);
 
   if (func_ast->is_named()) {

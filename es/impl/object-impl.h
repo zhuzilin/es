@@ -1,18 +1,7 @@
 #ifndef ES_TYPES_OBJECT_IMPL
 #define ES_TYPES_OBJECT_IMPL
 
-#include <es/types/object.h>
-#include <es/types/builtin/arguments_object.h>
-#include <es/types/builtin/array_object.h>
-#include <es/types/builtin/bool_object.h>
-#include <es/types/builtin/date_object.h>
-#include <es/types/builtin/error_object.h>
-#include <es/types/builtin/function_object.h>
-#include <es/types/builtin/math_object.h>
-#include <es/types/builtin/number_object.h>
-#include <es/types/builtin/object_object.h>
-#include <es/types/builtin/regexp_object.h>
-#include <es/types/builtin/string_object.h>
+#include <es/types.h>
 
 namespace es {
 
@@ -76,7 +65,7 @@ Handle<JSValue> GetProperty(Handle<JSObject> O, Handle<String> P) {
   if (proto.val()->IsNull()) {
     return Undefined::Instance();
   }
-  assert(proto.val()->IsObject());
+  ASSERT(proto.val()->IsObject());
   Handle<JSObject> proto_obj = static_cast<Handle<JSObject>>(proto);
   return GetProperty(proto_obj, P);
 }
@@ -101,11 +90,11 @@ Handle<JSValue> Get__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P
     return Undefined::Instance();
   }
   Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(value);
-  assert(desc.val()->IsPropertyDescriptor());
+  ASSERT(desc.val()->IsPropertyDescriptor());
   if (desc.val()->IsDataDescriptor()) {
     return desc.val()->Value();
   } else {
-    assert(desc.val()->IsAccessorDescriptor());
+    ASSERT(desc.val()->IsAccessorDescriptor());
     Handle<JSValue> getter = desc.val()->Get();
     if (getter.val()->IsUndefined())
       return Undefined::Instance();
@@ -176,7 +165,7 @@ bool CanPut(Handle<JSObject> O, Handle<String> P) {
 void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
   if (unlikely(log::Debugger::On()))
     log::PrintSource("enter Put " + P.ToString() + " to " + O.ToString() + " with value " + V.ToString());
-  assert(V.val()->IsLanguageType());
+  ASSERT(V.val()->IsLanguageType());
   if (!CanPut(O, P)) {  // 1
     if (throw_flag) {  // 1.a
       e = Error::TypeError(u"cannot put " + P.val()->data());
@@ -198,7 +187,7 @@ void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue>
     // expand GetProperty to prevent another GetOwnProperty(O, P)
     Handle<JSValue> proto = O.val()->Prototype();
     if (!proto.val()->IsNull()) {
-      assert(proto.val()->IsObject());
+      ASSERT(proto.val()->IsObject());
       value = GetProperty(static_cast<Handle<JSObject>>(proto), P);
     }
   }
@@ -208,7 +197,7 @@ void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue>
       if (unlikely(log::Debugger::On()))
         log::PrintSource("Use parent prototype's setter");
       Handle<JSValue> setter = desc.val()->Set();
-      assert(!setter.val()->IsUndefined());
+      ASSERT(!setter.val()->IsUndefined());
       Call(e, setter, O, {V});
       return;
     }
@@ -334,23 +323,8 @@ bool DefineOwnProperty__Base(
   }
   current_desc = static_cast<Handle<PropertyDescriptor>>(current);
   if ((desc.val()->bitmask() & current_desc.val()->bitmask()) == desc.val()->bitmask()) {
-    bool same = true;
-    if (desc.val()->HasValue())
-      same = same && SameValue(desc.val()->Value(), current_desc.val()->Value());
-    if (desc.val()->HasWritable())
-      same = same && (desc.val()->Writable() == current_desc.val()->Writable());
-    if (desc.val()->HasGet())
-      same = same && SameValue(desc.val()->Get(), current_desc.val()->Get());
-    if (desc.val()->HasSet())
-      same = same && SameValue(desc.val()->Set(), current_desc.val()->Set());
-    if (desc.val()->HasConfigurable())
-      same = same && (desc.val()->Configurable() == current_desc.val()->Configurable());
-    if (desc.val()->HasEnumerable())
-      same = same && (desc.val()->Enumerable() == current_desc.val()->Enumerable());
-    if (same) return true;  // 6
+    if (desc.val()->IsSameAs(current_desc)) return true;  // 6
   }
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("desc: " + desc.ToString() + ", current: " + current_desc.ToString());
   if (!current_desc.val()->Configurable()) { // 7
     if (desc.val()->Configurable()) {  // 7.a
       error_msg = u"failed to DefineOwnProperty " + P.val()->data() + u": old value not configurable, while new value configurable";
@@ -388,10 +362,10 @@ bool DefineOwnProperty__Base(
           }
         }
       } else {  // 10.b
-        assert(current_desc.val()->Configurable());
+        ASSERT(current_desc.val()->Configurable());
       }
     } else {  // 11.
-      assert(current_desc.val()->IsAccessorDescriptor() && desc.val()->IsAccessorDescriptor());
+      ASSERT(current_desc.val()->IsAccessorDescriptor() && desc.val()->IsAccessorDescriptor());
       if (!current_desc.val()->Configurable()) {  // 11.a
         if (!SameValue(desc.val()->Set(), current_desc.val()->Set()) ||  // 11.a.i
             !SameValue(desc.val()->Get(), current_desc.val()->Get())) {  // 11.a.ii
@@ -420,7 +394,7 @@ bool DefineOwnProperty__Array(
   Handle<Error>& e, Handle<ArrayObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
 ) {
   auto old_len_desc = static_cast<Handle<PropertyDescriptor>>(GetOwnProperty(O, String::Length()));
-  assert(!old_len_desc.val()->IsUndefined());
+  ASSERT(!old_len_desc.val()->IsUndefined());
   double old_len = ToNumber(e, old_len_desc.val()->Value());
   if (*P.val() == *String::Length().val()) {  // 3
     if (!desc.val()->HasValue()) {  // 3.a
@@ -467,7 +441,7 @@ bool DefineOwnProperty__Array(
     if (!new_writable) {  // 3.m
       auto tmp = PropertyDescriptor::New();
       tmp.val()->SetWritable(false);
-      assert(DefineOwnProperty__Base(e, O, String::Length(), new_len_desc, false));
+      ASSERT(DefineOwnProperty__Base(e, O, String::Length(), new_len_desc, false));
       return true;
     }
     return true;  // 3.n
@@ -521,7 +495,7 @@ bool HasInstance(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> V) {
 // NOTE(zhuzilin) Here we use the implementation in 15.3.5.3 [[HasInstance]] (V)
 // to make sure all callables have HasInstance.
 bool HasInstance__Base(Handle<Error>& e, Handle<JSObject> obj, Handle<JSValue> V) {
-  assert(obj.val()->IsCallable());
+  ASSERT(obj.val()->IsCallable());
   if (!V.val()->IsObject())
     return false;
   Handle<JSValue> O = Get(e, obj, String::Prototype());
@@ -533,7 +507,7 @@ bool HasInstance__Base(Handle<Error>& e, Handle<JSObject> obj, Handle<JSValue> V
   while (!V.val()->IsNull()) {
     if (V.val() == O.val())
       return true;
-    assert(V.val()->IsObject());
+    ASSERT(V.val()->IsObject());
     V = static_cast<Handle<JSObject>>(V).val()->Prototype();
     if (unlikely(!e.val()->IsOk())) return false;
   }

@@ -11,6 +11,8 @@
 #include <codecvt>
 #include <locale>
 
+#include <es/utils/macros.h>
+
 namespace es {
 namespace log {
 

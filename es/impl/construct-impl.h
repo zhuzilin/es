@@ -1,18 +1,7 @@
 #ifndef ES_TYPES_CONSTRUCT_IMPL_H
 #define ES_TYPES_CONSTRUCT_IMPL_H
 
-#include <es/types/object.h>
-#include <es/types/builtin/arguments_object.h>
-#include <es/types/builtin/array_object.h>
-#include <es/types/builtin/bool_object.h>
-#include <es/types/builtin/date_object.h>
-#include <es/types/builtin/error_object.h>
-#include <es/types/builtin/function_object.h>
-#include <es/types/builtin/math_object.h>
-#include <es/types/builtin/number_object.h>
-#include <es/types/builtin/object_object.h>
-#include <es/types/builtin/regexp_object.h>
-#include <es/types/builtin/string_object.h>
+#include <es/types.h>
 
 namespace es {
 
@@ -224,7 +213,7 @@ Handle<JSObject> Construct__ObjectConstructor(
         break;
     }
   }
-  assert(arguments.size() == 0 || arguments[0].val()->IsNull() || arguments[0].val()->IsUndefined());
+  ASSERT(arguments.size() == 0 || arguments[0].val()->IsNull() || arguments[0].val()->IsUndefined());
   Handle<JSObject> obj = Object::New();
   return obj;
 }

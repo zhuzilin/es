@@ -1,27 +1,16 @@
 #ifndef ES_IMPL_REFERENCE_IMPL
 #define ES_IMPL_REFERENCE_IMPL
 
-#include <es/types/object.h>
-#include <es/types/builtin/arguments_object.h>
-#include <es/types/builtin/array_object.h>
-#include <es/types/builtin/bool_object.h>
-#include <es/types/builtin/date_object.h>
-#include <es/types/builtin/error_object.h>
-#include <es/types/builtin/function_object.h>
-#include <es/types/builtin/math_object.h>
-#include <es/types/builtin/number_object.h>
-#include <es/types/builtin/object_object.h>
-#include <es/types/builtin/regexp_object.h>
-#include <es/types/builtin/string_object.h>
+#include <es/types.h>
 
 namespace es {
 
 Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("GetValue V:" + V.ToString());
   if (!V.val()->IsReference()) {
     return V;
   }
+  if (unlikely(log::Debugger::On()))
+    log::PrintSource("GetValue V:" + V.ToString());
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
   if (ref.val()->IsUnresolvableReference()) {
     e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
@@ -31,7 +20,7 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
   if (ref.val()->IsPropertyReference()) {  // 4
     // 4.a & 4.b
     if (!ref.val()->HasPrimitiveBase()) {
-      assert(base.val()->IsObject());
+      ASSERT(base.val()->IsObject());
       Handle<JSObject> obj = static_cast<Handle<JSObject>>(base);
       return Get(e, obj, ref.val()->GetReferencedName());
     } else {  // special [[Get]]
@@ -44,7 +33,7 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
       if (desc.val()->IsDataDescriptor()) {
         return desc.val()->Value();
       } else {
-        assert(desc.val()->IsAccessorDescriptor());
+        ASSERT(desc.val()->IsAccessorDescriptor());
         Handle<JSValue> getter = desc.val()->Get();
         if (getter.val()->IsUndefined()) {
           return Undefined::Instance();
@@ -54,19 +43,19 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
       }
     }
   } else {
-    assert(base.val()->IsEnvironmentRecord());
+    ASSERT(base.val()->IsEnvironmentRecord());
     Handle<EnvironmentRecord> er = static_cast<Handle<EnvironmentRecord>>(base);
     return GetBindingValue(e, er, ref.val()->GetReferencedName(), ref.val()->IsStrictReference());
   }
 }
 
 void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("PutValue V: " + V.ToString() + ", W: " + W.ToString());
   if (!V.val()->IsReference()) {
     e = Error::ReferenceError(u"put value to non-reference.");
     return;
   }
+  if (unlikely(log::Debugger::On()))
+    log::PrintSource("PutValue V: " + V.ToString() + ", W: " + W.ToString());
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
   Handle<JSValue> base = ref.val()->GetBase();
   if (ref.val()->IsUnresolvableReference()) {  // 3
@@ -79,7 +68,7 @@ void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
     bool throw_flag = ref.val()->IsStrictReference();
     Handle<String> P = ref.val()->GetReferencedName();
     if (!ref.val()->HasPrimitiveBase()) {
-      assert(base.val()->IsObject());
+      ASSERT(base.val()->IsObject());
       Handle<JSObject> base_obj = static_cast<Handle<JSObject>>(base);
       Put(e, base_obj, P, W, throw_flag);
     } else {  // special [[Put]]
@@ -103,7 +92,7 @@ void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
         Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(tmp);
         if (desc.val()->IsAccessorDescriptor()) {  // 4
           Handle<JSValue> setter = desc.val()->Set();
-          assert(!setter.val()->IsUndefined());
+          ASSERT(!setter.val()->IsUndefined());
           Handle<JSObject> setter_obj = static_cast<Handle<JSObject>>(setter);
           Call(e, setter_obj, base, {W});
         } else {  // 7
@@ -114,7 +103,7 @@ void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
       }
     }
   } else {
-    assert(base.val()->IsEnvironmentRecord());
+    ASSERT(base.val()->IsEnvironmentRecord());
     Handle<EnvironmentRecord> er = static_cast<Handle<EnvironmentRecord>>(base);
     SetMutableBinding(e, er, ref.val()->GetReferencedName(), W, ref.val()->IsStrictReference());
   }

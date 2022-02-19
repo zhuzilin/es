@@ -13,7 +13,7 @@
 namespace es {
 
 Handle<JSValue> ToPrimitive(Handle<Error>& e, Handle<JSValue> input, std::u16string preferred_type) {
-  assert(input.val()->IsLanguageType());
+  ASSERT(input.val()->IsLanguageType());
   if (input.val()->IsPrimitive()) {
     return input;
   }
@@ -22,7 +22,7 @@ Handle<JSValue> ToPrimitive(Handle<Error>& e, Handle<JSValue> input, std::u16str
 }
 
 bool ToBoolean(Handle<JSValue> input) {
-  assert(input.val()->IsLanguageType());
+  ASSERT(input.val()->IsLanguageType());
   switch (input.val()->type()) {
     case JSValue::JS_UNDEFINED:
     case JSValue::JS_NULL:
@@ -160,7 +160,7 @@ double StringToNumber(Handle<String> str) {
 }
 
 double ToNumber(Handle<Error>& e, Handle<JSValue> input) {
-  assert(input.val()->IsLanguageType());
+  ASSERT(input.val()->IsLanguageType());
   switch (input.val()->type()) {
     case JSValue::JS_UNDEFINED:
       return nan("");
@@ -450,7 +450,7 @@ Handle<String> NumberToString(Handle<Number> num) {
 }
 
 Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input) {
-  assert(input.val()->IsLanguageType());
+  ASSERT(input.val()->IsLanguageType());
   switch (input.val()->type()) {
     case JSValue::JS_UNDEFINED:
       return String::Undefined();
@@ -474,7 +474,7 @@ Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input) {
 }
 
 std::u16string ToU16String(Handle<Error>& e, Handle<JSValue> input) {
-  assert(input.val()->IsLanguageType());
+  ASSERT(input.val()->IsLanguageType());
   switch (input.val()->type()) {
     case JSValue::JS_NUMBER:
       return NumberToU16String(static_cast<Handle<Number>>(input).val()->data());
@@ -484,7 +484,7 @@ std::u16string ToU16String(Handle<Error>& e, Handle<JSValue> input) {
 }
 
 Handle<JSObject> ToObject(Handle<Error>& e, Handle<JSValue> input) {
-  assert(input.val()->IsLanguageType());
+  ASSERT(input.val()->IsLanguageType());
   switch (input.val()->type()) {
     case JSValue::JS_UNDEFINED:
     case JSValue::JS_NULL:

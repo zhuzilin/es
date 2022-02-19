@@ -1,18 +1,7 @@
 #ifndef ES_TYPES_CALL_IMPL_H
 #define ES_TYPES_CALL_IMPL_H
 
-#include <es/types/object.h>
-#include <es/types/builtin/arguments_object.h>
-#include <es/types/builtin/array_object.h>
-#include <es/types/builtin/bool_object.h>
-#include <es/types/builtin/date_object.h>
-#include <es/types/builtin/error_object.h>
-#include <es/types/builtin/function_object.h>
-#include <es/types/builtin/math_object.h>
-#include <es/types/builtin/number_object.h>
-#include <es/types/builtin/object_object.h>
-#include <es/types/builtin/regexp_object.h>
-#include <es/types/builtin/string_object.h>
+#include <es/types.h>
 
 namespace es {
 
@@ -63,7 +52,7 @@ Handle<JSValue> Call__Base(
   Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   inner_func callable = O.val()->callable();
-  assert(O.val()->IsCallable() && callable != nullptr);
+  ASSERT(O.val()->IsCallable() && callable != nullptr);
   return callable(e, O, arguments);
 }
 
@@ -113,7 +102,7 @@ Handle<JSValue> Call__Function(
     default:
       if (unlikely(log::Debugger::On()))
         log::PrintSource("exit FunctionObject::Call NORMAL");
-      assert(result.type() == Completion::NORMAL);
+      ASSERT(result.type() == Completion::NORMAL);
       return Undefined::Instance();
   }
 }
@@ -204,7 +193,7 @@ Handle<JSValue> Call__StringConstructor(
 Handle<JSValue> Call__GetterSetter(
   Handle<Error>& e, Handle<GetterSetter> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
-  assert(arguments.size() < 2);
+  ASSERT(arguments.size() < 2);
   Handle<Reference> ref = O.val()->ref();
   if (arguments.size() == 0) {
     return GetValue(e, ref);

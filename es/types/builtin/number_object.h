@@ -37,7 +37,7 @@ class NumberProto : public JSObject {
       }
     }
     // TODO(zhuzilin) support other radix
-    assert(radix == 10);
+    ASSERT(radix == 10);
     return NumberToString(num);
   }
 

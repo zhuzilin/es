@@ -106,10 +106,10 @@ class HashMap : public HeapObject {
       map.val()->SetListHead(offset, new_node.val());
       return map;
     }
-    assert(*key.val() != *(head->key()));
+    ASSERT(*key.val() != *(head->key()));
     while (head->next() != nullptr) {
       String* next_key = head->next()->key();
-      assert(*key.val() != *next_key);
+      ASSERT(*key.val() != *next_key);
       if (LessThan(key.val(), next_key)) {
         new_node.val()->SetNext(head->next());
         head->SetNext(new_node.val());
@@ -139,11 +139,11 @@ class HashMap : public HeapObject {
           node->SetNext(head);
           new_map.val()->SetListHead(offset, node);
         } else {
-          assert(*node->key() != *(head->key()));
+          ASSERT(*node->key() != *(head->key()));
           bool inserted = false;
           while (head->next() != nullptr) {
             String* next_key = head->next()->key();
-            assert(*node->key() != *next_key);
+            ASSERT(*node->key() != *next_key);
             if (LessThan(node->key(), next_key)) {
               node->SetNext(head->next());
               head->SetNext(node);

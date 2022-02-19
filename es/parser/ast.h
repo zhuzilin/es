@@ -8,6 +8,7 @@
 #include <utility>
 
 #include <es/parser/token.h>
+#include <es/utils/macros.h>
 
 namespace es {
 
@@ -336,7 +337,7 @@ class Function : public AST {
   Function(Token name, std::vector<std::u16string> params, AST* body,
            std::u16string source, size_t start, size_t end) :
     AST(AST_FUNC, source, start, end), name_(name), params_(params) {
-      assert(body->type() == AST::AST_FUNC_BODY);
+      ASSERT(body->type() == AST::AST_FUNC_BODY);
       body_ = body;
     }
 
@@ -346,7 +347,7 @@ class Function : public AST {
 
   bool is_named() { return name_.type() != Token::TK_NOT_FOUND; }
   std::u16string name() { return name_.source(); }
-  std::vector<std::u16string> params() { return params_; }
+  std::vector<std::u16string>& params() { return params_; }
   AST* body() { return body_; }
 
  private:
@@ -367,7 +368,7 @@ class ProgramOrFunctionBody : public AST {
   }
 
   void AddFunctionDecl(AST* func) {
-    assert(func->type() == AST_FUNC);
+    ASSERT(func->type() == AST_FUNC);
     func_decls_.emplace_back(static_cast<Function*>(func));
   }
   void AddStatement(AST* stmt) {
@@ -475,7 +476,7 @@ class VarStmt : public AST {
   }
 
   void AddDecl(AST* decl) {
-    assert(decl->type() == AST_STMT_VAR_DECL);
+    ASSERT(decl->type() == AST_STMT_VAR_DECL);
     decls_.emplace_back(static_cast<VarDecl*>(decl));
   }
 
@@ -634,7 +635,7 @@ class Switch : public AST {
   };
 
   void SetDefaultClause(std::vector<AST*> stmts) {
-    assert(!has_default_clause());
+    ASSERT(!has_default_clause());
     has_default_clause_ = true;
     default_clause_.stmts = stmts;
   }
@@ -651,7 +652,7 @@ class Switch : public AST {
   std::vector<CaseClause> before_default_case_clauses() { return before_default_case_clauses_; }
   bool has_default_clause() { return has_default_clause_; }
   DefaultClause default_clause() {
-    assert(has_default_clause());
+    ASSERT(has_default_clause());
     return default_clause_;
   }
   std::vector<CaseClause> after_default_case_clauses() { return after_default_case_clauses_; }

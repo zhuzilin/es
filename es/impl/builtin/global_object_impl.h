@@ -1,18 +1,7 @@
-#ifndef ES_IMPL_GLOBAL_OBJECT_IMPL_H
-#define ES_IMPL_GLOBAL_OBJECT_IMPL_H
+#ifndef ES_IMPL_BUILTIN_GLOBAL_OBJECT_IMPL_H
+#define ES_IMPL_BUILTIN_GLOBAL_OBJECT_IMPL_H
 
-#include <es/types/object.h>
-#include <es/types/builtin/arguments_object.h>
-#include <es/types/builtin/array_object.h>
-#include <es/types/builtin/bool_object.h>
-#include <es/types/builtin/date_object.h>
-#include <es/types/builtin/error_object.h>
-#include <es/types/builtin/function_object.h>
-#include <es/types/builtin/math_object.h>
-#include <es/types/builtin/number_object.h>
-#include <es/types/builtin/object_object.h>
-#include <es/types/builtin/regexp_object.h>
-#include <es/types/builtin/string_object.h>
+#include <es/types.h>
 #include <es/enter_code.h>
 
 namespace es {
@@ -44,7 +33,7 @@ Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, s
       else
         return Undefined::Instance();
     default: {
-      assert(result.type() == Completion::THROW);
+      ASSERT(result.type() == Completion::THROW);
       Handle<HeapObject> return_value = result.value();
       if (return_value.val()->IsError()) {
         e = return_value;
@@ -147,4 +136,4 @@ Handle<JSValue> GlobalObject::isNaN(Handle<Error>& e, Handle<JSValue> this_arg, 
 
 }  // namespace es
 
-#endif
+#endif  // ES_IMPL_BUILTIN_GLOBAL_OBJECT_IMPL_H

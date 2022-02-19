@@ -71,7 +71,7 @@ Handle<JSValue> EvalExpressionList(Handle<Error>& e, AST* ast);
 Handle<Reference> IdentifierResolution(std::u16string name);
 
 Completion EvalProgram(AST* ast) {
-  assert(ast->type() == AST::AST_PROGRAM || ast->type() == AST::AST_FUNC_BODY);
+  ASSERT(ast->type() == AST::AST_PROGRAM || ast->type() == AST::AST_FUNC_BODY);
   auto prog = static_cast<ProgramOrFunctionBody*>(ast);
   auto statements = prog->statements();
   // 12.9 considered syntactically incorrect if it contains
@@ -190,13 +190,13 @@ Completion EvalStatementList(std::vector<AST*> statements) {
 }
 
 Completion EvalBlockStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_BLOCK);
+  ASSERT(ast->type() == AST::AST_STMT_BLOCK);
   Block* block = static_cast<Block*>(ast);
   return EvalStatementList(block->statements());
 }
 
 std::u16string EvalVarDecl(Handle<Error>& e, AST* ast) {
-  assert(ast->type() == AST::AST_STMT_VAR_DECL);
+  ASSERT(ast->type() == AST::AST_STMT_VAR_DECL);
   VarDecl* decl = static_cast<VarDecl*>(ast);
   std::u16string ident = decl->ident().source();
   if (decl->init() == nullptr)
@@ -212,7 +212,7 @@ std::u16string EvalVarDecl(Handle<Error>& e, AST* ast) {
 }
 
 Completion EvalVarStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_VAR);
+  ASSERT(ast->type() == AST::AST_STMT_VAR);
   Handle<Error> e = Error::Ok();
   VarStmt* var_stmt = static_cast<VarStmt*>(ast);
   for (VarDecl* decl : var_stmt->decls()) {
@@ -227,7 +227,7 @@ error:
 }
 
 Completion EvalIfStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_IF);
+  ASSERT(ast->type() == AST::AST_STMT_IF);
   Handle<Error> e = Error::Ok();
   If* if_stmt = static_cast<If*>(ast);
   Handle<JSValue> expr_ref = EvalExpression(e, if_stmt->cond());
@@ -246,7 +246,7 @@ Completion EvalIfStatement(AST* ast) {
 
 // 12.6.1 The do-while Statement
 Completion EvalDoWhileStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_DO_WHILE);
+  ASSERT(ast->type() == AST::AST_STMT_DO_WHILE);
   Handle<Error> e = Error::Ok();
   Runtime::TopContext()->EnterIteration();
   DoWhile* loop_stmt = static_cast<DoWhile*>(ast);
@@ -287,7 +287,7 @@ error:
 
 // 12.6.2 The while Statement
 Completion EvalWhileStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_WHILE);
+  ASSERT(ast->type() == AST::AST_STMT_WHILE);
   Handle<Error> e = Error::Ok();
   Runtime::TopContext()->EnterIteration();
   WhileOrWith* loop_stmt = static_cast<WhileOrWith*>(ast);
@@ -328,7 +328,7 @@ error:
 
 // 12.6.3 The for Statement
 Completion EvalForStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_FOR);
+  ASSERT(ast->type() == AST::AST_STMT_FOR);
   Handle<Error> e = Error::Ok();
   Runtime::TopContext()->EnterIteration();
   For* for_stmt = static_cast<For*>(ast);
@@ -387,7 +387,7 @@ error:
 
 // 12.6.4 The for-in Statement
 Completion EvalForInStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_FOR_IN);
+  ASSERT(ast->type() == AST::AST_STMT_FOR_IN);
   Handle<Error> e = Error::Ok();
   Runtime::TopContext()->EnterIteration();
   ForIn* for_in_stmt = static_cast<ForIn*>(ast);
@@ -476,7 +476,7 @@ error:
 }
 
 Completion EvalContinueStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_CONTINUE);
+  ASSERT(ast->type() == AST::AST_STMT_CONTINUE);
   Handle<Error> e = Error::Ok();
   if (!Runtime::TopContext()->InIteration()) {
     e = Error::SyntaxError(u"continue not in iteration");
@@ -487,7 +487,7 @@ Completion EvalContinueStatement(AST* ast) {
 }
 
 Completion EvalBreakStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_BREAK);
+  ASSERT(ast->type() == AST::AST_STMT_BREAK);
   Handle<Error> e = Error::Ok();
   if (!Runtime::TopContext()->InIteration() && !Runtime::TopContext()->InSwitch()) {
     e = Error::SyntaxError(u"break not in iteration or switch");
@@ -498,7 +498,7 @@ Completion EvalBreakStatement(AST* ast) {
 }
 
 Completion EvalReturnStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_RETURN);
+  ASSERT(ast->type() == AST::AST_STMT_RETURN);
   Handle<Error> e = Error::Ok();
   Return* return_stmt = static_cast<Return*>(ast);
   if (return_stmt->expr() == nullptr) {
@@ -512,7 +512,7 @@ Completion EvalReturnStatement(AST* ast) {
 }
 
 Completion EvalLabelledStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_LABEL);
+  ASSERT(ast->type() == AST::AST_STMT_LABEL);
   LabelledStmt* label_stmt = static_cast<LabelledStmt*>(ast);
   label_stmt->statement()->SetLabel(label_stmt->label());
   Completion R = EvalStatement(label_stmt->statement());
@@ -524,7 +524,7 @@ Completion EvalLabelledStatement(AST* ast) {
 
 // 12.10 The with Statement
 Completion EvalWithStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_WITH);
+  ASSERT(ast->type() == AST::AST_STMT_WITH);
   if (Runtime::TopContext()->strict()) {
     return Completion(
       Completion::THROW,
@@ -617,7 +617,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
 
 // 12.11 The switch Statement
 Completion EvalSwitchStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_SWITCH);
+  ASSERT(ast->type() == AST::AST_STMT_SWITCH);
   Handle<Error> e = Error::Ok();
   Switch* switch_stmt = static_cast<Switch*>(ast);
   Handle<JSValue> expr_ref = EvalExpression(e, switch_stmt->expr());
@@ -639,7 +639,7 @@ Completion EvalSwitchStatement(AST* ast) {
 
 // 12.13 The throw Statement
 Completion EvalThrowStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_THROW);
+  ASSERT(ast->type() == AST::AST_STMT_THROW);
   Handle<Error> e = Error::Ok();
   Throw* throw_stmt = static_cast<Throw*>(ast);
   Handle<JSValue> exp_ref = EvalExpression(e, throw_stmt->expr());
@@ -682,7 +682,7 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
 }
 
 Completion EvalTryStatement(AST* ast) {
-  assert(ast->type() == AST::AST_STMT_TRY);
+  ASSERT(ast->type() == AST::AST_STMT_TRY);
   Try* try_stmt = static_cast<Try*>(ast);
   if (Runtime::TopContext()->strict()) {
     if (try_stmt->catch_ident() == u"eval" || try_stmt->catch_ident() == u"arguments") {
@@ -724,7 +724,7 @@ Completion EvalExpressionStatement(AST* ast) {
 }
 
 Handle<JSValue> EvalExpression(Handle<Error>& e, AST* ast) {
-  assert(ast->type() <= AST::AST_EXPR || ast->type() == AST::AST_FUNC);
+  ASSERT(ast->type() <= AST::AST_EXPR || ast->type() == AST::AST_FUNC);
   Handle<JSValue> val;
   switch (ast->type()) {
     case AST::AST_EXPR_STRICT_FUTURE:
@@ -824,7 +824,7 @@ Handle<Reference> IdentifierResolution(std::u16string name) {
 }
 
 Handle<Reference> EvalIdentifier(AST* ast) {
-  assert(ast->type() == AST::AST_EXPR_IDENT || ast->type() == AST::AST_EXPR_STRICT_FUTURE);
+  ASSERT(ast->type() == AST::AST_EXPR_IDENT || ast->type() == AST::AST_EXPR_STRICT_FUTURE);
   return IdentifierResolution(ast->source());
 }
 
@@ -865,7 +865,7 @@ Handle<Number> EvalNumber(const std::u16string& source) {
       }
       case u'x':
       case u'X': {
-        assert(val == 0);
+        ASSERT(val == 0);
         pos++;
         while (pos < source.size()) {
           c = source[pos];
@@ -890,7 +890,7 @@ Handle<Number> EvalNumber(const std::u16string& source) {
 }
 
 Handle<Number> EvalNumber(AST* ast) {
-  assert(ast->type() == AST::AST_EXPR_NUMBER);
+  ASSERT(ast->type() == AST::AST_EXPR_NUMBER);
   const std::u16string& source = ast->source();
   return EvalNumber(source);
 }
@@ -994,7 +994,7 @@ Handle<String> EvalString(Handle<Error>& e, const std::u16string& source) {
 }
 
 Handle<String> EvalString(Handle<Error>& e, AST* ast) {
-  assert(ast->type() == AST::AST_EXPR_STRING);
+  ASSERT(ast->type() == AST::AST_EXPR_STRING);
   const std::u16string& source = ast->source_ref();
   return EvalString(e, source);
 }
@@ -1021,7 +1021,7 @@ std::u16string EvalPropertyName(Handle<Error>& e, Token token) {
 }
 
 Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
-  assert(ast->type() == AST::AST_EXPR_OBJ);
+  ASSERT(ast->type() == AST::AST_EXPR_OBJ);
   ObjectLiteral* obj_ast = static_cast<ObjectLiteral*>(ast);
   bool strict = Runtime::TopContext()->strict();
   Handle<Object> obj = Object::New();
@@ -1039,7 +1039,7 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
         break;
       }
       default: {
-        assert(property.value->type() == AST::AST_FUNC);
+        ASSERT(property.value->type() == AST::AST_FUNC);
         Function* func_ast = static_cast<Function*>(property.value);
         bool strict_func = static_cast<ProgramOrFunctionBody*>(func_ast->body())->strict();
         if (strict || strict_func) {
@@ -1092,9 +1092,9 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
 }
 
 Handle<ArrayObject> EvalArray(Handle<Error>& e, AST* ast) {
-  assert(ast->type() == AST::AST_EXPR_ARRAY);
+  ASSERT(ast->type() == AST::AST_EXPR_ARRAY);
   ArrayLiteral* array_ast = static_cast<ArrayLiteral*>(ast);
-  
+
   Handle<ArrayObject> arr = ArrayObject::New(array_ast->length());
   for (auto pair : array_ast->elements()) {
     Handle<JSValue> init_result = EvalAssignmentExpression(e, pair.second);
@@ -1111,118 +1111,134 @@ Handle<JSValue> EvalAssignmentExpression(Handle<Error>& e, AST* ast) {
 }
 
 Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
-  assert(ast->type() == AST::AST_EXPR_UNARY);
+  ASSERT(ast->type() == AST::AST_EXPR_UNARY);
   Unary* u = static_cast<Unary*>(ast);
 
   Handle<JSValue> expr = EvalExpression(e, u->node());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  std::u16string op = u->op().source();
+  Token op = u->op();
 
-  if (op == u"++" || op == u"--") {  // a++, ++a, a--, --a
-    if (expr.val()->IsReference()) {
-      Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
-      if (ref.val()->IsStrictReference() && ref.val()->GetBase().val()->IsEnvironmentRecord() &&
-          (ref.val()->GetReferencedName().val()->data() == u"eval" || ref.val()->GetReferencedName().val()->data() == u"arguments")) {
-        e = Error::SyntaxError(u"cannot inc or dec on eval or arguments");
-        return Handle<JSValue>();
+  switch (op.type()) {
+    case Token::TK_INC:    // ++
+    case Token::TK_DEC: {  // --
+      if (expr.val()->IsReference()) {
+        Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
+        if (ref.val()->IsStrictReference() && ref.val()->GetBase().val()->IsEnvironmentRecord() &&
+            (ref.val()->GetReferencedName().val()->data() == u"eval" || ref.val()->GetReferencedName().val()->data() == u"arguments")) {
+          e = Error::SyntaxError(u"cannot inc or dec on eval or arguments");
+          return Handle<JSValue>();
+        }
       }
-    }
-    Handle<JSValue> old_val = GetValue(e, expr);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    double num = ToNumber(e, old_val);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    Handle<JSValue> new_value;
-    if (op == u"++") {
-      new_value = Number::New(num + 1);
-    } else {
-      new_value = Number::New(num - 1);
-    }
-    PutValue(e, expr, new_value);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    if (u->prefix()) {
-      return new_value;
-    } else {
-      // a = true; r = a++; r will be 1 instead of true.
-      return Number::New(num);
-    }
-  } else if (op == u"delete") {  // 11.4.1 The delete Operator
-    if (!expr.val()->IsReference())  // 2
-      return Bool::True();
-    Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
-    if (ref.val()->IsUnresolvableReference()) {  // 3
-      if (ref.val()->IsStrictReference()) {
-        e = Error::SyntaxError(u"delete not exist variable " + ref.val()->GetReferencedName().val()->data());
-        return Bool::False();
-      }
-      return Bool::True();
-    }
-    if (ref.val()->IsPropertyReference()) {  // 4
-      Handle<JSObject> obj = ToObject(e, ref.val()->GetBase());
+      Handle<JSValue> old_val = GetValue(e, expr);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      return Bool::Wrap(Delete(e, obj, ref.val()->GetReferencedName(), ref.val()->IsStrictReference()));
-    } else {
-      if (ref.val()->IsStrictReference()) {
-        e = Error::SyntaxError(u"cannot delete environment record in strict mode");
-        return Bool::False();
+      double num = ToNumber(e, old_val);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      Handle<JSValue> new_value;
+      if (op.type() == Token::TK_INC) {
+        new_value = Number::New(num + 1);
+      } else {
+        new_value = Number::New(num - 1);
       }
-      Handle<EnvironmentRecord> bindings = static_cast<Handle<EnvironmentRecord>>(ref.val()->GetBase());
-      return Bool::Wrap(DeleteBinding(e, bindings, ref.val()->GetReferencedName()));
+      PutValue(e, expr, new_value);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      if (u->prefix()) {
+        return new_value;
+      } else {
+        // a = true; r = a++; r will be 1 instead of true.
+        return Number::New(num);
+      }
     }
-  } else if (op == u"typeof") {
-    if (expr.val()->IsReference()) {
-      Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
-      if (ref.val()->IsUnresolvableReference())
-        return String::Undefined();
-    }
-    Handle<JSValue> val = GetValue(e, expr);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    switch (val.val()->type()) {
-      case JSValue::JS_UNDEFINED:
-        return String::Undefined();
-      case JSValue::JS_NULL:
-        return String::New(u"object");
-      case JSValue::JS_BOOL:
-        return String::New(u"boolean");
-      case JSValue::JS_NUMBER:
-        return String::New(u"number");
-      case JSValue::JS_LONG_STRING:
-      case JSValue::JS_STRING:
-        return String::New(u"string");
-      default:
-        if (val.val()->IsCallable())
-          return String::New(u"function");
-        return String::New(u"object");
-    }
-  } else {  // +, -, ~, !, void
-    Handle<JSValue> val = GetValue(e, expr);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-
-    if (op == u"+") {
+    case Token::TK_ADD: {  // +
+      Handle<JSValue> val = GetValue(e, expr);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       double num = ToNumber(e, val);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       return Number::New(num);
-    } else if (op == u"-") {
+    }
+    case Token::TK_SUB: {  // -
+      Handle<JSValue> val = GetValue(e, expr);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       double num = ToNumber(e, val);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (isnan(num))
         return Number::NaN();
       return Number::New(-num);
-    } else if (op == u"~") {
+    }
+    case Token::TK_BIT_NOT: {  // ~
+      Handle<JSValue> val = GetValue(e, expr);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       int32_t num = ToInt32(e, val);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       return Number::New(~num);
-    } else if (op == u"!") {
+    }
+    case Token::TK_LOGICAL_NOT: {  // !
+      Handle<JSValue> val = GetValue(e, expr);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       bool b = ToBoolean(val);
       return Bool::Wrap(!b);
-    } else if (op == u"void") {
-      return Undefined::Instance();
     }
+    case Token::TK_KEYWORD: {
+      if (op.source_ref() == u"delete") {  // 11.4.1 The delete Operator
+        if (!expr.val()->IsReference())  // 2
+          return Bool::True();
+        Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
+        if (ref.val()->IsUnresolvableReference()) {  // 3
+          if (ref.val()->IsStrictReference()) {
+            e = Error::SyntaxError(u"delete not exist variable " + ref.val()->GetReferencedName().val()->data());
+            return Bool::False();
+          }
+          return Bool::True();
+        }
+        if (ref.val()->IsPropertyReference()) {  // 4
+          Handle<JSObject> obj = ToObject(e, ref.val()->GetBase());
+          if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+          return Bool::Wrap(Delete(e, obj, ref.val()->GetReferencedName(), ref.val()->IsStrictReference()));
+        } else {
+          if (ref.val()->IsStrictReference()) {
+            e = Error::SyntaxError(u"cannot delete environment record in strict mode");
+            return Bool::False();
+          }
+          Handle<EnvironmentRecord> bindings = static_cast<Handle<EnvironmentRecord>>(ref.val()->GetBase());
+          return Bool::Wrap(DeleteBinding(e, bindings, ref.val()->GetReferencedName()));
+        }
+      } else if (op.source_ref() == u"typeof") {
+        if (expr.val()->IsReference()) {
+          Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
+          if (ref.val()->IsUnresolvableReference())
+            return String::Undefined();
+        }
+        Handle<JSValue> val = GetValue(e, expr);
+        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+        switch (val.val()->type()) {
+          case JSValue::JS_UNDEFINED:
+            return String::Undefined();
+          case JSValue::JS_NULL:
+            return String::New(u"object");
+          case JSValue::JS_BOOL:
+            return String::New(u"boolean");
+          case JSValue::JS_NUMBER:
+            return String::New(u"number");
+          case JSValue::JS_LONG_STRING:
+          case JSValue::JS_STRING:
+            return String::New(u"string");
+          default:
+            if (val.val()->IsCallable())
+              return String::New(u"function");
+            return String::New(u"object");
+        }
+      } else if (op.source_ref() == u"void") {
+        GetValue(e, expr);
+        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+        return Undefined::Instance();
+      }
+    }
+    default:
+      assert(false);
   }
-  assert(false);
 }
 
 Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, AST* ast) {
-  assert(ast->type() == AST::AST_EXPR_BINARY);
+  ASSERT(ast->type() == AST::AST_EXPR_BINARY);
   Binary* b = static_cast<Binary*>(ast);
   return EvalBinaryExpression(e, b->op(), b->lhs(), b->rhs());
 }
@@ -1507,7 +1523,7 @@ Handle<JSValue> EvalCompoundAssignment(Handle<Error>& e, Token& op, Handle<JSVal
 
 // 11.12 Conditional Operator ( ? : )
 Handle<JSValue> EvalTripleConditionExpression(Handle<Error>& e, AST* ast) {
-  assert(ast->type() == AST::AST_EXPR_TRIPLE);
+  ASSERT(ast->type() == AST::AST_EXPR_TRIPLE);
   TripleCondition* t = static_cast<TripleCondition*>(ast);
   Handle<JSValue> lref = EvalExpression(e, t->cond());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
@@ -1525,7 +1541,7 @@ Handle<JSValue> EvalTripleConditionExpression(Handle<Error>& e, AST* ast) {
 }
 
 Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast) {
-  assert(ast->type() == AST::AST_EXPR_LHS);
+  ASSERT(ast->type() == AST::AST_EXPR_LHS);
   LHS* lhs = static_cast<LHS*>(ast);
 
   ValueGuard guard;
@@ -1536,8 +1552,8 @@ Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast) {
   for (auto pair : lhs->order()) {
     switch (pair.second) {
       case LHS::PostfixType::CALL: {
-        auto args = lhs->args_list()[pair.first];
-        auto arg_list = EvalArgumentsList(e, args);
+        Arguments* args = lhs->args_list()[pair.first];
+        std::vector<Handle<JSValue>> arg_list = EvalArgumentsList(e, args);
         if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         if (new_count > 0) {
           base = GetValue(e, base);
@@ -1622,7 +1638,7 @@ Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::v
     if (r.val()->IsPropertyReference()) {
       this_value = base;
     } else {
-      assert(base.val()->IsEnvironmentRecord());
+      ASSERT(base.val()->IsEnvironmentRecord());
       auto env_rec = static_cast<Handle<EnvironmentRecord>>(base);
       this_value = ImplicitThisValue(env_rec);
     }
@@ -1665,9 +1681,9 @@ Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, 
 }
 
 Handle<JSValue> EvalExpressionList(Handle<Error>& e, AST* ast) {
-  assert(ast->type() == AST::AST_EXPR);
+  ASSERT(ast->type() == AST::AST_EXPR);
   Expression* exprs = static_cast<Expression*>(ast);
-  assert(exprs->elements().size() > 0);
+  ASSERT(exprs->elements().size() > 0);
   Handle<JSValue> val;
   for (AST* expr : exprs->elements()) {
     Handle<JSValue> ref = EvalAssignmentExpression(e, expr);

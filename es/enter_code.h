@@ -87,7 +87,7 @@ void DeclarationBindingInstantiation(
   }
   bool strict = body->strict() || Runtime::TopContext()->strict();  // 3
   if (code_type == CODE_FUNC) {  // 4
-    assert(!f.IsNullptr());
+    ASSERT(!f.IsNullptr());
     auto names = f.val()->FormalParameters();  // 4.a
     size_t arg_count = args.size();  // 4.b
     size_t n = 0;  // 4.c
@@ -109,7 +109,7 @@ void DeclarationBindingInstantiation(
   }
   // 5
   for (Function* func_decl : body->func_decls()) {
-    assert(func_decl->is_named());
+    ASSERT(func_decl->is_named());
     Handle<String> fn = String::New(func_decl->name());
     Handle<FunctionObject> fo = InstantiateFunctionDeclaration(e, func_decl);
     if (unlikely(!e.val()->IsOk())) return;
@@ -121,7 +121,7 @@ void DeclarationBindingInstantiation(
       if (env.val() == LexicalEnvironment::Global().val()->env_rec().val()) {  // 5.e
         auto go = GlobalObject::Instance();
         auto existing_prop = GetProperty(go, fn);
-        assert(existing_prop.val()->IsPropertyDescriptor());
+        ASSERT(existing_prop.val()->IsPropertyDescriptor());
         auto existing_prop_desc = static_cast<Handle<PropertyDescriptor>>(existing_prop);
         if (existing_prop_desc.val()->Configurable()) {  // 5.e.iii
           auto new_desc = PropertyDescriptor::New();
@@ -201,7 +201,7 @@ void EnterGlobalCode(Handle<Error>& e, AST* ast) {
 
 // 10.4.2
 void EnterEvalCode(Handle<Error>& e, AST* ast) {
-  assert(ast->type() == AST::AST_PROGRAM);
+  ASSERT(ast->type() == AST::AST_PROGRAM);
   ProgramOrFunctionBody* program = static_cast<ProgramOrFunctionBody*>(ast);  
   ExecutionContext* context;
   Handle<LexicalEnvironment> variable_env;
@@ -247,7 +247,7 @@ void EnterFunctionCode(
   Handle<Error>& e, Handle<JSObject> F, ProgramOrFunctionBody* body,
   Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict
 ) {
-  assert(F.val()->type() == JSObject::OBJ_FUNC);
+  ASSERT(F.val()->type() == JSObject::OBJ_FUNC);
   Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(F);
   Handle<JSValue> this_binding;
   if (strict) {  // 1
@@ -600,70 +600,6 @@ void Init() {
   InitDate();
   InitMath();
   InitRegExp();
-}
-
-Handle<JSValue> StringProto::split(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-  Handle<JSValue> val = Runtime::TopValue();
-  CheckObjectCoercible(e, val);
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  std::u16string S = ToU16String(e, val);
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  Handle<ArrayObject> A = ArrayObject::New(0);
-  size_t length_A = 0;
-  size_t lim = 4294967295.0;
-  if (vals.size() >= 2 && !vals[1].val()->IsUndefined()) {
-    lim = ToUint32(e, vals[1]);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  }
-  size_t s = S.size();
-  size_t p = 0;
-  if (lim == 0)
-    return A;
-  if (vals.size() < 1 || vals[0].val()->IsUndefined()) {  // 10
-    AddValueProperty(A, u"0", String::New(S), true, true, true);
-    return A;
-  }
-  if (vals[0].val()->IsRegExpObject()) {
-    assert(false);
-  }
-  assert(vals[0].val()->IsString());
-  std::u16string R = ToU16String(e, vals[0]);
-  if (s == 0) {
-    regex::MatchResult z = regex::SplitMatch(S, 0, R);
-    if (!z.failed) return A;
-    AddValueProperty(A, u"0", String::New(S), true, true, true);
-    return A;
-  }
-  size_t q = p;
-  while (q != s) {  // 13.
-    regex::MatchResult z = regex::SplitMatch(S, q, R);  // 13.a
-    if (z.failed) {  // 13.b
-      q++;
-    } else {  // 13.c
-      size_t e = z.state.end_index;
-      std::vector<std::u16string> cap = z.state.captures;
-      if (e == p) {  // 13.c.ii
-        q++;
-      } else {  // 13.c.iii
-        std::u16string T = S.substr(p, q - p);
-        AddValueProperty(A, NumberToString(length_A), String::New(T), true, true, true);
-        length_A++;
-        if (length_A == lim)
-          return A;
-        p = e;
-        for (size_t i = 0; i < cap.size(); i++) {  // 13.c.iii.7
-          AddValueProperty(A, NumberToString(length_A), String::New(cap[i]), true, true, true);
-          length_A++;
-          if (length_A == lim)
-            return A;
-        }
-        q = p;
-      }
-    }
-  }
-  std::u16string T = S.substr(p);  // 14
-  AddValueProperty(A, NumberToString(length_A), String::New(T), true, true, true);  // 15
-  return A;
 }
 
 }  // namespace es

@@ -57,7 +57,7 @@ class StringProto : public JSObject {
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (position < 0 || (size_t)position >= S.val()->size())
       return String::Empty();
-    return S.val()->substr(position, 1);
+    return String::Substr(S, position, 1);
   }
 
   static Handle<JSValue> charCodeAt(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
@@ -195,7 +195,7 @@ class StringProto : public JSObject {
     int final_end = fmin(fmax(int_end, 0), len);
     int from = fmin(final_start, final_end);
     int to = fmax(final_start, final_end);
-    return S.val()->substr(from, to - from);
+    return String::Substr(S, from, to - from);
   }
 
   static Handle<JSValue> toLowerCase(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
@@ -254,7 +254,7 @@ class StringObject : public JSObject {
     jsobj.val()->SetType(OBJ_STRING);
     Handle<StringObject> obj = Handle<StringObject>(jsobj);
     obj.val()->SetPrototype(StringProto::Instance());
-    assert(primitive_value.val()->IsString());
+    ASSERT(primitive_value.val()->IsString());
     double length = static_cast<Handle<String>>(primitive_value).val()->size();
     AddValueProperty(obj, String::Length(), Number::New(length), false, false, false);
     return obj;

@@ -60,7 +60,7 @@ class MarkAndSweepCollection : public GC {
     } else {
       cell->size -= size;
       cell->addr = static_cast<char*>(ptr) + size;
-      assert(InHeap(cell->addr));
+      ASSERT(InHeap(cell->addr));
       cell->prev_obj = ptr;
     }
     // Set header
@@ -95,7 +95,7 @@ class MarkAndSweepCollection : public GC {
   void MarkFromRoot() {
     std::stack<HeapObject*> worklist;
     auto root_pointers = Runtime::Global()->Pointers();
-    assert(root_pointers.size() > 0);
+    ASSERT(root_pointers.size() > 0);
     for (HeapObject** fld : root_pointers) {
       HeapObject* ref = *fld;
       if (ref != nullptr && !IsMarked(ref) && !(Flag(ref) & GCFlag::CONST)) {
@@ -138,13 +138,13 @@ class MarkAndSweepCollection : public GC {
       first_obj_ = nullptr;
       return;
     }
-    assert(last_cell != nullptr);
+    ASSERT(last_cell != nullptr);
     free_list_ = last_cell;
     first_obj_ = obj;
     while (obj != nullptr) {
       // Unset Marked for obj
       Header* header = static_cast<Header*>(obj);
-      assert(header->flag & GCFlag::MARK);
+      ASSERT(header->flag & GCFlag::MARK);
       header->flag = ~(~(header->flag) | GCFlag::MARK);
       // Find the next marked obj
       void* next_obj = header->next_obj;
@@ -158,10 +158,10 @@ class MarkAndSweepCollection : public GC {
       char* cell_start = static_cast<char*>(obj) + header->size;
       char* cell_end = (next_obj == nullptr) ? heap_end_ : static_cast<char*>(next_obj);
       if (cell_start + kMinCellSize <= cell_end) {
-        assert(InHeap(cell_start));
+        ASSERT(InHeap(cell_start));
         Cell* cell = new Cell(cell_start, cell_end - cell_start);
         // Insert new cell to free list
-        assert(free_list_ != nullptr);
+        ASSERT(free_list_ != nullptr);
         last_cell->next = cell;
         cell->prev = last_cell;
         cell->prev_obj = obj;
@@ -197,8 +197,8 @@ class MarkAndSweepCollection : public GC {
     Cell* cell = free_list_;
     while (cell != nullptr) {
       size += cell->size;
-      assert(InHeap(cell->addr));
-      assert(static_cast<char*>(cell->addr) + cell->size <= heap_end_);
+      ASSERT(InHeap(cell->addr));
+      ASSERT(static_cast<char*>(cell->addr) + cell->size <= heap_end_);
       cell = cell->next;
     }
     return size;

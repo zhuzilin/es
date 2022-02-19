@@ -38,6 +38,12 @@ constexpr size_t kFuncPtrSize = sizeof(void* (*));
 #define likely(x)   __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
+#ifdef TEST
+#define ASSERT(x) assert(x)
+#else
+#define ASSERT(x)
+#endif
+
 }  // namespace es
 
 #endif  // ES_UTILS_MACROS_H

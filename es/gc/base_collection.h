@@ -39,16 +39,6 @@ class GC {
     return body;
   }
 
-  void* ForwardAddress(void* ref) {
-    Header* header = H(ref);
-    return header->forward_address;
-  }
-
-  void SetForwardAddress(void* ref, void* forward_address) {
-    Header* header = H(ref);
-    header->forward_address = forward_address;
-  }
-
  private:
   virtual void* Allocate(size_t size, flag_t flag) = 0;
   virtual void Collect() = 0;
