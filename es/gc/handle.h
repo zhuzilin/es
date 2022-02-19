@@ -120,7 +120,7 @@ class HandleScope {
     while (block != end_ptr) {
       HeapObject** end = block->pointers + kHandleBlockSize;
       if (block->next == end_ptr) {
-        end = Stack().back()->limit_;
+        end = Stack().back()->current_;
       }
       for (HeapObject** i = block->pointers; i != end; i++) {
         pointers.emplace_back(i);
