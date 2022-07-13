@@ -9,8 +9,7 @@
 
 namespace es {
 
-class MarkAndSweepCollection : public GC {
- public:
+struct MarkAndSweepCollection : public GC<MarkAndSweepCollection> {
   MarkAndSweepCollection(size_t size) {
     heap_start_ = static_cast<char*>(malloc(size));
     memset(heap_start_, 0, size);
@@ -20,7 +19,6 @@ class MarkAndSweepCollection : public GC {
     first_obj_ = nullptr;
   }
 
- private:
   struct Cell {
     Cell(void* addr, size_t size) :
       addr(addr), size(size), prev_obj(nullptr), prev(nullptr), next(nullptr) {
@@ -34,7 +32,7 @@ class MarkAndSweepCollection : public GC {
     Cell* next;
   };
 
-  void* Allocate(size_t size, flag_t flag) override {
+  void* AllocateImpl(size_t size, flag_t flag) {
     // First-fit allocation
     Cell* cell = free_list_;
     while(cell != nullptr && cell->size < size) {
@@ -80,7 +78,7 @@ class MarkAndSweepCollection : public GC {
     return ptr;
   }
 
-  void Collect() override {
+  void CollectImpl() {
 #ifdef GC_DEBUG
     std::cout << "enter MarkAndSweepCollection::Collect " << FreeSpace() / 1024U / 1024 << "\n";
 #endif

@@ -9,13 +9,11 @@
 
 namespace es {
 
-class NoCollection : public GC {
- public:
+struct NoCollection : public GC<NoCollection> {
   NoCollection(size_t segment_size) :
     segment_size_(segment_size), memsize_(0), offset_(0) {}
 
- private:
-  void* Allocate(size_t size, flag_t flag) override {
+  void* AllocateImpl(size_t size, flag_t flag) {
     if (offset_ + size > memsize_) {
       return nullptr;
     }
@@ -29,7 +27,7 @@ class NoCollection : public GC {
     return ptr;
   }
 
-  void Collect() override {
+  void CollectImpl() {
     // Simply reallocate a segment.
     mem_ = malloc(segment_size_);
     memsize_ = segment_size_;

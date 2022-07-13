@@ -26,8 +26,7 @@ inline void MemCopy(void* dst, void* src, size_t size) {
   }
 }
 
-class CopyingCollection : public GC {
- public:
+struct CopyingCollection : public GC<CopyingCollection> {
   CopyingCollection(size_t size) {
     heap_start_ = static_cast<char*>(malloc(size));
     memset(heap_start_, 0, size);
@@ -35,7 +34,6 @@ class CopyingCollection : public GC {
     CreateSemispaces();
   }
 
- private:
   void CreateSemispaces() {
     tospace_ = heap_start_;
     extent_ = (heap_end_ - heap_start_) / 2;
@@ -44,7 +42,7 @@ class CopyingCollection : public GC {
     free_ = tospace_;
   }
 
-  void* Allocate(size_t size, flag_t flag) override {
+  void* AllocateImpl(size_t size, flag_t flag) {
     char* result = free_;
     char* newfree = result + size;
     if (newfree > top_)
@@ -58,7 +56,7 @@ class CopyingCollection : public GC {
     return result;
   }
 
-  void Collect() override {
+  void CollectImpl() {
 #ifdef GC_DEBUG
     std::cout << "enter CopyingCollection::Collect" << "\n";
 #endif

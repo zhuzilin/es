@@ -11,6 +11,7 @@ namespace es {
 constexpr size_t kAlignmentBits = 3;
 constexpr size_t kAlignmentMask = (1 << kAlignmentBits) - 1;
 
+template<typename T>
 class GC {
  public:
   void* New(size_t size, flag_t flag) {
@@ -40,8 +41,13 @@ class GC {
   }
 
  private:
-  virtual void* Allocate(size_t size, flag_t flag) = 0;
-  virtual void Collect() = 0;
+  void* Allocate(size_t size, flag_t flag) {
+    return static_cast<T*>(this)->AllocateImpl(size, flag);
+  }
+
+  void Collect() {
+    static_cast<T*>(this)->CollectImpl();
+  }
 
 #ifdef TIMER
   double time = 0;
