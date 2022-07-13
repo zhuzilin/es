@@ -69,11 +69,7 @@ class ExecutionContext {
   bool InSwitch() { return switch_layers_ != 0; }
 
   std::vector<HeapObject**> Pointers() {
-    std::vector<HeapObject**> pointers;
-    pointers.emplace_back(pointers_);
-    pointers.emplace_back(pointers_ + 1);
-    pointers.emplace_back(pointers_ + 2);
-    return pointers;
+    return {pointers_, pointers_ + 1, pointers_ + 2};
   }
 
  private:

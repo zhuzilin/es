@@ -1257,7 +1257,7 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lhs, AST*
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<JSValue> rval = GetValue(e, rref);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    if (op.type() == Token::TK_ASSIGN) {  // ==
+    if (op.type() == Token::TK_ASSIGN) {  // =
       return EvalSimpleAssignment(e, lref, rval);
     } else {
       return EvalCompoundAssignment(e, op, lref, rval);

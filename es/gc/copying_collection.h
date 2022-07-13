@@ -58,7 +58,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
 
   void CollectImpl() {
 #ifdef GC_DEBUG
-    std::cout << "enter CopyingCollection::Collect" << "\n";
+    std::cout << "enter CopyingCollection::Collect " << (free_ - tospace_) << "B \n";
 #endif
 #ifdef STATS
     Stats();
@@ -76,7 +76,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
     }
     memset(fromspace_, 0, extent_);
 #ifdef GC_DEBUG
-    std::cout << "exit CopyingCollection::Collect " << (free_ - tospace_) / 1024U / 1024U << "\n";
+    std::cout << "exit CopyingCollection::Collect " << (free_ - tospace_) << "B \n";
 #endif
 #ifdef STATS
     Stats();

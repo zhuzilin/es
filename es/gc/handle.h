@@ -10,48 +10,33 @@ namespace es {
 
 class HeapObject;
 
-static constexpr size_t kHandleBlockSize = 10 * 1024;
+constexpr size_t kHandleBlockSize = 10 * 1024;
+constexpr size_t kNumSingletonHandle = 32;
+constexpr size_t kNumConstantHandle = 32;
 
 struct HandleBlock {
-  HandleBlock() {
-    pointers = new HeapObject*[kHandleBlockSize];
-    next = nullptr;
-  }
+  HandleBlock() :
+    pointers_(new HeapObject*[kHandleBlockSize]), offset_(0) {}
 
-  ~HandleBlock() {
-    delete[] pointers;
-    if (next != nullptr)
-      delete next;
-  }
-
-  HeapObject** pointers;
-  HandleBlock* next;
+  std::unique_ptr<HeapObject*[]> pointers_;
+  size_t offset_;
 };
 
 class HandleScope {
  public:
   HandleScope() {
-    if (HandleScope::Stack().size() == 0) {
-      start_block_ = new HandleBlock();
-      current_ = start_block_->pointers;
-      limit_ = start_block_->pointers + kHandleBlockSize;
-    } else {
-      HandleScope* last_scope = HandleScope::Stack().back();
-      start_block_ = last_scope->block_;
-      current_ = last_scope->current_;
-      limit_ = last_scope->limit_;
+    if (block_stack_.size() == 0) {
+      block_stack_.emplace_back(HandleBlock());
     }
-    block_ = start_block_;
-    HandleScope::Stack().emplace_back(this);
+    start_block_idx_ = block_stack_.size() - 1;
+    start_block_offset_ = block_stack_.back().offset_;
   }
+
   ~HandleScope() {
-    // The base scope won't be deleted, so we don't need to
-    // consider the case where start_block_ was created for this HandleScope.
-    if (start_block_->next != nullptr && start_block_->next->next != nullptr) {
-      delete start_block_->next->next;
-      start_block_->next->next = nullptr;
+    while (block_stack_.size() > start_block_idx_ + 1) {
+      block_stack_.pop_back();
     }
-    HandleScope::Stack().pop_back();
+    block_stack_[start_block_idx_].offset_ = start_block_offset_;
   }
 
   static HeapObject** Add(HeapObject* val) {
@@ -83,78 +68,49 @@ class HandleScope {
       return ptr;
     }
 
-    HandleScope* scope = HandleScope::Stack().back();
-    if (scope->current_ == scope->limit_) {
-      HandleBlock* block = scope->block_->next;
-      if (block == nullptr) {
-        block = new HandleBlock();
-        scope->block_->next = block;
-      }
-      scope->block_ = block;
-      scope->current_ = block->pointers;
-      scope->limit_ = block->pointers + kHandleBlockSize;
+    if (block_stack_.back().offset_ == kHandleBlockSize) {
+      block_stack_.emplace_back(HandleBlock());
     }
-    HeapObject** ptr = scope->current_;
-    scope->current_++;
-    *ptr = val;
-#ifdef TEST
-    scope->helper_count_++;
-#endif
-    
-    return ptr;
-  }
-
-  static std::vector<HandleScope*>& Stack() {
-    static std::vector<HandleScope*> stack;
-    return stack;
+    HandleBlock& block = block_stack_.back();
+    size_t offset = block.offset_;
+    block.pointers_.get()[offset] = val;
+    block.offset_++;
+    return block.pointers_.get() + offset;
   }
 
   static std::vector<HeapObject**> AllPointers() {
-    std::vector<HeapObject**> pointers(singleton_pointers_count_);
+    size_t num_pointers = singleton_pointers_count_;
+    if (likely(block_stack_.size() > 0)) {
+      num_pointers += (block_stack_.size() - 1) * kHandleBlockSize + block_stack_.back().offset_;
+    }
+    std::vector<HeapObject**> pointers(num_pointers);
     for (size_t i = 0; i < singleton_pointers_count_; i++) {
       pointers[i] = singleton_pointers_ + i;
     }
-    HandleBlock* block = base.start_block_;
-    // The last block may not be needed
-    HandleBlock* end_ptr = Stack().back()->block_->next;
-    while (block != end_ptr) {
-      HeapObject** end = block->pointers + kHandleBlockSize;
-      if (block->next == end_ptr) {
-        end = Stack().back()->current_;
+    size_t offset = singleton_pointers_count_;
+    for (size_t i = 0; i < block_stack_.size() - 1; i++) {
+      for (size_t j = 0; j < kHandleBlockSize; j++) {
+        pointers[offset + j] = block_stack_[i].pointers_.get() + j;
       }
-      for (HeapObject** i = block->pointers; i != end; i++) {
-        pointers.emplace_back(i);
-      }
-      block = block->next;
+      offset += kHandleBlockSize;
     }
-#ifdef TEST
-    size_t helper_sum = singleton_pointers_count_;
-    for (auto s : Stack()) {
-      helper_sum += s->helper_count_;
+    for (size_t j = 0; j < block_stack_.back().offset_; j++) {
+      pointers[offset + j] = block_stack_.back().pointers_.get() + j;
     }
-    ASSERT(helper_sum == pointers.size());
-#endif
     return pointers;
   }
 
  private:
-  HandleBlock* start_block_;
-  HandleBlock* block_;
-  HeapObject** current_;
-  HeapObject** limit_;
-#ifdef TEST
-  size_t helper_count_ = 0;
-#endif
+  size_t start_block_idx_;
+  size_t start_block_offset_;
 
-  static constexpr size_t kNumSingletonHandle = 32;
   static HeapObject* singleton_pointers_[kNumSingletonHandle];
   static size_t singleton_pointers_count_;
 
-  static constexpr size_t kNumConstantHandle = 32;
   static HeapObject* constant_pointers_[kNumConstantHandle];
   static size_t constant_pointers_count_;
 
-  static HandleScope base;
+  static std::vector<HandleBlock> block_stack_;
 };
 
 HeapObject* HandleScope::singleton_pointers_[kNumSingletonHandle];
@@ -163,7 +119,7 @@ size_t HandleScope::singleton_pointers_count_ = 0;
 HeapObject* HandleScope::constant_pointers_[kNumConstantHandle];
 size_t HandleScope::constant_pointers_count_ = 0;
 
-HandleScope HandleScope::base;
+std::vector<HandleBlock> HandleScope::block_stack_;
 
 // Handle is used to solve the following situation:
 // ```
@@ -186,7 +142,6 @@ class Handle {
 #ifdef GC_DEBUG
       if (unlikely(log::Debugger::On())) {
         Handle<T> tmp;
-        std::cout << "Add value " << typeid(tmp).name() << " flag: " << int(Flag(value)) << "\n";
       }
 #endif
       ptr_ = reinterpret_cast<T**>(HandleScope::Add(value));

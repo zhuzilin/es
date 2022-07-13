@@ -19,9 +19,9 @@ class Completion {
     THROW,
   };
 
-  Completion() : Completion(NORMAL, Handle<JSValue>(), u"") {}
+  Completion() : Completion(NORMAL, Handle<HeapObject>(), u"") {}
 
-  Completion(Type type, Handle<JSValue> value, std::u16string target) :
+  Completion(Type type, Handle<HeapObject> value, std::u16string target) :
     type_(type), value_(value), target_(target) {}
 
   Type type() { return type_; }
