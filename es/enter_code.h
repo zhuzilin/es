@@ -564,12 +564,16 @@ void InitMath() {
   AddValueProperty(math, String::New(u"SQRT1_2"), Number::New(0.7071067811865476), false, false, false);
   AddValueProperty(math, String::New(u"SQRT2"), Number::New(1.4142135623730951), false, false, false);
   // 15.8.2 Function Properties of the Math Object
+  AddFuncProperty(math, u"abs", Math::abs, false, false, false);
   AddFuncProperty(math, u"ceil", Math::ceil, false, false, false);
+  AddFuncProperty(math, u"cos", Math::cos, false, false, false);
   AddFuncProperty(math, u"exp", Math::exp, false, false, false);
   AddFuncProperty(math, u"floor", Math::floor, false, false, false);
   AddFuncProperty(math, u"max", Math::max, false, false, false);
   AddFuncProperty(math, u"pow", Math::pow, false, false, false);
+  AddFuncProperty(math, u"round", Math::round, false, false, false);
   AddFuncProperty(math, u"sin", Math::sin, false, false, false);
+  AddFuncProperty(math, u"sqrt", Math::sqrt, false, false, false);
 }
 
 void InitRegExp() {

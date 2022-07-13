@@ -136,7 +136,7 @@ TEST(TestEvalExpr, String) {
       auto source = pair.first;
       Parser parser(source);
       AST* ast = parser.ParsePrimaryExpression();
-      Handle<String> str = EvalString(ast);
+      Handle<String> str = EvalString(e, ast);
       EXPECT_EQ(pair.second, str.val()->data());
     }
   }

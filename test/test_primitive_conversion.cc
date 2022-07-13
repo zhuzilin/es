@@ -152,7 +152,7 @@ TEST(TestPrimitiveConversion, ToInteger) {
   num = ToInteger(e, Number::NaN());
   EXPECT_EQ(0, num);
 
-  num = ToInteger(e, Number::PositiveInfinity());
+  num = ToInteger(e, Number::Infinity());
   EXPECT_EQ(true, isinf(num) && !signbit(num));
 }
 
@@ -175,7 +175,7 @@ TEST(TestPrimitiveConversion, ToInt32) {
   num = ToInt32(e, Number::NaN());
   EXPECT_EQ(0, num);
 
-  num = ToInt32(e, Number::PositiveInfinity());
+  num = ToInt32(e, Number::Infinity());
   EXPECT_EQ(0, num);
 }
 
@@ -198,7 +198,7 @@ TEST(TestPrimitiveConversion, ToUint32) {
   num = ToUint32(e, Number::NaN());
   EXPECT_EQ(0, num);
 
-  num = ToUint32(e, Number::PositiveInfinity());
+  num = ToUint32(e, Number::Infinity());
   EXPECT_EQ(0, num);
 }
 

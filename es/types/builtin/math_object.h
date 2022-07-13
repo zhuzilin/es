@@ -18,7 +18,21 @@ class Math : public JSObject {
     return String::New(u"Math");
   }
 
-  // 15.8.2.9 ceil (x)
+  // 15.8.2.1 abs (x)
+  static Handle<JSValue> abs(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() == 0)
+      return Number::NaN();
+    double num = ToNumber(e, vals[0]);
+    if (isnan(num))
+      return Number::NaN();
+    if (num == 0)
+      return Number::Zero();
+    if (isinf(num))
+      return Number::Infinity();
+    return Number::New(::fabs(num));
+  }
+
+  // 15.8.2.6 ceil (x)
   static Handle<JSValue> ceil(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size() == 0)
       return Number::NaN();
@@ -30,6 +44,20 @@ class Math : public JSObject {
     if (isinf(num))
       return signbit(num) ? Number::NegativeInfinity() : Number::Infinity();
     return Number::New(::ceil(num));
+  }
+
+  // 15.8.2.7 cos (x)
+  static Handle<JSValue> cos(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() == 0)
+      return Number::NaN();
+    double num = ToNumber(e, vals[0]);
+    if (isnan(num))
+      return Number::NaN();
+    if (num == 0)
+      return Number::One();
+    if (isinf(num))
+      return signbit(num) ? Number::Zero() : Number::Infinity();
+    return Number::New(::cos(num));
   }
 
   // 15.8.2.8 exp (x)
@@ -97,6 +125,20 @@ class Math : public JSObject {
     return Number::New(::pow(x, y));
   }
 
+  // 15.8.2.15 round (x)
+  static Handle<JSValue> round(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() == 0)
+      return Number::NaN();
+    double num = ToNumber(e, vals[0]);
+    if (isnan(num))
+      return Number::NaN();
+    if (num == 0)
+      return signbit(num) ? Number::NegativeZero() : Number::Zero();
+    if (isinf(num))
+      return signbit(num) ? Number::NegativeInfinity() : Number::Infinity();
+    return Number::New(::round(num));
+  }
+
   // 15.8.2.16 sin (x)
   static Handle<JSValue> sin(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     if (vals.size() == 0)
@@ -109,6 +151,22 @@ class Math : public JSObject {
     if (isinf(num))
       return Number::NaN();
     return Number::New(::sin(num));
+  }
+
+  // 15.8.2.17 sqrt (x)
+  static Handle<JSValue> sqrt(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+    if (vals.size() == 0)
+      return Number::NaN();
+    double num = ToNumber(e, vals[0]);
+    if (isnan(num))
+      return Number::NaN();
+    if (num == 0)
+      return signbit(num) ? Number::NegativeZero() : Number::Zero();
+    if (signbit(num))
+      return Number::NaN();
+    if (isinf(num))
+      return Number::Infinity();
+    return Number::New(::sqrt(num));
   }
 
  private:
