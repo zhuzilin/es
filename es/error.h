@@ -91,8 +91,7 @@ class Error : public HeapObject {
  private:
   static Handle<Error> New(ErrorType t, Handle<JSValue> val, uint8_t flag) {
 #ifdef GC_DEBUG
-    if (unlikely(log::Debugger::On()))
-      std::cout << "Error::New " << "\n";
+    TEST_LOG("Error::New\n");
 #endif
     Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + kPtrSize, flag);
 

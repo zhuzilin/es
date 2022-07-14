@@ -40,8 +40,12 @@ constexpr size_t kFuncPtrSize = sizeof(void* (*));
 
 #ifdef TEST
 #define ASSERT(x) assert(x)
+#define TEST_LOG(x...) \
+  if (unlikely(log::Debugger::On())) \
+    log::PrintSource(x)
 #else
 #define ASSERT(x)
+#define TEST_LOG(x...)
 #endif
 
 }  // namespace es

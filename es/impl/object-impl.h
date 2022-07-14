@@ -72,8 +72,7 @@ Handle<JSValue> GetProperty(Handle<JSObject> O, Handle<String> P) {
 
 // [[Get]]
 Handle<JSValue> Get(Handle<Error>& e, Handle<JSObject> O, Handle<String> P) {
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("enter Get " + P.ToString() + " from " + std::to_string(O.val()->type()));
+  TEST_LOG("enter Get " + P.ToString() + " from " + std::to_string(O.val()->type()));
   if (O.val()->IsFunctionObject()) {
     return Get__Function(e, static_cast<Handle<FunctionObject>>(O), P);
   } else if (O.val()->IsArgumentsObject()) {
@@ -163,8 +162,7 @@ bool CanPut(Handle<JSObject> O, Handle<String> P) {
 // [[Put]]
 // 8.12.5 [[Put]] ( P, V, Throw )
 void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("enter Put " + P.ToString() + " to " + O.ToString() + " with value " + V.ToString());
+  TEST_LOG("enter Put " + P.ToString() + " to " + O.ToString() + " with value " + V.ToString());
   ASSERT(V.val()->IsLanguageType());
   if (!CanPut(O, P)) {  // 1
     if (throw_flag) {  // 1.a
@@ -291,8 +289,7 @@ Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16strin
 bool DefineOwnProperty(
   Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag
 ) {
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("enter DefineOwnProperty " + P.ToString());
+  TEST_LOG("enter DefineOwnProperty " + P.ToString());
   if (O.val()->IsArrayObject()) {
     return DefineOwnProperty__Array(e, static_cast<Handle<ArrayObject>>(O), P, desc, throw_flag);
   } else if (O.val()->IsArgumentsObject()) {
@@ -375,15 +372,13 @@ bool DefineOwnProperty__Base(
       }
     }
   }
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("DefineOwnProperty: " + P.ToString() + " is set to " + desc.val()->Value().ToString());
+  TEST_LOG("DefineOwnProperty: " + P.ToString() + " is set to " + desc.val()->Value().ToString());
   // 12.
   current_desc.val()->Set(desc);
   // 13.
   return true;
 reject:
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("reject :", error_msg);
+  TEST_LOG("reject :", error_msg);
   if (throw_flag) {
     e = Error::TypeError(error_msg);
   }
@@ -463,8 +458,7 @@ bool DefineOwnProperty__Array(
   }
   return DefineOwnProperty__Base(e, O, P, desc, throw_flag);
 reject:
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("Array::DefineOwnProperty reject " + P.ToString() + " " + desc.ToString());
+  TEST_LOG("Array::DefineOwnProperty reject " + P.ToString() + " " + desc.ToString());
   if (throw_flag) {
     e = Error::TypeError(u"failed to DefineOwnProperty on Array");
   }
@@ -542,8 +536,7 @@ void AddValueProperty(
   Handle<JSObject> O, Handle<String> name, Handle<JSValue> value, bool writable,
   bool enumerable, bool configurable
 ) {
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("AddValueProperty " + name.ToString() + " to " + value.ToString());
+  TEST_LOG("AddValueProperty " + name.ToString() + " to " + value.ToString());
   Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
   desc.val()->SetDataDescriptor(value, writable, enumerable, configurable);
   // This should just like named_properties_[name] = desc

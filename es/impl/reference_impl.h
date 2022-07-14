@@ -9,8 +9,7 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
   if (!V.val()->IsReference()) {
     return V;
   }
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("GetValue V:" + V.ToString());
+  TEST_LOG("GetValue V:" + V.ToString());
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
   if (ref.val()->IsUnresolvableReference()) {
     e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
@@ -54,8 +53,7 @@ void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
     e = Error::ReferenceError(u"put value to non-reference.");
     return;
   }
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("PutValue V: " + V.ToString() + ", W: " + W.ToString());
+  TEST_LOG("PutValue V: " + V.ToString() + ", W: " + W.ToString());
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
   Handle<JSValue> base = ref.val()->GetBase();
   if (ref.val()->IsUnresolvableReference()) {  // 3

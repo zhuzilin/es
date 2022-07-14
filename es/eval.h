@@ -106,8 +106,7 @@ Completion EvalProgram(AST* ast) {
 }
 
 Completion EvalStatement(AST* ast) {
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("EvalStatement ", ast->source().substr(0, 50));
+  TEST_LOG("EvalStatement ", ast->source().substr(0, 50));
   Completion C(Completion::NORMAL, Handle<JSValue>(), u"");
   HeapObject* val = nullptr;
   {

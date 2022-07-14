@@ -77,8 +77,7 @@ void DeclarationBindingInstantiation(
   Handle<Error>& e, AST* code, CodeType code_type,
   Handle<FunctionObject> f = Handle<FunctionObject>(), std::vector<Handle<JSValue>> args = {}
 ) {
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("enter DeclarationBindingInstantiation");
+  TEST_LOG("enter DeclarationBindingInstantiation");
   Handle<EnvironmentRecord> env = Runtime::TopContext().variable_env().val()->env_rec();  // 1
   bool configurable_bindings = false;
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);

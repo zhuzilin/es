@@ -67,8 +67,7 @@ Handle<JSValue> Call__Function(
   Handle<Error>& e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   ProgramOrFunctionBody* code = O.val()->Code();
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("enter FunctionObject::Call ", code->source().substr(0, 100));
+  TEST_LOG("enter FunctionObject::Call ", code->source().substr(0, 100));
   EnterFunctionCode(e, O, code, this_arg, arguments, O.val()->strict());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
 
@@ -77,8 +76,7 @@ Handle<JSValue> Call__Function(
     result = EvalProgram(code);
   }
   Runtime::Global()->PopContext();   // 3
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("exit FunctionObject::Call", code->source().substr(0, 100));
+  TEST_LOG("exit FunctionObject::Call", code->source().substr(0, 100));
   switch (result.type()) {
     case Completion::RETURN:
       if (unlikely(log::Debugger::On()))
@@ -110,8 +108,7 @@ Handle<JSValue> Call__Function(
 Handle<JSValue> Call__BindFunction(
   Handle<Error>& e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> extra_args
 ) {
-  if (unlikely(log::Debugger::On()))
-    log::PrintSource("enter BindFunctionObject::Call");
+  TEST_LOG("enter BindFunctionObject::Call");
   Handle<FixedArray> bound_args = O.val()->BoundArgs();
   Handle<JSObject> target_function = O.val()->TargetFunction();
 
