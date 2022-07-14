@@ -74,18 +74,18 @@ Handle<ArgumentsObject> CreateArgumentsObject(
 
 // 10.5 Declaration Binding Instantiation
 void DeclarationBindingInstantiation(
-  Handle<Error>& e, ExecutionContext* context, AST* code, CodeType code_type,
+  Handle<Error>& e, AST* code, CodeType code_type,
   Handle<FunctionObject> f = Handle<FunctionObject>(), std::vector<Handle<JSValue>> args = {}
 ) {
   if (unlikely(log::Debugger::On()))
     log::PrintSource("enter DeclarationBindingInstantiation");
-  Handle<EnvironmentRecord> env = context->variable_env().val()->env_rec();  // 1
+  Handle<EnvironmentRecord> env = Runtime::TopContext().variable_env().val()->env_rec();  // 1
   bool configurable_bindings = false;
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
   if (code_type == CODE_EVAL) {
     configurable_bindings = true;  // 2
   }
-  bool strict = body->strict() || Runtime::TopContext()->strict();  // 3
+  bool strict = body->strict() || Runtime::TopContext().strict();  // 3
   if (code_type == CODE_FUNC) {  // 4
     ASSERT(!f.IsNullptr());
     auto names = f.val()->FormalParameters();  // 4.a
@@ -147,7 +147,7 @@ void DeclarationBindingInstantiation(
     // 6
     bool arguments_already_declared = HasBinding(env, String::Arguments());
     if (!arguments_already_declared) {
-      auto args_obj = CreateArgumentsObject(f, args, context->variable_env(), strict);
+      auto args_obj = CreateArgumentsObject(f, args, Runtime::TopContext().variable_env(), strict);
       if (strict) {  // 7.b
         Handle<DeclarativeEnvironmentRecord> decl_env = static_cast<Handle<DeclarativeEnvironmentRecord>>(env);
         CreateAndInitializeImmutableBinding(decl_env, String::Arguments(), args_obj);
@@ -193,17 +193,15 @@ void EnterGlobalCode(Handle<Error>& e, AST* ast) {
   }
   // 1 10.4.1.1
   Handle<LexicalEnvironment> global_env = LexicalEnvironment::Global();
-  ExecutionContext* context = new ExecutionContext(global_env, global_env, GlobalObject::Instance(), program->strict());
-  Runtime::Global()->AddContext(context);
+  Runtime::Global()->AddContext(ExecutionContext(global_env, global_env, GlobalObject::Instance(), program->strict()));
   // 2
-  DeclarationBindingInstantiation(e, context, program, CODE_GLOBAL);
+  DeclarationBindingInstantiation(e, program, CODE_GLOBAL);
 }
 
 // 10.4.2
 void EnterEvalCode(Handle<Error>& e, AST* ast) {
   ASSERT(ast->type() == AST::AST_PROGRAM);
   ProgramOrFunctionBody* program = static_cast<ProgramOrFunctionBody*>(ast);  
-  ExecutionContext* context;
   Handle<LexicalEnvironment> variable_env;
   Handle<LexicalEnvironment> lexical_env;
   Handle<JSValue> this_binding;
@@ -213,12 +211,12 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
     lexical_env = global_env;
     this_binding = GlobalObject::Instance();
   } else {  // 2
-    ExecutionContext* calling_context = Runtime::TopContext();
-    variable_env = calling_context->variable_env();
-    lexical_env = calling_context->lexical_env();
-    this_binding = calling_context->this_binding();
+    ExecutionContext& calling_context = Runtime::TopContext();
+    variable_env = calling_context.variable_env();
+    lexical_env = calling_context.lexical_env();
+    this_binding = calling_context.this_binding();
   }
-  bool strict = Runtime::TopContext()->strict() ||
+  bool strict = Runtime::TopContext().strict() ||
                 (program->strict() && GlobalObject::Instance().val()->direct_eval());
   if (strict) {  // 3
     Handle<LexicalEnvironment> strict_var_env = NewDeclarativeEnvironment(lexical_env);
@@ -236,10 +234,9 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
       }
     }
   }
-  context = new ExecutionContext(variable_env, lexical_env, this_binding, strict);
-  Runtime::Global()->AddContext(context);
+  Runtime::Global()->AddContext(ExecutionContext(variable_env, lexical_env, this_binding, strict));
   // 4
-  DeclarationBindingInstantiation(e, context, program, CODE_EVAL);
+  DeclarationBindingInstantiation(e, program, CODE_EVAL);
 }
 
 // 10.4.3
@@ -260,10 +257,9 @@ void EnterFunctionCode(
     this_binding = this_arg;
   }
   Handle<LexicalEnvironment> local_env = NewDeclarativeEnvironment(func.val()->Scope());
-  ExecutionContext* context = new ExecutionContext(local_env, local_env, this_binding, strict);  // 8
-  Runtime::Global()->AddContext(context);
+  Runtime::Global()->AddContext(ExecutionContext(local_env, local_env, this_binding, strict));  // 8
   // 9
-  DeclarationBindingInstantiation(e, context, body, CODE_FUNC, func, args);
+  DeclarationBindingInstantiation(e, body, CODE_FUNC, func, args);
 }
 
 void InitGlobalObject() {

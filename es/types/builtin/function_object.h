@@ -178,7 +178,7 @@ class BindFunctionObject : public FunctionObject {
     Handle<JSObject> target_function, Handle<JSValue> bound_this, std::vector<Handle<JSValue>> bound_args
   ) {
     Handle<FunctionObject> func = FunctionObject::New(
-      {}, nullptr, Handle<JSValue>(), Runtime::TopContext()->strict(),
+      {}, nullptr, Handle<JSValue>(), Runtime::TopContext().strict(),
       kBindFunctionObjectOffset - kFunctionObjectOffset);
 
     SET_HANDLE_VALUE(func.val(), kTargetFunctionOffset, target_function, JSObject);
@@ -280,7 +280,7 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function
     auto env_rec = static_cast<Handle<DeclarativeEnvironmentRecord>>(func_env.val()->env_rec());  // 2
     Handle<String> identifier_str = String::New(identifier);
     ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
-    bool strict = body->strict() || Runtime::TopContext()->strict();
+    bool strict = body->strict() || Runtime::TopContext().strict();
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
@@ -322,7 +322,7 @@ Handle<JSValue> EvalFunction(Handle<Error>& e, AST* ast) {
     return InstantiateFunctionDeclaration(e, func_ast);
   } else {
     auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
-    bool strict = body->strict() || Runtime::TopContext()->strict();
+    bool strict = body->strict() || Runtime::TopContext().strict();
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
