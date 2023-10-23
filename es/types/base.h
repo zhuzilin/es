@@ -57,16 +57,19 @@ class JSValue {
 
   inline bool IsError() { return type() == ERROR; }
 
-  inline Type type() { return type_; }
-  inline void SetType(Type t) { type_ = t; }
+  inline Type type() { return header_.type_; }
+  inline void SetType(Type t) { header_.type_ = t; }
 
   static std::string ToString(JSValue* jsval);
 
  public:
   static constexpr size_t kJSValueOffset = HeapObject::kHeapObjectOffset;
 
- private:
-  Type type_;
+  struct Header {
+    Type type_;
+    uint32_t placeholder_;
+  };
+  Header header_;
 };
 
 class Undefined : public JSValue {
