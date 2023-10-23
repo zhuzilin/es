@@ -249,36 +249,45 @@ Completion EvalDoWhileStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   Runtime::TopContext().EnterIteration();
   DoWhile* loop_stmt = static_cast<DoWhile*>(ast);
-  Handle<JSValue> V;
+  // Handle<JSValue> V;  // V is substitued by stmt.value()
   Handle<JSValue> expr_ref;
   Handle<JSValue> val;
   Completion stmt;
   bool has_label;
   while (true) {
     stmt = EvalStatement(loop_stmt->stmt());
-    if (!stmt.IsEmpty())  // 3.b
-      V = stmt.value();
-    has_label = stmt.target() == ast->label() || stmt.target() == u"";
-    if (stmt.type() != Completion::CONTINUE || !has_label) {
-      if (stmt.type() == Completion::BREAK && has_label) {
-        Runtime::TopContext().ExitIteration();
-        return Completion(Completion::NORMAL, V, u"");
+    switch (stmt.type()) {
+      case Completion::BREAK: {
+        if (stmt.target() == ast->label() || stmt.target() == u"") {
+          Runtime::TopContext().ExitIteration();
+          return Completion(Completion::NORMAL, stmt.value(), u"");
+        }
+        [[fallthrough]];
       }
-      if (stmt.IsAbruptCompletion()) {
+      case Completion::RETURN:
+      case Completion::THROW: {
         Runtime::TopContext().ExitIteration();
         return stmt;
       }
+      case Completion::CONTINUE: {
+        if (stmt.target() != u"" && stmt.target() != ast->label()) {
+          Runtime::TopContext().ExitIteration();
+          return stmt;
+        }
+        [[fallthrough]];
+      }
+      default: {  // normal
+        expr_ref = EvalExpression(e, loop_stmt->expr());
+        if (unlikely(!e.val()->IsOk())) goto error;
+        val = GetValue(e, expr_ref);
+        if (unlikely(!e.val()->IsOk())) goto error;
+      }
     }
-
-    expr_ref = EvalExpression(e, loop_stmt->expr());
-    if (unlikely(!e.val()->IsOk())) goto error;
-    val = GetValue(e, expr_ref);
-    if (unlikely(!e.val()->IsOk())) goto error;
     if (!ToBoolean(val))
       break;
   }
   Runtime::TopContext().ExitIteration();
-  return Completion(Completion::NORMAL, V, u"");
+  return Completion(Completion::NORMAL, stmt.value(), u"");
 error:
   Runtime::TopContext().ExitIteration();
   return Completion(Completion::THROW, e, u"");
@@ -290,7 +299,7 @@ Completion EvalWhileStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   Runtime::TopContext().EnterIteration();
   WhileOrWith* loop_stmt = static_cast<WhileOrWith*>(ast);
-  Handle<JSValue> V;
+  // Handle<JSValue> V;  // V is substitued by stmt.value()
   Handle<JSValue> expr_ref;
   Handle<JSValue> val;
   Completion stmt;
@@ -304,22 +313,32 @@ Completion EvalWhileStatement(AST* ast) {
       break;
 
     stmt = EvalStatement(loop_stmt->stmt());
-    if (!stmt.IsEmpty())  // 3.b
-      V = stmt.value();
-    has_label = stmt.target() == ast->label() || stmt.target() == u"";
-    if (stmt.type() != Completion::CONTINUE || !has_label) {
-      if (stmt.type() == Completion::BREAK && has_label) {
-        Runtime::TopContext().ExitIteration();
-        return Completion(Completion::NORMAL, V, u"");
+    switch (stmt.type()) {
+      case Completion::BREAK: {
+        if (stmt.target() == ast->label() || stmt.target() == u"") {
+          Runtime::TopContext().ExitIteration();
+          return Completion(Completion::NORMAL, stmt.value(), u"");
+        }
+        [[fallthrough]];
       }
-      if (stmt.IsAbruptCompletion()) {
+      case Completion::RETURN:
+      case Completion::THROW: {
         Runtime::TopContext().ExitIteration();
         return stmt;
+      }
+      case Completion::CONTINUE: {
+        if (stmt.target() != u"" && stmt.target() != ast->label()) {
+          Runtime::TopContext().ExitIteration();
+          return stmt;
+        }
+        [[fallthrough]];
+      }
+      default: {  // normal
       }
     }
   }
   Runtime::TopContext().ExitIteration();
-  return Completion(Completion::NORMAL, V, u"");
+  return Completion(Completion::NORMAL, stmt.value(), u"");
 error:
   Runtime::TopContext().ExitIteration();
   return Completion(Completion::THROW, e, u"");
@@ -331,7 +350,7 @@ Completion EvalForStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   Runtime::TopContext().EnterIteration();
   For* for_stmt = static_cast<For*>(ast);
-  Handle<JSValue> V;
+  // Handle<JSValue> V;  // V is substitued by stmt.value()
   Completion stmt;
   bool has_label;
   for (auto expr : for_stmt->expr0s()) {
@@ -356,17 +375,27 @@ Completion EvalForStatement(AST* ast) {
     }
 
     stmt = EvalStatement(for_stmt->statement());
-    if (!stmt.IsEmpty())  // 3.b
-      V = stmt.value();
-    has_label = stmt.target() == ast->label() || stmt.target() == u"";
-    if (stmt.type() != Completion::CONTINUE || !has_label) {
-      if (stmt.type() == Completion::BREAK && has_label) {
-        Runtime::TopContext().ExitIteration();
-        return Completion(Completion::NORMAL, V, u"");
+    switch (stmt.type()) {
+      case Completion::BREAK: {
+        if (stmt.target() == ast->label() || stmt.target() == u"") {
+          Runtime::TopContext().ExitIteration();
+          return Completion(Completion::NORMAL, stmt.value(), u"");
+        }
+        [[fallthrough]];
       }
-      if (stmt.IsAbruptCompletion()) {
+      case Completion::RETURN:
+      case Completion::THROW: {
         Runtime::TopContext().ExitIteration();
         return stmt;
+      }
+      case Completion::CONTINUE: {
+        if (stmt.target() != u"" && stmt.target() != ast->label()) {
+          Runtime::TopContext().ExitIteration();
+          return stmt;
+        }
+        [[fallthrough]];
+      }
+      default: {  // normal
       }
     }
 
@@ -378,7 +407,7 @@ Completion EvalForStatement(AST* ast) {
     }
   }
   Runtime::TopContext().ExitIteration();
-  return Completion(Completion::NORMAL, V, u"");
+  return Completion(Completion::NORMAL, stmt.value(), u"");
 error:
   Runtime::TopContext().ExitIteration();
   return Completion(Completion::THROW, e, u"");
