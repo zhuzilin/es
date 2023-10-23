@@ -350,7 +350,7 @@ void AddFuncProperty(
 ) {
   Handle<JSObject> value = JSObject::New(
     u"InternalFunc", false, Handle<JSValue>(), false, true, callable, 0);
-  value.val()->SetType(JSObject::OBJ_INNER_FUNC);
+  value.val()->SetType(Type::OBJ_INNER_FUNC);
   value.val()->SetPrototype(FunctionProto::Instance());
   AddValueProperty(O, name, value, writable, enumerable, configurable);
 }

@@ -9,99 +9,11 @@ template<typename T>
 std::string Handle<T>::ToString() {
   if (IsNullptr())
     return "nullptr";
-  return HeapObject::ToString(val());
-}
-
-std::string HeapObject::ToString(HeapObject* heap_obj) {
-  switch (heap_obj->type()) {
-    case JS_UNINIT:
-      return "Unitialized HeapObject";
-    case JS_UNDEFINED:
-      return "Undefined";
-    case JS_NULL:
-      return "Null";
-    case JS_BOOL:
-      return static_cast<Bool*>(heap_obj)->data() ? "true" : "false";
-    case JS_LONG_STRING:
-    case JS_STRING:
-      return log::ToString(static_cast<String*>(heap_obj)->data());
-    case JS_NUMBER:
-      return NumberToStdString(static_cast<Number*>(heap_obj)->data());
-    case JS_REF: {
-      String* name = READ_VALUE(heap_obj, Reference::kReferenceNameOffset, String*);
-      return "ref(" + ToString(name) + ")";
-    }
-    case JS_PROP_DESC: {
-      PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(heap_obj);
-      std::string res = "PropertyDescriptor{";
-      if (desc->HasValue()) res += "v: " + ToString(READ_VALUE(heap_obj, PropertyDescriptor::kValueOffset, JSValue*)) + ", ";
-      if (desc->HasWritable()) res += "w: " + log::ToString(desc->Writable()) + ", ";
-      if (desc->HasGet()) res += "get: " + ToString(READ_VALUE(heap_obj, PropertyDescriptor::kGetOffset, JSValue*)) + ", ";
-      if (desc->HasSet()) res += "set: " + ToString(READ_VALUE(heap_obj, PropertyDescriptor::kSetOffset, JSValue*)) + ", ";
-      if (desc->HasEnumerable()) res += "e: " + log::ToString(desc->Enumerable()) + ", ";
-      if (desc->HasConfigurable()) res += "c: " + log::ToString(desc->Configurable());
-      res += '}';
-      return res;
-    }
-    case JS_ENV_REC_DECL:
-      return "DeclarativeEnvRec(" + log::ToString(heap_obj) + ")";
-    case JS_ENV_REC_OBJ:
-      return "ObjectEnvRec(" + log::ToString(heap_obj) + ")";
-    case JS_LEX_ENV:
-      return "LexicalEnvironment";
-    case JS_GET_SET:
-      return "GetterSetter(" + ToString(READ_VALUE(heap_obj, GetterSetter::kReferenceOffset, Reference*)) + ")";
-    case ERROR:
-      return static_cast<Error*>(heap_obj)->IsOk() ?
-        "ok" :
-        ToString(READ_VALUE(heap_obj, Error::kValueOffset, JSValue*));
-    case FIXED_ARRAY:
-      return "FixedArray(" + std::to_string(READ_VALUE(heap_obj, FixedArray::kSizeOffset, size_t)) + ")";
-    case HASHMAP:
-      return "HashMap(" + std::to_string(READ_VALUE(heap_obj, HashMap::kSizeOffset, size_t)) + ")";
-    case BINDING:
-      return "Binding(" + ToString(READ_VALUE(heap_obj, Binding::kValueOffset, JSValue*)) + ")";
-    case LIST_NODE:
-      return "ListNode(" + ToString(READ_VALUE(heap_obj, ListNode::kKeyOffset, String*)) + ")";
-    case OBJ_ARRAY: {
-      size_t num = ToNumber(
-        Error::Empty(),
-        Get(Error::Empty(), Handle<JSObject>(static_cast<JSObject*>(heap_obj)), String::Length())
-      );
-      return "Array(" + std::to_string(num) + ")";
-    }
-    case OBJ_FUNC: {
-      std::string result = "Function(";
-      FixedArray* params = READ_VALUE(heap_obj, FunctionObject::kFormalParametersOffset, FixedArray*);
-      if (params->size() > 0) {
-        result += ToString(params->GetRaw(0));
-        for (size_t i = 1; i < params->size(); i++) {
-          result += "," + ToString(params->GetRaw(i));
-        }
-      }
-      result += ")";
-      return result;
-    }
-    case OBJ_BIND_FUNC: {
-      return "BindFunctionObject";
-    }
-    case OBJ_REGEXP: {
-      return "/" + ToString(READ_VALUE(heap_obj, RegExpObject::kPatternOffset, String*)) +
-             "/" + ToString(READ_VALUE(heap_obj, RegExpObject::kFlagOffset, String*));
-    }
-    case OBJ_ERROR: {
-      return ToString(READ_VALUE(heap_obj, ErrorObject::kErrorOffset, Error*));
-    }
-    default:
-      if (heap_obj->IsObject()) {
-        return ToString(READ_VALUE(heap_obj, JSObject::kClassOffset, String*));
-      }
-      assert(false);
-  }
+  return JSValue::ToString(val());
 }
 
 std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
-  switch (heap_obj->type()) {
+  switch (reinterpret_cast<JSValue*>(heap_obj)->type()) {
     case JS_UNINIT:
     case JS_UNDEFINED:
     case JS_NULL:
@@ -170,7 +82,7 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
       };
     }
     default:
-      if (heap_obj->IsObject()) {
+      if (reinterpret_cast<JSValue*>(heap_obj)->IsObject()) {
         std::vector<HeapObject**> pointers {
           HEAP_PTR(heap_obj, JSObject::kClassOffset),
           HEAP_PTR(heap_obj, JSObject::kPrimitiveValueOffset),

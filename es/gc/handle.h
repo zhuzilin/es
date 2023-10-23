@@ -144,7 +144,7 @@ class Handle {
         Handle<T> tmp;
       }
 #endif
-      ptr_ = reinterpret_cast<T**>(HandleScope::Add(value));
+      ptr_ = reinterpret_cast<T**>(HandleScope::Add(reinterpret_cast<HeapObject*>(value)));
     } else {
       ptr_ = nullptr;
     }

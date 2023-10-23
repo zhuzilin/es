@@ -30,7 +30,7 @@ TEST(TestProgram, SimpleAssign0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
+    EXPECT_EQ(Type::JS_REF, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, static_cast<Handle<Reference>>(res.value())));
     EXPECT_EQ(1, num.val()->data());
     EXPECT_EQ(true, e.val()->IsOk());
@@ -45,7 +45,7 @@ TEST(TestProgram, SimpleAssign1) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
+    EXPECT_EQ(Type::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(2, num.val()->data());
@@ -61,7 +61,7 @@ TEST(TestProgram, CompoundAssign0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
+    EXPECT_EQ(Type::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(2, num.val()->data());
@@ -77,7 +77,7 @@ TEST(TestProgram, Call0) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_NUMBER, res.value().val()->type());
+    EXPECT_EQ(Type::JS_NUMBER, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(res.value());
     EXPECT_EQ(3, num.val()->data());
     EXPECT_EQ(true, e.val()->IsOk());
@@ -92,7 +92,7 @@ TEST(TestProgram, Call1) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_NUMBER, res.value().val()->type());
+    EXPECT_EQ(Type::JS_NUMBER, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(res.value());
     EXPECT_EQ(3, num.val()->data());
     EXPECT_EQ(true, e.val()->IsOk());
@@ -107,7 +107,7 @@ TEST(TestProgram, Call2) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_NUMBER, res.value().val()->type());
+    EXPECT_EQ(Type::JS_NUMBER, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(res.value());
     EXPECT_EQ(1, num.val()->data());
     EXPECT_EQ(true, e.val()->IsOk());
@@ -122,7 +122,7 @@ TEST(TestProgram, Call3) {
     AST* ast = parser.ParseProgram();
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
-    EXPECT_EQ(JSValue::JS_NUMBER, res.value().val()->type());
+    EXPECT_EQ(Type::JS_NUMBER, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(res.value());
     EXPECT_EQ(10, num.val()->data());
     EXPECT_EQ(true, e.val()->IsOk());
@@ -138,7 +138,7 @@ TEST(TestProgram, CallFunctionContructor) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e.val()->IsOk());
-    EXPECT_EQ(JSValue::JS_NUMBER, res.value().val()->type());
+    EXPECT_EQ(Type::JS_NUMBER, res.value().val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(res.value());
     EXPECT_EQ(5, num.val()->data());
   }
@@ -153,7 +153,7 @@ TEST(TestProgram, Object0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e.val()->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
+    EXPECT_EQ(Type::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(1, num.val()->data());
@@ -169,7 +169,7 @@ TEST(TestProgram, Object1) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e.val()->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
+    EXPECT_EQ(Type::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(10, num.val()->data());
@@ -185,7 +185,7 @@ TEST(TestProgram, Object2) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e.val()->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
+    EXPECT_EQ(Type::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(5, num.val()->data());
@@ -201,7 +201,7 @@ TEST(TestProgram, Object3) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e.val()->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
+    EXPECT_EQ(Type::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(5, num.val()->data());
@@ -223,7 +223,7 @@ TEST(TestProgram, New0) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e.val()->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
+    EXPECT_EQ(Type::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(23456, num.val()->data());
@@ -242,7 +242,7 @@ TEST(TestProgram, New1) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e.val()->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
+    EXPECT_EQ(Type::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<String> str = static_cast<Handle<String>>(GetValue(e, ref));
     EXPECT_EQ(u"abc", str.val()->data());
@@ -264,7 +264,7 @@ TEST(TestProgram, If) {
     EnterGlobalCode(e, ast);
     Completion res = EvalProgram(ast);
     EXPECT_EQ(true, e.val()->IsOk());
-    EXPECT_EQ(JSValue::JS_REF, res.value().val()->type());
+    EXPECT_EQ(Type::JS_REF, res.value().val()->type());
     Handle<Reference> ref = static_cast<Handle<Reference>>(res.value());
     Handle<Number> num = static_cast<Handle<Number>>(GetValue(e, ref));
     EXPECT_EQ(2, num.val()->data());

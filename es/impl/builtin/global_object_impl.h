@@ -33,7 +33,7 @@ Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, s
         return Undefined::Instance();
     default: {
       ASSERT(result.type() == Completion::THROW);
-      Handle<HeapObject> return_value = result.value();
+      Handle<JSValue> return_value = result.value();
       if (return_value.val()->IsError()) {
         e = return_value;
       } else {

@@ -17,53 +17,53 @@ std::unordered_map<size_t, size_t> kExpandHashMapSize = {
   {67, 67},
 };
 
-class ListNode : public HeapObject {
+class ListNode : public JSValue {
   public:
-  static Handle<ListNode> New(Handle<String> key, Handle<HeapObject> val) {
+  static Handle<ListNode> New(Handle<String> key, Handle<JSValue> val) {
 #ifdef GC_DEBUG
     if (unlikely(log::Debugger::On()))
       std::cout << "ListNode::New" << "\n";
 #endif
-    Handle<HeapObject> heap_obj = HeapObject::New(3 * kPtrSize);
+    Handle<JSValue> jsval = HeapObject::New(3 * kPtrSize);
 
-    SET_HANDLE_VALUE(heap_obj.val(), kKeyOffset, key, String);
-    SET_HANDLE_VALUE(heap_obj.val(), kValOffset, val, HeapObject);
-    SET_HANDLE_VALUE(heap_obj.val(), kNextOffset, Handle<ListNode>(), ListNode);
-    heap_obj.val()->SetType(LIST_NODE);
-    return Handle<ListNode>(heap_obj);
+    SET_HANDLE_VALUE(jsval.val(), kKeyOffset, key, String);
+    SET_HANDLE_VALUE(jsval.val(), kValOffset, val, JSValue);
+    SET_HANDLE_VALUE(jsval.val(), kNextOffset, Handle<ListNode>(), ListNode);
+    jsval.val()->SetType(LIST_NODE);
+    return Handle<ListNode>(jsval);
   }
 
   String* key() { return READ_VALUE(this, kKeyOffset, String*); }
-  HeapObject* val() { return READ_VALUE(this, kValOffset, HeapObject*); }
-  void SetVal(HeapObject* val) { SET_VALUE(this, kValOffset, val, HeapObject*); }
+  JSValue* val() { return READ_VALUE(this, kValOffset, JSValue*); }
+  void SetVal(JSValue* val) { SET_VALUE(this, kValOffset, val, JSValue*); }
   ListNode* next() { return READ_VALUE(this, kNextOffset, ListNode*); }
   void SetNext(ListNode* next) { SET_VALUE(this, kNextOffset, next, ListNode*); }
 
   public:
-  static constexpr size_t kKeyOffset = kHeapObjectOffset;
+  static constexpr size_t kKeyOffset = HeapObject::kHeapObjectOffset;
   static constexpr size_t kValOffset = kKeyOffset + kPtrSize;
   static constexpr size_t kNextOffset = kValOffset + kPtrSize;
 };
 
 // NOTE(zhuzilin) For now, the key type will be String*.
-class HashMap : public HeapObject {
+class HashMap : public JSValue {
  public:
   static Handle<HashMap> New(size_t num_bucket = kDefaultHashMapSize) {
 #ifdef GC_DEBUG
     if (unlikely(log::Debugger::On()))
       std::cout << "HashMap::New" << "\n";
 #endif
-    Handle<HeapObject> heap_obj = HeapObject::New(kElementOffset + num_bucket * kPtrSize - kHeapObjectOffset);
+    Handle<JSValue> jsval = HeapObject::New(kElementOffset + num_bucket * kPtrSize - HeapObject::kHeapObjectOffset);
 
-    SET_VALUE(heap_obj.val(), kInlineCacheOffset, nullptr, ListNode*);
-    SET_VALUE(heap_obj.val(), kNumBucketOffset, num_bucket, size_t);
-    SET_VALUE(heap_obj.val(), kSizeOffset, 0, size_t);
+    SET_VALUE(jsval.val(), kInlineCacheOffset, nullptr, ListNode*);
+    SET_VALUE(jsval.val(), kNumBucketOffset, num_bucket, size_t);
+    SET_VALUE(jsval.val(), kSizeOffset, 0, size_t);
     for (size_t i = 0; i < num_bucket; i++) {
-      SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, Handle<ListNode>(), ListNode);
+      SET_HANDLE_VALUE(jsval.val(), kElementOffset + i * kPtrSize, Handle<ListNode>(), ListNode);
     }
 
-    heap_obj.val()->SetType(HASHMAP);
-    return Handle<HashMap>(heap_obj);
+    jsval.val()->SetType(HASHMAP);
+    return Handle<HashMap>(jsval);
   }
 
   size_t size() { return READ_VALUE(this, kSizeOffset, size_t); }
@@ -74,7 +74,7 @@ class HashMap : public HeapObject {
   void SetInlineCache(ListNode* node) { SET_VALUE(this, kInlineCacheOffset, node, ListNode*); }
 
   // Set can not be method as there can be gc happening inside.
-  static Handle<HashMap> Set(Handle<HashMap> map, Handle<String> key, Handle<HeapObject> val) {
+  static Handle<HashMap> Set(Handle<HashMap> map, Handle<String> key, Handle<JSValue> val) {
     // inline cache
     ListNode* cache = map.val()->inline_cache();
     if (cache != nullptr && *cache->key() == *key.val()) {
@@ -164,11 +164,11 @@ class HashMap : public HeapObject {
     return new_map;
   }
 
-  Handle<HeapObject> Get(Handle<String> key) {
-    return Handle<HeapObject>(GetRaw(key));
+  Handle<JSValue> Get(Handle<String> key) {
+    return Handle<JSValue>(GetRaw(key));
   }
 
-  HeapObject* GetRaw(Handle<String> key) {
+  JSValue* GetRaw(Handle<String> key) {
     // inline cache
     ListNode* cache = inline_cache();
     if (cache != nullptr && *cache->key() == *key.val()) {
@@ -211,7 +211,7 @@ class HashMap : public HeapObject {
     }
   }
 
-  std::vector<std::pair<String*, HeapObject*>> SortedKeyValPairs(bool (*filter)(HeapObject*)) {
+  std::vector<std::pair<String*, JSValue*>> SortedKeyValPairs(bool (*filter)(JSValue*)) {
     std::priority_queue<ListNode*, std::vector<ListNode*>, CompareListNode> pq;
     for (size_t i = 0; i < num_bucket(); i++) {
       size_t offset = kElementOffset + i * kPtrSize;
@@ -220,7 +220,7 @@ class HashMap : public HeapObject {
         pq.push(head);
       }
     }
-    std::vector<std::pair<String*, HeapObject*>> result;
+    std::vector<std::pair<String*, JSValue*>> result;
     while (!pq.empty()) {
       ListNode* node = pq.top();
       pq.pop();
@@ -296,7 +296,7 @@ class HashMap : public HeapObject {
   }
 
  public:
-  static constexpr size_t kInlineCacheOffset = kHeapObjectOffset;
+  static constexpr size_t kInlineCacheOffset = HeapObject::kHeapObjectOffset;
   static constexpr size_t kNumBucketOffset = kInlineCacheOffset + kPtrSize;
   static constexpr size_t kSizeOffset = kNumBucketOffset + kSizeTSize;
   static constexpr size_t kElementOffset = kSizeOffset + kSizeTSize;

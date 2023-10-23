@@ -27,28 +27,28 @@ TEST(TestPrimitiveConversion, ToPrimitive) {
   Handle<JSValue> val;
   Handle<Error> e = Error::Ok();
   val = ToPrimitive(e, Undefined::Instance(), u"");
-  EXPECT_EQ(JSValue::JS_UNDEFINED, val.val()->type());
+  EXPECT_EQ(Type::JS_UNDEFINED, val.val()->type());
 
   val = ToPrimitive(e, Null::Instance(), u"");
-  EXPECT_EQ(JSValue::JS_NULL, val.val()->type());
+  EXPECT_EQ(Type::JS_NULL, val.val()->type());
 
   for (auto inner : {true, false}) {
     val = ToPrimitive(e, Bool::Wrap(inner), u"");
-    EXPECT_EQ(JSValue::JS_BOOL, val.val()->type());
+    EXPECT_EQ(Type::JS_BOOL, val.val()->type());
     auto outer = static_cast<Handle<Bool>>(val);
     EXPECT_EQ(inner, outer.val()->data());
   }
 
   for (auto inner : {1.0, 2.2, 3.5}) {
     val = ToPrimitive(e, Number::New(inner), u"");
-    EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+    EXPECT_EQ(Type::JS_NUMBER, val.val()->type());
     auto outer = static_cast<Handle<Number>>(val);
     EXPECT_EQ(inner, outer.val()->data());
   }
 
   for (auto inner : {u"abc", u"\n", u"你好", u"😎"}) {
     val = ToPrimitive(e, String::New(inner), u"");
-    EXPECT_EQ(JSValue::JS_STRING, val.val()->type());
+    EXPECT_EQ(Type::JS_STRING, val.val()->type());
     auto outer = static_cast<Handle<String>>(val);
     EXPECT_EQ(inner, outer.val()->data());
   }

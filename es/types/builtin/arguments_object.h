@@ -29,7 +29,7 @@ class ArgumentsObject : public JSObject {
 class GetterSetter : public JSValue {
  public:
   static Handle<GetterSetter> New(Handle<Reference> ref) {
-    Handle<JSValue> jsval = JSValue::New(kPtrSize, 0);
+    Handle<JSValue> jsval = HeapObject::New(kPtrSize, 0);
 
     SET_HANDLE_VALUE(jsval.val(), kReferenceOffset, ref, Reference);
 
@@ -40,7 +40,7 @@ class GetterSetter : public JSValue {
   Handle<Reference> ref() { return READ_HANDLE_VALUE(this, kReferenceOffset, Reference); }
 
  public:
-  static constexpr size_t kReferenceOffset = kHeapObjectOffset;
+  static constexpr size_t kReferenceOffset = HeapObject::kHeapObjectOffset;
 };
 
 Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P);

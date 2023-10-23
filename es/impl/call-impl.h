@@ -17,20 +17,20 @@ Handle<JSValue> Call(
     }
   } else if (O.val()->IsConstructor()) {
     switch (O.val()->type()) {
-      case JSObject::OBJ_BOOL_CONSTRUCTOR:
+      case Type::OBJ_BOOL_CONSTRUCTOR:
         return Call__BoolConstructor(e, static_cast<Handle<BoolConstructor>>(O), this_arg, arguments);
-      case JSObject::OBJ_NUMBER_CONSTRUCTOR:
+      case Type::OBJ_NUMBER_CONSTRUCTOR:
         return Call__NumberConstructor(e, static_cast<Handle<NumberConstructor>>(O), this_arg, arguments);
-      case JSObject::OBJ_OBJECT_CONSTRUCTOR:
+      case Type::OBJ_OBJECT_CONSTRUCTOR:
         return Call__ObjectConstructor(e, static_cast<Handle<ObjectConstructor>>(O), this_arg, arguments);
-      case JSObject::OBJ_REGEXP_CONSTRUCTOR:
+      case Type::OBJ_REGEXP_CONSTRUCTOR:
         return Call__RegExpConstructor(e, static_cast<Handle<RegExpConstructor>>(O), this_arg, arguments);
-      case JSObject::OBJ_STRING_CONSTRUCTOR:
+      case Type::OBJ_STRING_CONSTRUCTOR:
         return Call__StringConstructor(e, static_cast<Handle<StringConstructor>>(O), this_arg, arguments);
-      case JSObject::OBJ_FUNC_CONSTRUCTOR:
-      case JSObject::OBJ_ARRAY_CONSTRUCTOR:
-      case JSObject::OBJ_DATE_CONSTRUCTOR:
-      case JSObject::OBJ_ERROR_CONSTRUCTOR:
+      case Type::OBJ_FUNC_CONSTRUCTOR:
+      case Type::OBJ_ARRAY_CONSTRUCTOR:
+      case Type::OBJ_DATE_CONSTRUCTOR:
+      case Type::OBJ_ERROR_CONSTRUCTOR:
         // 15.3.1.1 Function (p1, p2, … , pn, body)
         // 15.5.1.1 Array ( [ value ] )
         // 15.9.2.1 Date ( [ year [, month [, date [, hours [, minutes [, seconds [, ms ] ] ] ] ] ] ] )
@@ -85,7 +85,7 @@ Handle<JSValue> Call__Function(
     case Completion::THROW: {
       if (unlikely(log::Debugger::On()))
         log::PrintSource("exit FunctionObject::Call THROW");
-      Handle<HeapObject> throw_value = result.value();
+      Handle<JSValue> throw_value = result.value();
       if (throw_value.val()->IsError()) {
         e = throw_value;
         if (unlikely(log::Debugger::On()))

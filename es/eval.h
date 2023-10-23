@@ -108,7 +108,7 @@ Completion EvalProgram(AST* ast) {
 Completion EvalStatement(AST* ast) {
   TEST_LOG("EvalStatement ", ast->source().substr(0, 50));
   Completion C(Completion::NORMAL, Handle<JSValue>(), u"");
-  HeapObject* val = nullptr;
+  JSValue* val = nullptr;
   {
     HandleScope scope;
     switch(ast->type()) {
@@ -253,7 +253,6 @@ Completion EvalDoWhileStatement(AST* ast) {
   Handle<JSValue> expr_ref;
   Handle<JSValue> val;
   Completion stmt;
-  bool has_label;
   while (true) {
     stmt = EvalStatement(loop_stmt->stmt());
     switch (stmt.type()) {
@@ -303,7 +302,6 @@ Completion EvalWhileStatement(AST* ast) {
   Handle<JSValue> expr_ref;
   Handle<JSValue> val;
   Completion stmt;
-  bool has_label;
   while (true) {
     expr_ref = EvalExpression(e, loop_stmt->expr());
     if (unlikely(!e.val()->IsOk())) goto error;
@@ -352,7 +350,6 @@ Completion EvalForStatement(AST* ast) {
   For* for_stmt = static_cast<For*>(ast);
   // Handle<JSValue> V;  // V is substitued by stmt.value()
   Completion stmt;
-  bool has_label;
   for (auto expr : for_stmt->expr0s()) {
     if (expr->type() == AST::AST_STMT_VAR_DECL) {
       EvalVarDecl(e, expr);
@@ -1238,16 +1235,16 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
         Handle<JSValue> val = GetValue(e, expr);
         if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         switch (val.val()->type()) {
-          case JSValue::JS_UNDEFINED:
+          case Type::JS_UNDEFINED:
             return String::Undefined();
-          case JSValue::JS_NULL:
+          case Type::JS_NULL:
             return String::New(u"object");
-          case JSValue::JS_BOOL:
+          case Type::JS_BOOL:
             return String::New(u"boolean");
-          case JSValue::JS_NUMBER:
+          case Type::JS_NUMBER:
             return String::New(u"number");
-          case JSValue::JS_LONG_STRING:
-          case JSValue::JS_STRING:
+          case Type::JS_LONG_STRING:
+          case Type::JS_STRING:
             return String::New(u"string");
           default:
             if (val.val()->IsCallable())

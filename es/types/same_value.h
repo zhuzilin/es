@@ -9,11 +9,11 @@ bool SameValue(Handle<JSValue> x, Handle<JSValue> y) {
   if (x.val()->type() != y.val()->type())
     return false;
   switch (x.val()->type()) {
-    case JSValue::JS_UNDEFINED:
+    case Type::JS_UNDEFINED:
       return true;
-    case JSValue::JS_NULL:
+    case Type::JS_NULL:
       return true;
-    case JSValue::JS_NUMBER: {
+    case Type::JS_NUMBER: {
       Handle<Number> num_x = static_cast<Handle<Number>>(x);
       Handle<Number> num_y = static_cast<Handle<Number>>(y);
       if (num_x.val()->IsNaN() && num_y.val()->IsNaN())
@@ -25,13 +25,13 @@ bool SameValue(Handle<JSValue> x, Handle<JSValue> y) {
       }
       return dx == dy;
     }
-    case JSValue::JS_LONG_STRING:
-    case JSValue::JS_STRING: {
+    case Type::JS_LONG_STRING:
+    case Type::JS_STRING: {
       Handle<String> str_x = static_cast<Handle<String>>(x);
       Handle<String> str_y = static_cast<Handle<String>>(y);
       return str_x.val()->data() == str_y.val()->data();
     }
-    case JSValue::JS_BOOL: {
+    case Type::JS_BOOL: {
       Handle<Bool> b_x = static_cast<Handle<Bool>>(x);
       Handle<Bool> b_y = static_cast<Handle<Bool>>(y);
       return b_x.val()->data() == b_y.val()->data();

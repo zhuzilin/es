@@ -58,7 +58,7 @@ TEST(TestEvalExpr, Arithmetic) {
       Parser parser(source);
       AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
       Handle<JSValue> val = EvalBinaryExpression(e, ast);
-      EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+      EXPECT_EQ(Type::JS_NUMBER, val.val()->type());
       Handle<Number> num = static_cast<Handle<Number>>(val);
       EXPECT_EQ(pair.second, num.val()->data());
     }
@@ -77,7 +77,7 @@ TEST(TestEvalExpr, Arithmetic) {
       Parser parser(source);
       AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
       Handle<JSValue> val = EvalBinaryExpression(e, ast);
-      EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+      EXPECT_EQ(Type::JS_NUMBER, val.val()->type());
       Handle<Number> num = static_cast<Handle<Number>>(val);
       EXPECT_EQ(true, isnan(num.val()->data()));
     }
@@ -97,7 +97,7 @@ TEST(TestEvalExpr, Arithmetic) {
       Parser parser(source);
       AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
       Handle<JSValue> val = EvalBinaryExpression(e, ast);
-      EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+      EXPECT_EQ(Type::JS_NUMBER, val.val()->type());
       Handle<Number> num = static_cast<Handle<Number>>(val);
       EXPECT_EQ(true, isinf(num.val()->data()));
       EXPECT_EQ(pair.second, signbit(num.val()->data()));
@@ -115,7 +115,7 @@ TEST(TestEvalExpr, Arithmetic) {
       Parser parser(source);
       AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
       Handle<JSValue> val = EvalBinaryExpression(e, ast);
-      EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+      EXPECT_EQ(Type::JS_NUMBER, val.val()->type());
       Handle<Number> num = static_cast<Handle<Number>>(val);
       EXPECT_EQ(0, num.val()->data());
       EXPECT_EQ(pair.second, signbit(num.val()->data()));
@@ -151,7 +151,7 @@ TEST(TestEvalExpr, String) {
       Parser parser(source);
       AST* ast = parser.ParseBinaryAndUnaryExpression(false, 0);
       Handle<JSValue> val = EvalBinaryExpression(e, ast);
-      EXPECT_EQ(JSValue::JS_STRING, val.val()->type());
+      EXPECT_EQ(Type::JS_STRING, val.val()->type());
       Handle<String> str = static_cast<Handle<String>>(val);
       EXPECT_EQ(pair.second, str.val()->data());
     }
@@ -178,7 +178,7 @@ TEST(TestEvalExpr, SimpleAssign) {
     AST* ast = parser.ParseAssignmentExpression(false);
     EnterGlobalCode(e, ast);
     Handle<JSValue> val = EvalBinaryExpression(e, ast);
-    EXPECT_EQ(JSValue::JS_NUMBER, val.val()->type());
+    EXPECT_EQ(Type::JS_NUMBER, val.val()->type());
     Handle<Number> num = static_cast<Handle<Number>>(val);
     EXPECT_EQ(1, num.val()->data());
   }

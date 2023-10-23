@@ -13,7 +13,7 @@ bool SameValue(Handle<JSValue> x, Handle<JSValue> y);
 class PropertyDescriptor : public JSValue {
  public:
   static Handle<PropertyDescriptor> New() {
-    Handle<JSValue> jsval = JSValue::New(kConfigurableOffset + kBoolSize - kBitmapOffset);
+    Handle<JSValue> jsval = HeapObject::New(kConfigurableOffset + kBoolSize - kBitmapOffset);
 
     SET_VALUE(jsval.val(), kBitmapOffset, 0, char);
     SET_HANDLE_VALUE(jsval.val(), kValueOffset, Undefined::Instance(), JSValue);

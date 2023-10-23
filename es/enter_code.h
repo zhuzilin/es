@@ -243,7 +243,7 @@ void EnterFunctionCode(
   Handle<Error>& e, Handle<JSObject> F, ProgramOrFunctionBody* body,
   Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict
 ) {
-  ASSERT(F.val()->type() == JSObject::OBJ_FUNC);
+  ASSERT(F.val()->type() == Type::OBJ_FUNC);
   Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(F);
   Handle<JSValue> this_binding;
   if (strict) {  // 1

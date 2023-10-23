@@ -14,7 +14,7 @@ namespace es {
 class EnvironmentRecord : public JSValue {
  public:
   static Handle<EnvironmentRecord> New(size_t size) {
-    Handle<JSValue> jsval = JSValue::New(size);
+    Handle<JSValue> jsval = HeapObject::New(size);
     return static_cast<Handle<EnvironmentRecord>>(jsval);
   }
 
@@ -25,21 +25,21 @@ class EnvironmentRecord : public JSValue {
   static constexpr size_t kEnvironmentRecordOffset = kJSValueOffset;
 };
 
-class Binding : public HeapObject {
+class Binding : public JSValue {
  public:
   static Handle<Binding> New(Handle<JSValue> value, bool can_delete, bool is_mutable) {
 #ifdef GC_DEBUG
     if (unlikely(log::Debugger::On()))
       std::cout << "Binding::New" << "\n";
 #endif
-    Handle<HeapObject> heap_obj = HeapObject::New(kBindingOffset - kHeapObjectOffset);
+    Handle<JSValue> jsval = HeapObject::New(kBindingOffset - HeapObject::kHeapObjectOffset);
 
-    SET_HANDLE_VALUE(heap_obj.val(), kValueOffset, value, JSValue);
-    SET_VALUE(heap_obj.val(), kCanDeleteOffset, can_delete, bool);
-    SET_VALUE(heap_obj.val(), kIsMutableOffset, is_mutable, bool);
+    SET_HANDLE_VALUE(jsval.val(), kValueOffset, value, JSValue);
+    SET_VALUE(jsval.val(), kCanDeleteOffset, can_delete, bool);
+    SET_VALUE(jsval.val(), kIsMutableOffset, is_mutable, bool);
 
-    heap_obj.val()->SetType(BINDING);
-    return Handle<Binding>(heap_obj);
+    jsval.val()->SetType(BINDING);
+    return Handle<Binding>(jsval);
   }
 
   Handle<JSValue> value() { return READ_HANDLE_VALUE(this, kValueOffset, JSValue); };
@@ -48,7 +48,7 @@ class Binding : public HeapObject {
   bool is_mutable() { return READ_VALUE(this, kIsMutableOffset, bool); }
 
  public:
-  static constexpr size_t kValueOffset = kHeapObjectOffset;
+  static constexpr size_t kValueOffset = HeapObject::kHeapObjectOffset;
   static constexpr size_t kCanDeleteOffset = kValueOffset + kPtrSize;
   static constexpr size_t kIsMutableOffset = kCanDeleteOffset + kBoolSize;
   static constexpr size_t kBindingOffset = kIsMutableOffset + kBoolSize;

@@ -5,7 +5,7 @@
 
 namespace es {
 
-class FixedArray : public HeapObject {
+class FixedArray : public JSValue {
  public:
   template<typename T>
   static Handle<FixedArray> New(std::vector<Handle<T>> elements) {
@@ -14,23 +14,23 @@ class FixedArray : public HeapObject {
     if (unlikely(log::Debugger::On()))
       std::cout << "FixedArray::New " << n << "\n";
 #endif
-    Handle<HeapObject> heap_obj = HeapObject::New(kSizeTSize + n * kPtrSize);
+    Handle<JSValue> jsval = HeapObject::New(kSizeTSize + n * kPtrSize);
 
-    SET_VALUE(heap_obj.val(), kSizeOffset, n, size_t);
+    SET_VALUE(jsval.val(), kSizeOffset, n, size_t);
     for (size_t i = 0; i < n; i++) {
-      SET_HANDLE_VALUE(heap_obj.val(), kElementOffset + i * kPtrSize, elements[i], HeapObject);
+      SET_HANDLE_VALUE(jsval.val(), kElementOffset + i * kPtrSize, elements[i], JSValue);
     }
-    heap_obj.val()->SetType(FIXED_ARRAY);
-    return Handle<FixedArray>(heap_obj);
+    jsval.val()->SetType(FIXED_ARRAY);
+    return Handle<FixedArray>(jsval);
   }
 
   size_t size() { return READ_VALUE(this, kSizeOffset, size_t); }
-  Handle<HeapObject> Get(size_t i) { return READ_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, HeapObject); }
-  HeapObject* GetRaw(size_t i) { return READ_VALUE(this, kElementOffset + i * kPtrSize, HeapObject*); }
-  void Set(size_t i, Handle<HeapObject> val) { SET_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, val, HeapObject); }
+  Handle<JSValue> Get(size_t i) { return READ_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, JSValue); }
+  JSValue* GetRaw(size_t i) { return READ_VALUE(this, kElementOffset + i * kPtrSize, JSValue*); }
+  void Set(size_t i, Handle<JSValue> val) { SET_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, val, JSValue); }
 
  public:
-  static constexpr size_t kSizeOffset = kHeapObjectOffset;
+  static constexpr size_t kSizeOffset = HeapObject::kHeapObjectOffset;
   static constexpr size_t kElementOffset = kSizeOffset + kSizeTSize;
 };
 

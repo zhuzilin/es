@@ -35,7 +35,7 @@ class JSObject : public JSValue {
     if (unlikely(log::Debugger::On()))
       std::cout << "JSObject::New " << log::ToString(klass) << "\n";
 #endif
-    Handle<JSValue> jsval = JSValue::New(kJSObjectOffset - kJSValueOffset + size, flag);
+    Handle<JSValue> jsval = HeapObject::New(kJSObjectOffset - kJSValueOffset + size, flag);
     // NOTE(zhuzilin) We need to put the operation that may need memory allocation to
     // the front, because the jsval is not initialized with JSObject vptr and therefore
     // could not forward the pointers.
@@ -87,9 +87,9 @@ class JSObject : public JSValue {
 
   // This for for-in statement.
   std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> AllEnumerableProperties() {
-    auto filter = [](HeapObject* heap_obj) {
+    auto filter = [](JSValue* jsval) {
       ASSERT(heap_obj->IsPropertyDescriptor());
-      PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(heap_obj);
+      PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(jsval);
       return desc->HasEnumerable() && desc->Enumerable();
     };
     std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> result;

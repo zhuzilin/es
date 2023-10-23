@@ -7,7 +7,7 @@
 
 namespace es {
 
-class Error : public HeapObject {
+class Error : public JSValue {
  public:
   enum ErrorType {
     E_OK = 0,
@@ -93,17 +93,17 @@ class Error : public HeapObject {
 #ifdef GC_DEBUG
     TEST_LOG("Error::New\n");
 #endif
-    Handle<HeapObject> heap_obj = HeapObject::New(kIntSize + kPtrSize, flag);
+    Handle<JSValue> jsval = HeapObject::New(kIntSize + kPtrSize, flag);
 
-    SET_VALUE(heap_obj.val(), kErrorTypeOffset, t, ErrorType);
-    SET_HANDLE_VALUE(heap_obj.val(), kValueOffset, val, JSValue);
-    heap_obj.val()->SetType(ERROR);
+    SET_VALUE(jsval.val(), kErrorTypeOffset, t, ErrorType);
+    SET_HANDLE_VALUE(jsval.val(), kValueOffset, val, JSValue);
+    jsval.val()->SetType(ERROR);
 
-    return Handle<Error>(heap_obj);
+    return Handle<Error>(jsval);
   }
 
  public:
-  static constexpr size_t kErrorTypeOffset = kHeapObjectOffset;
+  static constexpr size_t kErrorTypeOffset = HeapObject::kHeapObjectOffset;
   static constexpr size_t kValueOffset = kErrorTypeOffset + kIntSize;
 };
 

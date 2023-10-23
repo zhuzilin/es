@@ -177,7 +177,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
   void Add(void* worklist, void* ref) {}
 
   void Stats() {
-    std::map<HeapObject::Type, size_t> stats;
+    std::map<Type, size_t> stats;
     char* ptr = tospace_;
     while (ptr != free_) {
       Header* header = reinterpret_cast<Header*>(ptr);

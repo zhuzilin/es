@@ -15,23 +15,23 @@ Handle<JSObject> Construct(Handle<Error>& e, Handle<JSObject> O, std::vector<Han
     }
   } else if (O.val()->IsConstructor()) {
     switch (O.val()->type()) {
-      case JSObject::OBJ_BOOL_CONSTRUCTOR:
+      case Type::OBJ_BOOL_CONSTRUCTOR:
         return Construct__BoolConstructor(e, static_cast<Handle<BoolConstructor>>(O), arguments);
-      case JSObject::OBJ_NUMBER_CONSTRUCTOR:
+      case Type::OBJ_NUMBER_CONSTRUCTOR:
         return Construct__NumberConstructor(e, static_cast<Handle<NumberConstructor>>(O), arguments);
-      case JSObject::OBJ_OBJECT_CONSTRUCTOR:
+      case Type::OBJ_OBJECT_CONSTRUCTOR:
         return Construct__ObjectConstructor(e, static_cast<Handle<ObjectConstructor>>(O), arguments);
-      case JSObject::OBJ_REGEXP_CONSTRUCTOR:
+      case Type::OBJ_REGEXP_CONSTRUCTOR:
         return Construct__RegExpConstructor(e, static_cast<Handle<RegExpConstructor>>(O), arguments);
-      case JSObject::OBJ_STRING_CONSTRUCTOR:
+      case Type::OBJ_STRING_CONSTRUCTOR:
         return Construct__StringConstructor(e, static_cast<Handle<StringConstructor>>(O), arguments);
-      case JSObject::OBJ_FUNC_CONSTRUCTOR:
+      case Type::OBJ_FUNC_CONSTRUCTOR:
         return Construct__FunctionConstructor(e, static_cast<Handle<FunctionConstructor>>(O), arguments);
-      case JSObject::OBJ_ARRAY_CONSTRUCTOR:
+      case Type::OBJ_ARRAY_CONSTRUCTOR:
         return Construct__ArrayConstructor(e, static_cast<Handle<ArrayConstructor>>(O), arguments);
-      case JSObject::OBJ_DATE_CONSTRUCTOR:
+      case Type::OBJ_DATE_CONSTRUCTOR:
         assert(false);
-      case JSObject::OBJ_ERROR_CONSTRUCTOR:
+      case Type::OBJ_ERROR_CONSTRUCTOR:
         return Construct__ErrorConstructor(e, static_cast<Handle<ErrorConstructor>>(O), arguments);
       default:
         assert(false);
@@ -47,7 +47,7 @@ Handle<JSObject> Construct__Function(
   TEST_LOG("enter FunctionObject::Construct");
   // NOTE(zhuzilin) I'm not sure if the object type should be OBJ_OBJECT or OBJ_OTHER...
   Handle<JSObject> obj = JSObject::New(u"Object", true, Handle<JSValue>(), false, false, nullptr, 0);
-  obj.val()->SetType(HeapObject::OBJ_OBJECT);
+  obj.val()->SetType(Type::OBJ_OBJECT);
   Handle<JSValue> proto = Get(e, O, String::Prototype());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   if (proto.val()->IsObject()) {  // 6
@@ -199,13 +199,13 @@ Handle<JSObject> Construct__ObjectConstructor(
   if (arguments.size() > 0) {  // 1
     Handle<JSValue> value = arguments[0];
     switch (value.val()->type()) {
-      case JSValue::JS_OBJECT:
+      case Type::JS_OBJECT:
         // TODO(zhuzilin) deal with host object.
         return static_cast<Handle<JSObject>>(value);
-      case JSValue::JS_LONG_STRING:
-      case JSValue::JS_STRING:
-      case JSValue::JS_BOOL:
-      case JSValue::JS_NUMBER:
+      case Type::JS_LONG_STRING:
+      case Type::JS_STRING:
+      case Type::JS_BOOL:
+      case Type::JS_NUMBER:
         return ToObject(e, value);
       default:
         break;

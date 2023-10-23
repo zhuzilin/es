@@ -11,22 +11,62 @@
 
 namespace es {
 
-class JSValue : public HeapObject {
+class JSValue {
  public:
-  static Handle<JSValue> New(size_t size, flag_t flag = 0) {
-#ifdef GC_DEBUG
-    if (unlikely(log::Debugger::On()))
-      std::cout << "JSValue::New " << " " << size << " " << "\n";
-#endif
-    Handle<HeapObject> mem = HeapObject::New(size, flag);
-    return Handle<JSValue>(mem);
-  }
-
   bool IsCallable();
   bool IsConstructor();
 
+  inline bool IsUndefined() { return type() == JS_UNDEFINED; }
+  inline bool IsNull() { return type() == JS_NULL; }
+  inline bool IsBool() { return type() == JS_BOOL; }
+  inline bool IsString() { return type() == JS_STRING || type() == JS_LONG_STRING; }
+  inline bool IsNumber() { return type() == JS_NUMBER; }
+  inline bool IsPrimitive() { return !IsObject(); }
+
+  inline bool IsObject() { return (type() & JS_OBJECT) != 0; }
+  inline bool IsPrototype() { return IsNull() || IsObject(); }
+
+  inline bool IsBoolObject() { return type() == OBJ_BOOL; }
+  inline bool IsNumberObject() { return type() == OBJ_NUMBER; }
+  inline bool IsArrayObject() { return type() == OBJ_ARRAY; }
+  inline bool IsRegExpObject() { return type() == OBJ_REGEXP; }
+  inline bool IsErrorObject() { return type() == OBJ_ERROR; }
+  inline bool IsFunctionObject() { return type() == OBJ_FUNC || type() == OBJ_BIND_FUNC; }
+  inline bool IsStringObject() { return type() == OBJ_STRING; }
+  inline bool IsDateObject() { return type() == OBJ_DATE; }
+  inline bool IsArgumentsObject() { return type() == OBJ_ARGUMENTS; }
+
+  inline bool IsFunctionProto() { return type() == OBJ_FUNC_PROTO; }
+
+  inline bool IsBoolConstructor() { return type() == OBJ_BOOL_CONSTRUCTOR; }
+  inline bool IsNumberConstructor() { return type() == OBJ_NUMBER_CONSTRUCTOR; }
+  inline bool IsObjectConstructor() { return type() == OBJ_OBJECT_CONSTRUCTOR; }
+  inline bool IsRegExpConstructor() { return type() == OBJ_REGEXP_CONSTRUCTOR; }
+  inline bool IsStringConstructor() { return type() == OBJ_STRING_CONSTRUCTOR; }
+
+  inline bool IsJSValue() { return (type() & NON_JSVALUE) == 0; }
+  inline bool IsLanguageType() { return !IsSpecificationType(); }
+  inline bool IsSpecificationType() { return type() & SPEC_TYPE; }
+
+  inline bool IsReference() { return type() == JS_REF; }
+  inline bool IsPropertyDescriptor() { return type() == JS_PROP_DESC; }
+  inline bool IsEnvironmentRecord() { return type() == JS_ENV_REC_DECL || type() == JS_ENV_REC_OBJ; }
+  inline bool IsLexicalEnvironment() { return type() == JS_LEX_ENV; }
+
+  inline bool IsGetterSetter() { return type() == JS_GET_SET; }
+
+  inline bool IsError() { return type() == ERROR; }
+
+  inline Type type() { return type_; }
+  inline void SetType(Type t) { type_ = t; }
+
+  static std::string ToString(JSValue* jsval);
+
  public:
-  static constexpr size_t kJSValueOffset = kHeapObjectOffset;
+  static constexpr size_t kJSValueOffset = HeapObject::kHeapObjectOffset;
+
+ private:
+  Type type_;
 };
 
 class Undefined : public JSValue {
@@ -38,7 +78,7 @@ class Undefined : public JSValue {
 
  private:
   static Handle<Undefined> New(flag_t flag) {
-    Handle<JSValue> jsval = JSValue::New(0, flag);
+    Handle<JSValue> jsval = HeapObject::New(0, flag);
 
     jsval.val()->SetType(JS_UNDEFINED);
     return Handle<Undefined>(jsval);
@@ -54,7 +94,7 @@ class Null : public JSValue {
 
  private:
   static Handle<Null> New(flag_t flag) {
-    Handle<JSValue> jsval = JSValue::New(0, flag);
+    Handle<JSValue> jsval = HeapObject::New(0, flag);
 
     jsval.val()->SetType(JS_NULL);
     return Handle<Null>(jsval);
@@ -80,7 +120,7 @@ class Bool : public JSValue {
 
  private:
   static Handle<Bool> New(bool val, flag_t flag) {
-    Handle<JSValue> jsval = JSValue::New(kBoolSize, flag);
+    Handle<JSValue> jsval = HeapObject::New(kBoolSize, flag);
 
     SET_VALUE(jsval.val(), kJSValueOffset, val, bool);
 
@@ -110,7 +150,7 @@ class String : public JSValue {
   }
 
   static Handle<String> New(size_t n, flag_t flag = 0) {
-    Handle<JSValue> jsval = JSValue::New(kSizeTSize + n * kChar16Size, flag);
+    Handle<JSValue> jsval = HeapObject::New(kSizeTSize + n * kChar16Size, flag);
 
     if (n < kLongStringSize) {
       // The last digit is for decide whether hash is calculated.
@@ -300,7 +340,7 @@ bool operator <(String& a, String& b) {
 class Number : public JSValue {
  public:
   static Handle<Number> New(double data, flag_t flag = 0) {
-    Handle<JSValue> jsval = JSValue::New(kDoubleSize, flag);
+    Handle<JSValue> jsval = HeapObject::New(kDoubleSize, flag);
 
     SET_VALUE(jsval.val(), kJSValueOffset, data, double);
 
