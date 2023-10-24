@@ -13,20 +13,20 @@ namespace es {
 class ExecutionContext {
  public: 
   ExecutionContext(
-    Handle<LexicalEnvironment> variable_env,
-    Handle<LexicalEnvironment> lexical_env,
-    Handle<JSValue> this_binding,
+    JSValue variable_env,
+    JSValue lexical_env,
+    JSValue this_binding,
     bool strict
   ) : variable_env_(variable_env), lexical_env_(lexical_env), this_binding_(this_binding),
       strict_(strict), iteration_layers_(0), switch_layers_(0) {
   }
 
-  Handle<LexicalEnvironment> variable_env() { return variable_env_; }
-  Handle<LexicalEnvironment> lexical_env() { return lexical_env_; }
-  Handle<JSValue> this_binding() { return this_binding_; }
+  JSValue variable_env() { return variable_env_; }
+  JSValue lexical_env() { return lexical_env_; }
+  JSValue this_binding() { return this_binding_; }
   bool strict() { return strict_; }
 
-  void SetLexicalEnv(Handle<LexicalEnvironment> lexical_env) {
+  void SetLexicalEnv(JSValue lexical_env) {
     lexical_env_ = lexical_env;
   }
 
@@ -62,9 +62,9 @@ class ExecutionContext {
   bool InSwitch() { return switch_layers_ != 0; }
 
  private:
-  Handle<LexicalEnvironment> variable_env_;
-  Handle<LexicalEnvironment> lexical_env_;
-  Handle<JSValue> this_binding_;
+  JSValue variable_env_;
+  JSValue lexical_env_;
+  JSValue this_binding_;
 
   bool strict_;
   std::stack<std::u16string> label_stack_;
@@ -87,7 +87,7 @@ class Runtime {
     return Runtime::Global()->context_stack_.back();
   }
 
-  static Handle<LexicalEnvironment> TopLexicalEnv() {
+  static JSValue TopLexicalEnv() {
     return Runtime::TopContext().lexical_env();
   }
 
@@ -95,11 +95,11 @@ class Runtime {
     context_stack_.pop_back();
   }
 
-  static Handle<JSValue> TopValue() {
+  static JSValue TopValue() {
     return Runtime::Global()->value_stack_.back();
   }
 
-  void AddValue(Handle<JSValue> val) {
+  void AddValue(JSValue val) {
     value_stack_.emplace_back(val);
   }
 
@@ -112,27 +112,27 @@ class Runtime {
     return sources_[sources_.size() - 1];
   }
 
-  std::vector<HeapObject**> Pointers() {
-    std::vector<HeapObject**> pointers(3 * context_stack_.size());
-    for (size_t i = 0; i < context_stack_.size(); i++) {
-      pointers[3 * i] = reinterpret_cast<HeapObject**>(context_stack_[i].variable_env().ptr());
-      pointers[3 * i + 1] = reinterpret_cast<HeapObject**>(context_stack_[i].lexical_env().ptr());
-      pointers[3 * i + 2] = reinterpret_cast<HeapObject**>(context_stack_[i].this_binding().ptr());
-    }
-    auto scope_pointers = HandleScope::AllPointers();
-    pointers.insert(pointers.end(), scope_pointers.begin(), scope_pointers.end());
-    return pointers;
-  }
+  // std::vector<JSValue> AliveValues() {
+  //   std::vector<JSValue> values(3 * context_stack_.size());
+  //   for (size_t i = 0; i < context_stack_.size(); i++) {
+  //     values[3 * i] = context_stack_[i].variable_env();
+  //     values[3 * i + 1] = context_stack_[i].lexical_env();
+  //     values[3 * i + 2] = context_stack_[i].this_binding();
+  //   }
+  //   auto scope_values = HandleScope::AllValues();
+  //   values.insert(values.end(), scope_values.begin(), scope_values.end());
+  //   return values;
+  // }
 
  private:
   Runtime() {
-    value_stack_.emplace_back(Null::Instance());
+    value_stack_.emplace_back(null::New());
   }
 
   std::vector<ExecutionContext> context_stack_;
   // This is to make sure builtin function like `array.push()`
   // can visit `array`.
-  std::vector<Handle<JSValue>> value_stack_;
+  std::vector<JSValue> value_stack_;
   std::vector<std::u16string> sources_;
 };
 
@@ -146,7 +146,7 @@ class ValueGuard {
     }
   }
 
-  void AddValue(Handle<JSValue> val) {
+  void AddValue(JSValue val) {
     Runtime::Global()->AddValue(val);
     count_++;
   }

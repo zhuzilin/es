@@ -5,35 +5,30 @@
 
 namespace es {
 
-class FixedArray : public JSValue {
- public:
-  template<typename T>
-  static Handle<FixedArray> New(std::vector<Handle<T>> elements) {
-    size_t n = elements.size();
-#ifdef GC_DEBUG
-    if (unlikely(log::Debugger::On()))
-      std::cout << "FixedArray::New " << n << "\n";
-#endif
-    Handle<JSValue> jsval = HeapObject::New(kSizeTSize + n * kPtrSize);
+namespace fixed_array {
 
-    SET_VALUE(jsval.val(), kSizeOffset, n, size_t);
-    for (size_t i = 0; i < n; i++) {
-      SET_HANDLE_VALUE(jsval.val(), kElementOffset + i * kPtrSize, elements[i], JSValue);
-    }
-    jsval.val()->SetType(FIXED_ARRAY);
-    return Handle<FixedArray>(jsval);
+constexpr size_t kSizeOffset = 0;
+constexpr size_t kElementOffset = kSizeOffset + kSizeTSize;
+
+inline JSValue New(std::vector<JSValue> elements) {
+  JSValue jsval;
+  size_t n = elements.size();
+  std::cout << "enter fa" << std::endl;
+  jsval.handle() = HeapObject::New(kSizeTSize + n * sizeof(JSValue));
+
+  SET_VALUE(jsval.handle().val(), kSizeOffset, n, size_t);
+  for (size_t i = 0; i < n; i++) {
+    SET_JSVALUE(jsval.handle().val(), kElementOffset + i * sizeof(JSValue), elements[i]);
   }
+  jsval.SetType(FIXED_ARRAY);
+  return jsval;
+}
 
-  size_t size() { return READ_VALUE(this, kSizeOffset, size_t); }
-  Handle<JSValue> Get(size_t i) { return READ_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, JSValue); }
-  JSValue* GetRaw(size_t i) { return READ_VALUE(this, kElementOffset + i * kPtrSize, JSValue*); }
-  void Set(size_t i, Handle<JSValue> val) { SET_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, val, JSValue); }
+inline size_t size(JSValue arr) { return READ_VALUE(arr.handle().val(), kSizeOffset, size_t); }
+inline JSValue Get(JSValue arr, size_t i) { return GET_JSVALUE(arr.handle().val(), kElementOffset + i * sizeof(JSValue)); }
+inline void Set(JSValue& arr, size_t i, JSValue val) { SET_JSVALUE(arr.handle().val(), kElementOffset + i * sizeof(JSValue), val); }
 
- public:
-  static constexpr size_t kSizeOffset = HeapObject::kHeapObjectOffset;
-  static constexpr size_t kElementOffset = kSizeOffset + kSizeTSize;
-};
-
+}  // namespace fixed_array
 }  // namespace es
 
 #endif  // ES_UHeapObjectILS_FIXED_ARRAY_H

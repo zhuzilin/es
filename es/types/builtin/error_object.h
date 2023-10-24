@@ -5,87 +5,87 @@
 
 namespace es {
 
-class ErrorProto : public JSObject {
- public:
-  static Handle<ErrorProto> Instance() {
-    static Handle<ErrorProto> singleton = ErrorProto::New(GCFlag::SINGLE);
-    return singleton;
+namespace error_proto {
+
+inline JSValue New(flag_t flag) {
+  JSValue jsobj = js_object::New(
+    u"Error", true, JSValue(), false, false, nullptr, 0, flag);
+
+  jsobj.SetType(OBJ_OTHER);
+  return jsobj;
+}
+
+inline JSValue Instance() {
+  static JSValue singleton = error_proto::New(GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  JSValue val = Runtime::TopValue();
+  if (!val.IsObject()) {
+    e = error::TypeError(u"Error.prototype.toString called with non-object value");
+    return JSValue();
   }
+  // TODO(zhuzilin) add name
+  std::u16string name = u"Error";
+  JSValue msg = Get(e, val, string::New(u"message"));
+  if (unlikely(!error::IsOk(e))) return JSValue();
+  if (msg.IsUndefined())
+    return undefined::New();
+  std::u16string msg_str = string::data(::es::ToString(e, msg));
+  if (unlikely(!error::IsOk(e))) return JSValue();
+  return string::New(name + u": " + msg_str);
+}
 
-  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    Handle<JSValue> val = Runtime::TopValue();
-    if (!val.val()->IsObject()) {
-      e = Error::TypeError(u"Error.prototype.toString called with non-object value");
-      return Handle<JSValue>();
-    }
-    Handle<JSObject> O = static_cast<Handle<JSObject>>(val);
-    // TODO(zhuzilin) add name
-    std::u16string name = u"Error";
-    Handle<JSValue> msg = Get(e, O, String::New(u"message"));
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    if (msg.val()->IsUndefined())
-      return Undefined::Instance();
-    std::u16string msg_str = ::es::ToString(e, msg).val()->data();
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    return String::New(name + u": " + msg_str);
-  }
 
- private:
-  static Handle<ErrorProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Error", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+}  // namespace error_proto
 
-    jsobj.val()->SetType(OBJ_OTHER);
-    return Handle<ErrorProto>(jsobj);
-  }
-};
+namespace error_object {
 
-class ErrorObject : public JSObject {
- public:
-  static Handle<ErrorObject> New(Handle<Error> e) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Error", true, Handle<JSValue>(), false, false, nullptr, kPtrSize
-    );
+constexpr size_t kErrorOffset = js_object::kJSObjectOffset;
 
-    SET_HANDLE_VALUE(jsobj.val(), kErrorOffset, e, Error);
+inline JSValue New(JSValue e) {
+  ASSERT(e.IsError());
+  JSValue jsobj = js_object::New(
+    u"Error", true, JSValue(), false, false, nullptr, sizeof(JSValue)
+  );
 
-    jsobj.val()->SetType(OBJ_ERROR);
-    Handle<ErrorObject> obj(jsobj);
-    obj.val()->SetPrototype(ErrorProto::Instance());
-    AddValueProperty(obj, u"message", e.val()->value(), true, false, false);
-    return obj;
-  }
+  SET_JSVALUE(jsobj.handle().val(), kErrorOffset, e);
 
-  Handle<Error> e() { return READ_HANDLE_VALUE(this, kErrorOffset, Error); }
-  Error::ErrorType ErrorType() { return e().val()->error_type(); }
-  Handle<JSValue> ErrorValue() { return e().val()->value(); }
+  jsobj.SetType(OBJ_ERROR);
+  js_object::SetPrototype(jsobj, error_proto::Instance());
+  AddValueProperty(jsobj, u"message", error::value(e), true, false, false);
+  return jsobj;
+}
 
- public:
-  static constexpr size_t kErrorOffset = kJSObjectOffset;
-};
+inline JSValue e(JSValue jsval) { return GET_JSVALUE(jsval.handle().val(), kErrorOffset); }
+inline error::ErrorType ErrorType(JSValue jsval) { return error::error_type(e(jsval)); }
+inline JSValue ErrorValue(JSValue jsval) { return error::value(e(jsval)); }
 
-class ErrorConstructor : public JSObject {
- public:
-  static Handle<ErrorConstructor> Instance() {
-    static Handle<ErrorConstructor> singleton = ErrorConstructor::New(GCFlag::SINGLE);
-    return singleton;
-  }
+}  // namespace error_object
 
-  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    return String::New(u"function Error() { [native code] }");
-  }
+namespace error_constructor {
 
- private:
-  static Handle<ErrorConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Error", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+inline JSValue New(flag_t flag) {
+  JSValue jsobj = js_object::New(
+    u"Error", true, JSValue(), true, true, nullptr, 0, flag);
 
-    jsobj.val()->SetType(OBJ_ERROR_CONSTRUCTOR);
-    return Handle<ErrorConstructor>(jsobj);
-  }
-};
+  jsobj.SetType(OBJ_ERROR_CONSTRUCTOR);
+  return jsobj;
+}
 
-Handle<JSObject> Construct__ErrorConstructor(Handle<Error>& e, Handle<ErrorConstructor> O, std::vector<Handle<JSValue>> arguments);
+inline JSValue Instance() {
+  static JSValue singleton = error_constructor::New(GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  return string::New(u"function Error() { [native code] }");
+}
+
+}  // namespace error_constructor
+
+JSValue Construct__ErrorConstructor(JSValue& e, JSValue O, std::vector<JSValue> arguments);
 
 }  // namespace es
 

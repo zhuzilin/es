@@ -7,21 +7,21 @@
 namespace es {
 
 // 15.1.2.1 eval(X)
-Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-  TEST_LOG("enter GlobalObject::eval");
+JSValue global_object::eval(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  TEST_LOG("enter global_object::eval");
   if (vals.size() == 0)
-    return Undefined::Instance();
-  if (!vals[0].val()->IsString())
+    return undefined::New();
+  if (!vals[0].IsString())
     return vals[0];
-  std::u16string x = static_cast<Handle<String>>(vals[0]).val()->data();
+  std::u16string x = string::data(vals[0]);
   Parser parser(x);
   AST* program = parser.ParseProgram();
   if (program->IsIllegal()) {
-    e = Error::SyntaxError(u"failed to parse eval (" + program->source() + u")");
-    return Handle<JSValue>();
+    e = error::SyntaxError(u"failed to parse eval (" + program->source() + u")");
+    return JSValue();
   }
   EnterEvalCode(e, program);
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+  if (unlikely(!error::IsOk(e))) return JSValue();
   Completion result = EvalProgram(program);
   Runtime::Global()->PopContext();
 
@@ -30,14 +30,14 @@ Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, s
       if (!result.IsEmpty())
         return result.value();
       else
-        return Undefined::Instance();
+        return undefined::New();
     default: {
       ASSERT(result.type() == Completion::THROW);
-      Handle<JSValue> return_value = result.value();
-      if (return_value.val()->IsError()) {
+      JSValue return_value = result.value();
+      if (return_value.IsError()) {
         e = return_value;
       } else {
-        e = Error::NativeError(return_value);
+        e = error::NativeError(return_value);
       }
       return return_value;
     }
@@ -45,22 +45,22 @@ Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, s
 }
 
 // 15.1.2.2 parseInt (string , radix)
-Handle<JSValue> GlobalObject::parseInt(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+JSValue global_object::parseInt(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
   // TODO(zhuzilin) use parseFloat at the moment. fix later
-  if (vals.size() == 0 || vals[0].val()->IsUndefined()) {
-    e = Error::TypeError(u"parseInt called with undefined string");
-    return Handle<JSValue>();
+  if (vals.size() == 0 || vals[0].IsUndefined()) {
+    e = error::TypeError(u"parseInt called with undefined string");
+    return JSValue();
   }
   std::u16string input_string = ToU16String(e, vals[0]);
   size_t len = input_string.size();
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+  if (unlikely(!error::IsOk(e))) return JSValue();
   double R = 10;
   bool strip_prefix = true;
-  if (vals.size() >= 2 && !vals[1].val()->IsUndefined()) {
+  if (vals.size() >= 2 && !vals[1].IsUndefined()) {
     R = ToInt32(e, vals[0]);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+    if (unlikely(!error::IsOk(e))) return JSValue();
     if (R < 2 || R > 36)
-      return Number::NaN();
+      return number::NaN();
     if (R != 0 && R != 16)
       strip_prefix = false;
     if (R == 0)
@@ -70,7 +70,7 @@ Handle<JSValue> GlobalObject::parseInt(Handle<Error>& e, Handle<JSValue> this_ar
   while (offset < len && character::IsWhiteSpace(input_string[offset]))
     offset++;
   if (offset == len)
-    return Number::NaN();
+    return number::NaN();
   double sign = 1;
   if (input_string[offset] == u'-') {
     sign = -1;
@@ -89,19 +89,19 @@ Handle<JSValue> GlobalObject::parseInt(Handle<Error>& e, Handle<JSValue> this_ar
   while (Z < input_string.size() && character::IsRadixDigit(input_string[Z], R))
     Z++;
   if (offset == Z)
-    return Number::NaN();
+    return number::NaN();
   double number = 0;
   for (size_t i = offset; i < Z; i++) {
     number *= R;
     number += character::Digit(input_string[i]);
   }
-  return Number::New(sign * number);
+  return number::New(sign * number);
 }
 
 // 15.1.2.3 parseFloat (string)
-Handle<JSValue> GlobalObject::parseFloat(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+JSValue global_object::parseFloat(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
   if (vals.size() == 0)
-    return Number::NaN();
+    return number::NaN();
   std::u16string input_string = es::ToU16String(e, vals[0]);
   size_t i = 0;
   while (i < input_string.size() && character::IsWhiteSpace(input_string[i]))
@@ -111,26 +111,26 @@ Handle<JSValue> GlobalObject::parseFloat(Handle<Error>& e, Handle<JSValue> this_
     j--;
   std::u16string trimmed_string = input_string.substr(i, j - i);
   if (trimmed_string == u"Infinity" || trimmed_string == u"+Infinity")
-    return Number::Infinity();
+    return number::Infinity();
   if (trimmed_string == u"-Infinity")
-    return Number::NegativeInfinity();
+    return number::NegativeInfinity();
   Lexer lexer(trimmed_string);
   // TODO(zhuzilin) parseFloat should not be able to parse hex integer
   Token token = lexer.Next();
   if (token.type() == Token::TK_NUMBER) {
-    return Number::New(StringToNumber(token.source()));
+    return number::New(StringToNumber(token.source()));
   } else {
-    return Number::NaN();
+    return number::NaN();
   }
 }
 
 // 15.1.2.4 isNaN (number)
-Handle<JSValue> GlobalObject::isNaN(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
+JSValue global_object::isNaN(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
   if (vals.size() == 0)
-    return Bool::True();
+    return boolean::True();
   double num = ToNumber(e, vals[0]);
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  return Bool::Wrap(isnan(num));
+  if (unlikely(!error::IsOk(e))) return JSValue();
+  return boolean::New(isnan(num));
 }
 
 }  // namespace es

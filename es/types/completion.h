@@ -19,31 +19,27 @@ class Completion {
     THROW,
   };
 
-  Completion() : Completion(NORMAL, Handle<JSValue>(), u"") {}
+  Completion() : Completion(NORMAL, JSValue(), u"") {}
 
-  Completion(Type type, Handle<JSValue> value, std::u16string target) :
+  Completion(Type type, JSValue value, std::u16string target) :
     type_(type), value_(value), target_(target) {}
 
   Type type() { return type_; }
-  Handle<JSValue> value() {
-    // TODO(zhuzilin) Reset the HandleScope to current when value is asked.
-    // this is prevent the creation handle was destructed. However, this may
-    // not be correct...
-    value_ = Handle<JSValue>(value_.val());
+  JSValue value() {
     return value_;
   }
-  void SetValue(JSValue* val) {
-    value_ = Handle<JSValue>(val);
+  void SetValue(JSValue val) {
+    value_ = val;
   }
   std::u16string target() { return target_; }
 
   bool IsAbruptCompletion() { return type_ != NORMAL; }
   bool IsThrow() { return type_ == THROW; }
-  bool IsEmpty() { return value_.IsNullptr(); }
+  bool IsEmpty() { return value_.type() == JS_UNINIT; }
 
  private:
   Type type_;
-  Handle<JSValue> value_;
+  JSValue value_;
   std::u16string target_;
 };
 

@@ -21,16 +21,10 @@ class HeapObject {
     if (unlikely(log::Debugger::On()))
       std::cout << "HeapObject::New " << size << " " << int(flag) << "\n";
 #endif
-    Handle<HeapObject> heap_obj(static_cast<HeapObject*>(Allocate(size + kSizeTSize, flag)));
-
-    // type value should be init by each variable after their member elements
-    // are initialized.
-    SET_VALUE(heap_obj.val(), kTypeOffset, JS_UNINIT, Type);
+    Handle<HeapObject> heap_obj(static_cast<HeapObject*>(Allocate(size, flag)));
+    //std::cout << "HeapObject::New " << heap_obj.val() << " handle: " << heap_obj.ptr() << std::endl;
     return heap_obj;
   }
-
-  inline Type type() { return READ_VALUE(this, kTypeOffset, Type); }
-  inline void SetType(Type t) { SET_VALUE(this, kTypeOffset, t, Type); }
 
   void* operator new(size_t) = delete;
   void* operator new[](size_t) = delete;
@@ -38,13 +32,8 @@ class HeapObject {
   void operator delete[](void*) = delete;
   void* operator new(size_t, void* ptr) = delete;
 
-  static std::vector<HeapObject**> Pointers(HeapObject* heap_obj);
-
-  static std::string ToString(Type type);
-
  public:
-  static constexpr size_t kTypeOffset = 0;
-  static constexpr size_t kHeapObjectOffset = kTypeOffset + kSizeTSize;
+  static constexpr size_t kHeapObjectOffset = 0;
 };
 
 }  // namespace es

@@ -2,6 +2,7 @@
 #define ES_TYPES_H
 
 #include <es/types/object.h>
+#include <es/types/reference.h>
 #include <es/types/builtin/arguments_object.h>
 #include <es/types/builtin/array_object.h>
 #include <es/types/builtin/bool_object.h>

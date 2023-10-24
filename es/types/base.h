@@ -13,13 +13,15 @@ namespace es {
 
 class JSValue {
  public:
+  JSValue(Type type = JS_UNINIT) : header_(type) {}
+
   bool IsCallable();
   bool IsConstructor();
 
   inline bool IsUndefined() { return type() == JS_UNDEFINED; }
   inline bool IsNull() { return type() == JS_NULL; }
   inline bool IsBool() { return type() == JS_BOOL; }
-  inline bool IsString() { return type() == JS_STRING || type() == JS_LONG_STRING; }
+  inline bool IsString() { return type() == JS_STRING; }
   inline bool IsNumber() { return type() == JS_NUMBER; }
   inline bool IsPrimitive() { return !IsObject(); }
 
@@ -53,6 +55,9 @@ class JSValue {
   inline bool IsEnvironmentRecord() { return type() == JS_ENV_REC_DECL || type() == JS_ENV_REC_OBJ; }
   inline bool IsLexicalEnvironment() { return type() == JS_LEX_ENV; }
 
+  bool IsDeclarativeEnv() { return type() == JS_ENV_REC_DECL; }
+  bool IsObjectEnv() { return type() == JS_ENV_REC_OBJ; }
+
   inline bool IsGetterSetter() { return type() == JS_GET_SET; }
 
   inline bool IsError() { return type() == ERROR; }
@@ -60,339 +65,258 @@ class JSValue {
   inline Type type() { return header_.type_; }
   inline void SetType(Type t) { header_.type_ = t; }
 
-  static std::string ToString(JSValue* jsval);
+  static std::string ToString(Type type);
+  static std::string ToString(JSValue jsval);
 
- public:
-  static constexpr size_t kJSValueOffset = HeapObject::kHeapObjectOffset;
+  Handle<HeapObject>& handle() { return body_.handle_; }
+
+  bool operator==(JSValue other) {
+    return header_.type_ == other.header_.type_ &&
+           header_.placeholder_.uint32_ == other.header_.placeholder_.uint32_ &&
+           body_.uint64_ == other.body_.uint64_;
+  }
+
+  static std::vector<JSValue> RelevantValues(JSValue jsval);
 
   struct Header {
     Type type_;
-    uint32_t placeholder_;
-  };
-  Header header_;
+    union Placeholder {
+      uint32_t uint32_;
+      struct PDHeader {
+        char bitmask_;
+        bool writable_;
+        bool enumerable_;
+        bool configurable_;
+      } pb_header_;
+      struct BindingHeader {
+        bool can_delete_;
+        bool is_mutable_;
+      } binding_header_;
+      bool provide_this_;
+      Placeholder() { uint32_ = 0; }
+    } placeholder_;
+
+    Header(Type type) : type_(type) {}
+  } header_;
+  // 8 bit
+  union Body {
+    uint64_t uint64_;
+    Handle<HeapObject> handle_;
+    bool b_;
+    double num_;
+    Body() { uint64_ = 0; }
+  } body_;
 };
 
-class Undefined : public JSValue {
- public:
-  static Handle<Undefined> Instance() {
-    static Handle<Undefined> singleton = Undefined::New(GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
+namespace undefined {
+inline JSValue New() { return JSValue(JS_UNDEFINED); }
+}  // namespace undefined
 
- private:
-  static Handle<Undefined> New(flag_t flag) {
-    Handle<JSValue> jsval = HeapObject::New(0, flag);
+namespace null {
+inline JSValue New() { return JSValue(JS_NULL); }
+}  // namespace null
 
-    jsval.val()->SetType(JS_UNDEFINED);
-    return Handle<Undefined>(jsval);
-  }
-};
+namespace boolean {
+inline JSValue New(bool val) {
+  JSValue jsval(JS_BOOL);
+  jsval.body_.b_ = val;
+  return jsval;
+}
+inline JSValue True() { return New(true); }
+inline JSValue False() { return New(false); }
+inline bool data(JSValue jsval) { return jsval.body_.b_; }
+}  // namespace boolean
 
-class Null : public JSValue {
- public:
-  static Handle<Null> Instance() {
-    static Handle<Null> singleton = Null::New(GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
- private:
-  static Handle<Null> New(flag_t flag) {
-    Handle<JSValue> jsval = HeapObject::New(0, flag);
-
-    jsval.val()->SetType(JS_NULL);
-    return Handle<Null>(jsval);
-  }
-};
-
-class Bool : public JSValue {
- public:
-  static Handle<Bool> True() {
-    static Handle<Bool> singleton = Bool::New(true, GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-  static Handle<Bool> False() {
-    static Handle<Bool> singleton = Bool::New(false, GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<Bool> Wrap(bool val) {
-    return val ? True() : False();
-  }
-
-  inline bool data() { return READ_VALUE(this, kJSValueOffset, bool); }
-
- private:
-  static Handle<Bool> New(bool val, flag_t flag) {
-    Handle<JSValue> jsval = HeapObject::New(kBoolSize, flag);
-
-    SET_VALUE(jsval.val(), kJSValueOffset, val, bool);
-
-    jsval.val()->SetType(JS_BOOL);
-    return Handle<Bool>(jsval);
-  }
-};
-
-class String : public JSValue {
- public:
-  static Handle<String> New(const std::u16string& data, flag_t flag = 0) {
-    size_t n = data.size();
-    Handle<String> str = String::New(n, flag);
-
-    memcpy(PTR(str.val(), kStringDataOffset), data.data(), n * kChar16Size);
-
-    return str;
-  }
-
-  static Handle<String> New(std::u16string&& data, flag_t flag = 0) {
-    size_t n = data.size();
-    Handle<String> str = String::New(n, flag);
-
-    memcpy(PTR(str.val(), kStringDataOffset), data.data(), n * kChar16Size);
-
-    return str;
-  }
-
-  static Handle<String> New(size_t n, flag_t flag = 0) {
-    Handle<JSValue> jsval = HeapObject::New(kSizeTSize + n * kChar16Size, flag);
-
-    if (n < kLongStringSize) {
-      // The last digit is for decide whether hash is calculated.
-      SET_VALUE(jsval.val(), kLengthOffset, n << 16, size_t);
-      jsval.val()->SetType(JS_STRING);
-    } else {
-      SET_VALUE(jsval.val(), kLengthOffset, n << 1, size_t);
-      jsval.val()->SetType(JS_LONG_STRING);
-    }
-    return Handle<String>(jsval);
-  }
-
-  std::u16string data() { return std::u16string(c_str(), size()); }
-  char16_t* c_str() { return TYPED_PTR(this, kStringDataOffset, char16_t); }
-  size_t length_slot() { return READ_VALUE(this, kLengthOffset, size_t); }
-  size_t size() {
-    size_t slot = length_slot();
-    switch (type()) {
-      case JS_STRING:
-        return slot >> 16;
-      case JS_LONG_STRING:
-        return slot >> 1;
-      default:
-        assert(false);
-    }
-  }
-  size_t Hash() {
-    size_t slot = length_slot();
-    if (slot & 1) return slot >> 1;
-    size_t hash = U16Hash(data());
-    hash = hash << 1 | 1;
-    hash = slot | (0x0000FFFF & hash);
-    SET_VALUE(this, kLengthOffset, hash, size_t);
-    return hash >> 1;
-  }
-
-  bool HasHash() { return length_slot() & 1; }
-
-  char16_t& operator [](int index) {
-    return c_str()[index];
-  }
-
-  static Handle<String> Substr(Handle<String> str, size_t pos, size_t len) {
-    Handle<String> substring = String::New(len);
-    memcpy(
-      PTR(substring.val(), kStringDataOffset),
-      str.val()->c_str() + pos,
-      len * kChar16Size
-    );
-    return substring;
-  }
-
-  static Handle<String> Empty() {
-    static Handle<String> singleton = String::New(u"", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Undefined() {
-    static Handle<String> singleton = String::New(u"undefined", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Null() {
-    static Handle<String> singleton = String::New(u"null", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> True() {
-    static Handle<String> singleton = String::New(u"true", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> False() {
-    static Handle<String> singleton = String::New(u"false", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> NaN() {
-    static Handle<String> singleton = String::New(u"NaN", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Zero() {
-    static Handle<String> singleton = String::New(u"0", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Infinity() {
-    static Handle<String> singleton = String::New(u"Infinity", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> NegativeInfinity() {
-    static Handle<String> singleton = String::New(u"-Infinity", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Prototype() {
-    static Handle<String> singleton = String::New(u"prototype", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Constructor() {
-    static Handle<String> singleton = String::New(u"constructor", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Length() {
-    static Handle<String> singleton = String::New(u"length", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Value() {
-    static Handle<String> singleton = String::New(u"value", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Writable() {
-    static Handle<String> singleton = String::New(u"writable", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Get() {
-    static Handle<String> singleton = String::New(u"get", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Set() {
-    static Handle<String> singleton = String::New(u"set", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Arguments() {
-    static Handle<String> singleton = String::New(u"arguments", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Enumerable() {
-    static Handle<String> singleton = String::New(u"enumerable", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<String> Configurable() {
-    static Handle<String> singleton = String::New(u"configurable", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
- private:
-  static constexpr size_t kLengthOffset = kJSValueOffset;
-  static constexpr size_t kStringDataOffset = kLengthOffset + kSizeTSize;
-
-  static constexpr size_t kLongStringSize = 65536;
-
-  static constexpr std::hash<std::u16string> U16Hash = std::hash<std::u16string>{};
-};
-
-inline bool operator ==(String& a, String& b) {
-  if (a.HasHash() && b.HasHash()) {
-    if (a.length_slot() != b.length_slot())
-      return false;
-  } else if (a.size() != b.size()) {
-    return false;
-  }
-  size_t size = a.size();
-  for (size_t i = 0; i < size; i++) {
-    if (a[i] != b[i])
-      return false;
-  }
-  return true;
+// TODO: calculate hash for short string
+namespace string {
+constexpr size_t kLengthOffset = 0;
+constexpr size_t kStringDataOffset = kSizeTSize;
+inline JSValue New(size_t n, flag_t flag = 0) {
+  JSValue jsval;
+  jsval.handle() = HeapObject::New(kSizeTSize + n * kChar16Size, flag);
+  SET_VALUE(jsval.handle().val(), kLengthOffset, n, size_t);
+  jsval.SetType(JS_STRING);
+  return jsval;
 }
 
-inline bool operator !=(String& a, String& b) {
-  return !(a == b);
+inline JSValue New(const std::u16string& data, flag_t flag = 0) {
+  std::cout << "enter string " << log::ToString(data) << std::endl;
+  JSValue jsval = New(data.size(), flag);
+  memcpy(PTR(jsval.handle().val(), kStringDataOffset), data.data(), data.size() * kChar16Size);
+  return jsval;
 }
 
-bool operator <(String& a, String& b) {
-  size_t size = a.size();
-  if (b.size() < size)
-    size = b.size();
-  for (size_t i = 0; i < size; i++) {
-    if (a[i] != b[i])
-      return a[i] < b[i];
-  }
-  return a.size() < b.size();
+inline JSValue New(const std::u16string&& data, flag_t flag = 0) {
+  std::cout << "enter string " << log::ToString(data) << std::endl;
+  JSValue jsval = New(data.size(), flag);
+  memcpy(PTR(jsval.handle().val(), kStringDataOffset), data.data(), data.size() * kChar16Size);
+  return jsval;
 }
 
-class Number : public JSValue {
- public:
-  static Handle<Number> New(double data, flag_t flag = 0) {
-    Handle<JSValue> jsval = HeapObject::New(kDoubleSize, flag);
+inline char16_t* c_str(JSValue jsval) {
+  ASSERT(jsval.IsString());
+  return TYPED_PTR(jsval.handle().val(), kStringDataOffset, char16_t);
+}
 
-    SET_VALUE(jsval.val(), kJSValueOffset, data, double);
+inline size_t size(JSValue jsval) {
+  ASSERT(jsval.IsString());
+  return READ_VALUE(jsval.handle().val(), kLengthOffset, size_t);
+}
 
-    jsval.val()->SetType(JS_NUMBER);
-    return Handle<Number>(jsval);
-  }
+inline std::u16string data(JSValue jsval) {
+  return std::u16string(c_str(jsval), size(jsval));
+}
+inline std::u16string_view data_view(JSValue jsval) {
+  return std::u16string_view(c_str(jsval), size(jsval));
+}
 
-  static Handle<Number> NaN() {
-    static Handle<Number> singleton = Number::New(nan(""), GCFlag::CONST | GCFlag::SINGLE);
+inline JSValue Substr(JSValue str, size_t pos, size_t len) {
+  ASSERT(str.IsString());
+  JSValue substring = New(len);
+  memcpy(
+    PTR(substring.handle().val(), kStringDataOffset),
+    c_str(str) + pos,
+    len * kChar16Size
+  );
+  return substring;
+}
+
+inline JSValue Empty() {
+  static JSValue singleton = New(u"", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue Undefined() {
+  static JSValue singleton = New(u"undefined", GCFlag::CONST | GCFlag::SINGLE);
     return singleton;
   }
 
-  static Handle<Number> Infinity() {
-    static Handle<Number> singleton = Number::New(
-      std::numeric_limits<double>::infinity(), GCFlag::CONST | GCFlag::SINGLE);
+inline JSValue Null() {
+  static JSValue singleton = New(u"null", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue True() {
+  static JSValue singleton = New(u"true", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue False() {
+  static JSValue singleton = New(u"false", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue NaN() {
+  static JSValue singleton = New(u"NaN", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue Zero() {
+  static JSValue singleton = New(u"0", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue Infinity() {
+  static JSValue singleton = New(u"Infinity", GCFlag::CONST | GCFlag::SINGLE);
     return singleton;
   }
 
-  static Handle<Number> NegativeInfinity() {
-    static Handle<Number> singleton = Number::New(
-      -std::numeric_limits<double>::infinity(), GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
+inline JSValue NegativeInfinity() {
+  static JSValue singleton = New(u"-Infinity", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
 
-  static Handle<Number> Zero() {
-    static Handle<Number> singleton = Number::New(0.0, GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
+inline JSValue Prototype() {
+  static JSValue singleton = New(u"prototype", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
 
-  static Handle<Number> NegativeZero() {
-    static Handle<Number> singleton = Number::New(-0.0, GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
+inline JSValue Constructor() {
+  static JSValue singleton = New(u"constructor", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
 
-  static Handle<Number> One() {
-    static Handle<Number> singleton = Number::New(1.0, GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
+inline JSValue Length() {
+  static JSValue singleton = New(u"length", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
 
-  inline bool IsInfinity() { return isinf(data()); }
-  inline bool IsPositiveInfinity() { return data() == std::numeric_limits<double>::infinity(); }
-  inline bool IsNegativeInfinity() { return data() == -std::numeric_limits<double>::infinity(); }
-  inline bool IsNaN() { return isnan(data()); }
+inline JSValue Value() {
+  static JSValue singleton = New(u"value", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
 
-  inline double data() { return READ_VALUE(this, kJSValueOffset, double); }
-};
+inline JSValue Writable() {
+  static JSValue singleton = New(u"writable", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue Get() {
+  static JSValue singleton = New(u"get", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue Set() {
+  static JSValue singleton = New(u"set", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue Arguments() {
+  static JSValue singleton = New(u"arguments", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue Enumerable() {
+  static JSValue singleton = New(u"enumerable", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue Configurable() {
+  static JSValue singleton = New(u"configurable", GCFlag::CONST | GCFlag::SINGLE);
+  return singleton;
+}
+
+}  // namespace string
+
+namespace number {
+inline JSValue New(double data) {
+  JSValue jsval(JS_NUMBER);
+  jsval.body_.num_ = data;
+  return jsval;
+}
+
+inline JSValue NaN() { return New(nan("")); }
+
+inline JSValue Infinity() {
+  return New(std::numeric_limits<double>::infinity());
+}
+
+inline JSValue NegativeInfinity() {
+  return New(-std::numeric_limits<double>::infinity());
+}
+
+inline JSValue Zero() {
+  return New(0.0);
+}
+
+inline JSValue NegativeZero() {
+  return New(-0.0);
+}
+
+inline JSValue One() {
+  return New(1.0);
+}
+
+inline double data(JSValue jsval) { return jsval.body_.num_; }
+inline bool IsInfinity(JSValue jsval) { return isinf(data(jsval)); }
+inline bool IsPositiveInfinity(JSValue jsval) { return data(jsval) == std::numeric_limits<double>::infinity(); }
+inline bool IsNegativeInfinity(JSValue jsval) { return data(jsval) == -std::numeric_limits<double>::infinity(); }
+inline bool IsNaN(JSValue jsval) { return isnan(data(jsval)); }
+
+}  // namespace number
 
 class Error;
-void CheckObjectCoercible(Handle<Error>& e, Handle<JSValue> val);
+void CheckObjectCoercible(JSValue& e, JSValue val);
 
 }  // namespace es
 

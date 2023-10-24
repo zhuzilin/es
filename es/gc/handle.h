@@ -100,6 +100,10 @@ class HandleScope {
     return pointers;
   }
 
+  // static std::vector<JSValue> AliveValues() {
+  //   return {};
+  // }
+
  private:
   size_t start_block_idx_;
   size_t start_block_offset_;
@@ -119,7 +123,7 @@ size_t HandleScope::singleton_pointers_count_ = 0;
 HeapObject* HandleScope::constant_pointers_[kNumConstantHandle];
 size_t HandleScope::constant_pointers_count_ = 0;
 
-std::vector<HandleBlock> HandleScope::block_stack_;
+std::vector<HandleBlock> HandleScope::block_stack_(1);
 
 // Handle is used to solve the following situation:
 // ```

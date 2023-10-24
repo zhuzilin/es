@@ -4,48 +4,52 @@
 #include <es/types/base.h>
 #include <es/types/environment_record.h>
 #include <es/types/builtin/global_object.h>
-#include <es/error.h>
+#include <es/types/error.h>
 
 namespace es {
 
-Handle<JSObject> ToObject(Handle<Error>& e, Handle<JSValue> input);
+JSValue ToObject(JSValue& e, JSValue input);
 
-class Reference : public JSValue {
- public:
-  static Handle<Reference> New(
-    Handle<JSValue> base,
-    Handle<String> reference_name,
-    bool strict_reference
-  ) {
-    Handle<JSValue> jsval = HeapObject::New(kStrictReferenceOffset + kBoolSize - kJSValueOffset);
+namespace reference {
 
-    SET_HANDLE_VALUE(jsval.val(), kBaseOffset, base, JSValue);
-    SET_HANDLE_VALUE(jsval.val(), kReferenceNameOffset, reference_name, String);
-    SET_VALUE(jsval.val(), kStrictReferenceOffset, strict_reference, bool);
+constexpr size_t kBaseOffset = 0;
+constexpr size_t kReferenceNameOffset = kBaseOffset + sizeof(JSValue);
+constexpr size_t kStrictReferenceOffset = kReferenceNameOffset + sizeof(JSValue);
 
-    jsval.val()->SetType(JS_REF);
-    return Handle<Reference>(jsval);
-  }
+inline JSValue New(
+  JSValue base,
+  JSValue reference_name,
+  bool strict_reference
+) {
+  ASSERT(reference_name.IsString());
+  TEST_LOG("enter ref(" + JSValue::ToString(base) + "." + JSValue::ToString(reference_name) + ")");
+  JSValue jsval;
+  jsval.handle() = HeapObject::New(kStrictReferenceOffset + kBoolSize);
 
-  Handle<JSValue> GetBase() { return READ_HANDLE_VALUE(this, kBaseOffset, JSValue); }
-  Handle<String> GetReferencedName() { return READ_HANDLE_VALUE(this, kReferenceNameOffset, String); }
-  bool IsStrictReference() { return READ_VALUE(this, kStrictReferenceOffset, bool); }
-  bool HasPrimitiveBase() {
-    return GetBase().val()->IsBool() || GetBase().val()->IsString() || GetBase().val()->IsNumber();
-  }
-  bool IsPropertyReference() {
-    return GetBase().val()->IsObject() || HasPrimitiveBase();
-  }
-  bool IsUnresolvableReference() { return GetBase().val()->IsUndefined(); }
+  SET_JSVALUE(jsval.handle().val(), kBaseOffset, base);
+  SET_JSVALUE(jsval.handle().val(), kReferenceNameOffset, reference_name);
+  SET_VALUE(jsval.handle().val(), kStrictReferenceOffset, strict_reference, bool);
 
- public:
-  static constexpr size_t kBaseOffset = kJSValueOffset;
-  static constexpr size_t kReferenceNameOffset = kBaseOffset + kPtrSize;
-  static constexpr size_t kStrictReferenceOffset = kReferenceNameOffset + kPtrSize;
-};
+  jsval.SetType(JS_REF);
+  return jsval;
+}
 
-Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V);
-void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W);
+inline JSValue GetBase(JSValue jsval) { return GET_JSVALUE(jsval.handle().val(), kBaseOffset); }
+inline JSValue GetReferencedName(JSValue jsval) { return GET_JSVALUE(jsval.handle().val(), kReferenceNameOffset); }
+inline bool IsStrictReference(JSValue jsval) { return READ_VALUE(jsval.handle().val(), kStrictReferenceOffset, bool); }
+inline bool HasPrimitiveBase(JSValue jsval) {
+  JSValue base = GetBase(jsval);
+  return base.IsBool() || base.IsString() || base.IsNumber();
+}
+inline bool IsPropertyReference(JSValue jsval) {
+  return GetBase(jsval).IsObject() || HasPrimitiveBase(jsval);
+}
+inline bool IsUnresolvableReference(JSValue jsval) { return GetBase(jsval).IsUndefined(); }
+
+}  // namespace reference
+
+JSValue GetValue(JSValue& e, JSValue V);
+void PutValue(JSValue& e, JSValue V, JSValue W);
 
 }  // namespace es
 

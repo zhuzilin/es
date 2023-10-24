@@ -5,208 +5,209 @@
 
 namespace es {
 
-bool HasBinding(Handle<EnvironmentRecord> env_rec, Handle<String> N) {
-  if (env_rec.val()->IsDeclarativeEnv()) {
-    return HasBinding__Declarative(static_cast<Handle<DeclarativeEnvironmentRecord>>(env_rec), N);
+bool HasBinding(JSValue env_rec, JSValue N) {
+  if (env_rec.IsDeclarativeEnv()) {
+    return HasBinding__Declarative(env_rec, N);
   } else {
-    ASSERT(env_rec.val()->IsObjectEnv());
-    return HasBinding__Object(static_cast<Handle<ObjectEnvironmentRecord>>(env_rec), N);
+    ASSERT(env_rec.IsObjectEnv());
+    return HasBinding__Object(env_rec, N);
   }
 }
 
 // 10.2.1.1.1 HasBinding(N)
-bool HasBinding__Declarative(Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N) {
-  return static_cast<Binding*>(env_rec.val()->bindings()->GetRaw(N)) != nullptr;
+bool HasBinding__Declarative(JSValue env_rec, JSValue N) {
+  return !hash_map::Get(decl_env_rec::bindings(env_rec), N).IsNull();
 }
 
 // 10.2.1.2.1 HasBinding(N)
-bool HasBinding__Object(Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N) {
-  return HasProperty(env_rec.val()->bindings(), N);
+bool HasBinding__Object(JSValue env_rec, JSValue N) {
+  return HasProperty(obj_env_rec::bindings(env_rec), N);
 }
 
 void CreateAndSetMutableBinding(
-  Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool D, Handle<JSValue> V, bool S
+  JSValue& e, JSValue env_rec, JSValue N, bool D, JSValue V, bool S
 ) {
-  if (env_rec.val()->IsDeclarativeEnv()) {
-    return CreateAndSetMutableBinding__Declarative(e, static_cast<Handle<DeclarativeEnvironmentRecord>>(env_rec), N, D, V, S);
+  if (env_rec.IsDeclarativeEnv()) {
+    return CreateAndSetMutableBinding__Declarative(e, env_rec, N, D, V, S);
   } else {
-    ASSERT(env_rec.val()->IsObjectEnv());
-    return CreateAndSetMutableBinding__Object(e, static_cast<Handle<ObjectEnvironmentRecord>>(env_rec), N, D, V, S);
+    ASSERT(env_rec.IsObjectEnv());
+    return CreateAndSetMutableBinding__Object(e, env_rec, N, D, V, S);
   }
 }
 
 // 10.2.1.1.2 CreateMutableBinding (N, D)
 // 10.2.1.1.3 SetMutableBinding (N,V,S)
 void CreateAndSetMutableBinding__Declarative(
-  Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool D, Handle<JSValue> V, bool S
+  JSValue& e, JSValue env_rec, JSValue N, bool D, JSValue V, bool S
 ) {
-  ASSERT(V.val()->IsLanguageType());
-  Handle<Binding> b = Binding::New(
-    Undefined::Instance(), D, true);
-  b.val()->SetValue(V);
-  auto new_bindings = HashMap::Set(Handle<HashMap>(env_rec.val()->bindings()), N, b);
-  env_rec.val()->SetBindings(new_bindings);
+  ASSERT(V.IsLanguageType());
+  JSValue b = binding::New(undefined::New(), D, true);
+  binding::SetValue(b, V);
+  JSValue new_bindings = hash_map::Set(decl_env_rec::bindings(env_rec), N, b);
+  decl_env_rec::SetBindings(env_rec, new_bindings);
 }
 
 // 10.2.1.2.2 CreateMutableBinding (N, D)
 // 10.2.1.2.3 SetMutableBinding (N,V,S)
 void CreateAndSetMutableBinding__Object(
-  Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool D, Handle<JSValue> V, bool S
+  JSValue& e, JSValue env_rec, JSValue N, bool D, JSValue V, bool S
 ) {
-  ASSERT(V.val()->IsLanguageType());
-  Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
-  desc.val()->SetDataDescriptor(V, true, true, D);
-  DefineOwnProperty(e, env_rec.val()->bindings(), N, desc, true);
+  ASSERT(V.IsLanguageType());
+  JSValue desc = property_descriptor::New();
+  property_descriptor::SetDataDescriptor(desc, V, true, true, D);
+  DefineOwnProperty(e, obj_env_rec::bindings(env_rec), N, desc, true);
 }
 
 void SetMutableBinding(
-  Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
+  JSValue& e, JSValue env_rec, JSValue N, JSValue V, bool S
 ) {
-  if (env_rec.val()->IsDeclarativeEnv()) {
-    return SetMutableBinding__Declarative(e, static_cast<Handle<DeclarativeEnvironmentRecord>>(env_rec), N, V, S);
+  if (env_rec.IsDeclarativeEnv()) {
+    return SetMutableBinding__Declarative(e, env_rec, N, V, S);
   } else {
-    ASSERT(env_rec.val()->IsObjectEnv());
-    return SetMutableBinding__Object(e, static_cast<Handle<ObjectEnvironmentRecord>>(env_rec), N, V, S);
+    ASSERT(env_rec.IsObjectEnv());
+    return SetMutableBinding__Object(e, env_rec, N, V, S);
   }
 }
 
 // 10.2.1.1.3 SetMutableBinding (N,V,S)
 void SetMutableBinding__Declarative(
-  Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
+  JSValue& e, JSValue env_rec, JSValue N, JSValue V, bool S
 ) {
-  TEST_LOG("enter SetMutableBinding__Declarative ", N.val()->data(), " to " + V.ToString());
-  ASSERT(V.val()->IsLanguageType());
+  TEST_LOG("enter SetMutableBinding__Declarative ", string::data(N), " to " + JSValue::ToString(V));
+  ASSERT(V.IsLanguageType());
   // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,
   // the value stored in bindings_ won't change.
-  Binding* binding = static_cast<Binding*>(env_rec.val()->bindings()->GetRaw(N));
-  if (binding->is_mutable()) {
-    binding->SetValue(V);
+  JSValue binding = hash_map::Get(decl_env_rec::bindings(env_rec), N);
+  if (binding::is_mutable(binding)) {
+    binding::SetValue(binding, V);
   } else if (S) {
-    e = Error::TypeError(u"set value to immutable binding");
+    e = error::TypeError(u"set value to immutable binding");
   }
 }
 
 // 10.2.1.2.3 SetMutableBinding (N,V,S)
 void SetMutableBinding__Object(
-  Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
+  JSValue& e, JSValue env_rec, JSValue N, JSValue V, bool S
 ) {
-  TEST_LOG("enter SetMutableBinding__Object " + N.ToString() + " to " + V.ToString());
-  ASSERT(V.val()->IsLanguageType());
-  Put(e, env_rec.val()->bindings(), N, V, S);
+  TEST_LOG("enter SetMutableBinding__Object " + JSValue::ToString(N) + " to " + JSValue::ToString(V));
+  ASSERT(V.IsLanguageType());
+  Put(e, obj_env_rec::bindings(env_rec), N, V, S);
 }
 
-Handle<JSValue> GetBindingValue(
-  Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool S
+JSValue GetBindingValue(
+  JSValue& e, JSValue env_rec, JSValue N, bool S
 ) {
-  if (env_rec.val()->IsDeclarativeEnv()) {
-    return GetBindingValue__Declarative(e, static_cast<Handle<DeclarativeEnvironmentRecord>>(env_rec), N, S);
+  if (env_rec.IsDeclarativeEnv()) {
+    return GetBindingValue__Declarative(e, env_rec, N, S);
   } else {
-    ASSERT(env_rec.val()->IsObjectEnv());
-    return GetBindingValue__Object(e, static_cast<Handle<ObjectEnvironmentRecord>>(env_rec), N, S);
+    ASSERT(env_rec.IsObjectEnv());
+    return GetBindingValue__Object(e, env_rec, N, S);
   }
 }
 
 // 10.2.1.1.4 GetBindingValue(N,S)
-Handle<JSValue> GetBindingValue__Declarative(
-  Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S
+JSValue GetBindingValue__Declarative(
+  JSValue& e, JSValue env_rec, JSValue N, bool S
 ) {
-  TEST_LOG("enter GetBindingValue__Declarative " + N.ToString());
-  Binding* b = static_cast<Binding*>(env_rec.val()->bindings()->GetRaw(N));
-  ASSERT(b != nullptr);
-  if (b->value().val()->IsUndefined() && !b->is_mutable()) {
+  TEST_LOG("enter GetBindingValue__Declarative " + JSValue::ToString(N));
+  JSValue b = hash_map::Get(decl_env_rec::bindings(env_rec), N);
+  ASSERT(!b.IsNull());
+  if (b.IsUndefined() && !binding::is_mutable(b)) {
     if (S) {
-      e = Error::ReferenceError(N.val()->data() + u" is not defined");
-      return Handle<JSValue>();
+      e = error::ReferenceError(string::data(N) + u" is not defined");
+      return JSValue();
     } else {
       if (unlikely(log::Debugger::On()))
-        log::PrintSource("GetBindingValue ", N.val()->data(), " undefined");
-      return Undefined::Instance();
+        log::PrintSource("GetBindingValue ", string::data(N), " undefined");
+      return undefined::New();
     }
   }
-  TEST_LOG("GetBindingValue ", N.val()->data(), " " + b->value().ToString());
-  return b->value();
+  ASSERT(b.type() == BINDING);
+  JSValue val = binding::value(b);
+  TEST_LOG("GetBindingValue ", string::data(N), " " + JSValue::ToString(val));
+  return val;
 }
 
 // 10.2.1.2.4 GetBindingValue(N,S)
-Handle<JSValue> GetBindingValue__Object(
-  Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool S
+JSValue GetBindingValue__Object(
+  JSValue& e, JSValue env_rec, JSValue N, bool S
 ) {
-  TEST_LOG("enter GetBindingValue__Object " + N.ToString());
+  TEST_LOG("enter GetBindingValue__Object " + JSValue::ToString(N));
   bool value = HasBinding(env_rec, N);
   if (!value) {
     if (S) {
-      e = Error::ReferenceError(N.val()->data() + u" is not defined");
-      return Handle<JSValue>();
+      e = error::ReferenceError(string::data(N) + u" is not defined");
+      return JSValue();
     } else {
-      return Undefined::Instance();
+      return undefined::New();
     }
   }
-  return Get(e, env_rec.val()->bindings(), N);
+  return Get(e, obj_env_rec::bindings(env_rec), N);
 }
 
 bool DeleteBinding(
-  Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N
+  JSValue& e, JSValue env_rec, JSValue N
 ) {
-  if (env_rec.val()->IsDeclarativeEnv()) {
-    return DeleteBinding__Declarative(e, static_cast<Handle<DeclarativeEnvironmentRecord>>(env_rec), N);
+  if (env_rec.IsDeclarativeEnv()) {
+    return DeleteBinding__Declarative(e, env_rec, N);
   } else {
-    ASSERT(env_rec.val()->IsObjectEnv());
-    return DeleteBinding__Object(e, static_cast<Handle<ObjectEnvironmentRecord>>(env_rec), N);
+    ASSERT(env_rec.IsObjectEnv());
+    return DeleteBinding__Object(e, env_rec, N);
   }
 }
 
 // 10.2.1.1.5 DeleteBinding (N)
 bool DeleteBinding__Declarative(
-  Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N
+  JSValue& e, JSValue env_rec, JSValue N
 ) {
-  Binding* b = static_cast<Binding*>(env_rec.val()->bindings()->GetRaw(N));
-  if (b == nullptr) return true;
-  if (!b->can_delete()) {
+  JSValue b = hash_map::Get(decl_env_rec::bindings(env_rec), N);
+  if (b.IsNull()) return true;
+  if (!binding::can_delete(b)) {
     return false;
   }
-  env_rec.val()->bindings()->Delete(N);
+  hash_map::Delete(decl_env_rec::bindings(env_rec), N);
   return true;
 }
 
 // 10.2.1.2.5 DeleteBinding (N)
 bool DeleteBinding__Object(
-  Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N
+  JSValue& e, JSValue env_rec, JSValue N
 ) {
-  return Delete(e, env_rec.val()->bindings(), N, false);
+  return Delete(e, obj_env_rec::bindings(env_rec), N, false);
 }
 
-Handle<JSValue> ImplicitThisValue(Handle<EnvironmentRecord> env_rec) {
-  if (env_rec.val()->IsDeclarativeEnv()) {
-    return ImplicitThisValue__Declarative(static_cast<Handle<DeclarativeEnvironmentRecord>>(env_rec));
+JSValue ImplicitThisValue(JSValue env_rec) {
+  if (env_rec.IsDeclarativeEnv()) {
+    return ImplicitThisValue__Declarative(env_rec);
   } else {
-    ASSERT(env_rec.val()->IsObjectEnv());
-    return ImplicitThisValue__Object(static_cast<Handle<ObjectEnvironmentRecord>>(env_rec));
+    ASSERT(env_rec.IsObjectEnv());
+    return ImplicitThisValue__Object(env_rec);
   }
 }
 
 // 10.2.1.1.6 ImplicitThisValue()
-Handle<JSValue> ImplicitThisValue__Declarative(Handle<DeclarativeEnvironmentRecord> env_rec) {
-  return Undefined::Instance();
+JSValue ImplicitThisValue__Declarative(JSValue env_rec) {
+  return undefined::New();
 }
 
 // 10.2.1.2.6 ImplicitThisValue()
-Handle<JSValue> ImplicitThisValue__Object(Handle<ObjectEnvironmentRecord> env_rec) {
-  if (env_rec.val()->provide_this()) {
-    return env_rec.val()->bindings();
+JSValue ImplicitThisValue__Object(JSValue env_rec) {
+  if (obj_env_rec::provide_this(env_rec)) {
+    return obj_env_rec::bindings(env_rec);
   }
-  return Undefined::Instance();
+  return undefined::New();
 }
 
 // 10.2.1.1.7 CreateImmutableBinding (N)
 // 10.2.1.1.8 InitializeImmutableBinding (N,V)
 void CreateAndInitializeImmutableBinding(
-  Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V
+  JSValue env_rec, JSValue N, JSValue V
 ) {
-  Handle<Binding> b = Binding::New(
-    Undefined::Instance(), false, false);
-  b.val()->SetValue(V);
-  auto new_bindings = HashMap::Set(Handle<HashMap>(env_rec.val()->bindings()), N, b);
-  env_rec.val()->SetBindings(new_bindings);
+  JSValue b = binding::New(
+    undefined::New(), false, false);
+  binding::SetValue(b, V);
+  auto new_bindings = hash_map::Set(decl_env_rec::bindings(env_rec), N, b);
+  decl_env_rec::SetBindings(env_rec, new_bindings);
 }
 
 }

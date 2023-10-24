@@ -5,85 +5,85 @@
 
 namespace es {
 
-std::u16string ToU16String(Handle<Error>& e, Handle<JSValue> input);
-double ToInt32(Handle<Error>& e, Handle<JSValue> input);
+std::u16string ToU16String(JSValue& e, JSValue input);
+double ToInt32(JSValue& e, JSValue input);
 double StringToNumber(std::u16string source);
-double ToNumber(Handle<Error>& e, Handle<JSValue> input);
+double ToNumber(JSValue& e, JSValue input);
 
 // 15.1 The Global Object
-class GlobalObject : public JSObject {
- public:
-  static Handle<GlobalObject> Instance() {
-    static Handle<GlobalObject> singleton(GlobalObject::New(GCFlag::SINGLE));
-    return singleton;
-  }
+namespace global_object {
 
-  bool direct_eval() { return READ_VALUE(this, kDirectEvalOffset, bool); }
-  void SetDirectEval(bool direct_eval) {
-    SET_VALUE(this, kDirectEvalOffset, direct_eval, bool);
-  }
+constexpr size_t kDirectEvalOffset = js_object::kJSObjectOffset;
 
-  static Handle<JSValue> eval(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+JSValue New(flag_t flag) {
+  JSValue jsobj = js_object::New(
+    // 15.1 The values of the [[Prototype]] and [[Class]]
+    // of the global object are implementation-dependent.
+    u"Global",
+    // NOTE(zhuzilin) global object need to have [[Extensible]] as true,
+    // otherwise we cannot define variable in global code, as global varaibles
+    // are the property of global object.
+    true, JSValue(), false, false, nullptr, kBoolSize, flag
+  );
 
-  static Handle<JSValue> parseInt(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+  SET_VALUE(jsobj.handle().val(), kDirectEvalOffset, false, bool);
+  jsobj.SetType(OBJ_GLOBAL);
+  return jsobj;
+}
 
-  static Handle<JSValue> parseFloat(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+inline JSValue Instance() {
+  static JSValue singleton(global_object::New(GCFlag::SINGLE));
+  return singleton;
+}
 
-  static Handle<JSValue> isNaN(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+bool direct_eval(JSValue jsval) { return READ_VALUE(jsval.handle().val(), kDirectEvalOffset, bool); }
+void SetDirectEval(JSValue jsval, bool direct_eval) {
+  SET_VALUE(jsval.handle().val(), kDirectEvalOffset, direct_eval, bool);
+}
 
-  // 15.1.2.5 isFinite (number)
-  static Handle<JSValue> isFinite(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue eval(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  // 15.1.3.1 decodeURI (encodedURI)
-  static Handle<JSValue> decodeURI(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue parseInt(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  // 15.1.3.2 decodeURIComponent (encodedURIComponent)
-  static Handle<JSValue> decodeURIComponent(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue parseFloat(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  // 15.1.3.3 encodeURI (uri)
-  static Handle<JSValue> encodeURI(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue isNaN(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  // 15.1.3.4 encodeURIComponent (uriComponent)
-  static Handle<JSValue> encodeURIComponent(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+// 15.1.2.5 isFinite (number)
+inline JSValue isFinite(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
- private:
-  static Handle<GlobalObject> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      // 15.1 The values of the [[Prototype]] and [[Class]]
-      // of the global object are implementation-dependent.
-      u"Global",
-      // NOTE(zhuzilin) global object need to have [[Extensible]] as true,
-      // otherwise we cannot define variable in global code, as global varaibles
-      // are the property of global object.
-      true, Handle<JSValue>(), false, false, nullptr, kBoolSize, flag
-    );
+// 15.1.3.1 decodeURI (encodedURI)
+inline JSValue decodeURI(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-    SET_VALUE(jsobj.val(), kDirectEvalOffset, false, bool);
-    jsobj.val()->SetType(OBJ_GLOBAL);
-    return Handle<GlobalObject>(jsobj);
-  }
+// 15.1.3.2 decodeURIComponent (encodedURIComponent)
+inline JSValue decodeURIComponent(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static constexpr size_t kDirectEvalOffset = kJSObjectOffset;
-};
+// 15.1.3.3 encodeURI (uri)
+inline JSValue encodeURI(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
+
+// 15.1.3.4 encodeURIComponent (uriComponent)
+inline JSValue encodeURIComponent(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
+
+}  // namespace global_object
 
 class DirectEvalGuard {
   public:
     DirectEvalGuard() {
-      GlobalObject::Instance().val()->SetDirectEval(true);
+      global_object::SetDirectEval(global_object::Instance(), true);
     }
 
     ~DirectEvalGuard() {
-      GlobalObject::Instance().val()->SetDirectEval(false);
+      global_object::SetDirectEval(global_object::Instance(), false);
     }
 };
 

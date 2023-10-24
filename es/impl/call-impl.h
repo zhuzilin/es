@@ -5,28 +5,27 @@
 
 namespace es {
 
-Handle<JSValue> Call(
-  Handle<Error>& e, Handle<JSValue> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+JSValue Call(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments
 ) {
-  if (O.val()->IsFunctionObject()) {
-    Handle<FunctionObject> F = static_cast<Handle<FunctionObject>>(O);
-    if (!F.val()->from_bind()) {
-      return Call__Function(e, F, this_arg, arguments);
+  if (O.IsFunctionObject()) {
+    if (!function_object::from_bind(O)) {
+      return Call__Function(e, O, this_arg, arguments);
     } else {
-      return Call__BindFunction(e, static_cast<Handle<BindFunctionObject>>(O), this_arg, arguments);
+      return Call__BindFunction(e, O, this_arg, arguments);
     }
-  } else if (O.val()->IsConstructor()) {
-    switch (O.val()->type()) {
+  } else if (O.IsConstructor()) {
+    switch (O.type()) {
       case Type::OBJ_BOOL_CONSTRUCTOR:
-        return Call__BoolConstructor(e, static_cast<Handle<BoolConstructor>>(O), this_arg, arguments);
+        return Call__BoolConstructor(e, O, this_arg, arguments);
       case Type::OBJ_NUMBER_CONSTRUCTOR:
-        return Call__NumberConstructor(e, static_cast<Handle<NumberConstructor>>(O), this_arg, arguments);
+        return Call__NumberConstructor(e, O, this_arg, arguments);
       case Type::OBJ_OBJECT_CONSTRUCTOR:
-        return Call__ObjectConstructor(e, static_cast<Handle<ObjectConstructor>>(O), this_arg, arguments);
+        return Call__ObjectConstructor(e, O, this_arg, arguments);
       case Type::OBJ_REGEXP_CONSTRUCTOR:
-        return Call__RegExpConstructor(e, static_cast<Handle<RegExpConstructor>>(O), this_arg, arguments);
+        return Call__RegExpConstructor(e, O, this_arg, arguments);
       case Type::OBJ_STRING_CONSTRUCTOR:
-        return Call__StringConstructor(e, static_cast<Handle<StringConstructor>>(O), this_arg, arguments);
+        return Call__StringConstructor(e, O, this_arg, arguments);
       case Type::OBJ_FUNC_CONSTRUCTOR:
       case Type::OBJ_ARRAY_CONSTRUCTOR:
       case Type::OBJ_DATE_CONSTRUCTOR:
@@ -39,164 +38,162 @@ Handle<JSValue> Call(
       default:
         assert(false);
     }
-  } else if (O.val()->IsFunctionProto()) {
-    return Call__FunctionProto(e, static_cast<Handle<FunctionProto>>(O), this_arg, arguments);
-  } else if (O.val()->IsGetterSetter()) {
-    return Call__GetterSetter(e, static_cast<Handle<GetterSetter>>(O), this_arg, arguments);
+  } else if (O.IsFunctionProto()) {
+    return Call__FunctionProto(e, O, this_arg, arguments);
+  } else if (O.IsGetterSetter()) {
+    return Call__GetterSetter(e, O, this_arg, arguments);
   } else {
     return Call__Base(e, O, this_arg, arguments);
   }
 }
 
-Handle<JSValue> Call__Base(
-  Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+JSValue Call__Base(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments
 ) {
-  inner_func callable = O.val()->callable();
-  ASSERT(O.val()->IsCallable() && callable != nullptr);
+  inner_func callable = js_object::callable(O);
+  ASSERT(O.IsCallable() && callable != nullptr);
   return callable(e, O, arguments);
 }
 
-Handle<JSValue> Call__Construct(
-  Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+JSValue Call__Construct(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments
 ) {
   return Construct(e, O, arguments);
 }
 
 // 13.2.1 [[Call]]
-Handle<JSValue> Call__Function(
-  Handle<Error>& e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+JSValue Call__Function(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments
 ) {
-  ProgramOrFunctionBody* code = O.val()->Code();
-  TEST_LOG("enter FunctionObject::Call ", code->source().substr(0, 100));
-  EnterFunctionCode(e, O, code, this_arg, arguments, O.val()->strict());
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+  ProgramOrFunctionBody* code = function_object::Code(O);
+  TEST_LOG("enter function_object::Call ", code->source().substr(0, 100));
+  EnterFunctionCode(e, O, code, this_arg, arguments, function_object::strict(O));
+  if (unlikely(!error::IsOk(e))) return JSValue();
 
   Completion result;
   if (code != nullptr) {
     result = EvalProgram(code);
   }
   Runtime::Global()->PopContext();   // 3
-  TEST_LOG("exit FunctionObject::Call", code->source().substr(0, 100));
+  TEST_LOG("exit function_object::Call", code->source().substr(0, 100));
   switch (result.type()) {
     case Completion::RETURN:
       if (unlikely(log::Debugger::On()))
-        log::PrintSource("exit FunctionObject::Call RETURN");
+        log::PrintSource("exit function_object::Call RETURN");
       return result.value();
     case Completion::THROW: {
       if (unlikely(log::Debugger::On()))
-        log::PrintSource("exit FunctionObject::Call THROW");
-      Handle<JSValue> throw_value = result.value();
-      if (throw_value.val()->IsError()) {
+        log::PrintSource("exit function_object::Call THROW");
+      JSValue throw_value = result.value();
+      if (throw_value.IsError()) {
         e = throw_value;
         if (unlikely(log::Debugger::On()))
-          log::PrintSource("message: " + e.ToString());
-        return Handle<JSValue>();
+          log::PrintSource("message: " + JSValue::ToString(e));
+        return JSValue();
       }
       if (unlikely(log::Debugger::On()))
-        log::PrintSource("message: " + throw_value.ToString());
-      e = Error::NativeError(throw_value);
-      return Handle<JSValue>();
+        log::PrintSource("message: " + JSValue::ToString(throw_value));
+      e = error::NativeError(throw_value);
+      return JSValue();
     }
     default:
       if (unlikely(log::Debugger::On()))
-        log::PrintSource("exit FunctionObject::Call NORMAL");
+        log::PrintSource("exit function_object::Call NORMAL");
       ASSERT(result.type() == Completion::NORMAL);
-      return Undefined::Instance();
+      return undefined::New();
   }
 }
 
-Handle<JSValue> Call__BindFunction(
-  Handle<Error>& e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> extra_args
+JSValue Call__BindFunction(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> extra_args
 ) {
-  TEST_LOG("enter BindFunctionObject::Call");
-  Handle<FixedArray> bound_args = O.val()->BoundArgs();
-  Handle<JSObject> target_function = O.val()->TargetFunction();
+  TEST_LOG("enter bind_function_object::Call");
+  JSValue bound_args = bind_function_object::BoundArgs(O);
+  JSValue target_function = bind_function_object::TargetFunction(O);
 
-  std::vector<Handle<JSValue>> args;
-  for (size_t i = 0; i < bound_args.val()->size(); i++) {
-    args.emplace_back(bound_args.val()->Get(i));
+  std::vector<JSValue> args;
+  for (size_t i = 0; i < fixed_array::size(bound_args); i++) {
+    args.emplace_back(fixed_array::Get(bound_args, i));
   }
   args.insert(args.end(), extra_args.begin(), extra_args.end());
-  return Call(e, target_function, O.val()->BoundThis(), args);
+  return Call(e, target_function, bind_function_object::BoundThis(O), args);
 }
 
 // 15.3.4 The Function prototype object is itself a Function object (its [[Class]] is "Function") that,
 // when invoked, accepts any arguments and returns undefined.
-Handle<JSValue> Call__FunctionProto(
-  Handle<Error>& e, Handle<FunctionProto> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+JSValue Call__FunctionProto(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments
 ) {
-  return Undefined::Instance();
+  return undefined::New();
 }
 
 // 15.6.1.1 Boolean (value)
-Handle<JSValue> Call__BoolConstructor(
-  Handle<Error>& e, Handle<BoolConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+JSValue Call__BoolConstructor(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments
 ) {
   bool b;
   if (arguments.size() == 0)
-    b = ToBoolean(Undefined::Instance());
+    b = ToBoolean(undefined::New());
   else
     b = ToBoolean(arguments[0]);
-  return Bool::Wrap(b);
+  return boolean::New(b);
 }
 
 // 15.7.1.1 Number ( [ value ] )
-Handle<JSValue> Call__NumberConstructor(
-  Handle<Error>& e, Handle<NumberConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+JSValue Call__NumberConstructor(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments
 ) {
-  Handle<Number> js_num;
   if (arguments.size() == 0) {
-    js_num = Number::Zero();
+    return number::Zero();
   } else {
     double num = ToNumber(e, arguments[0]);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    js_num = Number::New(num);
+    if (unlikely(!error::IsOk(e))) return JSValue();
+    return number::New(num);
   }
-  return js_num;
 }
 
 // 15.2.1.1 Object ( [ value ] )
-Handle<JSValue> Call__ObjectConstructor(
-  Handle<Error>& e, Handle<ObjectConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+JSValue Call__ObjectConstructor(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments
 ) {
-  if (arguments.size() == 0 || arguments[0].val()->IsNull() || arguments[0].val()->IsUndefined())
+  if (arguments.size() == 0 || arguments[0].IsNull() || arguments[0].IsUndefined())
     return Construct(e, O, arguments);
   return ToObject(e, arguments[0]);
 }
 
 // 15.10.4.1 new RegExp(pattern, flags)
-Handle<JSValue> Call__RegExpConstructor(
-  Handle<Error>& e, Handle<RegExpConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+JSValue Call__RegExpConstructor(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments
 ) {
   if (arguments.size() == 0) {
-    e = Error::TypeError(u"RegExp called with 0 parameters");
-    return Handle<JSValue>();
+    e = error::TypeError(u"RegExp called with 0 parameters");
+    return JSValue();
   }
-  if ((arguments.size() == 1 || arguments[1].val()->IsUndefined()) && arguments[0].val()->IsRegExpObject()) {
+  if ((arguments.size() == 1 || arguments[1].IsUndefined()) && arguments[0].IsRegExpObject()) {
       return arguments[0];
   }
   return Construct(e, O, arguments);
 }
 
 // 15.5.1.1 String ( [ value ] )
-Handle<JSValue> Call__StringConstructor(
-  Handle<Error>& e, Handle<StringConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+JSValue Call__StringConstructor(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments
 ) {
   if (arguments.size() == 0)
-    return String::Empty();
+    return string::Empty();
   return ::es::ToString(e, arguments[0]);
 }
 
-Handle<JSValue> Call__GetterSetter(
-  Handle<Error>& e, Handle<GetterSetter> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+JSValue Call__GetterSetter(
+  JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments
 ) {
   ASSERT(arguments.size() < 2);
-  Handle<Reference> ref = O.val()->ref();
+  JSValue ref = getter_setter::ref(O);
   if (arguments.size() == 0) {
     return GetValue(e, ref);
   } else {
     PutValue(e, ref, arguments[0]);
-    return Handle<JSValue>();
+    return JSValue();
   }
 }
 

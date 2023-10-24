@@ -24,7 +24,7 @@ TEST(TestSameValue, Number) {
       {0, 0}, {nan(""), nan("")}, {1.23, 1.23}
     };
     for (auto pair : pairs) {
-      EXPECT_EQ(true, SameValue(Number::New(pair.first), Number::New(pair.second)));
+      EXPECT_EQ(true, SameValue(number::New(pair.first), number::New(pair.second)));
     }
   }
   
@@ -33,7 +33,7 @@ TEST(TestSameValue, Number) {
       {0.0, -0.0},
     };
     for (auto pair : pairs) {
-      EXPECT_EQ(false, SameValue(Number::New(pair.first), Number::New(pair.second)));
+      EXPECT_EQ(false, SameValue(number::New(pair.first), number::New(pair.second)));
     }
   }
 }

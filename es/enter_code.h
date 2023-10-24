@@ -1,7 +1,7 @@
 #ifndef ES_ENTER_CODE_H
 #define ES_ENTER_CODE_H
 
-#include <es/error.h>
+#include <es/types/error.h>
 #include <es/runtime.h>
 #include <es/types/object.h>
 #include <es/types/builtin/object_object.h>
@@ -27,34 +27,36 @@ enum CodeType {
 };
 
 // 10.6 Arguments Object
-Handle<ArgumentsObject> CreateArgumentsObject(
-  Handle<FunctionObject> func, std::vector<Handle<JSValue>>& args,
-  Handle<LexicalEnvironment> env, bool strict
+JSValue CreateArgumentsObject(
+  JSValue func, std::vector<JSValue>& args,
+  JSValue env, bool strict
 ) {
-  Handle<FixedArray> names = func.val()->FormalParameters();
+  JSValue names = function_object::FormalParameters(func);
   int len = args.size();
-  Handle<JSObject> obj = ArgumentsObject::New(len);
+  JSValue obj = arguments_object::New(len);
   int indx = len - 1;  // 10
   std::set<std::u16string> mapped_names;
   while (indx >= 0) {  // 11
     bool is_accessor_desc = false;
-    if ((size_t)indx < names.val()->size()) {  // 11.c
-      Handle<String> name = static_cast<Handle<String>>(names.val()->Get(indx));
-      std::u16string name_str = name.val()->data();  // 11.c.i
+    if ((size_t)indx < fixed_array::size(names)) {  // 11.c
+      JSValue name = fixed_array::Get(names, indx);
+      ASSERT(name.IsString());
+      std::u16string name_str = string::data(name);  // 11.c.i
       if (!strict && mapped_names.find(name_str) == mapped_names.end()) {  // 11.c.ii
         mapped_names.insert(name_str);
         is_accessor_desc = true;
-        Handle<Reference> ref = Reference::New(env.val()->env_rec(), name, true);
-        Handle<GetterSetter> gs = GetterSetter::New(ref);
-        Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
-        desc.val()->SetSet(gs);
-        desc.val()->SetGet(gs);
-        desc.val()->SetConfigurable(true);
-        DefineOwnProperty(Error::Empty(), obj, NumberToString(indx), desc, false);
+        JSValue ref = reference::New(lexical_env::env_rec(env), name, true);
+        JSValue gs = getter_setter::New(ref);
+        JSValue desc = property_descriptor::New();
+        property_descriptor::SetSet(desc, gs);
+        property_descriptor::SetGet(desc, gs);
+        property_descriptor::SetConfigurable(desc, true);
+        JSValue e = error::Empty();
+        DefineOwnProperty(e, obj, NumberToString(indx), desc, false);
       }
     }
     if (!is_accessor_desc) {
-      Handle<JSValue> val = args[indx];  // 11.a
+      JSValue val = args[indx];  // 11.a
       AddValueProperty(obj, NumberToString(indx), val, true, true, true);  // 11.b
     }
     indx--;  // 11.d
@@ -62,23 +64,24 @@ Handle<ArgumentsObject> CreateArgumentsObject(
   if (!strict) {  // 13
     AddValueProperty(obj, u"callee", func, true, false, true);
   } else {  // 14
-    Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
+    JSValue desc = property_descriptor::New();
     // TODO(zhuzilin) thrower
-    Handle<JSValue> thrower = Undefined::Instance();
-    desc.val()->SetAccessorDescriptor(thrower, thrower, false, false);
-    DefineOwnProperty(Error::Empty(), obj, String::New(u"caller"), desc, false);
-    DefineOwnProperty(Error::Empty(), obj, String::New(u"callee"), desc, false);
+    JSValue thrower = undefined::New();
+    property_descriptor::SetAccessorDescriptor(desc, thrower, thrower, false, false);
+    JSValue e = error::Empty();
+    DefineOwnProperty(e, obj, string::New(u"caller"), desc, false);
+    DefineOwnProperty(e, obj, string::New(u"callee"), desc, false);
   }
   return obj;  // 15
 }
 
 // 10.5 Declaration Binding Instantiation
 void DeclarationBindingInstantiation(
-  Handle<Error>& e, AST* code, CodeType code_type,
-  Handle<FunctionObject> f = Handle<FunctionObject>(), std::vector<Handle<JSValue>> args = {}
+  JSValue& e, AST* code, CodeType code_type,
+  JSValue f = null::New(), std::vector<JSValue> args = {}
 ) {
   TEST_LOG("enter DeclarationBindingInstantiation");
-  Handle<EnvironmentRecord> env = Runtime::TopContext().variable_env().val()->env_rec();  // 1
+  JSValue env = lexical_env::env_rec(Runtime::TopContext().variable_env());  // 1
   bool configurable_bindings = false;
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
   if (code_type == CODE_EVAL) {
@@ -86,52 +89,53 @@ void DeclarationBindingInstantiation(
   }
   bool strict = body->strict() || Runtime::TopContext().strict();  // 3
   if (code_type == CODE_FUNC) {  // 4
-    ASSERT(!f.IsNullptr());
-    auto names = f.val()->FormalParameters();  // 4.a
+    ASSERT(!f.IsNull());
+    JSValue names = function_object::FormalParameters(f);  // 4.a
     size_t arg_count = args.size();  // 4.b
     size_t n = 0;  // 4.c
-    for (size_t i = 0; i < names.val()->size(); i++) {
-      Handle<String> arg_name = names.val()->Get(i);  // 4.d
-      Handle<JSValue> v = Undefined::Instance();
+    for (size_t i = 0; i < fixed_array::size(names); i++) {
+      JSValue arg_name = fixed_array::Get(names, i);  // 4.d
+      JSValue v = undefined::New();
       if (n < arg_count)  // 4.d.i & 4.d.ii
         v = args[n++];
       bool arg_already_declared = HasBinding(env, arg_name);  // 4.d.iii
       if (!arg_already_declared) {  // 4.d.iv
         // NOTE(zhuzlin) I'm not sure if this should be false.
         CreateAndSetMutableBinding(e, env, arg_name, false, v, strict);
-        if (unlikely(!e.val()->IsOk())) return;
+        if (unlikely(!error::IsOk(e))) return;
       } else {
         SetMutableBinding(e, env, arg_name, v, strict);  // 4.d.v
-        if (unlikely(!e.val()->IsOk())) return;
+        if (unlikely(!error::IsOk(e))) return;
       }
     }
   }
   // 5
   for (Function* func_decl : body->func_decls()) {
     ASSERT(func_decl->is_named());
-    Handle<String> fn = String::New(func_decl->name());
-    Handle<FunctionObject> fo = InstantiateFunctionDeclaration(e, func_decl);
-    if (unlikely(!e.val()->IsOk())) return;
+    JSValue fn = string::New(func_decl->name());
+    JSValue fo = InstantiateFunctionDeclaration(e, func_decl);
+    if (unlikely(!error::IsOk(e))) return;
     bool func_already_declared = HasBinding(env, fn);
     if (!func_already_declared) {  // 5.d
       CreateAndSetMutableBinding(e, env, fn, configurable_bindings, fo, strict);
-      if (unlikely(!e.val()->IsOk())) return;
+      if (unlikely(!error::IsOk(e))) return;
     } else {
-      if (env.val() == LexicalEnvironment::Global().val()->env_rec().val()) {  // 5.e
-        auto go = GlobalObject::Instance();
-        auto existing_prop = GetProperty(go, fn);
-        ASSERT(existing_prop.val()->IsPropertyDescriptor());
-        auto existing_prop_desc = static_cast<Handle<PropertyDescriptor>>(existing_prop);
-        if (existing_prop_desc.val()->Configurable()) {  // 5.e.iii
-          auto new_desc = PropertyDescriptor::New();
-          new_desc.val()->SetDataDescriptor(Undefined::Instance(), true, true, configurable_bindings);
+      if (env == lexical_env::env_rec(lexical_env::Global())) {  // 5.e
+        auto go = global_object::Instance();
+        auto existing_prop_desc = GetProperty(go, fn);
+        ASSERT(existing_prop_desc.IsPropertyDescriptor());
+        if (property_descriptor::Configurable(existing_prop_desc)) {  // 5.e.iii
+          auto new_desc = property_descriptor::New();
+          property_descriptor::SetDataDescriptor(new_desc, undefined::New(), true, true, configurable_bindings);
           DefineOwnProperty(e, go, fn, new_desc, true);
-          if (unlikely(!e.val()->IsOk())) return;
+          if (unlikely(!error::IsOk(e))) return;
         } else {  // 5.e.iv
-          if (existing_prop_desc.val()->IsAccessorDescriptor() ||
-              !(existing_prop_desc.val()->HasWritable() && existing_prop_desc.val()->Writable() &&
-                existing_prop_desc.val()->HasEnumerable() && existing_prop_desc.val()->Enumerable())) {
-            e = Error::TypeError(
+          if (property_descriptor::IsAccessorDescriptor(existing_prop_desc) ||
+              !(property_descriptor::HasWritable(existing_prop_desc) &&
+                property_descriptor::Writable(existing_prop_desc) &&
+                property_descriptor::HasEnumerable(existing_prop_desc) &&
+                property_descriptor::Enumerable(existing_prop_desc))) {
+            e = error::TypeError(
               u"existing desc of " + func_decl->name() + " is accessor "
               u"but not both configurable and enumerable");
             return;
@@ -144,32 +148,31 @@ void DeclarationBindingInstantiation(
   // 7
   if (code_type == CODE_FUNC) {
     // 6
-    bool arguments_already_declared = HasBinding(env, String::Arguments());
+    bool arguments_already_declared = HasBinding(env, string::Arguments());
     if (!arguments_already_declared) {
       auto args_obj = CreateArgumentsObject(f, args, Runtime::TopContext().variable_env(), strict);
       if (strict) {  // 7.b
-        Handle<DeclarativeEnvironmentRecord> decl_env = static_cast<Handle<DeclarativeEnvironmentRecord>>(env);
-        CreateAndInitializeImmutableBinding(decl_env, String::Arguments(), args_obj);
+        CreateAndInitializeImmutableBinding(env, string::Arguments(), args_obj);
       } else {  // 7.c
         // NOTE(zhuzlin) I'm not sure if this should be false.
-        CreateAndSetMutableBinding(e, env, String::Arguments(), false, args_obj, false);
+        CreateAndSetMutableBinding(e, env, string::Arguments(), false, args_obj, false);
       }
     }
   }
   // 8
   std::vector<VarDecl*>& decls = body->var_decls();
   for (VarDecl* d : decls) {
-    Handle<String> dn = String::New(d->ident().source());
+    JSValue dn = string::New(d->ident().source());
     bool var_already_declared = HasBinding(env, dn);
     if (!var_already_declared) {
-      CreateAndSetMutableBinding(e, env, dn, configurable_bindings, Undefined::Instance(), strict);
-      if (unlikely(!e.val()->IsOk())) return;
+      CreateAndSetMutableBinding(e, env, dn, configurable_bindings, undefined::New(), strict);
+      if (unlikely(!error::IsOk(e))) return;
     }
   }
 }
 
 // 10.4.1
-void EnterGlobalCode(Handle<Error>& e, AST* ast) {
+void EnterGlobalCode(JSValue& e, AST* ast) {
   ProgramOrFunctionBody* program;
   if (ast->type() == AST::AST_PROGRAM) {
     program = static_cast<ProgramOrFunctionBody*>(ast);
@@ -181,34 +184,34 @@ void EnterGlobalCode(Handle<Error>& e, AST* ast) {
   if (program->strict()) {
     for (VarDecl* d : program->var_decls()) {
       if (d->ident().type() == Token::TK_STRICT_FUTURE) {
-        e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
+        e = error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
         return;
       }
       if (d->ident().source_ref() == u"eval" || d->ident().source_ref() == u"arguments") {
-        e = Error::SyntaxError(u"Unexpected eval or arguments in strict mode");
+        e = error::SyntaxError(u"Unexpected eval or arguments in strict mode");
         return;
       }
     }
   }
   // 1 10.4.1.1
-  Handle<LexicalEnvironment> global_env = LexicalEnvironment::Global();
-  Runtime::Global()->AddContext(ExecutionContext(global_env, global_env, GlobalObject::Instance(), program->strict()));
+  JSValue global_env = lexical_env::Global();
+  Runtime::Global()->AddContext(ExecutionContext(global_env, global_env, global_object::Instance(), program->strict()));
   // 2
   DeclarationBindingInstantiation(e, program, CODE_GLOBAL);
 }
 
 // 10.4.2
-void EnterEvalCode(Handle<Error>& e, AST* ast) {
+void EnterEvalCode(JSValue& e, AST* ast) {
   ASSERT(ast->type() == AST::AST_PROGRAM);
   ProgramOrFunctionBody* program = static_cast<ProgramOrFunctionBody*>(ast);  
-  Handle<LexicalEnvironment> variable_env;
-  Handle<LexicalEnvironment> lexical_env;
-  Handle<JSValue> this_binding;
-  if (!GlobalObject::Instance().val()->direct_eval()) {  // 1
-    Handle<LexicalEnvironment> global_env = LexicalEnvironment::Global();
+  JSValue variable_env;
+  JSValue lexical_env;
+  JSValue this_binding;
+  if (!global_object::direct_eval(global_object::Instance())) {  // 1
+    JSValue global_env = lexical_env::Global();
     variable_env = global_env;
     lexical_env = global_env;
-    this_binding = GlobalObject::Instance();
+    this_binding = global_object::Instance();
   } else {  // 2
     ExecutionContext& calling_context = Runtime::TopContext();
     variable_env = calling_context.variable_env();
@@ -216,19 +219,20 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
     this_binding = calling_context.this_binding();
   }
   bool strict = Runtime::TopContext().strict() ||
-                (program->strict() && GlobalObject::Instance().val()->direct_eval());
+                (program->strict() &&
+                 global_object::direct_eval(global_object::Instance()));
   if (strict) {  // 3
-    Handle<LexicalEnvironment> strict_var_env = NewDeclarativeEnvironment(lexical_env);
+    JSValue strict_var_env = NewDeclarativeEnvironment(lexical_env);
     lexical_env = strict_var_env;
     variable_env = strict_var_env;
 
     for (VarDecl* d : program->var_decls()) {
       if (d->ident().type() == Token::TK_STRICT_FUTURE) {
-        e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
+        e = error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
         return;
       }
       if (d->ident().source_ref() == u"eval" || d->ident().source_ref() == u"arguments") {
-        e = Error::SyntaxError(u"Unexpected eval or arguments in strict mode");
+        e = error::SyntaxError(u"Unexpected eval or arguments in strict mode");
         return;
       }
     }
@@ -240,356 +244,352 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
 
 // 10.4.3
 void EnterFunctionCode(
-  Handle<Error>& e, Handle<JSObject> F, ProgramOrFunctionBody* body,
-  Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict
+  JSValue& e, JSValue F, ProgramOrFunctionBody* body,
+  JSValue this_arg, std::vector<JSValue> args, bool strict
 ) {
-  ASSERT(F.val()->type() == Type::OBJ_FUNC);
-  Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(F);
-  Handle<JSValue> this_binding;
+  ASSERT(F.type() == Type::OBJ_FUNC);
+  JSValue this_binding;
   if (strict) {  // 1
     this_binding = this_arg;
-  } else if (this_arg.val()->IsUndefined() || this_arg.val()->IsNull()) {  // 2 
-    this_binding = GlobalObject::Instance();
-  } else if (!this_arg.val()->IsObject()) {  // 3
+  } else if (this_arg.IsUndefined() || this_arg.IsNull()) {  // 2 
+    this_binding = global_object::Instance();
+  } else if (!this_arg.IsObject()) {  // 3
     this_binding = ToObject(e, this_arg);
   } else {
     this_binding = this_arg;
   }
-  Handle<LexicalEnvironment> local_env = NewDeclarativeEnvironment(func.val()->Scope());
+  JSValue local_env = NewDeclarativeEnvironment(function_object::Scope(F));
   Runtime::Global()->AddContext(ExecutionContext(local_env, local_env, this_binding, strict));  // 8
   // 9
-  DeclarationBindingInstantiation(e, body, CODE_FUNC, func, args);
+  DeclarationBindingInstantiation(e, body, CODE_FUNC, F, args);
 }
 
 void InitGlobalObject() {
-  HandleScope scope;
-  auto global_obj = GlobalObject::Instance();
+  auto global_obj = global_object::Instance();
   // 15.1.1 Value Properties of the Global Object
-  AddValueProperty(global_obj, u"NaN", Number::NaN(), false, false, false);
-  AddValueProperty(global_obj, u"Infinity", Number::Infinity(), false, false, false);
-  AddValueProperty(global_obj, u"undefined", Undefined::Instance(), false, false, false);
+  AddValueProperty(global_obj, u"NaN", number::NaN(), false, false, false);
+  AddValueProperty(global_obj, u"Infinity", number::Infinity(), false, false, false);
+  AddValueProperty(global_obj, u"undefined", undefined::New(), false, false, false);
   // 15.1.2 Function Properties of the Global Object
-  AddFuncProperty(global_obj, u"eval", GlobalObject::eval, true, false, true);
-  AddFuncProperty(global_obj, u"parseInt", GlobalObject::parseInt, true, false, true);
-  AddFuncProperty(global_obj, u"parseFloat", GlobalObject::parseFloat, true, false, true);
-  AddFuncProperty(global_obj, u"isNaN", GlobalObject::isNaN, true, false, true);
-  AddFuncProperty(global_obj, u"isFinite", GlobalObject::isFinite, true, false, true);
+  AddFuncProperty(global_obj, u"eval", global_object::eval, true, false, true);
+  AddFuncProperty(global_obj, u"parseInt", global_object::parseInt, true, false, true);
+  AddFuncProperty(global_obj, u"parseFloat", global_object::parseFloat, true, false, true);
+  AddFuncProperty(global_obj, u"isNaN", global_object::isNaN, true, false, true);
+  AddFuncProperty(global_obj, u"isFinite", global_object::isFinite, true, false, true);
   // 15.1.3 URI Handling Function Properties
-  AddFuncProperty(global_obj, u"decodeURI", GlobalObject::decodeURI, true, false, true);
-  AddFuncProperty(global_obj, u"decodeURIComponent", GlobalObject::decodeURIComponent, true, false, true);
-  AddFuncProperty(global_obj, u"encodeURI", GlobalObject::encodeURI, true, false, true);
-  AddFuncProperty(global_obj, u"encodeURIComponent", GlobalObject::encodeURIComponent, true, false, true);
+  AddFuncProperty(global_obj, u"decodeURI", global_object::decodeURI, true, false, true);
+  AddFuncProperty(global_obj, u"decodeURIComponent", global_object::decodeURIComponent, true, false, true);
+  AddFuncProperty(global_obj, u"encodeURI", global_object::encodeURI, true, false, true);
+  AddFuncProperty(global_obj, u"encodeURIComponent", global_object::encodeURIComponent, true, false, true);
   // 15.1.4 Constructor Properties of the Global Object
-  AddValueProperty(global_obj, u"Object", ObjectConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Function", FunctionConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Number", NumberConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Boolean", BoolConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"String", StringConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Array", ArrayConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Date", DateConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"RegExp", RegExpConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Error", ErrorConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"Object", object_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"Function", function_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"Number", number_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"Boolean", bool_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"String", string_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"Array", array_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"Date", date_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"RegExp", regex_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"Error", error_constructor::Instance(), true, false, true);
   // TODO(zhuzilin) differentiate errors.
-  AddValueProperty(global_obj, u"EvalError", ErrorConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"RangeError", ErrorConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"ReferenceError", ErrorConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"SyntaxError", ErrorConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"TypeError", ErrorConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"URIError", ErrorConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"EvalError", error_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"RangeError", error_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"ReferenceError", error_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"SyntaxError", error_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"TypeError", error_constructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"URIError", error_constructor::Instance(), true, false, true);
 
-  AddValueProperty(global_obj, u"Math", Math::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"Math", math::Instance(), true, false, true);
 
-  AddValueProperty(global_obj, u"console", Console::Instance(), true, false, true);
+  AddValueProperty(global_obj, u"console", console::Instance(), true, false, true);
 }
 
 void InitObject() {
-  Handle<ObjectConstructor> constructor = ObjectConstructor::Instance();
-  constructor.val()->SetPrototype(FunctionProto::Instance());
+  JSValue constructor = object_constructor::Instance();
+  js_object::SetPrototype(constructor, function_proto::Instance());
   // 15.2.3 Properties of the Object Constructor
-  AddValueProperty(constructor, String::Prototype(), ObjectProto::Instance(), false, false, false);
-  AddFuncProperty(constructor, u"toString", ObjectConstructor::toString, true, false, false);
-  AddFuncProperty(constructor, u"getPrototypeOf", ObjectConstructor::getPrototypeOf, true, false, false);
-  AddFuncProperty(constructor, u"getOwnPropertyDescriptor", ObjectConstructor::getOwnPropertyDescriptor, true, false, false);
-  AddFuncProperty(constructor, u"getOwnPropertyNames", ObjectConstructor::getOwnPropertyNames, true, false, false);
-  AddFuncProperty(constructor, u"create", ObjectConstructor::create, true, false, false);
-  AddFuncProperty(constructor, u"defineProperty", ObjectConstructor::defineProperty, true, false, false);
-  AddFuncProperty(constructor, u"defineProperties", ObjectConstructor::defineProperties, true, false, false);
-  AddFuncProperty(constructor, u"seal", ObjectConstructor::seal, true, false, false);
-  AddFuncProperty(constructor, u"freeze", ObjectConstructor::freeze, true, false, false);
-  AddFuncProperty(constructor, u"preventExtensions", ObjectConstructor::preventExtensions, true, false, false);
-  AddFuncProperty(constructor, u"isSealed", ObjectConstructor::isSealed, true, false, false);
-  AddFuncProperty(constructor, u"isFrozen", ObjectConstructor::isFrozen, true, false, false);
-  AddFuncProperty(constructor, u"isExtensible", ObjectConstructor::isExtensible, true, false, false);
-  AddFuncProperty(constructor, u"keys", ObjectConstructor::keys, true, false, false);
+  AddValueProperty(constructor, string::Prototype(), object_proto::Instance(), false, false, false);
+  AddFuncProperty(constructor, u"toString", object_constructor::toString, true, false, false);
+  AddFuncProperty(constructor, u"getPrototypeOf", object_constructor::getPrototypeOf, true, false, false);
+  AddFuncProperty(constructor, u"getOwnPropertyDescriptor", object_constructor::getOwnPropertyDescriptor, true, false, false);
+  AddFuncProperty(constructor, u"getOwnPropertyNames", object_constructor::getOwnPropertyNames, true, false, false);
+  AddFuncProperty(constructor, u"create", object_constructor::create, true, false, false);
+  AddFuncProperty(constructor, u"defineProperty", object_constructor::defineProperty, true, false, false);
+  AddFuncProperty(constructor, u"defineProperties", object_constructor::defineProperties, true, false, false);
+  AddFuncProperty(constructor, u"seal", object_constructor::seal, true, false, false);
+  AddFuncProperty(constructor, u"freeze", object_constructor::freeze, true, false, false);
+  AddFuncProperty(constructor, u"preventExtensions", object_constructor::preventExtensions, true, false, false);
+  AddFuncProperty(constructor, u"isSealed", object_constructor::isSealed, true, false, false);
+  AddFuncProperty(constructor, u"isFrozen", object_constructor::isFrozen, true, false, false);
+  AddFuncProperty(constructor, u"isExtensible", object_constructor::isExtensible, true, false, false);
+  AddFuncProperty(constructor, u"keys", object_constructor::keys, true, false, false);
   // ES6
-  AddFuncProperty(constructor, u"setPrototypeOf", ObjectConstructor::setPrototypeOf, true, false, false);
+  AddFuncProperty(constructor, u"setPrototypeOf", object_constructor::setPrototypeOf, true, false, false);
 
-  Handle<ObjectProto> proto = ObjectProto::Instance();
+  JSValue proto = object_proto::Instance();
   // 15.2.4 Properties of the Object Prototype Object
-  AddValueProperty(proto, String::Constructor(), ObjectConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"toString", ObjectProto::toString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleString", ObjectProto::toLocaleString, true, false, false);
-  AddFuncProperty(proto, u"valueOf", ObjectProto::valueOf, true, false, false);
-  AddFuncProperty(proto, u"hasOwnProperty", ObjectProto::hasOwnProperty, true, false, false);
-  AddFuncProperty(proto, u"isPrototypeOf", ObjectProto::isPrototypeOf, true, false, false);
-  AddFuncProperty(proto, u"propertyIsEnumerable", ObjectProto::propertyIsEnumerable, true, false, false);
+  AddValueProperty(proto, string::Constructor(), object_constructor::Instance(), false, false, false);
+  AddFuncProperty(proto, u"toString", object_proto::toString, true, false, false);
+  AddFuncProperty(proto, u"toLocaleString", object_proto::toLocaleString, true, false, false);
+  AddFuncProperty(proto, u"valueOf", object_proto::valueOf, true, false, false);
+  AddFuncProperty(proto, u"hasOwnProperty", object_proto::hasOwnProperty, true, false, false);
+  AddFuncProperty(proto, u"isPrototypeOf", object_proto::isPrototypeOf, true, false, false);
+  AddFuncProperty(proto, u"propertyIsEnumerable", object_proto::propertyIsEnumerable, true, false, false);
 }
 
 void InitFunction() {
-  HandleScope scope;
-  Handle<FunctionConstructor> constructor = FunctionConstructor::Instance();
-  constructor.val()->SetPrototype(FunctionProto::Instance());
+  JSValue constructor = function_constructor::Instance();
+  std::cout << "create function_constructor" << std::endl;
+  js_object::SetPrototype(constructor, function_proto::Instance());
+  std::cout << "function_constructor SetPrototype" << std::endl;
   // 15.3.3 Properties of the Function Constructor
-  AddValueProperty(constructor, String::Prototype(), FunctionProto::Instance(), false, false, false);
-  AddValueProperty(constructor, String::Length(), Number::One(), false, false, false);
-  AddFuncProperty(constructor, u"toString", FunctionConstructor::toString, true, false, false);
+  AddValueProperty(constructor, string::Prototype(), function_proto::Instance(), false, false, false);
+  std::cout << "function_constructor.Prototype" << std::endl;
+  AddValueProperty(constructor, string::Length(), number::One(), false, false, false);
+  AddFuncProperty(constructor, u"toString", function_constructor::toString, true, false, false);
 
-  Handle<FunctionProto> proto = FunctionProto::Instance();
-  proto.val()->SetPrototype(ObjectProto::Instance());
+  std::cout << "function_proto::Instance" << std::endl;
+  JSValue proto = function_proto::Instance();
+  js_object::SetPrototype(proto, object_proto::Instance());
   // 15.2.4 Properties of the Function Prototype Function
-  AddValueProperty(proto, String::Constructor(), FunctionConstructor::Instance(), false, false, false);
-  AddValueProperty(proto, String::Length(), Number::Zero(), true, false, false);
-  AddFuncProperty(proto, u"toString", FunctionProto::toString, true, false, false);
-  AddFuncProperty(proto, u"apply", FunctionProto::apply, true, false, false);
-  AddFuncProperty(proto, u"call", FunctionProto::call, true, false, false);
-  AddFuncProperty(proto, u"bind", FunctionProto::bind, true, false, false);
+  AddValueProperty(proto, string::Constructor(), function_constructor::Instance(), false, false, false);
+  AddValueProperty(proto, string::Length(), number::Zero(), true, false, false);
+  AddFuncProperty(proto, u"toString", function_proto::toString, true, false, false);
+  AddFuncProperty(proto, u"apply", function_proto::apply, true, false, false);
+  AddFuncProperty(proto, u"call", function_proto::call, true, false, false);
+  AddFuncProperty(proto, u"bind", function_proto::bind, true, false, false);
 }
 
 void InitNumber() {
-  HandleScope scope;
-  Handle<NumberConstructor> constructor = NumberConstructor::Instance();
-  constructor.val()->SetPrototype(FunctionProto::Instance());
+  JSValue constructor = number_constructor::Instance();
+  js_object::SetPrototype(constructor, function_proto::Instance());
   // 15.3.3 Properties of the Number Constructor
-  AddValueProperty(constructor, String::Prototype(), NumberProto::Instance(), false, false, false);
-  AddValueProperty(constructor, String::Length(), Number::One(), false, false, false);
-  AddValueProperty(constructor, u"MAX_VALUE", Number::New(1.7976931348623157e308), false, false, false);
-  AddValueProperty(constructor, u"MIN_VALUE", Number::New(5e-324), false, false, false);
-  AddValueProperty(constructor, u"NaN", Number::NaN(), false, false, false);
-  AddValueProperty(constructor, u"NEGATIVE_INFINITY", Number::NegativeInfinity(), false, false, false);
-  AddValueProperty(constructor, u"POSITIVE_INFINITY", Number::Infinity(), false, false, false);
+  AddValueProperty(constructor, string::Prototype(), number_proto::Instance(), false, false, false);
+  AddValueProperty(constructor, string::Length(), number::One(), false, false, false);
+  AddValueProperty(constructor, u"MAX_VALUE", number::New(1.7976931348623157e308), false, false, false);
+  AddValueProperty(constructor, u"MIN_VALUE", number::New(5e-324), false, false, false);
+  AddValueProperty(constructor, u"NaN", number::NaN(), false, false, false);
+  AddValueProperty(constructor, u"NEGATIVE_INFINITY", number::NegativeInfinity(), false, false, false);
+  AddValueProperty(constructor, u"POSITIVE_INFINITY", number::Infinity(), false, false, false);
 
-  Handle<NumberProto> proto = NumberProto::Instance();
-  proto.val()->SetPrototype(ObjectProto::Instance());
+  JSValue proto = number_proto::Instance();
+  js_object::SetPrototype(proto, object_proto::Instance());
   // 15.2.4 Properties of the Number Prototype Number
-  AddValueProperty(proto, String::Constructor(), NumberConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"toString", NumberProto::toString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleString", NumberProto::toLocaleString, true, false, false);
-  AddFuncProperty(proto, u"valueOf", NumberProto::valueOf, true, false, false);
-  AddFuncProperty(proto, u"toFixed", NumberProto::toFixed, true, false, false);
-  AddFuncProperty(proto, u"toExponential", NumberProto::toExponential, true, false, false);
-  AddFuncProperty(proto, u"toPrecision", NumberProto::toPrecision, true, false, false);
+  AddValueProperty(proto, string::Constructor(), number_constructor::Instance(), false, false, false);
+  AddFuncProperty(proto, u"toString", number_proto::toString, true, false, false);
+  AddFuncProperty(proto, u"toLocaleString", number_proto::toLocaleString, true, false, false);
+  AddFuncProperty(proto, u"valueOf", number_proto::valueOf, true, false, false);
+  AddFuncProperty(proto, u"toFixed", number_proto::toFixed, true, false, false);
+  AddFuncProperty(proto, u"toExponential", number_proto::toExponential, true, false, false);
+  AddFuncProperty(proto, u"toPrecision", number_proto::toPrecision, true, false, false);
 }
 
 void InitError() {
-  HandleScope scope;
-  Handle<ErrorConstructor> constructor = ErrorConstructor::Instance();
-  constructor.val()->SetPrototype(FunctionProto::Instance());
+  JSValue constructor = error_constructor::Instance();
+  js_object::SetPrototype(constructor, function_proto::Instance());
   // 15.11.3 Properties of the Error Constructor
-  AddValueProperty(constructor, String::Prototype(), ErrorProto::Instance(), false, false, false);
+  AddValueProperty(constructor, string::Prototype(), error_proto::Instance(), false, false, false);
 
-  Handle<ErrorProto> proto = ErrorProto::Instance();
-  proto.val()->SetPrototype(ObjectProto::Instance());
+  JSValue proto = error_proto::Instance();
+  js_object::SetPrototype(proto, object_proto::Instance());
   // 15.11.4 Properties of the Error Prototype Object
-  AddValueProperty(proto, String::Constructor(), ErrorConstructor::Instance(), false, false, false);
-  AddValueProperty(proto, u"name", String::New(u"Error"), false, false, false);
-  AddValueProperty(proto, u"message", String::Empty(), true, false, false);
-  AddFuncProperty(proto, u"toString", ErrorProto::toString, true, false, false);
+  AddValueProperty(proto, string::Constructor(), error_constructor::Instance(), false, false, false);
+  AddValueProperty(proto, u"name", string::New(u"Error"), false, false, false);
+  AddValueProperty(proto, u"message", string::Empty(), true, false, false);
+  AddFuncProperty(proto, u"toString", error_proto::toString, true, false, false);
 }
 
 void InitBool() {
-  HandleScope scope;
-  Handle<BoolConstructor> constructor = BoolConstructor::Instance();
-  constructor.val()->SetPrototype(FunctionProto::Instance());
+  JSValue constructor = bool_constructor::Instance();
+  js_object::SetPrototype(constructor, function_proto::Instance());
   // 15.6.3 Properties of the Boolean Constructor
-  AddValueProperty(constructor, String::Prototype(), BoolProto::Instance(), false, false, false);
-  AddFuncProperty(constructor, u"toString", BoolConstructor::toString, true, false, false);
+  AddValueProperty(constructor, string::Prototype(), bool_proto::Instance(), false, false, false);
+  AddFuncProperty(constructor, u"toString", bool_constructor::toString, true, false, false);
 
-  Handle<BoolProto> proto = BoolProto::Instance();
-  proto.val()->SetPrototype(ObjectProto::Instance());
+  JSValue proto = bool_proto::Instance();
+  js_object::SetPrototype(proto, object_proto::Instance());
   // 15.6.4 Properties of the Boolean Prototype Object
-  AddValueProperty(proto, String::Constructor(), BoolConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"toString", BoolProto::toString, true, false, false);
-  AddFuncProperty(proto, u"valueOf", BoolProto::valueOf, true, false, false);
+  AddValueProperty(proto, string::Constructor(), bool_constructor::Instance(), false, false, false);
+  AddFuncProperty(proto, u"toString", bool_proto::toString, true, false, false);
+  AddFuncProperty(proto, u"valueOf", bool_proto::valueOf, true, false, false);
 }
 
 void InitString() {
-  HandleScope scope;
-  Handle<StringConstructor> constructor = StringConstructor::Instance();
-  constructor.val()->SetPrototype(FunctionProto::Instance());
+  JSValue constructor = string_constructor::Instance();
+  js_object::SetPrototype(constructor, function_proto::Instance());
   // 15.3.3 Properties of the String Constructor
-  AddValueProperty(constructor, String::Prototype(), StringProto::Instance(), false, false, false);
-  AddValueProperty(constructor, String::Length(), Number::One(), true, false, false);
-  AddFuncProperty(constructor, u"fromCharCode", StringConstructor::fromCharCode, true, false, false);
-  AddFuncProperty(constructor, u"toString", StringConstructor::toString, true, false, false);
+  AddValueProperty(constructor, string::Prototype(), string_proto::Instance(), false, false, false);
+  AddValueProperty(constructor, string::Length(), number::One(), true, false, false);
+  AddFuncProperty(constructor, u"fromCharCode", string_constructor::fromCharCode, true, false, false);
+  AddFuncProperty(constructor, u"toString", string_constructor::toString, true, false, false);
 
-  Handle<StringProto> proto = StringProto::Instance();
-  proto.val()->SetPrototype(ObjectProto::Instance());
+  JSValue proto = string_proto::Instance();
+  js_object::SetPrototype(proto, object_proto::Instance());
   // 15.2.4 Properties of the String Prototype String
-  AddValueProperty(proto, String::Constructor(), StringConstructor::Instance(), false, false, false);
-  AddValueProperty(proto, String::Length(), Number::Zero(), true, false, false);
-  AddFuncProperty(proto, u"toString", StringProto::toString, true, false, false);
-  AddFuncProperty(proto, u"valueOf", StringProto::valueOf, true, false, false);
-  AddFuncProperty(proto, u"charAt", StringProto::charAt, true, false, false);
-  AddFuncProperty(proto, u"charCodeAt", StringProto::charCodeAt, true, false, false);
-  AddFuncProperty(proto, u"concat", StringProto::concat, true, false, false);
-  AddFuncProperty(proto, u"indexOf", StringProto::indexOf, true, false, false);
-  AddFuncProperty(proto, u"lastIndexOf", StringProto::lastIndexOf, true, false, false);
-  AddFuncProperty(proto, u"localeCompare", StringProto::localeCompare, true, false, false);
-  AddFuncProperty(proto, u"match", StringProto::match, true, false, false);
-  AddFuncProperty(proto, u"replace", StringProto::replace, true, false, false);
-  AddFuncProperty(proto, u"search", StringProto::search, true, false, false);
-  AddFuncProperty(proto, u"slice", StringProto::slice, true, false, false);
-  AddFuncProperty(proto, u"split", StringProto::split, true, false, false);
-  AddFuncProperty(proto, u"substring", StringProto::substring, true, false, false);
-  AddFuncProperty(proto, u"toLowerCase", StringProto::toLowerCase, true, false, false);
-  AddFuncProperty(proto, u"toLocaleLowerCase", StringProto::toLocaleLowerCase, true, false, false);
-  AddFuncProperty(proto, u"toUpperCase", StringProto::toUpperCase, true, false, false);
-  AddFuncProperty(proto, u"toLocaleUpperCase", StringProto::toLocaleUpperCase, true, false, false);
-  AddFuncProperty(proto, u"trim", StringProto::trim, true, false, false);
+  AddValueProperty(proto, string::Constructor(), string_constructor::Instance(), false, false, false);
+  AddValueProperty(proto, string::Length(), number::Zero(), true, false, false);
+  AddFuncProperty(proto, u"toString", string_proto::toString, true, false, false);
+  AddFuncProperty(proto, u"valueOf", string_proto::valueOf, true, false, false);
+  AddFuncProperty(proto, u"charAt", string_proto::charAt, true, false, false);
+  AddFuncProperty(proto, u"charCodeAt", string_proto::charCodeAt, true, false, false);
+  AddFuncProperty(proto, u"concat", string_proto::concat, true, false, false);
+  AddFuncProperty(proto, u"indexOf", string_proto::indexOf, true, false, false);
+  AddFuncProperty(proto, u"lastIndexOf", string_proto::lastIndexOf, true, false, false);
+  AddFuncProperty(proto, u"localeCompare", string_proto::localeCompare, true, false, false);
+  AddFuncProperty(proto, u"match", string_proto::match, true, false, false);
+  AddFuncProperty(proto, u"replace", string_proto::replace, true, false, false);
+  AddFuncProperty(proto, u"search", string_proto::search, true, false, false);
+  AddFuncProperty(proto, u"slice", string_proto::slice, true, false, false);
+  AddFuncProperty(proto, u"split", string_proto::split, true, false, false);
+  AddFuncProperty(proto, u"substring", string_proto::substring, true, false, false);
+  AddFuncProperty(proto, u"toLowerCase", string_proto::toLowerCase, true, false, false);
+  AddFuncProperty(proto, u"toLocaleLowerCase", string_proto::toLocaleLowerCase, true, false, false);
+  AddFuncProperty(proto, u"toUpperCase", string_proto::toUpperCase, true, false, false);
+  AddFuncProperty(proto, u"toLocaleUpperCase", string_proto::toLocaleUpperCase, true, false, false);
+  AddFuncProperty(proto, u"trim", string_proto::trim, true, false, false);
 }
 
 void InitArray() {
-  HandleScope scope;
-  Handle<ArrayConstructor> constructor = ArrayConstructor::Instance();
-  constructor.val()->SetPrototype(FunctionProto::Instance());
+  JSValue constructor = array_constructor::Instance();
+  js_object::SetPrototype(constructor, function_proto::Instance());
   // 15.6.3 Properties of the Arrayean Constructor
-  AddValueProperty(constructor, String::Length(), Number::One(), false, false, false);
-  AddValueProperty(constructor, String::Prototype(), ArrayProto::Instance(), false, false, false);
-  AddFuncProperty(constructor, u"isArray", ArrayConstructor::isArray, true, false, false);
-  AddFuncProperty(constructor, u"toString", ArrayConstructor::toString, true, false, false);
+  AddValueProperty(constructor, string::Length(), number::One(), false, false, false);
+  AddValueProperty(constructor, string::Prototype(), array_proto::Instance(), false, false, false);
+  AddFuncProperty(constructor, u"isArray", array_constructor::isArray, true, false, false);
+  AddFuncProperty(constructor, u"toString", array_constructor::toString, true, false, false);
 
-  Handle<ArrayProto> proto = ArrayProto::Instance();
-  proto.val()->SetPrototype(ObjectProto::Instance());
+  JSValue proto = array_proto::Instance();
+  js_object::SetPrototype(proto, object_proto::Instance());
   // 15.6.4 Properties of the Arrayean Prototype Object
-  AddValueProperty(proto, String::Length(), Number::Zero(), false, false, false);
-  AddValueProperty(proto, String::Constructor(), ArrayConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"toString", ArrayProto::toString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleString", ArrayProto::toLocaleString, true, false, false);
-  AddFuncProperty(proto, u"concat", ArrayProto::concat, true, false, false);
-  AddFuncProperty(proto, u"join", ArrayProto::join, true, false, false);
-  AddFuncProperty(proto, u"pop", ArrayProto::pop, true, false, false);
-  AddFuncProperty(proto, u"push", ArrayProto::push, true, false, false);
-  AddFuncProperty(proto, u"reverse", ArrayProto::reverse, true, false, false);
-  AddFuncProperty(proto, u"shift", ArrayProto::shift, true, false, false);
-  AddFuncProperty(proto, u"slice", ArrayProto::slice, true, false, false);
-  AddFuncProperty(proto, u"sort", ArrayProto::sort, true, false, false);
-  AddFuncProperty(proto, u"splice", ArrayProto::splice, true, false, false);
-  AddFuncProperty(proto, u"unshift", ArrayProto::unshift, true, false, false);
-  AddFuncProperty(proto, u"indexOf", ArrayProto::indexOf, true, false, false);
-  AddFuncProperty(proto, u"lastIndexOf", ArrayProto::lastIndexOf, true, false, false);
-  AddFuncProperty(proto, u"every", ArrayProto::every, true, false, false);
-  AddFuncProperty(proto, u"some", ArrayProto::some, true, false, false);
-  AddFuncProperty(proto, u"forEach", ArrayProto::forEach, true, false, false);
-  AddFuncProperty(proto, u"map", ArrayProto::map, true, false, false);
-  AddFuncProperty(proto, u"filter", ArrayProto::filter, true, false, false);
-  AddFuncProperty(proto, u"reduce", ArrayProto::reduce, true, false, false);
-  AddFuncProperty(proto, u"reduceRight", ArrayProto::reduceRight, true, false, false);
+  AddValueProperty(proto, string::Length(), number::Zero(), false, false, false);
+  AddValueProperty(proto, string::Constructor(), array_constructor::Instance(), false, false, false);
+  AddFuncProperty(proto, u"toString", array_proto::toString, true, false, false);
+  AddFuncProperty(proto, u"toLocaleString", array_proto::toLocaleString, true, false, false);
+  AddFuncProperty(proto, u"concat", array_proto::concat, true, false, false);
+  AddFuncProperty(proto, u"join", array_proto::join, true, false, false);
+  AddFuncProperty(proto, u"pop", array_proto::pop, true, false, false);
+  AddFuncProperty(proto, u"push", array_proto::push, true, false, false);
+  AddFuncProperty(proto, u"reverse", array_proto::reverse, true, false, false);
+  AddFuncProperty(proto, u"shift", array_proto::shift, true, false, false);
+  AddFuncProperty(proto, u"slice", array_proto::slice, true, false, false);
+  AddFuncProperty(proto, u"sort", array_proto::sort, true, false, false);
+  AddFuncProperty(proto, u"splice", array_proto::splice, true, false, false);
+  AddFuncProperty(proto, u"unshift", array_proto::unshift, true, false, false);
+  AddFuncProperty(proto, u"indexOf", array_proto::indexOf, true, false, false);
+  AddFuncProperty(proto, u"lastIndexOf", array_proto::lastIndexOf, true, false, false);
+  AddFuncProperty(proto, u"every", array_proto::every, true, false, false);
+  AddFuncProperty(proto, u"some", array_proto::some, true, false, false);
+  AddFuncProperty(proto, u"forEach", array_proto::forEach, true, false, false);
+  AddFuncProperty(proto, u"map", array_proto::map, true, false, false);
+  AddFuncProperty(proto, u"filter", array_proto::filter, true, false, false);
+  AddFuncProperty(proto, u"reduce", array_proto::reduce, true, false, false);
+  AddFuncProperty(proto, u"reduceRight", array_proto::reduceRight, true, false, false);
 }
 
 void InitDate() {
-  HandleScope scope;
-  Handle<DateConstructor> constructor = DateConstructor::Instance();
-  constructor.val()->SetPrototype(FunctionProto::Instance());
+  JSValue constructor = date_constructor::Instance();
+  js_object::SetPrototype(constructor, function_proto::Instance());
   // 15.6.3 Properties of the Dateean Constructor
-  AddValueProperty(constructor, String::Length(), Number::New(7), false, false, false);
-  AddValueProperty(constructor, String::Prototype(), DateProto::Instance(), false, false, false);
-  AddFuncProperty(constructor, u"parse", DateConstructor::parse, true, false, false);
-  AddFuncProperty(constructor, u"UTC", DateConstructor::UTC, true, false, false);
-  AddFuncProperty(constructor, u"now", DateConstructor::now, true, false, false);
-  AddFuncProperty(constructor, u"toString", DateConstructor::toString, true, false, false);
+  AddValueProperty(constructor, string::Length(), number::New(7), false, false, false);
+  AddValueProperty(constructor, string::Prototype(), date_proto::Instance(), false, false, false);
+  AddFuncProperty(constructor, u"parse", date_constructor::parse, true, false, false);
+  AddFuncProperty(constructor, u"UTC", date_constructor::UTC, true, false, false);
+  AddFuncProperty(constructor, u"now", date_constructor::now, true, false, false);
+  AddFuncProperty(constructor, u"toString", date_constructor::toString, true, false, false);
 
-  Handle<DateProto> proto = DateProto::Instance();
-  proto.val()->SetPrototype(ObjectProto::Instance());
+  JSValue proto = date_proto::Instance();
+  js_object::SetPrototype(proto, object_proto::Instance());
   // 15.6.4 Properties of the Dateean Prototype Object
-  AddValueProperty(proto, String::Length(), Number::Zero(), false, false, false);
-  AddValueProperty(proto, String::Constructor(), DateConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"toString", DateProto::toString, true, false, false);
-  AddFuncProperty(proto, u"toDateString", DateProto::toDateString, true, false, false);
-  AddFuncProperty(proto, u"toTimeString", DateProto::toTimeString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleString", DateProto::toLocaleString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleDateString", DateProto::toLocaleDateString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleTimeString", DateProto::toLocaleTimeString, true, false, false);
-  AddFuncProperty(proto, u"valueOf", DateProto::valueOf, true, false, false);
-  AddFuncProperty(proto, u"getTime", DateProto::getTime, true, false, false);
-  AddFuncProperty(proto, u"getFullYear", DateProto::getFullYear, true, false, false);
-  AddFuncProperty(proto, u"getUTCFullYear", DateProto::getUTCFullYear, true, false, false);
-  AddFuncProperty(proto, u"getMonth", DateProto::getMonth, true, false, false);
-  AddFuncProperty(proto, u"getUTCMonth", DateProto::getUTCMonth, true, false, false);
-  AddFuncProperty(proto, u"getDate", DateProto::getDate, true, false, false);
-  AddFuncProperty(proto, u"getUTCDate", DateProto::getUTCDate, true, false, false);
-  AddFuncProperty(proto, u"getUTCDay", DateProto::getUTCDay, true, false, false);
-  AddFuncProperty(proto, u"getHours", DateProto::getHours, true, false, false);
-  AddFuncProperty(proto, u"getUTCHours", DateProto::getUTCHours, true, false, false);
-  AddFuncProperty(proto, u"getMinutes", DateProto::getMinutes, true, false, false);
-  AddFuncProperty(proto, u"getUTCMinutes", DateProto::getUTCMinutes, true, false, false);
-  AddFuncProperty(proto, u"getSeconds", DateProto::getSeconds, true, false, false);
-  AddFuncProperty(proto, u"getUTCSeconds", DateProto::getUTCSeconds, true, false, false);
-  AddFuncProperty(proto, u"getMilliseconds", DateProto::getMilliseconds, true, false, false);
-  AddFuncProperty(proto, u"getUTCMilliseconds", DateProto::getUTCMilliseconds, true, false, false);
-  AddFuncProperty(proto, u"getTimezoneOffset", DateProto::getTimezoneOffset, true, false, false);
-  AddFuncProperty(proto, u"setTime", DateProto::setTime, true, false, false);
-  AddFuncProperty(proto, u"setMilliseconds", DateProto::setMilliseconds, true, false, false);
-  AddFuncProperty(proto, u"setUTCMilliseconds", DateProto::setUTCMilliseconds, true, false, false);
-  AddFuncProperty(proto, u"setSeconds", DateProto::setSeconds, true, false, false);
-  AddFuncProperty(proto, u"setUTCSeconds", DateProto::setUTCSeconds, true, false, false);
-  AddFuncProperty(proto, u"setMinutes", DateProto::setMinutes, true, false, false);
-  AddFuncProperty(proto, u"setHours", DateProto::setHours, true, false, false);
-  AddFuncProperty(proto, u"setUTCHours", DateProto::setUTCHours, true, false, false);
-  AddFuncProperty(proto, u"setDate", DateProto::setDate, true, false, false);
-  AddFuncProperty(proto, u"setUTCDate", DateProto::setUTCDate, true, false, false);
-  AddFuncProperty(proto, u"setMonth", DateProto::setMonth, true, false, false);
-  AddFuncProperty(proto, u"setUTCMonth", DateProto::setUTCMonth, true, false, false);
-  AddFuncProperty(proto, u"setFullYear", DateProto::setFullYear, true, false, false);
-  AddFuncProperty(proto, u"setUTCFullYear", DateProto::setUTCFullYear, true, false, false);
-  AddFuncProperty(proto, u"toUTCString", DateProto::toUTCString, true, false, false);
-  AddFuncProperty(proto, u"toISOString", DateProto::toISOString, true, false, false);
-  AddFuncProperty(proto, u"toJSON", DateProto::toJSON, true, false, false);
+  AddValueProperty(proto, string::Length(), number::Zero(), false, false, false);
+  AddValueProperty(proto, string::Constructor(), date_constructor::Instance(), false, false, false);
+  AddFuncProperty(proto, u"toString", date_proto::toString, true, false, false);
+  AddFuncProperty(proto, u"toDateString", date_proto::toDateString, true, false, false);
+  AddFuncProperty(proto, u"toTimeString", date_proto::toTimeString, true, false, false);
+  AddFuncProperty(proto, u"toLocaleString", date_proto::toLocaleString, true, false, false);
+  AddFuncProperty(proto, u"toLocaleDateString", date_proto::toLocaleDateString, true, false, false);
+  AddFuncProperty(proto, u"toLocaleTimeString", date_proto::toLocaleTimeString, true, false, false);
+  AddFuncProperty(proto, u"valueOf", date_proto::valueOf, true, false, false);
+  AddFuncProperty(proto, u"getTime", date_proto::getTime, true, false, false);
+  AddFuncProperty(proto, u"getFullYear", date_proto::getFullYear, true, false, false);
+  AddFuncProperty(proto, u"getUTCFullYear", date_proto::getUTCFullYear, true, false, false);
+  AddFuncProperty(proto, u"getMonth", date_proto::getMonth, true, false, false);
+  AddFuncProperty(proto, u"getUTCMonth", date_proto::getUTCMonth, true, false, false);
+  AddFuncProperty(proto, u"getDate", date_proto::getDate, true, false, false);
+  AddFuncProperty(proto, u"getUTCDate", date_proto::getUTCDate, true, false, false);
+  AddFuncProperty(proto, u"getUTCDay", date_proto::getUTCDay, true, false, false);
+  AddFuncProperty(proto, u"getHours", date_proto::getHours, true, false, false);
+  AddFuncProperty(proto, u"getUTCHours", date_proto::getUTCHours, true, false, false);
+  AddFuncProperty(proto, u"getMinutes", date_proto::getMinutes, true, false, false);
+  AddFuncProperty(proto, u"getUTCMinutes", date_proto::getUTCMinutes, true, false, false);
+  AddFuncProperty(proto, u"getSeconds", date_proto::getSeconds, true, false, false);
+  AddFuncProperty(proto, u"getUTCSeconds", date_proto::getUTCSeconds, true, false, false);
+  AddFuncProperty(proto, u"getMilliseconds", date_proto::getMilliseconds, true, false, false);
+  AddFuncProperty(proto, u"getUTCMilliseconds", date_proto::getUTCMilliseconds, true, false, false);
+  AddFuncProperty(proto, u"getTimezoneOffset", date_proto::getTimezoneOffset, true, false, false);
+  AddFuncProperty(proto, u"setTime", date_proto::setTime, true, false, false);
+  AddFuncProperty(proto, u"setMilliseconds", date_proto::setMilliseconds, true, false, false);
+  AddFuncProperty(proto, u"setUTCMilliseconds", date_proto::setUTCMilliseconds, true, false, false);
+  AddFuncProperty(proto, u"setSeconds", date_proto::setSeconds, true, false, false);
+  AddFuncProperty(proto, u"setUTCSeconds", date_proto::setUTCSeconds, true, false, false);
+  AddFuncProperty(proto, u"setMinutes", date_proto::setMinutes, true, false, false);
+  AddFuncProperty(proto, u"setHours", date_proto::setHours, true, false, false);
+  AddFuncProperty(proto, u"setUTCHours", date_proto::setUTCHours, true, false, false);
+  AddFuncProperty(proto, u"setDate", date_proto::setDate, true, false, false);
+  AddFuncProperty(proto, u"setUTCDate", date_proto::setUTCDate, true, false, false);
+  AddFuncProperty(proto, u"setMonth", date_proto::setMonth, true, false, false);
+  AddFuncProperty(proto, u"setUTCMonth", date_proto::setUTCMonth, true, false, false);
+  AddFuncProperty(proto, u"setFullYear", date_proto::setFullYear, true, false, false);
+  AddFuncProperty(proto, u"setUTCFullYear", date_proto::setUTCFullYear, true, false, false);
+  AddFuncProperty(proto, u"toUTCString", date_proto::toUTCString, true, false, false);
+  AddFuncProperty(proto, u"toISOString", date_proto::toISOString, true, false, false);
+  AddFuncProperty(proto, u"toJSON", date_proto::toJSON, true, false, false);
 }
 
 void InitMath() {
-  HandleScope scope;
-  Handle<JSObject> math = Math::Instance();
+  JSValue math = math::Instance();
   // 15.8.1 Value Properties of the Math Object
-  AddValueProperty(math, String::New(u"E"), Number::New(2.7182818284590452354), false, false, false);
-  AddValueProperty(math, String::New(u"LN10"), Number::New(2.302585092994046), false, false, false);
-  AddValueProperty(math, String::New(u"LN2"), Number::New(0.6931471805599453), false, false, false);
-  AddValueProperty(math, String::New(u"LOG2E"), Number::New(1.4426950408889634), false, false, false);
-  AddValueProperty(math, String::New(u"LOG10E"), Number::New(0.4342944819032518), false, false, false);
-  AddValueProperty(math, String::New(u"PI"), Number::New(3.1415926535897932), false, false, false);
-  AddValueProperty(math, String::New(u"SQRT1_2"), Number::New(0.7071067811865476), false, false, false);
-  AddValueProperty(math, String::New(u"SQRT2"), Number::New(1.4142135623730951), false, false, false);
+  AddValueProperty(math, string::New(u"E"), number::New(2.7182818284590452354), false, false, false);
+  AddValueProperty(math, string::New(u"LN10"), number::New(2.302585092994046), false, false, false);
+  AddValueProperty(math, string::New(u"LN2"), number::New(0.6931471805599453), false, false, false);
+  AddValueProperty(math, string::New(u"LOG2E"), number::New(1.4426950408889634), false, false, false);
+  AddValueProperty(math, string::New(u"LOG10E"), number::New(0.4342944819032518), false, false, false);
+  AddValueProperty(math, string::New(u"PI"), number::New(3.1415926535897932), false, false, false);
+  AddValueProperty(math, string::New(u"SQRT1_2"), number::New(0.7071067811865476), false, false, false);
+  AddValueProperty(math, string::New(u"SQRT2"), number::New(1.4142135623730951), false, false, false);
   // 15.8.2 Function Properties of the Math Object
-  AddFuncProperty(math, u"abs", Math::abs, false, false, false);
-  AddFuncProperty(math, u"ceil", Math::ceil, false, false, false);
-  AddFuncProperty(math, u"cos", Math::cos, false, false, false);
-  AddFuncProperty(math, u"exp", Math::exp, false, false, false);
-  AddFuncProperty(math, u"floor", Math::floor, false, false, false);
-  AddFuncProperty(math, u"max", Math::max, false, false, false);
-  AddFuncProperty(math, u"pow", Math::pow, false, false, false);
-  AddFuncProperty(math, u"round", Math::round, false, false, false);
-  AddFuncProperty(math, u"sin", Math::sin, false, false, false);
-  AddFuncProperty(math, u"sqrt", Math::sqrt, false, false, false);
+  AddFuncProperty(math, u"abs", math::abs, false, false, false);
+  AddFuncProperty(math, u"ceil", math::ceil, false, false, false);
+  AddFuncProperty(math, u"cos", math::cos, false, false, false);
+  AddFuncProperty(math, u"exp", math::exp, false, false, false);
+  AddFuncProperty(math, u"floor", math::floor, false, false, false);
+  AddFuncProperty(math, u"max", math::max, false, false, false);
+  AddFuncProperty(math, u"pow", math::pow, false, false, false);
+  AddFuncProperty(math, u"round", math::round, false, false, false);
+  AddFuncProperty(math, u"sin", math::sin, false, false, false);
+  AddFuncProperty(math, u"sqrt", math::sqrt, false, false, false);
 }
 
 void InitRegExp() {
-  HandleScope scope;
-  Handle<RegExpConstructor> constructor = RegExpConstructor::Instance();
-  constructor.val()->SetPrototype(FunctionProto::Instance());
+  JSValue constructor = regex_constructor::Instance();
+  js_object::SetPrototype(constructor, function_proto::Instance());
   // 15.6.3 Properties of the RegExp Constructor
-  AddValueProperty(constructor, String::Prototype(), RegExpProto::Instance(), false, false, false);
+  AddValueProperty(constructor, string::Prototype(), regex_proto::Instance(), false, false, false);
 
-  Handle<RegExpProto> proto = RegExpProto::Instance();
-  proto.val()->SetPrototype(ObjectProto::Instance());
+  JSValue proto = regex_proto::Instance();
+  js_object::SetPrototype(proto, object_proto::Instance());
   // 15.6.4 Properties of the RegExp Prototype Object
-  AddValueProperty(proto, String::Constructor(), RegExpConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"exec", RegExpProto::exec, true, false, false);
-  AddFuncProperty(proto, u"test", RegExpProto::test, true, false, false);
-  AddFuncProperty(proto, u"toString", RegExpProto::toString, true, false, false);
+  AddValueProperty(proto, string::Constructor(), regex_constructor::Instance(), false, false, false);
+  AddFuncProperty(proto, u"exec", regex_proto::exec, true, false, false);
+  AddFuncProperty(proto, u"test", regex_proto::test, true, false, false);
+  AddFuncProperty(proto, u"toString", regex_proto::toString, true, false, false);
 };
 
 void Init() {
+  std::cout << "InitGlobalObject" << std::endl;
   InitGlobalObject();
+  std::cout << "InitObject" << std::endl;
   InitObject();
+  std::cout << "InitFunction" << std::endl;
   InitFunction();
   InitNumber();
   InitError();

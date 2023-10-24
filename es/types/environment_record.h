@@ -10,115 +10,109 @@
 
 namespace es {
 
-// EnvironmentRecord is also of type JSValue 
-class EnvironmentRecord : public JSValue {
- public:
-  static Handle<EnvironmentRecord> New(size_t size) {
-    Handle<JSValue> jsval = HeapObject::New(size);
-    return static_cast<Handle<EnvironmentRecord>>(jsval);
-  }
+namespace binding {
 
-  bool IsDeclarativeEnv() { return type() == JS_ENV_REC_DECL; }
-  bool IsObjectEnv() { return type() == JS_ENV_REC_OBJ; }
+constexpr size_t kValueOffset = 0;
+constexpr size_t kBindingOffset = kValueOffset + sizeof(JSValue);
 
- public:
-  static constexpr size_t kEnvironmentRecordOffset = kJSValueOffset;
-};
+inline JSValue New(JSValue value, bool can_delete, bool is_mutable) {
+  JSValue jsval;
+  std::cout << "enter binding" << std::endl;
+  jsval.handle() = HeapObject::New(sizeof(JSValue));
 
-class Binding : public JSValue {
- public:
-  static Handle<Binding> New(Handle<JSValue> value, bool can_delete, bool is_mutable) {
-#ifdef GC_DEBUG
-    if (unlikely(log::Debugger::On()))
-      std::cout << "Binding::New" << "\n";
-#endif
-    Handle<JSValue> jsval = HeapObject::New(kBindingOffset - HeapObject::kHeapObjectOffset);
+  SET_JSVALUE(jsval.handle().val(), kValueOffset, value);
 
-    SET_HANDLE_VALUE(jsval.val(), kValueOffset, value, JSValue);
-    SET_VALUE(jsval.val(), kCanDeleteOffset, can_delete, bool);
-    SET_VALUE(jsval.val(), kIsMutableOffset, is_mutable, bool);
+  jsval.header_.placeholder_.binding_header_.can_delete_ = can_delete;
+  jsval.header_.placeholder_.binding_header_.is_mutable_ = is_mutable;
+  jsval.SetType(BINDING);
+  return jsval;
+}
 
-    jsval.val()->SetType(BINDING);
-    return Handle<Binding>(jsval);
-  }
+inline JSValue value(JSValue jsval) { return GET_JSVALUE(jsval.handle().val(), kValueOffset); };
+inline void SetValue(JSValue& jsval, JSValue value) {
+  SET_JSVALUE(jsval.handle().val(), kValueOffset, value);
+}
+inline bool can_delete(JSValue jsval) {
+  return jsval.header_.placeholder_.binding_header_.can_delete_;
+}
+inline bool is_mutable(JSValue jsval) {
+  return jsval.header_.placeholder_.binding_header_.is_mutable_;
+}
 
-  Handle<JSValue> value() { return READ_HANDLE_VALUE(this, kValueOffset, JSValue); };
-  void SetValue(Handle<JSValue> value) { SET_HANDLE_VALUE(this, kValueOffset, value, JSValue); }
-  bool can_delete() { return READ_VALUE(this, kCanDeleteOffset, bool); }
-  bool is_mutable() { return READ_VALUE(this, kIsMutableOffset, bool); }
+}  // namespace binding
 
- public:
-  static constexpr size_t kValueOffset = HeapObject::kHeapObjectOffset;
-  static constexpr size_t kCanDeleteOffset = kValueOffset + kPtrSize;
-  static constexpr size_t kIsMutableOffset = kCanDeleteOffset + kBoolSize;
-  static constexpr size_t kBindingOffset = kIsMutableOffset + kBoolSize;
-};
+namespace decl_env_rec {
+
+constexpr size_t kBindingsOffset = 0;
+
+inline JSValue New() {
+  JSValue jsval;
+  std::cout << "enter decl_env_rec" << std::endl;
+  jsval.handle() = HeapObject::New(sizeof(JSValue));
+  JSValue bindings = hash_map::New();
+
+  SET_JSVALUE(jsval.handle().val(), kBindingsOffset, bindings);
+  jsval.SetType(JS_ENV_REC_DECL);
+  return jsval;
+}
+
+inline JSValue bindings(JSValue jsval) {
+  return GET_JSVALUE(jsval.handle().val(), kBindingsOffset);
+}
+inline void SetBindings(JSValue& jsval, JSValue new_binding) {
+  SET_JSVALUE(jsval.handle().val(), kBindingsOffset, new_binding);
+}
+
+}  // namespace decl_env_rec
+
+namespace obj_env_rec {
+
+constexpr size_t kBindingsOffset = 0;
+
+inline JSValue New(JSValue obj, bool provide_this = false) {
+  JSValue jsval;
+  std::cout << "enter obj_env_rec" << std::endl;
+  jsval.handle() = HeapObject::New(sizeof(JSValue) + kBoolSize);
+
+  SET_JSVALUE(jsval.handle().val(), kBindingsOffset, obj);
+  jsval.header_.placeholder_.provide_this_ = provide_this;
+  jsval.SetType(JS_ENV_REC_OBJ);
+  return jsval;
+}
+
+inline JSValue bindings(JSValue jsval) {
+  return GET_JSVALUE(jsval.handle().val(), kBindingsOffset);
+}
+inline bool provide_this(JSValue jsval) { return jsval.header_.placeholder_.provide_this_; }
 
 
-class DeclarativeEnvironmentRecord : public EnvironmentRecord {
- public:
-  static Handle<DeclarativeEnvironmentRecord> New() {
-    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New(kPtrSize);
-    auto bindings = HashMap::New();
+}  // namespace obj_env_rec
 
-    SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, bindings, HashMap);
-    env_rec.val()->SetType(JS_ENV_REC_DECL);
-    return Handle<DeclarativeEnvironmentRecord>(env_rec);
-  }
+bool HasBinding(JSValue env_rec, JSValue N);
+bool HasBinding__Declarative(JSValue env_rec, JSValue N);
+bool HasBinding__Object(JSValue env_rec, JSValue N);
 
-  HashMap* bindings() { return READ_VALUE(this, kBindingsOffset, HashMap*); }
-  void SetBindings(Handle<HashMap> new_binding) {
-    SET_HANDLE_VALUE(this, kBindingsOffset, new_binding, HashMap);
-  }
+void CreateAndSetMutableBinding(JSValue& e, JSValue env_rec, JSValue N, bool D, JSValue V, bool S);
+void CreateAndSetMutableBinding__Declarative(JSValue& e, JSValue env_rec, JSValue N, bool D, JSValue V, bool S);
+void CreateAndSetMutableBinding__Object(JSValue& e, JSValue env_rec, JSValue N, bool D, JSValue V, bool S);
 
- public:
-  static constexpr size_t kBindingsOffset = kEnvironmentRecordOffset;
-};
+void SetMutableBinding(JSValue& e, JSValue env_rec, JSValue N, JSValue V, bool S);
+void SetMutableBinding__Declarative(JSValue& e, JSValue env_rec, JSValue N, JSValue V, bool S);
+void SetMutableBinding__Object(JSValue& e, JSValue env_rec, JSValue N, JSValue V, bool S);
 
-class ObjectEnvironmentRecord : public EnvironmentRecord {
- public:
-  static Handle<ObjectEnvironmentRecord> New(Handle<JSObject> obj, bool provide_this = false) {
-    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New(kPtrSize + kBoolSize);
+JSValue GetBindingValue(JSValue& e, JSValue env_rec, JSValue N, bool S);
+JSValue GetBindingValue__Declarative(JSValue& e, JSValue env_rec, JSValue N, bool S);
+JSValue GetBindingValue__Object(JSValue& e, JSValue env_rec, JSValue N, bool S);
 
-    SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, obj, JSObject);
-    SET_VALUE(env_rec.val(), kProvideThisOffset, provide_this, bool);
-    env_rec.val()->SetType(JS_ENV_REC_OBJ);
-    return Handle<ObjectEnvironmentRecord>(env_rec);
-  }
+bool DeleteBinding(JSValue& e, JSValue env_rec, JSValue N);
+bool DeleteBinding__Declarative(JSValue& e, JSValue env_rec, JSValue N);
+bool DeleteBinding__Object(JSValue& e, JSValue env_rec, JSValue N);
 
-  Handle<JSObject> bindings() { return READ_HANDLE_VALUE(this, kBindingsOffset, JSObject); }
-  bool provide_this() { return READ_VALUE(this, kProvideThisOffset, bool); }
+JSValue ImplicitThisValue(JSValue env_rec);
+JSValue ImplicitThisValue__Declarative(JSValue env_rec);
+JSValue ImplicitThisValue__Object(JSValue env_rec);
 
- public:
-  static constexpr size_t kBindingsOffset = kEnvironmentRecordOffset;
-  static constexpr size_t kProvideThisOffset = kBindingsOffset + kPtrSize;
-};
-
-bool HasBinding(Handle<EnvironmentRecord> env_rec, Handle<String> N);
-bool HasBinding__Declarative(Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N);
-bool HasBinding__Object(Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N);
-
-void CreateAndSetMutableBinding(Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool D, Handle<JSValue> V, bool S);
-void CreateAndSetMutableBinding__Declarative(Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool D, Handle<JSValue> V, bool S);
-void CreateAndSetMutableBinding__Object(Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool D, Handle<JSValue> V, bool S);
-
-void SetMutableBinding(Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S);
-void SetMutableBinding__Declarative(Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S);
-void SetMutableBinding__Object(Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S);
-
-Handle<JSValue> GetBindingValue(Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N, bool S);
-Handle<JSValue> GetBindingValue__Declarative(Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S);
-Handle<JSValue> GetBindingValue__Object(Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool S);
-
-bool DeleteBinding(Handle<Error>& e, Handle<EnvironmentRecord> env_rec, Handle<String> N);
-bool DeleteBinding__Declarative(Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N);
-bool DeleteBinding__Object(Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N);
-
-Handle<JSValue> ImplicitThisValue(Handle<EnvironmentRecord> env_rec);
-Handle<JSValue> ImplicitThisValue__Declarative(Handle<DeclarativeEnvironmentRecord> env_rec);
-Handle<JSValue> ImplicitThisValue__Object(Handle<ObjectEnvironmentRecord> env_rec);
-
-void CreateAndInitializeImmutableBinding(Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V);
+void CreateAndInitializeImmutableBinding(JSValue env_rec, JSValue N, JSValue V);
 
 }  // namespace es
 

@@ -9,155 +9,156 @@
 
 namespace es {
 
-bool ToBoolean(Handle<JSValue> input);
-double ToNumber(Handle<Error>& e, Handle<JSValue> input);
-double ToInteger(Handle<Error>& e, Handle<JSValue> input);
-double ToUint32(Handle<Error>& e, Handle<JSValue> input);
-std::u16string ToU16String(Handle<Error>& e, Handle<JSValue> input);
+bool ToBoolean(JSValue input);
+double ToNumber(JSValue& e, JSValue input);
+double ToInteger(JSValue& e, JSValue input);
+double ToUint32(JSValue& e, JSValue input);
+std::u16string ToU16String(JSValue& e, JSValue input);
 std::u16string NumberToU16String(double m);
-double StringToNumber(Handle<String> source);
-Handle<JSObject> ToObject(Handle<Error>& e, Handle<JSValue> input);
+double StringToNumber(JSValue source);
+JSValue ToObject(JSValue& e, JSValue input);
 
-bool IsArrayIndex(Handle<String> P) {
-  return *P.val() == *NumberToString(uint32_t(StringToNumber(P))).val();
+bool IsArrayIndex(JSValue P) {
+  return string::data(P) == string::data(NumberToString(uint32_t(StringToNumber(P))));
 }
 
-class ArrayProto : public JSObject {
- public:
-  static  Handle<ArrayProto> Instance() {
-    static  Handle<ArrayProto> singleton = ArrayProto::New(GCFlag::SINGLE);
-    return singleton;
-  }
+namespace array_proto {
 
-  // 15.4.4.2 Array.prototype.toString ( )
-  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+inline JSValue New(flag_t flag) {
+  JSValue jsobj = js_object::New(
+    u"Array", true, JSValue(), false, false, nullptr, 0, flag);
 
-  static Handle<JSValue> toLocaleString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+  jsobj.SetType(OBJ_OTHER);
+  return jsobj;
+}
 
-  static Handle<JSValue> concat(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+inline  JSValue Instance() {
+  static  JSValue singleton = array_proto::New(GCFlag::SINGLE);
+  return singleton;
+}
 
-  static Handle<JSValue> join(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+// 15.4.4.2 Array.prototype.toString ( )
+inline JSValue toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  // 15.4.4.6 Array.prototype.pop ( )
-  static Handle<JSValue> pop(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+inline JSValue toLocaleString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  // 15.4.4.7 Array.prototype.push ( [ item1 [ , item2 [ , … ] ] ] )
-  static Handle<JSValue> push(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+inline JSValue concat(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  static Handle<JSValue> reverse(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue join(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  // 15.4.4.9 Array.prototype.shift ( )
-  static Handle<JSValue> shift(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+// 15.4.4.6 Array.prototype.pop ( )
+inline JSValue pop(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  static Handle<JSValue> slice(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+// 15.4.4.7 Array.prototype.push ( [ item1 [ , item2 [ , … ] ] ] )
+inline JSValue push(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  static Handle<JSValue> sort(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+inline JSValue reverse(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static Handle<JSValue> splice(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+// 15.4.4.9 Array.prototype.shift ( )
+inline JSValue shift(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  static Handle<JSValue> unshift(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue slice(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  static Handle<JSValue> indexOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue sort(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  static Handle<JSValue> lastIndexOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue splice(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static Handle<JSValue> every(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue unshift(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static Handle<JSValue> some(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue indexOf(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static Handle<JSValue> forEach(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+inline JSValue lastIndexOf(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static Handle<JSValue> toLocaleUpperCase(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue every(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static Handle<JSValue> map(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+inline JSValue some(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static Handle<JSValue> filter(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+inline JSValue forEach(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-  static Handle<JSValue> reduce(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue toLocaleUpperCase(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static Handle<JSValue> reduceRight(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue map(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
- private:
-  static Handle<ArrayProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Array", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+inline JSValue filter(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
-    jsobj.val()->SetType(OBJ_OTHER);
-    return Handle<ArrayProto>(jsobj);
-  }
-};
+inline JSValue reduce(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-class ArrayObject : public JSObject {
- public:
-  static Handle<ArrayObject> New(double len) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Array", true, Handle<JSValue>(), false, false, nullptr, 0
-    );
+inline JSValue reduceRight(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-    jsobj.val()->SetType(OBJ_ARRAY);
-    Handle<ArrayObject> obj(jsobj);
-    obj.val()->SetPrototype(ArrayProto::Instance());
-    Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
-    // Not using AddValueProperty here to by pass the override DefineOwnProperty
-    Handle<Number> len_num = Number::New(len);
-    desc.val()->SetDataDescriptor(len_num, true, false, false);
-    DefineOwnProperty__Base(Error::Empty(), obj, String::Length(), desc, false);
-    return obj;
-  }
-};
+}  // namespace array_proto
 
-class ArrayConstructor : public JSObject {
- public:
-  static  Handle<ArrayConstructor> Instance() {
-    static  Handle<ArrayConstructor> singleton = ArrayConstructor::New(GCFlag::SINGLE);
-    return singleton;
-  }
+namespace array_object {
 
-  static Handle<JSValue> isArray(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    if (vals.size() == 0 || !vals[0].val()->IsObject())
-      return Bool::False();
-    Handle<JSObject> obj = static_cast<Handle<JSObject>>(vals[0]);
-    return Bool::Wrap(obj.val()->Class() == u"Array");
-  }
+inline JSValue New(double len) {
+  JSValue jsobj = js_object::New(
+    u"Array", true, JSValue(), false, false, nullptr, 0
+  );
 
-  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    return String::New(u"function Array() { [native code] }");
-  }
+  jsobj.SetType(OBJ_ARRAY);
+  js_object::SetPrototype(jsobj, array_proto::Instance());
+  JSValue desc = property_descriptor::New();
+  // Not using AddValueProperty here to by pass the override DefineOwnProperty
+  JSValue len_num = number::New(len);
+  property_descriptor::SetDataDescriptor(desc, len_num, true, false, false);
+  JSValue e = error::Empty();
+  DefineOwnProperty__Base(e, jsobj, string::Length(), desc, false);
+  return jsobj;
+}
 
- private:
-  static Handle<ArrayConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Array", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+}  // namespace array_object
 
-    jsobj.val()->SetType(OBJ_ARRAY_CONSTRUCTOR);
-    return Handle<ArrayConstructor>(jsobj);
-  }
-};
+namespace array_constructor {
 
-bool DefineOwnProperty__Array(Handle<Error>& e, Handle<ArrayObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
-Handle<JSObject> Construct__ArrayConstructor(Handle<Error>& e, Handle<ArrayConstructor> O,  std::vector<Handle<JSValue>> arguments);
+inline JSValue New(flag_t flag) {
+  JSValue jsobj = js_object::New(
+    u"Array", true, JSValue(), true, true, nullptr, 0, flag);
+
+  jsobj.SetType(OBJ_ARRAY_CONSTRUCTOR);
+  return jsobj;
+}
+
+inline JSValue Instance() {
+  static JSValue singleton = array_constructor::New(GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue isArray(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  if (vals.size() == 0 || !vals[0].IsObject())
+    return boolean::False();
+  JSValue obj = vals[0];
+  return boolean::New(js_object::Class(obj) == u"Array");
+}
+
+inline JSValue toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  return string::New(u"function Array() { [native code] }");
+}
+
+}  // namespace array_constructor
+
+bool DefineOwnProperty__Array(JSValue& e, JSValue O, JSValue P, JSValue desc, bool throw_flag);
+JSValue Construct__ArrayConstructor(JSValue& e, JSValue O,  std::vector<JSValue> arguments);
 
 }  // namespace es
 

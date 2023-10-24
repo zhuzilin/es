@@ -6,15 +6,15 @@
 
 namespace es {
 
-Handle<JSValue> ObjectConstructor::keys(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-  if (vals.size() < 1 || !vals[0].val()->IsObject()) {
-    e = Error::TypeError(u"Object.keys called on non-object");
-    return Handle<JSValue>();
+JSValue object_constructor::keys(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  if (vals.size() < 1 || !vals[0].IsObject()) {
+    e = error::TypeError(u"Object.keys called on non-object");
+    return JSValue();
   }
-  Handle<JSObject> O = static_cast<Handle<JSObject>>(vals[0]);
-  auto properties = O.val()->AllEnumerableProperties();
+  JSValue O = vals[0];
+  auto properties = js_object::AllEnumerableProperties(O);
   size_t n = properties.size();
-  Handle<ArrayObject> arr_obj = ArrayObject::New(n);
+  JSValue arr_obj = array_object::New(n);
   for (size_t index = 0; index < n; index++) {
     AddValueProperty(arr_obj, 
       NumberToString(index), properties[index].first, true, true, true);

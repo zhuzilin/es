@@ -5,105 +5,99 @@
 
 namespace es {
 
-Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
-  if (!V.val()->IsReference()) {
+JSValue GetValue(JSValue& e, JSValue V) {
+  if (!V.IsReference()) {
     return V;
   }
-  TEST_LOG("GetValue V:" + V.ToString());
-  Handle<Reference> ref = static_cast<Handle<Reference>>(V);
-  if (ref.val()->IsUnresolvableReference()) {
-    e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
-    return Handle<JSValue>();
+  TEST_LOG("GetValue V:" + JSValue::ToString(V));
+  if (reference::IsUnresolvableReference(V)) {
+    e = error::ReferenceError(string::data(reference::GetReferencedName(V)) + u" is not defined");
+    return JSValue();
   }
-  Handle<JSValue> base = ref.val()->GetBase();
-  if (ref.val()->IsPropertyReference()) {  // 4
+  JSValue base = reference::GetBase(V);
+  if (reference::IsPropertyReference(V)) {  // 4
     // 4.a & 4.b
-    if (!ref.val()->HasPrimitiveBase()) {
-      ASSERT(base.val()->IsObject());
-      Handle<JSObject> obj = static_cast<Handle<JSObject>>(base);
-      return Get(e, obj, ref.val()->GetReferencedName());
+    if (!reference::HasPrimitiveBase(V)) {
+      ASSERT(base.IsObject());
+      return Get(e, base, reference::GetReferencedName(V));
     } else {  // special [[Get]]
-      Handle<JSObject> O = ToObject(e, base);
-      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      Handle<JSValue> tmp = GetProperty(O, ref.val()->GetReferencedName());
-      if (tmp.val()->IsUndefined())
-        return Undefined::Instance();
-      Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(tmp);
-      if (desc.val()->IsDataDescriptor()) {
-        return desc.val()->Value();
+      JSValue O = ToObject(e, base);
+      if (unlikely(!error::IsOk(e))) return JSValue();
+      JSValue desc = GetProperty(O, reference::GetReferencedName(V));
+      if (desc.IsUndefined())
+        return undefined::New();
+      ASSERT(desc.IsPropertyDescriptor());
+      if (property_descriptor::IsDataDescriptor(desc)) {
+        return property_descriptor::Value(desc);
       } else {
-        ASSERT(desc.val()->IsAccessorDescriptor());
-        Handle<JSValue> getter = desc.val()->Get();
-        if (getter.val()->IsUndefined()) {
-          return Undefined::Instance();
+        ASSERT(property_descriptor::IsAccessorDescriptor(desc));
+        JSValue getter = property_descriptor::Get(desc);
+        if (getter.IsUndefined()) {
+          return undefined::New();
         }
-        Handle<JSObject> getter_obj = static_cast<Handle<JSObject>>(getter);
-        return Call(e, getter_obj, base, {});
+        ASSERT(getter.IsObject());
+        return Call(e, getter, base, {});
       }
     }
   } else {
-    ASSERT(base.val()->IsEnvironmentRecord());
-    Handle<EnvironmentRecord> er = static_cast<Handle<EnvironmentRecord>>(base);
-    return GetBindingValue(e, er, ref.val()->GetReferencedName(), ref.val()->IsStrictReference());
+    std::cout << "base.type(): " << JSValue::ToString(base.type()) << std::endl;
+    ASSERT(base.IsEnvironmentRecord());
+    return GetBindingValue(e, base, reference::GetReferencedName(V), reference::IsStrictReference(V));
   }
 }
 
-void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
-  if (!V.val()->IsReference()) {
-    e = Error::ReferenceError(u"put value to non-reference.");
+void PutValue(JSValue& e, JSValue V, JSValue W) {
+  if (!V.IsReference()) {
+    e = error::ReferenceError(u"put value to non-reference.");
     return;
   }
-  TEST_LOG("PutValue V: " + V.ToString() + ", W: " + W.ToString());
-  Handle<Reference> ref = static_cast<Handle<Reference>>(V);
-  Handle<JSValue> base = ref.val()->GetBase();
-  if (ref.val()->IsUnresolvableReference()) {  // 3
-    if (ref.val()->IsStrictReference()) {  // 3.a
-      e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
+  TEST_LOG("PutValue V: " + JSValue::ToString(V) + ", W: " + JSValue::ToString(W));
+  JSValue base = reference::GetBase(V);
+  if (reference::IsUnresolvableReference(V)) {  // 3
+    if (reference::IsStrictReference(V)) {  // 3.a
+      e = error::ReferenceError(string::data(reference::GetReferencedName(V)) + u" is not defined");
       return;
     }
-    Put(e, GlobalObject::Instance(), ref.val()->GetReferencedName(), W, false);  // 3.b
-  } else if (ref.val()->IsPropertyReference()) {
-    bool throw_flag = ref.val()->IsStrictReference();
-    Handle<String> P = ref.val()->GetReferencedName();
-    if (!ref.val()->HasPrimitiveBase()) {
-      ASSERT(base.val()->IsObject());
-      Handle<JSObject> base_obj = static_cast<Handle<JSObject>>(base);
-      Put(e, base_obj, P, W, throw_flag);
+    Put(e, global_object::Instance(), reference::GetReferencedName(V), W, false);  // 3.b
+  } else if (reference::IsPropertyReference(V)) {
+    bool throw_flag = reference::IsStrictReference(V);
+    JSValue P = reference::GetReferencedName(V);
+    if (!reference::HasPrimitiveBase(V)) {
+      ASSERT(base.IsObject());
+      Put(e, base, P, W, throw_flag);
     } else {  // special [[Put]]
-      Handle<JSObject> O = ToObject(e, base);
+      JSValue O = ToObject(e, base);
       if (!CanPut(O, P)) {  // 2
         if (throw_flag)
-          e = Error::TypeError();
+          e = error::TypeError();
         return;
       }
-      Handle<JSValue> tmp = GetOwnProperty(O, P);  // 3
-      if(!tmp.val()->IsUndefined()) {
-        Handle<PropertyDescriptor> own_desc = static_cast<Handle<PropertyDescriptor>>(tmp);
-        if (own_desc.val()->IsDataDescriptor()) {  // 4
+      JSValue desc = GetOwnProperty(O, P);  // 3
+      if(!desc.IsUndefined()) {
+        ASSERT(desc.IsPropertyDescriptor());
+        if (property_descriptor::IsDataDescriptor(desc)) {  // 4
           if (throw_flag)
-            e = Error::TypeError();
+            e = error::TypeError();
           return;
         }
       }
-      tmp = GetProperty(O, P);
-      if (!tmp.val()->IsUndefined()) {
-        Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(tmp);
-        if (desc.val()->IsAccessorDescriptor()) {  // 4
-          Handle<JSValue> setter = desc.val()->Set();
-          ASSERT(!setter.val()->IsUndefined());
-          Handle<JSObject> setter_obj = static_cast<Handle<JSObject>>(setter);
-          Call(e, setter_obj, base, {W});
+      desc = GetProperty(O, P);
+      if (!desc.IsUndefined()) {
+        ASSERT(desc.IsPropertyDescriptor());
+        if (property_descriptor::IsAccessorDescriptor(desc)) {  // 4
+          JSValue setter = property_descriptor::Set(desc);
+          ASSERT(setter.IsObject());
+          Call(e, setter, base, {W});
         } else {  // 7
           if (throw_flag)
-            e = Error::TypeError();
+            e = error::TypeError();
           return;
         }
       }
     }
   } else {
-    ASSERT(base.val()->IsEnvironmentRecord());
-    Handle<EnvironmentRecord> er = static_cast<Handle<EnvironmentRecord>>(base);
-    SetMutableBinding(e, er, ref.val()->GetReferencedName(), W, ref.val()->IsStrictReference());
+    ASSERT(base.IsEnvironmentRecord());
+    SetMutableBinding(e, base, reference::GetReferencedName(V), W, reference::IsStrictReference(V));
   }
 }
 

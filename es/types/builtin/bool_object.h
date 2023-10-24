@@ -5,90 +5,89 @@
 
 namespace es {
 
-bool ToBoolean(Handle<JSValue>);
+bool ToBoolean(JSValue);
 
-class BoolProto : public JSObject {
- public:
-  static Handle<BoolProto> Instance() {
-    static Handle<BoolProto> singleton = BoolProto::New(GCFlag::SINGLE);
-    return singleton;
+namespace bool_proto {
+
+inline JSValue New(flag_t flag) {
+  JSValue jsobj = js_object::New(
+    u"Boolean", true, boolean::False(), false, false, nullptr, 0, flag);
+
+  jsobj.SetType(OBJ_OTHER);
+  return jsobj;
+}
+
+inline JSValue& Instance() {
+  static JSValue singleton = New(GCFlag::SINGLE);
+  return singleton;
+}
+
+// 15.6.4.2 Boolean.prototype.toString ( )
+inline JSValue toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  JSValue val = Runtime::TopValue();
+  if (val.IsBool()) {
+    return ToBoolean(val) ? string::True() : string::False();
+  } else if (val.IsBoolObject()) {
+    return ToBoolean(js_object::PrimitiveValue(val)) ?
+      string::True() : string::False();
+  } else {
+    e = error::TypeError(u"Boolean.prototype.toString called on non-boolean");
+    return JSValue();
   }
+}
 
-  // 15.6.4.2 Boolean.prototype.toString ( )
-  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    Handle<JSValue> val = Runtime::TopValue();
-    if (val.val()->IsBool()) {
-      return ToBoolean(val) ? String::True() : String::False();
-    } else if (val.val()->IsBoolObject()) {
-      return ToBoolean(static_cast<Handle<JSObject>>(val).val()->PrimitiveValue()) ?
-        String::True() : String::False();
-    } else {
-      e = Error::TypeError(u"Boolean.prototype.toString called on non-boolean");
-      return Handle<JSValue>();
-    }
+// 15.6.4.3 Boolean.prototype.valueOf ( )
+inline JSValue valueOf(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  JSValue val = Runtime::TopValue();
+  if (val.IsBool()) {
+    return val;
+  } else if (val.IsBoolObject()) {
+    return js_object::PrimitiveValue(val);
+  } else {
+    e = error::TypeError(u"Boolean.prototype.valueOf called on non-boolean");
+    return JSValue();
   }
+}
 
-  // 15.6.4.3 Boolean.prototype.valueOf ( )
-  static Handle<JSValue> valueOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    Handle<JSValue> val = Runtime::TopValue();
-    if (val.val()->IsBool()) {
-      return val;
-    } else if (val.val()->IsBoolObject()) {
-      return static_cast<Handle<JSObject>>(val).val()->PrimitiveValue();
-    } else {
-      e = Error::TypeError(u"Boolean.prototype.valueOf called on non-boolean");
-      return Handle<JSValue>();
-    }
-  }
+}  // namespace bool_proto
 
- private:
-  static Handle<BoolProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Boolean", true, Bool::False(), false, false, nullptr, 0, flag);
+namespace bool_object {
 
-    jsobj.val()->SetType(OBJ_OTHER);
-    return Handle<BoolProto>(jsobj);
-  }
-};
+inline JSValue New(JSValue primitive_value) {
+  JSValue jsobj = js_object::New(
+    u"Boolean", true, primitive_value, false, false, nullptr, 0
+  );
 
-class BoolObject : public JSObject {
- public:
-  static Handle<BoolObject> New(Handle<JSValue> primitive_value) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Boolean", true, primitive_value, false, false, nullptr, 0
-    );
+  js_object::SetPrototype(jsobj, bool_proto::Instance());
+  jsobj.SetType(OBJ_BOOL);
+  return jsobj;
+}
 
-    jsobj.val()->SetType(OBJ_BOOL);
+}  // namespace bool_object
 
-    Handle<BoolObject> obj(jsobj);
-    obj.val()->SetPrototype(BoolProto::Instance());
-    return obj;
-  }
-};
+namespace bool_constructor {
 
-class BoolConstructor : public JSObject {
- public:
-  static Handle<BoolConstructor> Instance() {
-    static Handle<BoolConstructor> singleton = BoolConstructor::New(GCFlag::SINGLE);
-    return singleton;
-  }
+inline JSValue New(flag_t flag) {
+  JSValue jsobj = js_object::New(
+    u"Boolean", true, JSValue(), true, true, nullptr, 0, flag);
 
-  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    return String::New(u"function Bool() { [native code] }");
-  }
+  jsobj.SetType(OBJ_BOOL_CONSTRUCTOR);
+  return jsobj;
+}
 
- private:
-  static Handle<BoolConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Boolean", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+inline JSValue Instance() {
+  static JSValue singleton = bool_constructor::New(GCFlag::SINGLE);
+  return singleton;
+}
 
-    jsobj.val()->SetType(OBJ_BOOL_CONSTRUCTOR);
-    return Handle<BoolConstructor>(jsobj);
-  }
-};
+inline JSValue toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  return string::New(u"function Bool() { [native code] }");
+}
 
-Handle<JSValue> Call__BoolConstructor(Handle<Error>& e, Handle<BoolConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
-Handle<JSObject> Construct__BoolConstructor(Handle<Error>& e, Handle<BoolConstructor> O, std::vector<Handle<JSValue>> arguments);
+}
+
+JSValue Call__BoolConstructor(JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments = {});
+JSValue Construct__BoolConstructor(JSValue& e, JSValue O, std::vector<JSValue> arguments);
 
 }  // namespace es
 

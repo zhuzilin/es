@@ -7,51 +7,53 @@
 
 namespace es {
 
-class LexicalEnvironment : public JSValue {
- public:
-  static Handle<LexicalEnvironment> New(Handle<LexicalEnvironment> outer, Handle<EnvironmentRecord> env_rec) {
-    Handle<JSValue> jsval = HeapObject::New(2 * kPtrSize);
+namespace lexical_env {
 
-    SET_HANDLE_VALUE(jsval.val(), kOuterOffset, outer, LexicalEnvironment);
-    SET_HANDLE_VALUE(jsval.val(), kEnvRecOffset, env_rec, EnvironmentRecord);
+constexpr size_t kOuterOffset = 0;
+constexpr size_t kEnvRecOffset = kOuterOffset + sizeof(JSValue);
 
-    jsval.val()->SetType(JS_LEX_ENV);
-    return Handle<LexicalEnvironment>(jsval);
-  }
+inline JSValue New(JSValue outer, JSValue env_rec) {
+  JSValue jsval;
+  std::cout << "enter lex" << std::endl;
+  jsval.handle() = HeapObject::New(2 * sizeof(JSValue));
 
-  Handle<LexicalEnvironment> outer() { return READ_HANDLE_VALUE(this, kOuterOffset, LexicalEnvironment); }
-  Handle<EnvironmentRecord> env_rec() { return READ_HANDLE_VALUE(this, kEnvRecOffset, EnvironmentRecord); }
+  SET_JSVALUE(jsval.handle().val(), kOuterOffset, outer);
+  SET_JSVALUE(jsval.handle().val(), kEnvRecOffset, env_rec);
 
-  static Handle<LexicalEnvironment> Global() {
-    static Handle<LexicalEnvironment> singleton = LexicalEnvironment::New(
-      Handle<LexicalEnvironment>(), ObjectEnvironmentRecord::New(GlobalObject::Instance()));
-    return singleton;
-  }
-
- public:
-  static constexpr size_t kOuterOffset = kJSValueOffset;
-  static constexpr size_t kEnvRecOffset = kOuterOffset + kPtrSize;
-};
-
-Handle<LexicalEnvironment> NewDeclarativeEnvironment(Handle<LexicalEnvironment> lex) {
-  Handle<DeclarativeEnvironmentRecord> env_rec = DeclarativeEnvironmentRecord::New();
-  return LexicalEnvironment::New(lex, env_rec);
+  jsval.SetType(JS_LEX_ENV);
+  return jsval;
 }
 
-Handle<LexicalEnvironment> NewObjectEnvironment(Handle<JSObject> obj, Handle<LexicalEnvironment> lex, bool provide_this = false) {
-  Handle<ObjectEnvironmentRecord> env_rec = ObjectEnvironmentRecord::New(obj, provide_this);
-  return LexicalEnvironment::New(lex, env_rec);
+inline JSValue outer(JSValue jsval) { return GET_JSVALUE(jsval.handle().val(), kOuterOffset); }
+inline JSValue env_rec(JSValue jsval) { return GET_JSVALUE(jsval.handle().val(), kEnvRecOffset); }
+
+inline JSValue Global() {
+  static JSValue singleton = lexical_env::New(
+    null::New(), obj_env_rec::New(global_object::Instance()));
+  return singleton;
 }
 
-Handle<Reference> GetIdentifierReference(Handle<LexicalEnvironment> lex, Handle<String> name, bool strict) {
-  auto env_rec = lex.val()->env_rec();
+}  // namespace lexical_env
+
+inline JSValue NewDeclarativeEnvironment(JSValue lex) {
+  JSValue env_rec = decl_env_rec::New();
+  return lexical_env::New(lex, env_rec);
+}
+
+inline JSValue NewObjectEnvironment(JSValue obj, JSValue lex, bool provide_this = false) {
+  JSValue env_rec = obj_env_rec::New(obj, provide_this);
+  return lexical_env::New(lex, env_rec);
+}
+
+inline JSValue GetIdentifierReference(JSValue lex, JSValue name, bool strict) {
+  JSValue env_rec = lexical_env::env_rec(lex);
   bool exists = HasBinding(env_rec, name);
   if (exists) {
-    return Reference::New(env_rec, name, strict);
+    return reference::New(env_rec, name, strict);
   }
-  auto outer = lex.val()->outer();
-  if (outer.IsNullptr()) {
-    return Reference::New(Undefined::Instance(), name, strict);
+  auto outer = lexical_env::outer(lex);
+  if (outer.IsNull()) {
+    return reference::New(undefined::New(), name, strict);
   }
   return GetIdentifierReference(outer, name, strict);
 }

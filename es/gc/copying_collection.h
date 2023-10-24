@@ -12,18 +12,7 @@
 namespace es {
 
 inline void MemCopy(void* dst, void* src, size_t size) {
-  void** dst_p = reinterpret_cast<void**>(dst);
-  void** src_p = reinterpret_cast<void**>(src);
-  size_t count = size / kPtrSize;
-  // This constant is taken from v8.
-  if (count < 16) {
-    do {
-      count--;
-      *dst_p++ = *src_p++;
-    } while (count > 0);
-  } else {
-    memcpy(dst, src, size);
-  }
+  memcpy(dst, src, size);
 }
 
 struct CopyingCollection : public GC<CopyingCollection> {
@@ -60,26 +49,20 @@ struct CopyingCollection : public GC<CopyingCollection> {
 #ifdef GC_DEBUG
     std::cout << "enter CopyingCollection::Collect " << (free_ - tospace_) << "B \n";
 #endif
-#ifdef STATS
-    Stats();
-#endif
     Flip();
     Initialise(worklist_);
-    auto root_pointers = Runtime::Global()->Pointers();
-    ASSERT(root_pointers.size() > 0);
-    for (HeapObject** fld : root_pointers) {
-      Process(fld);
-    }
-    while (!IsEmpty(worklist_)) {
-      void* ref = Remove(worklist_);
-      Scan(ref);
-    }
+    // auto root_pointers = Runtime::Global()->Pointers();
+    // ASSERT(root_pointers.size() > 0);
+    // for (HeapObject** fld : root_pointers) {
+    //   Process(fld);
+    // }
+    // while (!IsEmpty(worklist_)) {
+    //   void* ref = Remove(worklist_);
+    //   Scan(ref);
+    // }
     memset(fromspace_, 0, extent_);
 #ifdef GC_DEBUG
     std::cout << "exit CopyingCollection::Collect " << (free_ - tospace_) << "B \n";
-#endif
-#ifdef STATS
-    Stats();
 #endif
   }
 
@@ -91,12 +74,12 @@ struct CopyingCollection : public GC<CopyingCollection> {
   }
 
   void Scan(void* ref) {
-    HeapObject* heap_ref = static_cast<HeapObject*>(ref);
-    ASSERT(heap_ref != nullptr);
-    auto ref_pointers = HeapObject::Pointers(heap_ref);
-    for (HeapObject** fld : ref_pointers) {
-      Process(fld);
-    }
+    // HeapObject* heap_ref = static_cast<HeapObject*>(ref);
+    // ASSERT(heap_ref != nullptr);
+    // auto ref_pointers = HeapObject::Pointers(heap_ref);
+    // for (HeapObject** fld : ref_pointers) {
+    //   Process(fld);
+    // }
   }
 
   void Process(HeapObject** fld) {
@@ -175,21 +158,6 @@ struct CopyingCollection : public GC<CopyingCollection> {
     return ref;
   }
   void Add(void* worklist, void* ref) {}
-
-  void Stats() {
-    std::map<Type, size_t> stats;
-    char* ptr = tospace_;
-    while (ptr != free_) {
-      Header* header = reinterpret_cast<Header*>(ptr);
-      HeapObject* heap_obj = reinterpret_cast<HeapObject*>(header + 1);
-      stats[heap_obj->type()] += header->size;
-      ptr += header->size;
-    }
-    for (auto pair : stats) {
-      if (pair.second / 1024 / 1024)
-        std::cout << HeapObject::ToString(pair.first) << ": " << pair.second / 1024 / 1024 << " MB" << std::endl;
-    }
-  }
 
   void* worklist_ = nullptr;
   void* scan_;

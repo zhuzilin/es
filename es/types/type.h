@@ -1,12 +1,13 @@
-namespace {
+#pragma once
+
+namespace es {
 
 enum Type {
   JS_UNINIT = 0,
   JS_UNDEFINED = 1,
   JS_NULL = 2,
   JS_BOOL = 3,
-  JS_STRING = 4,
-  JS_LONG_STRING = 5,
+  JS_STRING = 5,
   JS_NUMBER = 6,
 
   JS_OBJECT = 1 << 6,

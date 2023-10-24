@@ -6,115 +6,115 @@
 
 namespace es {
 
-double ToNumber(Handle<Error>& e, Handle<JSValue> input);
-double ToInteger(Handle<Error>& e, Handle<JSValue> input);
-Handle<JSObject> ToObject(Handle<Error>& e, Handle<JSValue> input);
-Handle<String> NumberToString(double m);
+double ToNumber(JSValue& e, JSValue input);
+double ToInteger(JSValue& e, JSValue input);
+JSValue ToObject(JSValue& e, JSValue input);
+JSValue NumberToString(double m);
 
-class NumberProto : public JSObject {
- public:
-  static Handle<NumberProto> Instance() {
-    static Handle<NumberProto> singleton = NumberProto::New(GCFlag::SINGLE);
-    return singleton;
+namespace number_proto {
+
+inline JSValue New(flag_t flag) {
+  JSValue jsobj = js_object::New(
+    u"Number", true, number::Zero(), false, false, nullptr, 0, flag);
+
+  jsobj.SetType(OBJ_OTHER);
+  return jsobj;
+}
+
+inline JSValue Instance() {
+  static JSValue singleton = number_proto::New(GCFlag::SINGLE);
+  return singleton;
+}
+
+// 15.7.4.2 Number.prototype.toString ( [ radix ] )
+inline JSValue toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  JSValue val = Runtime::TopValue();
+  if (!val.IsNumber() && !val.IsNumberObject()) {
+    e = error::TypeError(u"Number.prototype.toString called by non-number");
+    return JSValue();
   }
-
-  // 15.7.4.2 Number.prototype.toString ( [ radix ] )
-  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    Handle<JSValue> val = Runtime::TopValue();
-    if (!val.val()->IsNumber() && !val.val()->IsNumberObject()) {
-      e = Error::TypeError(u"Number.prototype.toString called by non-number");
-      return Handle<JSValue>();
+  double num = ToNumber(e, val);
+  if (unlikely(!error::IsOk(e))) return JSValue();
+  int radix = 10;
+  if (vals.size() > 0 && !vals[0].IsUndefined()) {
+    radix = ToInteger(e, vals[0]);
+    if (unlikely(!error::IsOk(e))) return JSValue();
+    if (radix < 2 || radix > 36) {
+      e = error::RangeError(u"Number.prototype.toString radix not in [2, 36]");
+      return JSValue();
     }
-    double num = ToNumber(e, val);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    int radix = 10;
-    if (vals.size() > 0 && !vals[0].val()->IsUndefined()) {
-      radix = ToInteger(e, vals[0]);
-      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      if (radix < 2 || radix > 36) {
-        e = Error::RangeError(u"Number.prototype.toString radix not in [2, 36]");
-        return Handle<JSValue>();
-      }
-    }
-    // TODO(zhuzilin) support other radix
-    ASSERT(radix == 10);
-    return NumberToString(num);
   }
+  // TODO(zhuzilin) support other radix
+  ASSERT(radix == 10);
+  return NumberToString(num);
+}
 
-  static Handle<JSValue> toLocaleString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
+inline JSValue toLocaleString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
+
+inline JSValue valueOf(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  JSValue val = Runtime::TopValue();
+  if (val.IsNumberObject()) {
+    return js_object::PrimitiveValue(val);
+  } else if (val.IsNumber()) {
+    return val;
   }
+  e = error::TypeError(u"Number.prototype.valueOf called with non-number");
+  return JSValue();
+}
 
-  static Handle<JSValue> valueOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    Handle<JSValue> val = Runtime::TopValue();
-    if (val.val()->IsNumberObject()) {
-      return static_cast<Handle<JSObject>>(val).val()->PrimitiveValue();
-    } else if (val.val()->IsNumber()) {
-      return val;
-    }
-    e = Error::TypeError(u"Number.prototype.valueOf called with non-number");
-    return Handle<JSValue>();
-  }
+inline JSValue toFixed(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static Handle<JSValue> toFixed(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue toExponential(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static Handle<JSValue> toExponential(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+inline JSValue toPrecision(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
 
-  static Handle<JSValue> toPrecision(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    assert(false);
-  }
+}  // namespace number_proto
 
- private:
-  static Handle<NumberProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Number", true, Number::Zero(), false, false, nullptr, 0, flag);
+namespace number_object {
 
-    jsobj.val()->SetType(OBJ_OTHER);
-    return Handle<NumberProto>(jsobj);
-  }
-};
+inline JSValue New(JSValue primitive_value) {
+  JSValue jsobj = js_object::New(
+    u"Number", true, primitive_value, false, false, nullptr, 0
+  );
 
-class NumberObject : public JSObject {
- public:
-  static Handle<NumberObject> New(Handle<JSValue> primitive_value) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Number", true, primitive_value, false, false, nullptr, 0
-    );
+  jsobj.SetType(OBJ_NUMBER);
+  js_object::SetPrototype(jsobj, number_proto::Instance());
+  return jsobj;
+}
 
-    jsobj.val()->SetType(OBJ_NUMBER);
-    Handle<NumberObject> obj = Handle<NumberObject>(jsobj);
-    obj.val()->SetPrototype(NumberProto::Instance());
-    return obj;
-  }
-};
+}  // namespace number_object
 
-class NumberConstructor : public JSObject {
- public:
-  static  Handle<NumberConstructor> Instance() {
-    static  Handle<NumberConstructor> singleton = NumberConstructor::New(GCFlag::SINGLE);
-    return singleton;
-  }
+namespace number_constructor {
 
-  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    return String::New(u"function Number() { [native code] }");
-  }
+inline JSValue New(flag_t flag) {
+  JSValue jsobj = js_object::New(
+    u"Number", true, JSValue(), true, true, nullptr, 0, flag);
 
- private:
-  static Handle<NumberConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Number", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+  jsobj.SetType(OBJ_NUMBER_CONSTRUCTOR);
+  return JSValue(jsobj);
+}
 
-    jsobj.val()->SetType(OBJ_NUMBER_CONSTRUCTOR);
-    return Handle<NumberConstructor>(jsobj);
-  }
-};
+inline JSValue Instance() {
+  static JSValue singleton = number_constructor::New(GCFlag::SINGLE);
+  return singleton;
+}
 
-Handle<JSValue> Call__NumberConstructor(Handle<Error>& e, Handle<NumberConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
-Handle<JSObject> Construct__NumberConstructor(Handle<Error>& e, Handle<NumberConstructor> O, std::vector<Handle<JSValue>> arguments);
+inline JSValue toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  return string::New(u"function Number() { [native code] }");
+}
+
+}  // namespace number_constructor
+
+JSValue Call__NumberConstructor(JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments = {});
+JSValue Construct__NumberConstructor(JSValue& e, JSValue O, std::vector<JSValue> arguments);
 
 }  // namespace es
 

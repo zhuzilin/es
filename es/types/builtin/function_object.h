@@ -12,309 +12,306 @@
 
 namespace es {
 
-double ToNumber(Handle<Error>& e, Handle<JSValue> input);
-Handle<String> NumberToString(double m);
+double ToNumber(JSValue& e, JSValue input);
+JSValue NumberToString(double m);
 Completion EvalProgram(AST* ast);
 
 void EnterFunctionCode(
-  Handle<Error>& e, Handle<JSObject> F, ProgramOrFunctionBody* body,
-  Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict
+  JSValue& e, JSValue F, ProgramOrFunctionBody* body,
+  JSValue this_arg, std::vector<JSValue> args, bool strict
 );
 
-class FunctionProto : public JSObject {
- public:
-  static Handle<FunctionProto> Instance() {
-    static Handle<FunctionProto> singleton = FunctionProto::New(GCFlag::SINGLE);
-    return singleton;
+namespace function_proto {
+
+inline JSValue New(flag_t flag) {
+  JSValue jsobj = js_object::New(
+    u"Function", true, JSValue(), false, true, nullptr, 0, flag);
+
+  jsobj.SetType(OBJ_FUNC_PROTO);
+  return jsobj;
+}
+
+inline JSValue Instance() {
+  static JSValue singleton = function_proto::New(GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
+
+// 15.3.4.3 Function.prototype.apply (thisArg, argArray)
+inline JSValue apply(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  JSValue val = Runtime::TopValue();
+  if (!val.IsObject()) {
+    e = error::TypeError(u"Function.prototype.apply called on non-object");
+    return JSValue();
   }
-
-  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
-
-  // 15.3.4.3 Function.prototype.apply (thisArg, argArray)
-  static Handle<JSValue> apply(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    Handle<JSValue> val = Runtime::TopValue();
-    if (!val.val()->IsObject()) {
-      e = Error::TypeError(u"Function.prototype.apply called on non-object");
-      return Handle<JSValue>();
-    }
-    Handle<JSObject> func = static_cast<Handle<JSObject>>(val);
-    if (!func.val()->IsCallable()) {
-      e = Error::TypeError(u"Function.prototype.apply called on non-callable");
-      return Handle<JSValue>();
-    }
-    if (vals.size() == 0) {
-      return Call(e, func, Undefined::Instance(), {});
-    }
-    if (vals.size() < 2 || vals[1].val()->IsNull() || vals[1].val()->IsUndefined()) {  // 2
-      return Call(e, func, vals[0], {});
-    }
-    if (!vals[1].val()->IsObject()) {  // 3
-      e = Error::TypeError(u"Function.prototype.apply's argument is non-object");
-      return Handle<JSValue>();
-    }
-    Handle<JSObject> arg_array = static_cast<Handle<JSObject>>(vals[1]);
-    Handle<JSValue> len = Get(e, arg_array, String::Length());
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    size_t n = ToNumber(e, len);
-    std::vector<Handle<JSValue>> arg_list;  // 6
-    size_t index = 0;  // 7
-    while (index < n) {  // 8
-      Handle<String> index_name = ::es::NumberToString(index);
-      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      Handle<JSValue> next_arg = Get(e, arg_array, index_name);
-      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      arg_list.emplace_back(next_arg);
-      index++;
-    }
-    return Call(e, func, vals[0], arg_list);
+  if (!val.IsCallable()) {
+    e = error::TypeError(u"Function.prototype.apply called on non-callable");
+    return JSValue();
   }
+  if (vals.size() == 0) {
+    return Call(e, val, undefined::New(), {});
+  }
+  if (vals.size() < 2 || vals[1].IsNull() || vals[1].IsUndefined()) {  // 2
+    return Call(e, val, vals[0], {});
+  }
+  if (!vals[1].IsObject()) {  // 3
+    e = error::TypeError(u"Function.prototype.apply's argument is non-object");
+    return JSValue();
+  }
+  JSValue arg_array = vals[1];
+  JSValue len = Get(e, arg_array, string::Length());
+  if (unlikely(!error::IsOk(e))) return JSValue();
+  size_t n = ToNumber(e, len);
+  std::vector<JSValue> arg_list;  // 6
+  size_t index = 0;  // 7
+  while (index < n) {  // 8
+    JSValue index_name = ::es::NumberToString(index);
+    if (unlikely(!error::IsOk(e))) return JSValue();
+    JSValue next_arg = Get(e, arg_array, index_name);
+    if (unlikely(!error::IsOk(e))) return JSValue();
+    arg_list.emplace_back(next_arg);
+    index++;
+  }
+  return Call(e, val, vals[0], arg_list);
+}
 
-  static Handle<JSValue> call(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    Handle<JSValue> val = Runtime::TopValue();
-    if (!val.val()->IsObject()) {
-      e = Error::TypeError(u"Function.prototype.call called on non-object");
-      return Handle<JSValue>();
-    }
-    Handle<JSObject> func = static_cast<Handle<JSObject>>(val);
-    if (!func.val()->IsCallable()) {
-      e = Error::TypeError(u"Function.prototype.call called on non-callable");
-      return Handle<JSValue>();
-    }
-    if (vals.size()) {
-      Handle<JSValue> this_arg = vals[0];
-      return Call(e, func, this_arg, std::vector<Handle<JSValue>>(vals.begin() + 1, vals.end()));
-    } else {
-      return Call(e, func, Undefined::Instance(), {});
+inline JSValue call(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  JSValue val = Runtime::TopValue();
+  if (!val.IsObject()) {
+    e = error::TypeError(u"Function.prototype.call called on non-object");
+    return JSValue();
+  }
+  if (!val.IsCallable()) {
+    e = error::TypeError(u"Function.prototype.call called on non-callable");
+    return JSValue();
+  }
+  if (vals.size()) {
+    JSValue this_arg = vals[0];
+    return Call(e, val, this_arg, std::vector<JSValue>(vals.begin() + 1, vals.end()));
+  } else {
+    return Call(e, val, undefined::New(), {});
+  }
+}
+
+inline JSValue bind(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
+}  // namespace function_proto
+
+namespace function_object {
+
+constexpr size_t kFormalParametersOffset = js_object::kJSObjectOffset;
+constexpr size_t kCodeOffset = kFormalParametersOffset + sizeof(JSValue);
+// this should be kPtrSize use 16 for alignment
+constexpr size_t kScopeOffset = kCodeOffset + sizeof(JSValue);
+constexpr size_t kStrictOffset = kScopeOffset + sizeof(JSValue);
+constexpr size_t kFunctionObjectOffset = kStrictOffset + kBoolSize;
+
+inline JSValue New(
+  std::vector<std::u16string> names, AST* body, JSValue scope,
+  bool strict, size_t size = 0
+) {
+  JSValue jsobj = js_object::New(
+    u"Function", true, JSValue(), true, true, nullptr,
+    kFunctionObjectOffset - js_object::kJSObjectOffset + size
+  );
+  std::vector<JSValue> name_handles(names.size());
+  for (size_t i = 0; i < names.size(); i++) {
+    name_handles[i] = string::New(names[i]);
+  }
+  JSValue formal_parameter = fixed_array::New(name_handles);
+
+  SET_JSVALUE(jsobj.handle().val(), kFormalParametersOffset, formal_parameter);
+  if (body != nullptr) {
+    ASSERT(body->type() == AST::AST_FUNC_BODY);
+    ProgramOrFunctionBody* func_body = static_cast<ProgramOrFunctionBody*>(body);
+    strict |= func_body->strict();
+    SET_VALUE(jsobj.handle().val(), kCodeOffset, func_body, ProgramOrFunctionBody*);
+  } else {
+    SET_VALUE(jsobj.handle().val(), kCodeOffset, nullptr, ProgramOrFunctionBody*);
+  }
+  SET_JSVALUE(jsobj.handle().val(), kScopeOffset, scope);
+  SET_VALUE(jsobj.handle().val(), kStrictOffset, strict, bool);
+  jsobj.SetType(OBJ_FUNC);
+
+  // 13.2 Creating Function Objects
+  js_object::SetPrototype(jsobj, function_proto::Instance());
+  // Whether the function is made from bind.
+  if (body != nullptr) {
+    AddValueProperty(jsobj, string::Length(), number::New(names.size()), false, false, false);  // 14 & 15
+    JSValue proto = object_object::New();  // 16
+    AddValueProperty(proto, string::Constructor(), jsobj, true, false, true);
+    // 15.3.5.2 prototype
+    AddValueProperty(jsobj, string::Prototype(), proto, true, false, false);
+    if (strict) {
+      // TODO(zhuzilin) thrower
     }
   }
+  return jsobj;
+}
 
-  static Handle<JSValue> bind(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
+inline bool from_bind(JSValue jsval) { return jsval.type() == OBJ_BIND_FUNC; }
 
- private:
-  static Handle<FunctionProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Function", true, Handle<JSValue>(), false, true, nullptr, 0, flag);
-
-    jsobj.val()->SetType(OBJ_FUNC_PROTO);
-    return Handle<FunctionProto>(jsobj);
-  }
+inline JSValue Scope(JSValue jsval) {
+  ASSERT(!from_bind(jsval));
+  return GET_JSVALUE(jsval.handle().val(), kScopeOffset);
 };
-
-class FunctionObject : public JSObject {
- public:
-  static Handle<FunctionObject> New(
-    std::vector<std::u16string> names, AST* body, Handle<LexicalEnvironment> scope,
-    bool strict, size_t size = 0
-  ) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Function", true, Handle<JSValue>(), true, true, nullptr,
-      kFunctionObjectOffset - kJSObjectOffset + size
-    );
-    std::vector<Handle<String>> name_handles(names.size());
-    for (size_t i = 0; i < names.size(); i++) {
-      name_handles[i] = String::New(names[i]);
-    }
-    Handle<FixedArray> formal_parameter = FixedArray::New<String>(name_handles);
-
-    SET_HANDLE_VALUE(jsobj.val(), kFormalParametersOffset, formal_parameter, FixedArray);
-    if (body != nullptr) {
-      ASSERT(body->type() == AST::AST_FUNC_BODY);
-      ProgramOrFunctionBody* func_body = static_cast<ProgramOrFunctionBody*>(body);
-      strict |= func_body->strict();
-      SET_VALUE(jsobj.val(), kCodeOffset, func_body, ProgramOrFunctionBody*);
-    } else {
-      SET_VALUE(jsobj.val(), kCodeOffset, nullptr, ProgramOrFunctionBody*);
-    }
-    SET_HANDLE_VALUE(jsobj.val(), kScopeOffset, scope, LexicalEnvironment);
-    SET_VALUE(jsobj.val(), kStrictOffset, strict, bool);
-    jsobj.val()->SetType(OBJ_FUNC);
-
-    Handle<FunctionObject> obj(jsobj);
-    // 13.2 Creating Function Objects
-    obj.val()->SetPrototype(FunctionProto::Instance());
-    // Whether the function is made from bind.
-    if (body != nullptr) {
-      AddValueProperty(obj, String::Length(), Number::New(names.size()), false, false, false);  // 14 & 15
-      Handle<JSObject> proto = Object::New();  // 16
-      AddValueProperty(proto, String::Constructor(), obj, true, false, true);
-      // 15.3.5.2 prototype
-      AddValueProperty(obj, String::Prototype(), proto, true, false, false);
-      if (strict) {
-        // TODO(zhuzilin) thrower
-      }
-    }
-    return obj;
-  }
-
-  Handle<LexicalEnvironment> Scope() {
-    ASSERT(!from_bind());
-    return READ_HANDLE_VALUE(this, kScopeOffset, LexicalEnvironment);
-  };
-  Handle<FixedArray> FormalParameters() {
-    ASSERT(!from_bind());
-    return READ_HANDLE_VALUE(this, kFormalParametersOffset, FixedArray);
-  };
-  ProgramOrFunctionBody* Code() {
-    ASSERT(!from_bind());
-    return READ_VALUE(this, kCodeOffset, ProgramOrFunctionBody*);
-  }
-  bool strict() {
-    ASSERT(!from_bind());
-    return READ_VALUE(this, kStrictOffset, bool);
-  }
-  bool from_bind() { return type() == OBJ_BIND_FUNC; }
-
- public:
-  static constexpr size_t kFormalParametersOffset = kJSObjectOffset;
-  static constexpr size_t kCodeOffset = kFormalParametersOffset + kPtrSize;
-  static constexpr size_t kScopeOffset = kCodeOffset + kPtrSize;
-  static constexpr size_t kStrictOffset = kScopeOffset + kPtrSize;
-  static constexpr size_t kFunctionObjectOffset = kStrictOffset + kBoolSize;
+inline JSValue FormalParameters(JSValue jsval) {
+  ASSERT(!from_bind(jsval));
+  return GET_JSVALUE(jsval.handle().val(), kFormalParametersOffset);
 };
+inline ProgramOrFunctionBody* Code(JSValue jsval) {
+  ASSERT(!from_bind(jsval));
+  return READ_VALUE(jsval.handle().val(), kCodeOffset, ProgramOrFunctionBody*);
+}
+inline bool strict(JSValue jsval) {
+  ASSERT(!from_bind(jsval));
+  return READ_VALUE(jsval.handle().val(), kStrictOffset, bool);
+}
+}  // function_object
 
-class BindFunctionObject : public FunctionObject {
- public:
-  static Handle<BindFunctionObject> New(
-    Handle<JSObject> target_function, Handle<JSValue> bound_this, std::vector<Handle<JSValue>> bound_args
-  ) {
-    Handle<FunctionObject> func = FunctionObject::New(
-      {}, nullptr, Handle<JSValue>(), Runtime::TopContext().strict(),
-      kBindFunctionObjectOffset - kFunctionObjectOffset);
+namespace bind_function_object {
 
-    SET_HANDLE_VALUE(func.val(), kTargetFunctionOffset, target_function, JSObject);
-    SET_HANDLE_VALUE(func.val(), kBoundThisOffset, bound_this, JSValue);
-    SET_HANDLE_VALUE(func.val(), kBoundArgsOffset, FixedArray::New<JSValue>(bound_args), FixedArray);
-    func.val()->SetType(OBJ_BIND_FUNC);
-    return Handle<BindFunctionObject>(func);
+constexpr size_t kTargetFunctionOffset = ::es::function_object::kFunctionObjectOffset;
+constexpr size_t kBoundThisOffset = kTargetFunctionOffset + sizeof(JSValue);
+constexpr size_t kBoundArgsOffset = kBoundThisOffset + sizeof(JSValue);
+constexpr size_t kBindFunctionObjectOffset = kBoundArgsOffset + sizeof(JSValue);
+
+inline JSValue New(
+  JSValue target_function, JSValue bound_this, std::vector<JSValue> bound_args
+) {
+  JSValue func = function_object::New(
+    {}, nullptr, JSValue(), Runtime::TopContext().strict(),
+    kBindFunctionObjectOffset - ::es::function_object::kFunctionObjectOffset);
+
+  SET_JSVALUE(func.handle().val(), kTargetFunctionOffset, target_function);
+  SET_JSVALUE(func.handle().val(), kBoundThisOffset, bound_this);
+  SET_JSVALUE(func.handle().val(), kBoundArgsOffset, ::es::fixed_array::New(bound_args));
+  func.SetType(OBJ_BIND_FUNC);
+  return func;
+}
+
+inline JSValue TargetFunction(JSValue func) { return GET_JSVALUE(func.handle().val(), kTargetFunctionOffset); }
+inline JSValue BoundThis(JSValue func) { return GET_JSVALUE(func.handle().val(), kBoundThisOffset); }
+inline JSValue BoundArgs(JSValue func) { return GET_JSVALUE(func.handle().val(), kBoundArgsOffset); }
+
+}  // namespace bind_function_object
+
+namespace function_constructor {
+
+inline JSValue New(flag_t flag) {
+  std::cout << "function_constructor::New" << std::endl;
+  JSValue jsobj = js_object::New(
+    u"Function", true, JSValue(), true, true, nullptr, 0, flag);
+
+  jsobj.SetType(OBJ_FUNC_CONSTRUCTOR);
+  return jsobj;
+}
+
+inline JSValue Instance() {
+  static JSValue singleton = function_constructor::New(GCFlag::SINGLE);
+  return singleton;
+}
+
+inline JSValue toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  return string::New(u"function Function() { [native code] }");
+}
+
+}  // namespace function_constructor
+
+JSValue function_proto::toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  JSValue func = Runtime::TopValue();
+  if (!func.IsObject()) {
+    e = error::TypeError(u"Function.prototype.toString called on non-object");
+    return JSValue();
   }
-
-  Handle<JSObject> TargetFunction() { return READ_HANDLE_VALUE(this, kTargetFunctionOffset, JSObject); }
-  Handle<JSValue> BoundThis() { return READ_HANDLE_VALUE(this, kBoundThisOffset, JSValue); }
-  Handle<FixedArray> BoundArgs() { return READ_HANDLE_VALUE(this, kBoundArgsOffset, FixedArray); }
-
- public:
-  static constexpr size_t kTargetFunctionOffset = kFunctionObjectOffset;
-  static constexpr size_t kBoundThisOffset = kTargetFunctionOffset + kPtrSize;
-  static constexpr size_t kBoundArgsOffset = kBoundThisOffset + kPtrSize;
-  static constexpr size_t kBindFunctionObjectOffset = kBoundArgsOffset + kPtrSize;
-};
-
-class FunctionConstructor : public JSObject {
- public:
-  static Handle<FunctionConstructor> Instance() {
-    static Handle<FunctionConstructor> singleton = FunctionConstructor::New(GCFlag::SINGLE);
-    return singleton;
+  if (!func.IsFunctionObject()) {
+    e = error::TypeError(u"Function.prototype.toString called on non-function");
+    return JSValue();
   }
-
-  static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    return String::New(u"function Function() { [native code] }");
-  }
-
- private:
-  static Handle<FunctionConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Function", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
-
-    jsobj.val()->SetType(OBJ_FUNC_CONSTRUCTOR);
-    return Handle<FunctionConstructor>(jsobj);
-  }
-};
-
-Handle<JSValue> FunctionProto::toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-  Handle<JSValue> val = Runtime::TopValue();
-  if (!val.val()->IsObject()) {
-    e = Error::TypeError(u"Function.prototype.toString called on non-object");
-    return Handle<JSValue>();
-  }
-  if (!val.val()->IsFunctionObject()) {
-    e = Error::TypeError(u"Function.prototype.toString called on non-function");
-    return Handle<JSValue>();
-  }
-  Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(val);
   std::u16string str = u"function (";
-  auto params = func.val()->FormalParameters();
-  if (params.val()->size() > 0) {
-    str += static_cast<String*>(params.val()->Get(0).val())->data();
-    for (size_t i = 1; i < params.val()->size(); i++) {
-      str += u"," + static_cast<String*>(params.val()->Get(i).val())->data();
+  JSValue params = function_object::FormalParameters(func);
+  size_t params_size = fixed_array::size(params);
+  if (params_size > 0) {
+    for (size_t i = 0; i < params_size; i++) {
+      if (i != 0) str += u",";
+      str += string::data(fixed_array::Get(params, i));
     }
   }
   str += u")";
-  return String::New(str);
+  return string::New(str);
 }
 
 // 15.3.4.5 Function.prototype.bind (thisArg [, arg1 [, arg2, …]])
-Handle<JSValue> FunctionProto::bind(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-  Handle<JSValue> val = Runtime::TopValue();
-  if (!val.val()->IsCallable()) {
-    e = Error::TypeError(u"Function.prototype.call called on non-callable");
-    return Handle<JSValue>();
+JSValue function_proto::bind(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  JSValue target = Runtime::TopValue();
+  if (!target.IsCallable()) {
+    e = error::TypeError(u"Function.prototype.call called on non-callable");
+    return JSValue();
   }
-  Handle<JSObject> target = static_cast<Handle<JSObject>>(val);
-  Handle<JSValue> this_arg_for_F = Undefined::Instance();
+  JSValue this_arg_for_F = undefined::New();
   if (vals.size() > 0)
     this_arg_for_F = vals[0];
-  std::vector<Handle<JSValue>> A;
+  std::vector<JSValue> A;
   if (vals.size() > 1) {
-    A = std::vector<Handle<JSValue>>(vals.begin() + 1, vals.end());
+    A = std::vector<JSValue>(vals.begin() + 1, vals.end());
   }
-  Handle<BindFunctionObject> F = BindFunctionObject::New(target, this_arg_for_F, A);
+  JSValue F = bind_function_object::New(target, this_arg_for_F, A);
   size_t len = 0;
-  if (target.val()->Class() == u"Function") {
-    size_t L = ToNumber(e, Get(e, target, String::Length()));
+  if (js_object::Class(target) == u"Function") {
+    size_t L = ToNumber(e, Get(e, target, string::Length()));
     if (L - A.size() > 0)
       len = L - A.size();
   }
-  AddValueProperty(F, String::Length(), Number::New(len), false, false, false);
+  AddValueProperty(F, string::Length(), number::New(len), false, false, false);
   // 19
   // TODO(zhuzilin) thrower
   return F;
 }
 
-Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function* func_ast) {
+JSValue InstantiateFunctionDeclaration(JSValue& e, Function* func_ast) {
     ASSERT(func_ast->is_named());
     std::u16string identifier = func_ast->name();
-    Handle<es::LexicalEnvironment> func_env = NewDeclarativeEnvironment(  // 1
+    JSValue func_env = NewDeclarativeEnvironment(  // 1
       Runtime::TopLexicalEnv()
     );
-    auto env_rec = static_cast<Handle<DeclarativeEnvironmentRecord>>(func_env.val()->env_rec());  // 2
-    Handle<String> identifier_str = String::New(identifier);
+    JSValue env_rec = lexical_env::env_rec(func_env);  // 2
+    JSValue identifier_str = string::New(identifier);
     ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
     bool strict = body->strict() || Runtime::TopContext().strict();
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
-        e = Error::SyntaxError(u"have duplicate parameter name in strict mode");
-        return Handle<JSValue>();
+        e = error::SyntaxError(u"have duplicate parameter name in strict mode");
+        return JSValue();
       }
       for (auto name : func_ast->params()) {
         if (name == u"eval" || name == u"arguments") {
-          e = Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
-          return Handle<JSValue>();
+          e = error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
+          return JSValue();
         }
       }
       if (func_ast->name() == u"eval" || func_ast->name() == u"arguments") {
-        e = Error::SyntaxError(u"function name cannot be eval or arguments in strict mode");
-        return Handle<JSValue>();
+        e = error::SyntaxError(u"function name cannot be eval or arguments in strict mode");
+        return JSValue();
       }
       for (VarDecl* d : body->var_decls()) {
         if (d->ident().type() == Token::TK_STRICT_FUTURE) {
-          e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
-          return Handle<JSValue>();
+          e = error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
+          return JSValue();
         }
         if (d->ident().source_ref() == u"eval" || d->ident().source_ref() == u"arguments") {
-          e = Error::SyntaxError(u"Unexpected eval or arguments in strict mode");
-          return Handle<JSValue>();
+          e = error::SyntaxError(u"Unexpected eval or arguments in strict mode");
+          return JSValue();
         }
       }
     }
-    Handle<FunctionObject> closure = FunctionObject::New(
+    JSValue closure = function_object::New(
       func_ast->params(), func_ast->body(), func_env, strict);  // 4
     CreateAndInitializeImmutableBinding(env_rec, identifier_str, closure);  // 5
     return closure;  // 6
 }
 
-Handle<JSValue> EvalFunction(Handle<Error>& e, AST* ast) {
+JSValue EvalFunction(JSValue& e, AST* ast) {
   ASSERT(ast->type() == AST::AST_FUNC);
   Function* func_ast = static_cast<Function*>(ast);
 
@@ -326,17 +323,17 @@ Handle<JSValue> EvalFunction(Handle<Error>& e, AST* ast) {
     if (strict) {
       // 13.1
       if (HaveDuplicate(func_ast->params())) {
-        e = Error::SyntaxError(u"have duplicate parameter name in strict mode");
-        return Handle<JSValue>();
+        e = error::SyntaxError(u"have duplicate parameter name in strict mode");
+        return JSValue();
       }
       for (auto name : func_ast->params()) {
         if (name == u"eval" || name == u"arguments") {
-          e = Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
-          return Handle<JSValue>();
+          e = error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
+          return JSValue();
         }
       }
     }
-    return FunctionObject::New(
+    return function_object::New(
       func_ast->params(), func_ast->body(),
       Runtime::TopLexicalEnv(), strict
     );
@@ -345,27 +342,27 @@ Handle<JSValue> EvalFunction(Handle<Error>& e, AST* ast) {
 
 // TODO(zhuzilin) move this function to a better place
 void AddFuncProperty(
-  Handle<JSObject> O, std::u16string name, inner_func callable, bool writable,
+  JSValue O, std::u16string name, inner_func callable, bool writable,
   bool enumerable, bool configurable
 ) {
-  Handle<JSObject> value = JSObject::New(
-    u"InternalFunc", false, Handle<JSValue>(), false, true, callable, 0);
-  value.val()->SetType(Type::OBJ_INNER_FUNC);
-  value.val()->SetPrototype(FunctionProto::Instance());
+  JSValue value = js_object::New(
+    u"InternalFunc", false, JSValue(), false, true, callable, 0);
+  value.SetType(Type::OBJ_INNER_FUNC);
+  js_object::SetPrototype(value, function_proto::Instance());
   AddValueProperty(O, name, value, writable, enumerable, configurable);
 }
 
-Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle<String> P);
-bool HasInstance__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle<JSValue> V);
-bool HasInstance__BindFunction(Handle<Error>& e, Handle<BindFunctionObject> O, Handle<JSValue> V);
+JSValue Get__Function(JSValue& e, JSValue O, JSValue P);
+bool HasInstance__Function(JSValue& e, JSValue O, JSValue V);
+bool HasInstance__BindFunction(JSValue& e, JSValue O, JSValue V);
 
-Handle<JSValue> Call__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments);
-Handle<JSValue> Call__BindFunction(Handle<Error>& e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> extra_args);
-Handle<JSValue> Call__FunctionProto(Handle<Error>& e, Handle<FunctionProto> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments);
+JSValue Call__Function(JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments);
+JSValue Call__BindFunction(JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> extra_args);
+JSValue Call__FunctionProto(JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments);
 
-Handle<JSObject> Construct__Function(Handle<Error>& e, Handle<FunctionObject> O,std::vector<Handle<JSValue>> arguments);
-Handle<JSObject> Construct__BindFunction(Handle<Error>& e, Handle<BindFunctionObject> O, std::vector<Handle<JSValue>> extra_args);
-Handle<JSObject> Construct__FunctionConstructor(Handle<Error>& e, Handle<FunctionConstructor> O, std::vector<Handle<JSValue>> arguments);
+JSValue Construct__Function(JSValue& e, JSValue O,std::vector<JSValue> arguments);
+JSValue Construct__BindFunction(JSValue& e, JSValue O, std::vector<JSValue> extra_args);
+JSValue Construct__FunctionConstructor(JSValue& e, JSValue O, std::vector<JSValue> arguments);
 
 }  // namespace es
 

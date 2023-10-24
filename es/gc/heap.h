@@ -2,12 +2,11 @@
 #define ES_GC_HEAP_H
 
 #include <es/gc/copying_collection.h>
-#include <es/gc/mark_and_sweep_collection.h>
 #include <es/gc/no_collection.h>
 
 namespace es {
 
-constexpr size_t kNewSpaceSize = 4000U * 1024 * 1024;  // 500MB
+constexpr size_t kNewSpaceSize = 10000U * 1024 * 1024;  // 500MB
 constexpr size_t kConstantSegmentSize = 10 * 1024 * 1024;  // 10MB
 constexpr size_t kBigObjectSegmentSize = 1024 * 1024 * 1024;  // 1GB
 constexpr size_t kBigObjectThres = 10 * 1024 * 1024;  // 10MB
@@ -37,7 +36,6 @@ class Heap {
     big_object_space_(kBigObjectSegmentSize) {}
 
   CopyingCollection new_space_;
-  // MarkAndSweepCollection new_space_;
   NoCollection constant_space_;
   NoCollection big_object_space_;
 };

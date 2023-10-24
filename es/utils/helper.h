@@ -72,7 +72,7 @@ std::string ToString(const void *ptr) {
   return ss.str();
 }
 
-}  // namespace test
+}  // namespace log
 
 std::u16string StrCat(std::vector<std::u16string> vals) {
   size_t size = 0;

@@ -11,155 +11,159 @@
 #include <es/types/base.h>
 #include <es/types/same_value.h>
 #include <es/types/property_descriptor.h>
-#include <es/error.h>
+#include <es/types/error.h>
 #include <es/utils/helper.h>
 #include <es/utils/hashmap.h>
 
 namespace es {
 
-typedef Handle<JSValue> (*inner_func)(Handle<Error>&, Handle<JSValue>, std::vector<Handle<JSValue>>);
+typedef JSValue (*inner_func)(JSValue&, JSValue, std::vector<JSValue>);
 
-class JSObject : public JSValue {
- public:
-  static Handle<JSObject> New(
-    std::u16string klass,
-    bool extensible,
-    Handle<JSValue> primitive_value,
-    bool is_constructor,
-    bool is_callable,
-    inner_func callable,
-    size_t size,
-    flag_t flag = 0
-  ) {
-#ifdef GC_DEBUG
-    if (unlikely(log::Debugger::On()))
-      std::cout << "JSObject::New " << log::ToString(klass) << "\n";
-#endif
-    Handle<JSValue> jsval = HeapObject::New(kJSObjectOffset - kJSValueOffset + size, flag);
-    // NOTE(zhuzilin) We need to put the operation that may need memory allocation to
-    // the front, because the jsval is not initialized with JSObject vptr and therefore
-    // could not forward the pointers.
-    auto class_str = String::New(klass);
-    auto property_map = HashMap::New();
+namespace js_object {
 
-    SET_HANDLE_VALUE(jsval.val(), kClassOffset, class_str, String);
-    SET_VALUE(jsval.val(), kExtensibleOffset, extensible, bool);
-    SET_HANDLE_VALUE(jsval.val(), kPrimitiveValueOffset, primitive_value, JSValue);
-    SET_VALUE(jsval.val(), kIsConstructorOffset, is_constructor, bool);
-    SET_VALUE(jsval.val(), kIsCallableOffset, is_callable, bool);
-    // NOTE(zhuzilin) function pointer is different.
-    TYPED_PTR(jsval.val(), kCallableOffset, inner_func)[0] = callable;
-    SET_HANDLE_VALUE(jsval.val(), kPrototypeOffset, Null::Instance(), JSValue);
-    SET_HANDLE_VALUE(jsval.val(), kNamedPropertiesOffset, property_map, HashMap);
+constexpr size_t kClassOffset = 0;
+constexpr size_t kExtensibleOffset = kClassOffset + sizeof(JSValue);
+constexpr size_t kPrimitiveValueOffset = kExtensibleOffset + kBoolSize;
+constexpr size_t kIsConstructorOffset = kPrimitiveValueOffset + sizeof(JSValue);
+constexpr size_t kIsCallableOffset = kIsConstructorOffset + kBoolSize;
+constexpr size_t kCallableOffset = kIsCallableOffset + kBoolSize;
+constexpr size_t kPrototypeOffset = kCallableOffset + kFuncPtrSize;
+constexpr size_t kNamedPropertiesOffset = kPrototypeOffset + sizeof(JSValue);
+constexpr size_t kJSObjectOffset = kNamedPropertiesOffset + sizeof(JSValue);
 
-    jsval.val()->SetType(JS_OBJECT);
-    return Handle<JSObject>(jsval);
-  }
-
-  HashMap* named_properties() {
-    return READ_VALUE(this, kNamedPropertiesOffset, HashMap*);
-  };
-  void SetNamedProperties(Handle<HashMap> new_named_properties) {
-    SET_HANDLE_VALUE(this, kNamedPropertiesOffset, new_named_properties, HashMap);
-  }
-
-  // Internal Preperties Common to All Objects
-  Handle<JSValue> Prototype() { return READ_HANDLE_VALUE(this, kPrototypeOffset, JSValue); }
-  void SetPrototype(Handle<JSValue> proto) {
-    ASSERT(proto.val()->IsPrototype());
-    SET_HANDLE_VALUE(this, kPrototypeOffset, proto, JSValue);
-  }
-  std::u16string Class() { return (READ_VALUE(this, kClassOffset, String*))->data(); };
-  bool Extensible() { return READ_VALUE(this, kExtensibleOffset, bool); };
-  void SetExtensible(bool extensible) { SET_VALUE(this, kExtensibleOffset, extensible, bool); }
-  // Internal Properties Only Defined for Some Objects
-  // [[PrimitiveValue]]
-  Handle<JSValue> PrimitiveValue() {
-    Handle<JSValue> primitive_value = READ_HANDLE_VALUE(this, kPrimitiveValueOffset, JSValue);
-    ASSERT(!primitive_value.IsNullptr());
-    return primitive_value;
-  };
-  bool HasPrimitiveValue() {
-    return type() == OBJ_BOOL || type() == OBJ_DATE ||
-           type() == OBJ_NUMBER || type() == OBJ_STRING;
-  }
-  inner_func callable() { return TYPED_PTR(this, kCallableOffset, inner_func)[0]; }
-
-  // This for for-in statement.
-  std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> AllEnumerableProperties() {
-    auto filter = [](JSValue* jsval) {
-      ASSERT(heap_obj->IsPropertyDescriptor());
-      PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(jsval);
-      return desc->HasEnumerable() && desc->Enumerable();
-    };
-    std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> result;
-    for (auto pair : named_properties()->SortedKeyValPairs(filter)) {
-      result.emplace_back(std::make_pair(
-        Handle<String>(pair.first),
-        Handle<PropertyDescriptor>(static_cast<PropertyDescriptor*>(pair.second))
-      ));
-    }
-    if (!Prototype().val()->IsNull()) {
-      Handle<JSObject> proto = static_cast<Handle<JSObject>>(Prototype());
-      for (auto pair : proto.val()->AllEnumerableProperties()) {
-        if (named_properties()->GetRaw(pair.first) == nullptr) {
-          result.emplace_back(pair);
-        }
-      }
-    }
-    return result;
-  }
-
- public:
-  static constexpr size_t kClassOffset = kJSValueOffset;
-  static constexpr size_t kExtensibleOffset = kClassOffset + kPtrSize;
-  static constexpr size_t kPrimitiveValueOffset = kExtensibleOffset + kBoolSize;
-  static constexpr size_t kIsConstructorOffset = kPrimitiveValueOffset + kPtrSize;
-  static constexpr size_t kIsCallableOffset = kIsConstructorOffset + kBoolSize;
-  static constexpr size_t kCallableOffset = kIsCallableOffset + kBoolSize;
-  static constexpr size_t kPrototypeOffset = kCallableOffset + kFuncPtrSize;
-  static constexpr size_t kNamedPropertiesOffset = kPrototypeOffset + kPtrSize;
-  static constexpr size_t kJSObjectOffset = kNamedPropertiesOffset + kPtrSize;
-};
-
-Handle<JSValue> Get(Handle<Error>& e, Handle<JSObject> O, Handle<String> P);
-Handle<JSValue> Get__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P);
-Handle<JSValue> GetOwnProperty(Handle<JSObject> O, Handle<String> P);
-Handle<JSValue> GetOwnProperty__Base(Handle<JSObject> O, Handle<String> P);
-Handle<JSValue> GetProperty(Handle<JSObject> O, Handle<String> P);
-void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag);
-bool CanPut(Handle<JSObject> O, Handle<String> P);
-bool HasProperty(Handle<JSObject> O, Handle<String> P);
-bool Delete(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool throw_flag);
-bool Delete__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool throw_flag);
-Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16string hint);
-bool DefineOwnProperty(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
-bool DefineOwnProperty__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
-bool HasInstance(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> V);
-bool HasInstance__Base(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> V);
-
-void AddValueProperty(
-  Handle<JSObject> O, Handle<String> name, Handle<JSValue> value, bool writable,
-  bool enumerable, bool configurable
-);
-
-void AddValueProperty(
-  Handle<JSObject> O, std::u16string name, Handle<JSValue> value, bool writable,
-  bool enumerable, bool configurable
+inline JSValue New(
+  std::u16string klass,
+  bool extensible,
+  JSValue primitive_value,
+  bool is_constructor,
+  bool is_callable,
+  inner_func callable,
+  size_t size,
+  flag_t flag = 0
 ) {
-  return AddValueProperty(O, String::New(name), value, writable, enumerable, configurable);
+  JSValue jsval;
+  std::cout << "enter js_obj" << std::endl;
+  jsval.handle() = HeapObject::New(kJSObjectOffset + size, flag);
+  // NOTE(zhuzilin) We need to put the operation that may need memory allocation to
+  // the front, because the jsval is not initialized with JSObject vptr and therefore
+  // could not forward the pointers.
+  JSValue class_str = string::New(klass);
+  JSValue property_map = hash_map::New();
+
+  SET_JSVALUE(jsval.handle().val(), kClassOffset, class_str);
+  SET_VALUE(jsval.handle().val(), kExtensibleOffset, extensible, bool);
+  SET_JSVALUE(jsval.handle().val(), kPrimitiveValueOffset, primitive_value);
+  SET_VALUE(jsval.handle().val(), kIsConstructorOffset, is_constructor, bool);
+  SET_VALUE(jsval.handle().val(), kIsCallableOffset, is_callable, bool);
+  // NOTE(zhuzilin) function pointer is different.
+  TYPED_PTR(jsval.handle().val(), kCallableOffset, inner_func)[0] = callable;
+  SET_JSVALUE(jsval.handle().val(), kPrototypeOffset, null::New());
+  SET_JSVALUE(jsval.handle().val(), kNamedPropertiesOffset, property_map);
+
+  std::cout << "exit js_object::New" << std::endl;
+
+  jsval.SetType(JS_OBJECT);
+  return jsval;
 }
 
-void AddFuncProperty(
-  Handle<JSObject> O, std::u16string name, inner_func callable, bool writable,
+JSValue& named_properties(JSValue obj) {
+  return GET_JSVALUE(obj.handle().val(), kNamedPropertiesOffset);
+};
+void SetNamedProperties(JSValue& obj, JSValue new_named_properties) {
+  SET_JSVALUE(obj.handle().val(), kNamedPropertiesOffset, new_named_properties);
+}
+
+// Internal Preperties Common to All Objects
+JSValue Prototype(JSValue obj) { return GET_JSVALUE(obj.handle().val(), kPrototypeOffset); }
+void SetPrototype(JSValue& obj, JSValue proto) {
+  ASSERT(proto.IsPrototype());
+  SET_JSVALUE(obj.handle().val(), kPrototypeOffset, proto);
+}
+std::u16string Class(JSValue obj) {
+  return string::data(GET_JSVALUE(obj.handle().val(), kClassOffset));
+};
+bool Extensible(JSValue obj) {
+  return READ_VALUE(obj.handle().val(), kExtensibleOffset, bool);
+};
+void SetExtensible(JSValue& obj, bool extensible) {
+  SET_VALUE(obj.handle().val(), kExtensibleOffset, extensible, bool);
+}
+// Internal Properties Only Defined for Some Objects
+// [[PrimitiveValue]]
+JSValue PrimitiveValue(JSValue obj) {
+  JSValue primitive_value = GET_JSVALUE(obj.handle().val(), kPrimitiveValueOffset);
+  return primitive_value;
+};
+bool HasPrimitiveValue(JSValue obj) {
+  return obj.type() == OBJ_BOOL || obj.type() == OBJ_DATE ||
+         obj.type() == OBJ_NUMBER || obj.type() == OBJ_STRING;
+}
+inner_func callable(JSValue obj) {
+  return TYPED_PTR(obj.handle().val(), kCallableOffset, inner_func)[0];
+}
+
+// This for for-in statement.
+std::vector<std::pair<JSValue, JSValue>> AllEnumerableProperties(JSValue obj) {
+  auto filter = [](JSValue desc) {
+    ASSERT(desc.IsPropertyDescriptor());
+    return property_descriptor::HasEnumerable(desc) && property_descriptor::Enumerable(desc);
+  };
+  std::vector<std::pair<JSValue, JSValue>> result;
+  for (auto pair : hash_map::SortedKeyValPairs(named_properties(obj), filter)) {
+    result.emplace_back(std::make_pair(pair.first, pair.second));
+  }
+  JSValue proto = Prototype(obj);
+  if (!proto.IsNull()) {
+    ASSERT(obj.IsObject());
+    for (auto pair : AllEnumerableProperties(proto)) {
+      if (hash_map::Get(named_properties(obj), pair.first).IsNull()) {
+        result.emplace_back(pair);
+      }
+    }
+  }
+  return result;
+}
+
+}  // namespace js_object
+
+JSValue Get(JSValue& e, JSValue O, JSValue P);
+JSValue Get__Base(JSValue& e, JSValue O, JSValue P);
+JSValue GetOwnProperty(JSValue O, JSValue P);
+JSValue GetOwnProperty__Base(JSValue O, JSValue P);
+JSValue GetProperty(JSValue O, JSValue P);
+void Put(JSValue& e, JSValue O, JSValue P, JSValue V, bool throw_flag);
+bool CanPut(JSValue O, JSValue P);
+bool HasProperty(JSValue O, JSValue P);
+bool Delete(JSValue& e, JSValue O, JSValue P, bool throw_flag);
+bool Delete__Base(JSValue& e, JSValue O, JSValue P, bool throw_flag);
+JSValue DefaultValue(JSValue& e, JSValue O, std::u16string hint);
+bool DefineOwnProperty(JSValue& e, JSValue O, JSValue P, JSValue desc, bool throw_flag);
+bool DefineOwnProperty__Base(JSValue& e, JSValue O, JSValue P, JSValue desc, bool throw_flag);
+bool HasInstance(JSValue& e, JSValue O, JSValue V);
+bool HasInstance__Base(JSValue& e, JSValue O, JSValue V);
+
+void AddValueProperty(
+  JSValue O, JSValue name, JSValue value, bool writable,
   bool enumerable, bool configurable
 );
 
-Handle<JSValue> Call(Handle<Error>& e, Handle<JSValue> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
-Handle<JSValue> Call__Base(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
-Handle<JSValue> Call__Construct(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+inline void AddValueProperty(
+  JSValue O, std::u16string name, JSValue value, bool writable,
+  bool enumerable, bool configurable
+) {
+  return AddValueProperty(O, string::New(name), value, writable, enumerable, configurable);
+}
 
-Handle<JSObject> Construct(Handle<Error>& e, Handle<JSObject> O, std::vector<Handle<JSValue>> arguments);
+inline void AddFuncProperty(
+  JSValue O, std::u16string name, inner_func callable, bool writable,
+  bool enumerable, bool configurable
+);
+
+JSValue Call(JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments = {});
+JSValue Call__Base(JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments = {});
+JSValue Call__Construct(JSValue& e, JSValue O, JSValue this_arg, std::vector<JSValue> arguments = {});
+
+JSValue Construct(JSValue& e, JSValue O, std::vector<JSValue> arguments);
 
 }  // namespace
 

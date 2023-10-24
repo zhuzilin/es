@@ -11,7 +11,6 @@ constexpr size_t kBoolSize = sizeof(bool);
 constexpr size_t kDoubleSize = sizeof(double);
 constexpr size_t kCharSize = sizeof(char);
 constexpr size_t kChar16Size = sizeof(char16_t);
-constexpr size_t kPtrSize = sizeof(void*);
 constexpr size_t kFuncPtrSize = sizeof(void* (*));
 
 #define PTR(ptr, offset) \
@@ -25,6 +24,11 @@ constexpr size_t kFuncPtrSize = sizeof(void* (*));
 
 #define SET_HANDLE_VALUE(ptr, offset, handle, type) \
   *reinterpret_cast<type**>(PTR(ptr, offset)) = handle.val()
+
+#define SET_JSVALUE(ptr, offset, jsval) \
+  *reinterpret_cast<JSValue*>(PTR(ptr, offset)) = jsval
+#define GET_JSVALUE(ptr, offset) \
+  *reinterpret_cast<JSValue*>(PTR(ptr, offset))
 
 #define READ_HANDLE_VALUE(ptr, offset, type) \
   Handle<type>(*reinterpret_cast<type**>(PTR(ptr, offset)))
