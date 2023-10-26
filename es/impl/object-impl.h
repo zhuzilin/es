@@ -42,9 +42,8 @@ Handle<JSValue> GetOwnProperty__String(Handle<StringObject> O, Handle<String> P)
   int len = str.size();
   if (len <= index)
     return Undefined::Instance();
-  Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
   Handle<String> substr = String::New(str.substr(index, 1));
-  desc.val()->SetDataDescriptor(substr, true, false, false);
+  Handle<PropertyDescriptor> desc = PropertyDescriptor::NewDataDescriptor(substr, true, false, false);
   return desc;
 }
 
@@ -200,8 +199,8 @@ void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue>
       return;
     }
   }
-  Handle<PropertyDescriptor> new_desc = PropertyDescriptor::New();
-  new_desc.val()->SetDataDescriptor(V, true, true, true);  // 6.a
+  Handle<PropertyDescriptor> new_desc = PropertyDescriptor::NewDataDescriptor(
+    V, true, true, true);  // 6.a
   DefineOwnProperty(e, O, P, new_desc, throw_flag);
 }
 
@@ -537,8 +536,8 @@ void AddValueProperty(
   bool enumerable, bool configurable
 ) {
   TEST_LOG("AddValueProperty " + name.ToString() + " to " + value.ToString());
-  Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
-  desc.val()->SetDataDescriptor(value, writable, enumerable, configurable);
+  Handle<PropertyDescriptor> desc = PropertyDescriptor::NewDataDescriptor(
+    value, writable, enumerable, configurable);
   // This should just like named_properties_[name] = desc
   DefineOwnProperty(Error::Empty(), O, name, desc, false);
 }

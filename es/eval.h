@@ -1053,14 +1053,14 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
   // PropertyName : AssignmentExpression
   for (auto property : obj_ast->properties()) {
     std::u16string prop_name = EvalPropertyName(e, property.key);
-    Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
+    Handle<PropertyDescriptor> desc;
     switch (property.type) {
       case ObjectLiteral::Property::NORMAL: {
         Handle<JSValue> expr_value = EvalAssignmentExpression(e, property.value);
         if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         Handle<JSValue> prop_value = GetValue(e, expr_value);
         if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-        desc.val()->SetDataDescriptor(prop_value, true, true, true);
+        desc = PropertyDescriptor::NewDataDescriptor(prop_value, true, true, true);
         break;
       }
       default: {
@@ -1080,6 +1080,7 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
           Runtime::TopLexicalEnv(),
           strict || strict_func
         );
+        desc = PropertyDescriptor::New();
         if (property.type == ObjectLiteral::Property::GET) {
           desc.val()->SetGet(closure);
         } else {

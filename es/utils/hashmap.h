@@ -9,14 +9,6 @@
 
 namespace es {
 
-std::unordered_map<size_t, size_t> kExpandHashMapSize = {
-  {3, 7},
-  {7, 17},
-  {17, 37},
-  {37, 67},
-  {67, 67},
-};
-
 class ListNode : public JSValue {
   public:
   static Handle<ListNode> New(Handle<String> key, Handle<JSValue> val) {
@@ -123,9 +115,7 @@ class HashMap : public JSValue {
 
   static Handle<HashMap> Rehash(Handle<HashMap> map) {
     size_t old_num_bucket = map.val()->num_bucket();
-    size_t new_num_bucket = kExpandHashMapSize[old_num_bucket];
-    if (new_num_bucket == old_num_bucket)
-      return map;
+    size_t new_num_bucket = (old_num_bucket + 1) * 2 - 1;
     Handle<HashMap> new_map = HashMap::New(new_num_bucket);
     for (size_t i = 0; i < old_num_bucket; i++) {
       size_t offset = kElementOffset + i * kPtrSize;

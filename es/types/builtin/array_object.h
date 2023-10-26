@@ -119,10 +119,10 @@ class ArrayObject : public JSObject {
     jsobj.val()->SetType(OBJ_ARRAY);
     Handle<ArrayObject> obj(jsobj);
     obj.val()->SetPrototype(ArrayProto::Instance());
-    Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
     // Not using AddValueProperty here to by pass the override DefineOwnProperty
     Handle<Number> len_num = Number::New(len);
-    desc.val()->SetDataDescriptor(len_num, true, false, false);
+    Handle<PropertyDescriptor> desc = PropertyDescriptor::NewDataDescriptor(
+      len_num, true, false, false);
     DefineOwnProperty__Base(Error::Empty(), obj, String::Length(), desc, false);
     return obj;
   }

@@ -123,8 +123,7 @@ void DeclarationBindingInstantiation(
         ASSERT(existing_prop.val()->IsPropertyDescriptor());
         auto existing_prop_desc = static_cast<Handle<PropertyDescriptor>>(existing_prop);
         if (existing_prop_desc.val()->Configurable()) {  // 5.e.iii
-          auto new_desc = PropertyDescriptor::New();
-          new_desc.val()->SetDataDescriptor(Undefined::Instance(), true, true, configurable_bindings);
+          auto new_desc = PropertyDescriptor::NewDataDescriptor(Undefined::Instance(), true, true, configurable_bindings);
           DefineOwnProperty(e, go, fn, new_desc, true);
           if (unlikely(!e.val()->IsOk())) return;
         } else {  // 5.e.iv

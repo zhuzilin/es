@@ -16,14 +16,20 @@ class JSValue {
   bool IsCallable();
   bool IsConstructor();
 
-  inline bool IsUndefined() { return type() == JS_UNDEFINED; }
+  inline static bool IsUndefined(Type type) { return type == JS_UNDEFINED; }
+  inline static bool IsBool(Type type) { return type == JS_BOOL; }
+  inline static bool IsString(Type type) { return type == JS_STRING || type == JS_LONG_STRING; }
+  inline static bool IsNumber(Type type) { return type == JS_NUMBER; }
+  inline static bool IsObject(Type type) { return (type & JS_OBJECT) != 0; }
+
+  inline bool IsUndefined() { return IsUndefined(type()); }
   inline bool IsNull() { return type() == JS_NULL; }
-  inline bool IsBool() { return type() == JS_BOOL; }
-  inline bool IsString() { return type() == JS_STRING || type() == JS_LONG_STRING; }
-  inline bool IsNumber() { return type() == JS_NUMBER; }
+  inline bool IsBool() { return IsBool(type()); }
+  inline bool IsString() { return IsString(type()); }
+  inline bool IsNumber() { return IsNumber(type()); }
   inline bool IsPrimitive() { return !IsObject(); }
 
-  inline bool IsObject() { return (type() & JS_OBJECT) != 0; }
+  inline bool IsObject() { return IsObject(type()); }
   inline bool IsPrototype() { return IsNull() || IsObject(); }
 
   inline bool IsBoolObject() { return type() == OBJ_BOOL; }
