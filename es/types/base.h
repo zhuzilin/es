@@ -87,6 +87,12 @@ class JSValue {
         bool can_delete_;
         bool is_mutable_;
       } binding_header_;
+      struct ReferenceHeader {
+        bool strict_reference_;
+        bool has_primitive_base_;
+        bool is_property_reference_;
+        bool is_unresolvable_reference_;
+      } reference_header_;
       bool provide_this_;
       Placeholder() { uint32_ = 0; }
     } placeholder_;
