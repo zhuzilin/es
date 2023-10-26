@@ -121,7 +121,7 @@ class Runtime {
   //   }
   //   auto scope_values = HandleScope::AllValues();
   //   values.insert(values.end(), scope_values.begin(), scope_values.end());
-  //   return values;
+  //   return pointers;
   // }
 
  private:

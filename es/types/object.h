@@ -42,7 +42,6 @@ inline JSValue New(
   flag_t flag = 0
 ) {
   JSValue jsval;
-  std::cout << "enter js_obj" << std::endl;
   jsval.handle() = HeapObject::New(kJSObjectOffset + size, flag);
   // NOTE(zhuzilin) We need to put the operation that may need memory allocation to
   // the front, because the jsval is not initialized with JSObject vptr and therefore
@@ -59,8 +58,6 @@ inline JSValue New(
   TYPED_PTR(jsval.handle().val(), kCallableOffset, inner_func)[0] = callable;
   SET_JSVALUE(jsval.handle().val(), kPrototypeOffset, null::New());
   SET_JSVALUE(jsval.handle().val(), kNamedPropertiesOffset, property_map);
-
-  std::cout << "exit js_object::New" << std::endl;
 
   jsval.SetType(JS_OBJECT);
   return jsval;

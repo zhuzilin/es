@@ -302,6 +302,9 @@ void InitGlobalObject() {
   AddValueProperty(global_obj, u"Math", math::Instance(), true, false, true);
 
   AddValueProperty(global_obj, u"console", console::Instance(), true, false, true);
+  // B.2.1 escape
+  AddFuncProperty(global_obj, u"escape", global_object::escape, true, false, true);
+  AddFuncProperty(global_obj, u"unescape", global_object::unescape, true, false, true);
 }
 
 void InitObject() {
@@ -339,16 +342,12 @@ void InitObject() {
 
 void InitFunction() {
   JSValue constructor = function_constructor::Instance();
-  std::cout << "create function_constructor" << std::endl;
   js_object::SetPrototype(constructor, function_proto::Instance());
-  std::cout << "function_constructor SetPrototype" << std::endl;
   // 15.3.3 Properties of the Function Constructor
   AddValueProperty(constructor, string::Prototype(), function_proto::Instance(), false, false, false);
-  std::cout << "function_constructor.Prototype" << std::endl;
   AddValueProperty(constructor, string::Length(), number::One(), false, false, false);
   AddFuncProperty(constructor, u"toString", function_constructor::toString, true, false, false);
 
-  std::cout << "function_proto::Instance" << std::endl;
   JSValue proto = function_proto::Instance();
   js_object::SetPrototype(proto, object_proto::Instance());
   // 15.2.4 Properties of the Function Prototype Function
@@ -447,6 +446,8 @@ void InitString() {
   AddFuncProperty(proto, u"toUpperCase", string_proto::toUpperCase, true, false, false);
   AddFuncProperty(proto, u"toLocaleUpperCase", string_proto::toLocaleUpperCase, true, false, false);
   AddFuncProperty(proto, u"trim", string_proto::trim, true, false, false);
+
+  AddFuncProperty(proto, u"substr", string_proto::substr, true, false, true);
 }
 
 void InitArray() {
@@ -543,6 +544,10 @@ void InitDate() {
   AddFuncProperty(proto, u"toUTCString", date_proto::toUTCString, true, false, false);
   AddFuncProperty(proto, u"toISOString", date_proto::toISOString, true, false, false);
   AddFuncProperty(proto, u"toJSON", date_proto::toJSON, true, false, false);
+
+  AddFuncProperty(proto, u"getYear", date_proto::getYear, true, false, true);
+  AddFuncProperty(proto, u"setYear", date_proto::setYear, true, false, true);
+  AddFuncProperty(proto, u"toGMTString", date_proto::toGMTString, true, false, true);
 }
 
 void InitMath() {
@@ -582,14 +587,13 @@ void InitRegExp() {
   AddFuncProperty(proto, u"exec", regex_proto::exec, true, false, false);
   AddFuncProperty(proto, u"test", regex_proto::test, true, false, false);
   AddFuncProperty(proto, u"toString", regex_proto::toString, true, false, false);
+
+  AddFuncProperty(proto, u"compile", regex_proto::compile, true, false, true);
 };
 
 void Init() {
-  std::cout << "InitGlobalObject" << std::endl;
   InitGlobalObject();
-  std::cout << "InitObject" << std::endl;
   InitObject();
-  std::cout << "InitFunction" << std::endl;
   InitFunction();
   InitNumber();
   InitError();

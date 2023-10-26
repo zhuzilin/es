@@ -192,6 +192,21 @@ inline JSValue toJSON(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
   assert(false);
 }
 
+// B.2.4 Date.prototype.getYear ( )
+inline JSValue getYear(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
+
+// B.2.5 Date.prototype.setYear (year)
+inline JSValue setYear(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
+
+// B.2.6 Date.prototype.toGMTString ( )
+inline JSValue toGMTString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
+
 }  // namespace date_proto
 
 namespace date_object {

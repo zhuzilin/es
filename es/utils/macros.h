@@ -22,16 +22,11 @@ constexpr size_t kFuncPtrSize = sizeof(void* (*));
 #define HEAP_PTR(ptr, offset) \
   reinterpret_cast<HeapObject**>(PTR(ptr, offset))
 
-#define SET_HANDLE_VALUE(ptr, offset, handle, type) \
-  *reinterpret_cast<type**>(PTR(ptr, offset)) = handle.val()
-
 #define SET_JSVALUE(ptr, offset, jsval) \
   *reinterpret_cast<JSValue*>(PTR(ptr, offset)) = jsval
 #define GET_JSVALUE(ptr, offset) \
   *reinterpret_cast<JSValue*>(PTR(ptr, offset))
 
-#define READ_HANDLE_VALUE(ptr, offset, type) \
-  Handle<type>(*reinterpret_cast<type**>(PTR(ptr, offset)))
 // Read non pointer value, e.g. bool, Type.
 #define READ_VALUE(ptr, offset, type) \
   *reinterpret_cast<type*>(PTR(ptr, offset))

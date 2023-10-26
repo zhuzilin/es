@@ -197,7 +197,6 @@ std::string JSValue::ToString(JSValue jsval) {
     }
     default:
       if (jsval.IsObject()) {
-        std::cout << "jsval.IsObject" << std::endl;
         return JSValue::ToString(GET_JSVALUE(jsval.handle().val(), js_object::kClassOffset));
       }
       std::cout << "jsval.type(): " << jsval.type() << std::endl;
@@ -260,7 +259,6 @@ std::vector<JSValue> JSValue::RelevantValues(JSValue jsval) {
       for (size_t i = 0; i < n; i++) {
         values[i] = GET_JSVALUE(jsval.handle().val(), hash_map::kElementOffset + i * sizeof(JSValue));
       }
-      values.emplace_back(GET_JSVALUE(jsval.handle().val(), hash_map::kInlineCacheOffset));
       return values;
     }
     case BINDING: {

@@ -40,7 +40,6 @@ JSValue GetValue(JSValue& e, JSValue V) {
       }
     }
   } else {
-    std::cout << "base.type(): " << JSValue::ToString(base.type()) << std::endl;
     ASSERT(base.IsEnvironmentRecord());
     return GetBindingValue(e, base, reference::GetReferencedName(V), reference::IsStrictReference(V));
   }

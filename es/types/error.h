@@ -24,7 +24,6 @@ constexpr size_t kValueOffset = kErrorTypeOffset + kSizeTSize;
 
 inline JSValue New(ErrorType t, JSValue val, uint8_t flag) {
   JSValue jsval(JS_UNINIT);
-  std::cout << "enter error" << std::endl;
   jsval.handle() = HeapObject::New(kSizeTSize + sizeof(JSValue), flag);
 
   SET_VALUE(jsval.handle().val(), kErrorTypeOffset, t, ErrorType);
@@ -34,7 +33,6 @@ inline JSValue New(ErrorType t, JSValue val, uint8_t flag) {
   return jsval;
 }
 
-// TODO(zhuzilin) Fix memory leakage here.
 inline JSValue Ok() {
   static JSValue singleton = New(E_OK, string::Empty(), GCFlag::SINGLE);
   return singleton;

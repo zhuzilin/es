@@ -74,6 +74,14 @@ inline JSValue encodeURIComponent(JSValue& e, JSValue this_arg, std::vector<JSVa
   assert(false);
 }
 
+inline JSValue escape(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
+
+inline JSValue unescape(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
+
 }  // namespace global_object
 
 class DirectEvalGuard {

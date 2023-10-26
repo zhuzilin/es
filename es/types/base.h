@@ -78,16 +78,11 @@ class JSValue {
 
   static std::vector<JSValue> RelevantValues(JSValue jsval);
 
+  // can only store things that won't be modified.
   struct Header {
     Type type_;
     union Placeholder {
       uint32_t uint32_;
-      struct PDHeader {
-        char bitmask_;
-        bool writable_;
-        bool enumerable_;
-        bool configurable_;
-      } pb_header_;
       struct BindingHeader {
         bool can_delete_;
         bool is_mutable_;
@@ -140,14 +135,12 @@ inline JSValue New(size_t n, flag_t flag = 0) {
 }
 
 inline JSValue New(const std::u16string& data, flag_t flag = 0) {
-  std::cout << "enter string " << log::ToString(data) << std::endl;
   JSValue jsval = New(data.size(), flag);
   memcpy(PTR(jsval.handle().val(), kStringDataOffset), data.data(), data.size() * kChar16Size);
   return jsval;
 }
 
 inline JSValue New(const std::u16string&& data, flag_t flag = 0) {
-  std::cout << "enter string " << log::ToString(data) << std::endl;
   JSValue jsval = New(data.size(), flag);
   memcpy(PTR(jsval.handle().val(), kStringDataOffset), data.data(), data.size() * kChar16Size);
   return jsval;

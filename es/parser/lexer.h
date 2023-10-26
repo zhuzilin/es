@@ -292,7 +292,9 @@ class Lexer {
           switch (c_) {
             case u'*':  // /*
               Advance();
-              SkipMultiLineComment();
+              if (!SkipMultiLineComment()) {
+                token = Token(Token::TK_ILLEGAL, source_.substr(start, 2), start, start + 2);
+              }
               break;
             case u'/':  // //
               Advance();
@@ -512,18 +514,19 @@ error:
     return false;
   }
 
-  void SkipMultiLineComment() {
+  bool SkipMultiLineComment() {
     while (pos_ != source_.size()) {
       if (c_ == u'*') {
         Advance();
         if (c_ == u'/') {
           Advance();
-          break;
+          return true;
         }
       } else {
         Advance();
       }
     }
+    return false;
   }
 
   void SkipSingleLineComment() {

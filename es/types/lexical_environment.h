@@ -14,7 +14,6 @@ constexpr size_t kEnvRecOffset = kOuterOffset + sizeof(JSValue);
 
 inline JSValue New(JSValue outer, JSValue env_rec) {
   JSValue jsval;
-  std::cout << "enter lex" << std::endl;
   jsval.handle() = HeapObject::New(2 * sizeof(JSValue));
 
   SET_JSVALUE(jsval.handle().val(), kOuterOffset, outer);
@@ -46,6 +45,8 @@ inline JSValue NewObjectEnvironment(JSValue obj, JSValue lex, bool provide_this 
 }
 
 inline JSValue GetIdentifierReference(JSValue lex, JSValue name, bool strict) {
+  ASSERT(lex.IsLexicalEnvironment());
+  ASSERT(name.IsString());
   JSValue env_rec = lexical_env::env_rec(lex);
   bool exists = HasBinding(env_rec, name);
   if (exists) {

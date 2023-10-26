@@ -15,6 +15,11 @@ namespace property_descriptor {
 constexpr size_t kValueOffset = 0;
 constexpr size_t kGetOffset = kValueOffset + sizeof(JSValue);
 constexpr size_t kSetOffset = kGetOffset + sizeof(JSValue);
+constexpr size_t kWritableOffset = kSetOffset + sizeof(JSValue);
+constexpr size_t kEnumerableOffset = kWritableOffset + kBoolSize;
+constexpr size_t kConfigurableOffset = kEnumerableOffset + kBoolSize;
+constexpr size_t kBitmapOffset = kConfigurableOffset + kBoolSize;
+constexpr size_t kPropertyDescriptorSize = kBitmapOffset + kCharSize;
 
 enum Field {
   VALUE        = 1 << 0,
@@ -27,26 +32,25 @@ enum Field {
 
 inline JSValue New() {
   JSValue jsval;
-  std::cout << "enter desc" << std::endl;
-  jsval.handle() = HeapObject::New(3 * sizeof(JSValue));
+  jsval.handle() = HeapObject::New(kPropertyDescriptorSize);
 
   SET_JSVALUE(jsval.handle().val(), kValueOffset, undefined::New());
   SET_JSVALUE(jsval.handle().val(), kGetOffset, undefined::New());
   SET_JSVALUE(jsval.handle().val(), kSetOffset, undefined::New());
+  SET_VALUE(jsval.handle().val(), kBitmapOffset, 0, char);
+  SET_VALUE(jsval.handle().val(), kWritableOffset, false, bool);
+  SET_VALUE(jsval.handle().val(), kEnumerableOffset, false, bool);
+  SET_VALUE(jsval.handle().val(), kConfigurableOffset, false, bool);
 
   jsval.SetType(JS_PROP_DESC);
-  jsval.header_.placeholder_.pb_header_.bitmask_ = 0;
-  jsval.header_.placeholder_.pb_header_.writable_ = false;
-  jsval.header_.placeholder_.pb_header_.enumerable_ = false;
-  jsval.header_.placeholder_.pb_header_.configurable_ = false;
   return jsval;
 }
 
 inline char bitmask(JSValue desc) {
-  return desc.header_.placeholder_.pb_header_.bitmask_;
+  return READ_VALUE(desc.handle().val(), kBitmapOffset, char);
 }
 inline void SetBitMask(JSValue& desc, char bitmask) {
-  desc.header_.placeholder_.pb_header_.bitmask_ = bitmask;
+  SET_VALUE(desc.handle().val(), kBitmapOffset, bitmask, char);
 }
 
 inline bool IsAccessorDescriptor(JSValue desc) {
@@ -63,17 +67,21 @@ inline bool IsGenericDescriptor(JSValue desc) {
 
 // TODO(zhuzilin) May be check the member variable is initialized?
 inline bool HasValue(JSValue desc) { return bitmask(desc) & VALUE; }
-inline JSValue Value(JSValue desc) { return GET_JSVALUE(desc.handle().val(), kValueOffset); }
+inline JSValue Value(JSValue desc) {
+  return GET_JSVALUE(desc.handle().val(), kValueOffset);
+}
 inline void SetValue(JSValue& desc, JSValue value) {
   SetBitMask(desc, bitmask(desc) | VALUE);
   SET_JSVALUE(desc.handle().val(), kValueOffset, value);
 }
 
 inline bool HasWritable(JSValue desc) {return bitmask(desc) & WRITABLE; }
-inline bool Writable(JSValue desc) { return desc.header_.placeholder_.pb_header_.writable_; }
+inline bool Writable(JSValue desc) {
+  return READ_VALUE(desc.handle().val(), kWritableOffset, bool);
+}
 inline void SetWritable(JSValue& desc, bool writable) {
   SetBitMask(desc, bitmask(desc) | WRITABLE);
-  desc.header_.placeholder_.pb_header_.writable_ = writable;
+  SET_VALUE(desc.handle().val(), kWritableOffset, writable, bool);
 }
 
 inline bool HasGet(JSValue desc) {return bitmask(desc) & GET; }
@@ -91,17 +99,21 @@ inline void SetSet(JSValue& desc, JSValue setter) {
 }
 
 inline bool HasEnumerable(JSValue desc) { return bitmask(desc) & ENUMERABLE; }
-inline bool Enumerable(JSValue desc) { return desc.header_.placeholder_.pb_header_.enumerable_; }
+inline bool Enumerable(JSValue desc) {
+  return READ_VALUE(desc.handle().val(), kEnumerableOffset, bool);
+}
 inline void SetEnumerable(JSValue& desc, bool enumerable) {
   SetBitMask(desc, bitmask(desc) | ENUMERABLE);
-  desc.header_.placeholder_.pb_header_.enumerable_ = enumerable;
+  SET_VALUE(desc.handle().val(), kEnumerableOffset, enumerable, bool);
 }
 
 inline bool HasConfigurable(JSValue desc) { return bitmask(desc) & CONFIGURABLE; }
-inline bool Configurable(JSValue desc) { return desc.header_.placeholder_.pb_header_.configurable_; }
+inline bool Configurable(JSValue desc) {
+  return READ_VALUE(desc.handle().val(), kConfigurableOffset, bool);
+}
 inline void SetConfigurable(JSValue& desc, bool configurable) {
   SetBitMask(desc, bitmask(desc) | CONFIGURABLE);
-  desc.header_.placeholder_.pb_header_.configurable_ = configurable;
+  SET_VALUE(desc.handle().val(), kConfigurableOffset, configurable, bool);
 }
 
 inline void SetDataDescriptor(
@@ -139,13 +151,13 @@ inline void Set(JSValue& desc, JSValue other) {
 }
 
 inline void Reset(JSValue& desc, char new_bitmask, bool enumerable, bool configurable) {
-  desc.header_.placeholder_.pb_header_.bitmask_ = new_bitmask;
-  desc.header_.placeholder_.pb_header_.writable_ = false;
-  desc.header_.placeholder_.pb_header_.enumerable_ = enumerable;
-  desc.header_.placeholder_.pb_header_.configurable_ = configurable;
-  SET_JSVALUE(desc.handle().val(), kValueOffset, undefined::New());
-  SET_JSVALUE(desc.handle().val(), kGetOffset, undefined::New());
-  SET_JSVALUE(desc.handle().val(), kSetOffset, undefined::New());
+  SetBitMask(desc, new_bitmask);
+  SetWritable(desc, false);
+  SetEnumerable(desc, enumerable);
+  SetConfigurable(desc, configurable);
+  SetValue(desc, undefined::New());
+  SetGet(desc, undefined::New());
+  SetSet(desc, undefined::New());
 }
 
 inline bool IsSameAs(JSValue desc, JSValue other) {

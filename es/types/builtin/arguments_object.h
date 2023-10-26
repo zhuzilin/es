@@ -32,7 +32,6 @@ constexpr size_t kReferenceOffset = 0;
 
 static JSValue New(JSValue ref) {
   JSValue jsval;
-  std::cout << "enter gs" << std::endl;
   jsval.handle() = HeapObject::New(sizeof(JSValue), 0);
 
   SET_JSVALUE(jsval.handle().val(), kReferenceOffset, ref);

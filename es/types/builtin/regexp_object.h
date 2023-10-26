@@ -33,6 +33,10 @@ inline JSValue test(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
 
 inline JSValue toString(JSValue& e, JSValue this_arg, std::vector<JSValue> vals);
 
+inline JSValue compile(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
+
 }  // namespace regex_proto
 
 namespace regex_object {

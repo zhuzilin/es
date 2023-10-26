@@ -198,7 +198,7 @@ double ToInt32(JSValue& e, JSValue input) {
   if (isnan(num) || isinf(num) || num == 0) {
     return 0.0;
   }
-  double pos_int = num > 0 ? floor(abs(num)) : -(floor(abs(-num)));
+  double pos_int = num > 0 ? floor(num) : ceil(num);
   double int32_bit = fmod(pos_int, pow(2, 32));
   if (int32_bit < 0)
     int32_bit += pow(2, 32);

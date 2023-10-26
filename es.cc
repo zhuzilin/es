@@ -64,52 +64,63 @@ int main(int argc, char* argv[]) {
   JSValue e = error::Ok();
   EnterGlobalCode(e, ast);
   if (unlikely(!error::IsOk(e))) {
-    std::cout << "\033[1;31m" << "Enter global failed: " << JSValue::ToString(e) << "\033[0m" << "\n";
-    return 0;
-  }
-  Completion res = EvalProgram(ast);
-  switch (res.type()) {
-    case Completion::THROW: {
-      std::cout << "\033[1;31m" << "Uncaught ";
-      JSValue val;
-      if (res.value().IsError()) {
-        JSValue error = res.value();
-        val = error::value(error);
-        switch (error::error_type(error)) {
-          case error::E_EVAL:
-            std::cout << "EvalError: ";
-            break;
-          case error::E_RANGE:
-            std::cout << "RangeError: ";
-            break;
-          case error::E_REFERENCE:
-            std::cout << "ReferenceError: ";
-            break;
-          case error::E_SYNTAX:
-            std::cout << "SyntaxError: ";
-            break;
-          case error::E_TYPE:
-            std::cout << "TypeError: ";
-            break;
-          case error::E_URI:
-            std::cout << "URIError: ";
-            break;
-          default:
-            break;
+    goto error;
+  } else {
+    Completion res = EvalProgram(ast);
+    switch (res.type()) {
+      case Completion::THROW: {
+        JSValue val;
+        if (res.value().IsError()) {
+          e = res.value();
+          goto error;
         }
-      } else {
         val = res.value();
+        log::Debugger::TurnOff();
+        JSValue e = error::Ok();
+        JSValue msg = ToString(e, val);
+        std::cout << "\033[1;31m" << "Uncaught ";
+        if (unlikely(!error::IsOk(e)))
+          std::cout << JSValue::ToString(val) << "\033[0m" << "\n";
+        else
+          std::cout << log::ToString(string::data(msg)) << "\033[0m" << "\n";
+        break;
       }
-      log::Debugger::TurnOff();
-      JSValue e = error::Ok();
-      JSValue msg = ToString(e, val);
-      if (unlikely(!error::IsOk(e)))
-        std::cout << JSValue::ToString(val) << "\033[0m" << "\n";
-      else
-        std::cout << log::ToString(string::data(msg)) << "\033[0m" << "\n";
-      break;
+      default:
+        break;
     }
+  }
+  return 0;
+
+error:
+  std::cout << "\033[1;31m" << "Uncaught ";
+  switch (error::error_type(e)) {
+    case error::E_EVAL:
+      std::cout << "EvalError: ";
+      break;
+    case error::E_RANGE:
+      std::cout << "RangeError: ";
+      break;
+    case error::E_REFERENCE:
+      std::cout << "ReferenceError: ";
+      break;
+    case error::E_SYNTAX:
+      std::cout << "SyntaxError: ";
+      break;
+    case error::E_TYPE:
+      std::cout << "TypeError: ";
+      break;
+    case error::E_URI:
+      std::cout << "URIError: ";
+      break;
     default:
       break;
-  } 
+  }
+  JSValue val = error::value(e);
+  JSValue tmp_error = error::Ok();
+  JSValue msg = ToString(tmp_error, val);
+  if (unlikely(!error::IsOk(tmp_error)))
+    std::cout << JSValue::ToString(val) << "\033[0m" << "\n";
+  else
+    std::cout << log::ToString(string::data(msg)) << "\033[0m" << "\n";
+  return 0;
 }

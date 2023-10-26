@@ -80,7 +80,15 @@ inline JSValue isPrototypeOf(JSValue& e, JSValue this_arg, std::vector<JSValue> 
 }
 
 inline JSValue propertyIsEnumerable(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
-  assert(false);
+  JSValue P = ToString(e, vals[0]);
+  if (unlikely(!error::IsOk(e))) return JSValue();
+  JSValue val = Runtime::TopValue();
+  JSValue O = ToObject(e, val);
+  if (unlikely(!error::IsOk(e))) return JSValue();
+  JSValue desc = GetOwnProperty(O, P);
+  if (desc.IsUndefined())
+    return boolean::False();
+  return boolean::New(property_descriptor::Enumerable(desc));
 }
 
 }  // namespace object_proto

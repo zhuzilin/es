@@ -20,7 +20,6 @@ JSValue GetOwnProperty(JSValue O, JSValue P) {
 // 8.12.1 [[GetOwnProperty]] (P)
 JSValue GetOwnProperty__Base(JSValue O, JSValue P) {
   ASSERT(O.IsObject() && P.IsString());
-  std::cout << "GetOwnProperty__Base" << std::endl;
   JSValue val = hash_map::Get(js_object::named_properties(O), P);
   if (val.IsNull()) {
     return undefined::New();
@@ -427,7 +426,6 @@ bool DefineOwnProperty__Array(
     if (!succeeded) return false;  // 3.k
     while (new_len < old_len) {  // 3.l
       old_len--;
-      std::cout << "new_len: " << new_len << " old_len: " << old_len << std::endl;
       bool delete_succeeded = Delete(e, O, NumberToString(old_len), false);
       if (!delete_succeeded) {  // 3.l.iii
         JSValue new_len_handle = number::New(old_len + 1);
@@ -540,7 +538,6 @@ void AddValueProperty(
   JSValue O, JSValue name, JSValue value, bool writable,
   bool enumerable, bool configurable
 ) {
-  std::cout << JSValue::ToString(O.type()) << " " << JSValue::ToString(value.type()) << std::endl;
   TEST_LOG("AddValueProperty key: (" + JSValue::ToString(name) + ") value: (" + JSValue::ToString(value) + ") to " + JSValue::ToString(O));
   JSValue desc = property_descriptor::New();
   property_descriptor::SetDataDescriptor(desc, value, writable, enumerable, configurable);

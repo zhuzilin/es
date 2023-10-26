@@ -17,7 +17,6 @@ constexpr size_t kBindingOffset = kValueOffset + sizeof(JSValue);
 
 inline JSValue New(JSValue value, bool can_delete, bool is_mutable) {
   JSValue jsval;
-  std::cout << "enter binding" << std::endl;
   jsval.handle() = HeapObject::New(sizeof(JSValue));
 
   SET_JSVALUE(jsval.handle().val(), kValueOffset, value);
@@ -47,7 +46,6 @@ constexpr size_t kBindingsOffset = 0;
 
 inline JSValue New() {
   JSValue jsval;
-  std::cout << "enter decl_env_rec" << std::endl;
   jsval.handle() = HeapObject::New(sizeof(JSValue));
   JSValue bindings = hash_map::New();
 
@@ -71,7 +69,6 @@ constexpr size_t kBindingsOffset = 0;
 
 inline JSValue New(JSValue obj, bool provide_this = false) {
   JSValue jsval;
-  std::cout << "enter obj_env_rec" << std::endl;
   jsval.handle() = HeapObject::New(sizeof(JSValue) + kBoolSize);
 
   SET_JSVALUE(jsval.handle().val(), kBindingsOffset, obj);

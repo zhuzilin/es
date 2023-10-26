@@ -242,6 +242,10 @@ inline JSValue trim(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
   assert(false);
 }
 
+inline JSValue substr(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {
+  assert(false);
+}
+
 }  // namespace string_proto
 
 namespace string_object {

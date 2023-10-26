@@ -13,7 +13,6 @@ constexpr size_t kElementOffset = kSizeOffset + kSizeTSize;
 inline JSValue New(std::vector<JSValue> elements) {
   JSValue jsval;
   size_t n = elements.size();
-  std::cout << "enter fa" << std::endl;
   jsval.handle() = HeapObject::New(kSizeTSize + n * sizeof(JSValue));
 
   SET_VALUE(jsval.handle().val(), kSizeOffset, n, size_t);

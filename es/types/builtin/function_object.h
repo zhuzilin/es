@@ -199,7 +199,6 @@ inline JSValue BoundArgs(JSValue func) { return GET_JSVALUE(func.handle().val(),
 namespace function_constructor {
 
 inline JSValue New(flag_t flag) {
-  std::cout << "function_constructor::New" << std::endl;
   JSValue jsobj = js_object::New(
     u"Function", true, JSValue(), true, true, nullptr, 0, flag);
 
