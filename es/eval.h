@@ -1246,6 +1246,7 @@ JSValue EvalUnaryOperator(JSValue& e, AST* ast) {
             return string::New(u"boolean");
           case Type::JS_NUMBER:
             return string::New(u"number");
+          case Type::JS_LONG_STRING:
           case Type::JS_STRING:
             return string::New(u"string");
           default:
@@ -1665,7 +1666,7 @@ JSValue EvalCallExpression(JSValue& e, JSValue ref, std::vector<JSValue> arg_lis
     this_value = undefined::New();
   }
   // indirect 
-  if (ref.IsReference() && string::data_view(reference::GetReferencedName(ref)) == u"eval") {
+  if (ref.IsReference() && string::data(reference::GetReferencedName(ref)) == u"eval") {
     DirectEvalGuard guard;
     return Call(e, val, this_value, arg_list);
   } else {

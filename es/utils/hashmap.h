@@ -94,8 +94,8 @@ inline bool IsIntegerIndices(std::u16string_view a) {
 // Try to follow the traverse order in ES6
 inline bool LessThan(JSValue key_a, JSValue key_b) {
   ASSERT(key_a.IsString() && key_b.IsString());
-  std::u16string_view a = string::data_view(key_a);
-  std::u16string_view b = string::data_view(key_b);
+  std::u16string a = string::data(key_a);
+  std::u16string b = string::data(key_b);
   bool num_a = IsIntegerIndices(a);
   bool num_b = IsIntegerIndices(b);
   if (num_a && num_b) {
@@ -106,7 +106,7 @@ inline bool LessThan(JSValue key_a, JSValue key_b) {
 
 inline bool Equal(JSValue key_a, JSValue key_b) {
   ASSERT(key_a.IsString() && key_b.IsString());
-  return string::data_view(key_a) == string::data_view(key_b);
+  return string::data(key_a) == string::data(key_b);
 }
 
 struct CompareListNode {
@@ -126,10 +126,10 @@ inline void SetListHead(JSValue& jsval, size_t offset, JSValue head) {
 }
 
 inline size_t ListHeadOffset(JSValue jsval, JSValue key) {
-  return kElementOffset + std::hash<std::u16string_view>{}(string::data(key)) % num_bucket(jsval) * sizeof(JSValue);
+  return kElementOffset + string::hash(key) % num_bucket(jsval) * sizeof(JSValue);
 }
 
-inline JSValue GetListNodeRaw(JSValue jsval, JSValue key) {
+inline JSValue GetListNode(JSValue jsval, JSValue key) {
   ASSERT(key.IsString());
   size_t offset = ListHeadOffset(jsval, key);
   JSValue head = GetListHead(jsval, offset);
@@ -194,7 +194,7 @@ inline JSValue Rehash(JSValue map) {
 // Set can not be method as there can be gc happening inside.
 // NOTE: always need to use newly created map to override the origin map.
 inline JSValue Set(JSValue map, JSValue key, JSValue val) {
-  JSValue old_node = GetListNodeRaw(map, key);
+  JSValue old_node = GetListNode(map, key);
   if (!old_node.IsNull()) {
     list_node::SetVal(old_node, val);
     return map;
@@ -235,7 +235,7 @@ JSValue Get(JSValue map, JSValue key) {
   ASSERT(map.type() == HASHMAP);
   ASSERT(key.IsString());
 
-  JSValue node = GetListNodeRaw(map, key);
+  JSValue node = GetListNode(map, key);
   if (node.IsNull())
     return null::New();
   return list_node::val(node);

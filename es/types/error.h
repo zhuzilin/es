@@ -8,25 +8,13 @@
 namespace es {
 namespace error {
 
-enum ErrorType {
-  E_OK = 0,
-  E_EVAL,
-  E_RANGE,
-  E_REFERENCE,
-  E_SYNTAX,
-  E_TYPE,
-  E_URI,
-  E_NATIVE,
-};
-
-constexpr size_t kErrorTypeOffset = 0;
-constexpr size_t kValueOffset = kErrorTypeOffset + kSizeTSize;
+constexpr size_t kValueOffset = 0;
 
 inline JSValue New(ErrorType t, JSValue val, uint8_t flag) {
   JSValue jsval(JS_UNINIT);
-  jsval.handle() = HeapObject::New(kSizeTSize + sizeof(JSValue), flag);
+  jsval.handle() = HeapObject::New(sizeof(JSValue), flag);
 
-  SET_VALUE(jsval.handle().val(), kErrorTypeOffset, t, ErrorType);
+  jsval.header_.placeholder_.error_type_ = t;
   SET_JSVALUE(jsval.handle().val(), kValueOffset, val);
 
   jsval.SetType(ERROR);
@@ -78,7 +66,7 @@ inline JSValue NativeError(JSValue val) {
   return singleton;
 }
 
-ErrorType error_type(JSValue e) { return READ_VALUE(e.handle().val(), kErrorTypeOffset, ErrorType); }
+ErrorType error_type(JSValue e) { return e.header_.placeholder_.error_type_; }
 JSValue value(JSValue e) { return GET_JSVALUE(e.handle().val(), kValueOffset); }
 void SetValue(JSValue& e, JSValue val) { SET_JSVALUE(e.handle().val(), kValueOffset, val); }
 

@@ -35,8 +35,9 @@ bool ToBoolean(JSValue input) {
       }
       return true;
     }
+    case Type::JS_LONG_STRING:
     case Type::JS_STRING: {
-      return string::data(input) != u"";
+      return string::size(input) != 0;
     }
     default:
       if (input.IsObject())
@@ -167,6 +168,7 @@ double ToNumber(JSValue& e, JSValue input) {
       return boolean::data(input) ? 1.0 : 0.0;
     case Type::JS_NUMBER:
       return number::data(input);
+    case Type::JS_LONG_STRING:
     case Type::JS_STRING:
       return StringToNumber(input);
     default:
@@ -456,6 +458,7 @@ JSValue ToString(JSValue& e, JSValue input) {
       return boolean::data(input) ? string::True() : string::False();
     case Type::JS_NUMBER:
       return NumberToString(input);
+    case Type::JS_LONG_STRING:
     case Type::JS_STRING:
       return input;
     default:
@@ -489,6 +492,7 @@ JSValue ToObject(JSValue& e, JSValue input) {
       return bool_object::New(input);
     case Type::JS_NUMBER:
       return number_object::New(input);
+    case Type::JS_LONG_STRING:
     case Type::JS_STRING:
       return string_object::New(input);
     default:

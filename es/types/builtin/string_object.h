@@ -80,7 +80,7 @@ inline JSValue charCodeAt(JSValue& e, JSValue this_arg, std::vector<JSValue> val
   if (unlikely(!error::IsOk(e))) return JSValue();
   if (position < 0 || (size_t)position >= string::size(S))
     return number::NaN();
-  return number::New((double)(string::data_view(S)[position]));
+  return number::New((double)(string::data(S)[position]));
 }
 
 inline JSValue concat(JSValue& e, JSValue this_arg, std::vector<JSValue> vals) {

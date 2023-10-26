@@ -23,6 +23,7 @@ bool SameValue(JSValue x, JSValue y) {
       }
       return dx == dy;
     }
+    case Type::JS_LONG_STRING:
     case Type::JS_STRING: {
       return string::data(x) == string::data(y);
     }

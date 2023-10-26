@@ -7,6 +7,7 @@ enum Type {
   JS_UNDEFINED = 1,
   JS_NULL = 2,
   JS_BOOL = 3,
+  JS_LONG_STRING = 4,
   JS_STRING = 5,
   JS_NUMBER = 6,
 

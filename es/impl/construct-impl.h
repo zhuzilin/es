@@ -201,6 +201,7 @@ JSValue Construct__ObjectConstructor(
       case Type::JS_OBJECT:
         // TODO(zhuzilin) deal with host object.
         return value;
+      case Type::JS_LONG_STRING:
       case Type::JS_STRING:
       case Type::JS_BOOL:
       case Type::JS_NUMBER:
@@ -242,7 +243,7 @@ JSValue Construct__RegExpConstructor(
   // Check is flag is valid
   std::unordered_map<char16_t, size_t> count;
   bool valid_flag = true;
-  for (auto c : string::data_view(F)) {
+  for (auto c : string::data(F)) {
     if (c != u'g' && c != u'i' && c != u'm') {
       valid_flag = false;
       break;

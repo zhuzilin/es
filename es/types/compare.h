@@ -121,6 +121,7 @@ bool StrictEqual(JSValue& e, JSValue x, JSValue y) {
       double dy = number::data(y);
       return ApproximatelyEqual(dx, dy);
     }
+    case Type::JS_LONG_STRING:
     case Type::JS_STRING: {
       return string::data(x) == string::data(y);
     }

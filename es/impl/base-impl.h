@@ -31,6 +31,8 @@ std::string JSValue::ToString(Type type) {
       return "JS_NULL";
     case JS_BOOL:
       return "JS_BOOL";
+    case JS_LONG_STRING:
+      return "JS_LONG_STRING";
     case JS_STRING:
       return "JS_STRING";
     case JS_NUMBER:
@@ -140,6 +142,7 @@ std::string JSValue::ToString(JSValue jsval) {
       return "Null";
     case JS_BOOL:
       return boolean::data(jsval) ? "true" : "false";
+    case JS_LONG_STRING:
     case JS_STRING:
       return log::ToString(string::data(jsval));
     case JS_NUMBER:
@@ -210,6 +213,7 @@ std::vector<JSValue> JSValue::RelevantValues(JSValue jsval) {
     case JS_UNDEFINED:
     case JS_NULL:
     case JS_BOOL:
+    case JS_LONG_STRING:
     case JS_STRING:
     case JS_NUMBER:
       return {};

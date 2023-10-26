@@ -11,6 +11,21 @@
 
 namespace es {
 
+namespace error {
+
+enum ErrorType {
+  E_OK = 0,
+  E_EVAL,
+  E_RANGE,
+  E_REFERENCE,
+  E_SYNTAX,
+  E_TYPE,
+  E_URI,
+  E_NATIVE,
+};
+
+}
+
 class JSValue {
  public:
   JSValue(Type type = JS_UNINIT) : header_(type) {}
@@ -21,7 +36,7 @@ class JSValue {
   inline bool IsUndefined() { return type() == JS_UNDEFINED; }
   inline bool IsNull() { return type() == JS_NULL; }
   inline bool IsBool() { return type() == JS_BOOL; }
-  inline bool IsString() { return type() == JS_STRING; }
+  inline bool IsString() { return type() == JS_STRING || type() == JS_LONG_STRING; }
   inline bool IsNumber() { return type() == JS_NUMBER; }
   inline bool IsPrimitive() { return !IsObject(); }
 
@@ -83,17 +98,24 @@ class JSValue {
     Type type_;
     union Placeholder {
       uint32_t uint32_;
+      // string
+      uint32_t size_;
+      // binding
       struct BindingHeader {
         bool can_delete_;
         bool is_mutable_;
       } binding_header_;
+      // reference
       struct ReferenceHeader {
         bool strict_reference_;
         bool has_primitive_base_;
         bool is_property_reference_;
         bool is_unresolvable_reference_;
       } reference_header_;
+      // env_rec
       bool provide_this_;
+      // error
+      error::ErrorType error_type_;
       Placeholder() { uint32_ = 0; }
     } placeholder_;
 
@@ -105,6 +127,7 @@ class JSValue {
     Handle<HeapObject> handle_;
     bool b_;
     double num_;
+    char16_t str_[32];
     Body() { uint64_ = 0; }
   } body_;
 };
@@ -130,53 +153,71 @@ inline bool data(JSValue jsval) { return jsval.body_.b_; }
 
 // TODO: calculate hash for short string
 namespace string {
-constexpr size_t kLengthOffset = 0;
-constexpr size_t kStringDataOffset = kSizeTSize;
+constexpr size_t kStringDataOffset = 0;
 inline JSValue New(size_t n, flag_t flag = 0) {
   JSValue jsval;
-  jsval.handle() = HeapObject::New(kSizeTSize + n * kChar16Size, flag);
-  SET_VALUE(jsval.handle().val(), kLengthOffset, n, size_t);
-  jsval.SetType(JS_STRING);
+  jsval.header_.placeholder_.size_ = n;
+  if (n <= 32) {
+    jsval.SetType(JS_STRING);
+  } else {
+    jsval.handle() = HeapObject::New(n * kChar16Size, flag);
+    jsval.SetType(JS_LONG_STRING);
+  }
   return jsval;
 }
 
 inline JSValue New(const std::u16string& data, flag_t flag = 0) {
   JSValue jsval = New(data.size(), flag);
-  memcpy(PTR(jsval.handle().val(), kStringDataOffset), data.data(), data.size() * kChar16Size);
+  if (jsval.type() == JS_STRING) {
+    memcpy(jsval.body_.str_, data.data(), data.size() * kChar16Size);
+  } else {
+    memcpy(PTR(jsval.handle().val(), kStringDataOffset), data.data(), data.size() * kChar16Size);
+  }
   return jsval;
 }
 
 inline JSValue New(const std::u16string&& data, flag_t flag = 0) {
   JSValue jsval = New(data.size(), flag);
-  memcpy(PTR(jsval.handle().val(), kStringDataOffset), data.data(), data.size() * kChar16Size);
+  if (jsval.type() == JS_STRING) {
+    memcpy(jsval.body_.str_, data.data(), data.size() * kChar16Size);
+  } else {
+    memcpy(PTR(jsval.handle().val(), kStringDataOffset), data.data(), data.size() * kChar16Size);
+  }
   return jsval;
 }
 
 inline char16_t* c_str(JSValue jsval) {
   ASSERT(jsval.IsString());
-  return TYPED_PTR(jsval.handle().val(), kStringDataOffset, char16_t);
+  if (jsval.type() == JS_STRING) {
+    return jsval.body_.str_;
+  } else {
+    return TYPED_PTR(jsval.handle().val(), kStringDataOffset, char16_t);
+  }
 }
 
 inline size_t size(JSValue jsval) {
   ASSERT(jsval.IsString());
-  return READ_VALUE(jsval.handle().val(), kLengthOffset, size_t);
+  return jsval.header_.placeholder_.size_;
 }
 
 inline std::u16string data(JSValue jsval) {
   return std::u16string(c_str(jsval), size(jsval));
 }
-inline std::u16string_view data_view(JSValue jsval) {
-  return std::u16string_view(c_str(jsval), size(jsval));
+
+inline uint64_t hash(JSValue jsval) {
+  ASSERT(jsval.IsString());
+  return std::hash<std::u16string_view>{}(string::data(jsval));
+  // if (jsval.type() == JS_STRING) {
+  //   return jsval.body_.uint64_;
+  // } else {
+  //   return std::hash<std::u16string_view>{}(string::data(jsval));
+  // }
 }
 
 inline JSValue Substr(JSValue str, size_t pos, size_t len) {
   ASSERT(str.IsString());
   JSValue substring = New(len);
-  memcpy(
-    PTR(substring.handle().val(), kStringDataOffset),
-    c_str(str) + pos,
-    len * kChar16Size
-  );
+  memcpy(c_str(substring), c_str(str) + pos, len * kChar16Size);
   return substring;
 }
 
