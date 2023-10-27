@@ -51,8 +51,7 @@ class JSValue {
   inline bool IsStringConstructor() { return type() == OBJ_STRING_CONSTRUCTOR; }
 
   inline bool IsJSValue() { return (type() & NON_JSVALUE) == 0; }
-  inline bool IsLanguageType() { return !IsSpecificationType(); }
-  inline bool IsSpecificationType() { return type() & SPEC_TYPE; }
+  inline bool IsLanguageType() { return type() < SPEC_TYPE; }
 
   inline bool IsReference() { return type() == JS_REF; }
   inline bool IsPropertyDescriptor() { return type() == JS_PROP_DESC; }
