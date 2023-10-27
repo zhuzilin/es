@@ -89,12 +89,11 @@ void DeclarationBindingInstantiation(
     ASSERT(!f.IsNullptr());
     auto names = f.val()->FormalParameters();  // 4.a
     size_t arg_count = args.size();  // 4.b
-    size_t n = 0;  // 4.c
     for (size_t i = 0; i < names.val()->size(); i++) {
       Handle<String> arg_name = names.val()->Get(i);  // 4.d
       Handle<JSValue> v = Undefined::Instance();
-      if (n < arg_count)  // 4.d.i & 4.d.ii
-        v = args[n++];
+      if (i < arg_count)  // 4.d.i & 4.d.ii
+        v = args[i];
       bool arg_already_declared = HasBinding(env, arg_name);  // 4.d.iii
       if (!arg_already_declared) {  // 4.d.iv
         // NOTE(zhuzlin) I'm not sure if this should be false.
@@ -340,7 +339,7 @@ void InitFunction() {
   constructor.val()->SetPrototype(FunctionProto::Instance());
   // 15.3.3 Properties of the Function Constructor
   AddValueProperty(constructor, String::Prototype(), FunctionProto::Instance(), false, false, false);
-  AddValueProperty(constructor, String::Length(), Number::One(), false, false, false);
+  AddValueProperty(constructor, String::Length(), Number::New(1), false, false, false);
   AddFuncProperty(constructor, u"toString", FunctionConstructor::toString, true, false, false);
 
   Handle<FunctionProto> proto = FunctionProto::Instance();
@@ -360,7 +359,7 @@ void InitNumber() {
   constructor.val()->SetPrototype(FunctionProto::Instance());
   // 15.3.3 Properties of the Number Constructor
   AddValueProperty(constructor, String::Prototype(), NumberProto::Instance(), false, false, false);
-  AddValueProperty(constructor, String::Length(), Number::One(), false, false, false);
+  AddValueProperty(constructor, String::Length(), Number::New(1), false, false, false);
   AddValueProperty(constructor, u"MAX_VALUE", Number::New(1.7976931348623157e308), false, false, false);
   AddValueProperty(constructor, u"MIN_VALUE", Number::New(5e-324), false, false, false);
   AddValueProperty(constructor, u"NaN", Number::NaN(), false, false, false);
@@ -417,7 +416,7 @@ void InitString() {
   constructor.val()->SetPrototype(FunctionProto::Instance());
   // 15.3.3 Properties of the String Constructor
   AddValueProperty(constructor, String::Prototype(), StringProto::Instance(), false, false, false);
-  AddValueProperty(constructor, String::Length(), Number::One(), true, false, false);
+  AddValueProperty(constructor, String::Length(), Number::New(1), true, false, false);
   AddFuncProperty(constructor, u"fromCharCode", StringConstructor::fromCharCode, true, false, false);
   AddFuncProperty(constructor, u"toString", StringConstructor::toString, true, false, false);
 
@@ -452,7 +451,7 @@ void InitArray() {
   Handle<ArrayConstructor> constructor = ArrayConstructor::Instance();
   constructor.val()->SetPrototype(FunctionProto::Instance());
   // 15.6.3 Properties of the Arrayean Constructor
-  AddValueProperty(constructor, String::Length(), Number::One(), false, false, false);
+  AddValueProperty(constructor, String::Length(), Number::New(1), false, false, false);
   AddValueProperty(constructor, String::Prototype(), ArrayProto::Instance(), false, false, false);
   AddFuncProperty(constructor, u"isArray", ArrayConstructor::isArray, true, false, false);
   AddFuncProperty(constructor, u"toString", ArrayConstructor::toString, true, false, false);

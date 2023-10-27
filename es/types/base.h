@@ -322,6 +322,11 @@ bool operator <(String& a, String& b) {
 class Number : public JSValue {
  public:
   static Handle<Number> New(double data, flag_t flag = 0) {
+    Double2Uint64 tmp;
+    tmp.double_ = data;
+    if ((tmp.uint64_ & STACK_MASK) == 0) {
+      return Handle<Number>(reinterpret_cast<Number*>(tmp.uint64_ | JS_NUMBER));
+    }
     Handle<JSValue> jsval = HeapObject::New(kDoubleSize, flag);
 
     SET_VALUE(jsval.val(), kJSValueOffset, data, double);
@@ -331,35 +336,23 @@ class Number : public JSValue {
   }
 
   static Handle<Number> NaN() {
-    static Handle<Number> singleton = Number::New(nan(""), GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
+    return Number::New(nan(""));
   }
 
   static Handle<Number> Infinity() {
-    static Handle<Number> singleton = Number::New(
-      std::numeric_limits<double>::infinity(), GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
+    return Number::New(std::numeric_limits<double>::infinity());
   }
 
   static Handle<Number> NegativeInfinity() {
-    static Handle<Number> singleton = Number::New(
-      -std::numeric_limits<double>::infinity(), GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
+    return Number::New(-std::numeric_limits<double>::infinity());
   }
 
   static Handle<Number> Zero() {
-    static Handle<Number> singleton = Number::New(0.0, GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
+    return Number::New(0.0);
   }
 
   static Handle<Number> NegativeZero() {
-    static Handle<Number> singleton = Number::New(-0.0, GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
-  static Handle<Number> One() {
-    static Handle<Number> singleton = Number::New(1.0, GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
+    return Number::New(-0.0);
   }
 
   inline bool IsInfinity() { return isinf(data()); }
@@ -367,7 +360,19 @@ class Number : public JSValue {
   inline bool IsNegativeInfinity() { return data() == -std::numeric_limits<double>::infinity(); }
   inline bool IsNaN() { return isnan(data()); }
 
-  inline double data() { return READ_VALUE(this, kJSValueOffset, double); }
+  inline double data() {
+    if (stack_type()) {
+      Double2Uint64 tmp;
+      tmp.uint64_ = reinterpret_cast<uint64_t>(this) & (~STACK_MASK);
+      return tmp.double_;
+    }
+    return READ_VALUE(this, kJSValueOffset, double);
+  }
+
+  union Double2Uint64 {
+    double double_;
+    uint64_t uint64_;
+  };
 };
 
 class Error;

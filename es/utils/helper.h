@@ -62,8 +62,8 @@ void PrintSource(std::string comment, std::u16string str = u"", std::string post
     std::istringstream inputs(s);
     s = "";
     for (std::string line; std::getline(inputs, line, '\n');) {
-      if (s.size() > 0 &&
-          s.size() + line.size() - limit > limit - s.size() - line.size())
+      if (s.size() >= limit ||
+          (s.size() > 0 && s.size() + line.size() + s.size() > 2 * limit))
         break;
       if (s.size() > 0)
         s += '\n';

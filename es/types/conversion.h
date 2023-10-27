@@ -44,7 +44,6 @@ bool ToBoolean(Handle<JSValue> input) {
     default:
       if (input.val()->IsObject())
         return true;
-      std::cout << input.val()->type() << std::endl;
       assert(false);
   }
 }

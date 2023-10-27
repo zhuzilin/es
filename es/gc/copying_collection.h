@@ -61,6 +61,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
     std::cout << "enter CopyingCollection::Collect " << (free_ - tospace_) << "B \n";
 #endif
 #ifdef STATS
+    std::cout << "Stats before CopyingCollection::Collect" << std::endl;
     Stats();
 #endif
     Flip();
@@ -79,6 +80,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
     std::cout << "exit CopyingCollection::Collect " << (free_ - tospace_) << "B \n";
 #endif
 #ifdef STATS
+    std::cout << "Stats after CopyingCollection::Collect" << std::endl;
     Stats();
 #endif
   }

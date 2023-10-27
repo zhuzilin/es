@@ -54,7 +54,7 @@ class Math : public JSObject {
     if (isnan(num))
       return Number::NaN();
     if (num == 0)
-      return Number::One();
+      return Number::New(1);
     if (isinf(num))
       return signbit(num) ? Number::Zero() : Number::Infinity();
     return Number::New(::cos(num));
@@ -68,7 +68,7 @@ class Math : public JSObject {
     if (isnan(num))
       return Number::NaN();
     if (num == 0)
-      return Number::One();
+      return Number::New(1);
     if (isinf(num))
       return signbit(num) ? Number::Infinity() : Number::Zero();
     return Number::New(::exp(num));
@@ -119,7 +119,7 @@ class Math : public JSObject {
     if (isnan(y))
       return Number::NaN();
     if (y == 0)
-      return Number::One();
+      return Number::New(1);
     if (isnan(x))
       return Number::NaN();
     return Number::New(::pow(x, y));
