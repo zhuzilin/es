@@ -155,6 +155,40 @@ error:
   return nan("");
 }
 
+constexpr char16_t max_uint32_str[11] = u"4294967295";
+
+double ToArrayIndex(std::u16string str) {
+  uint32_t val = 0;
+  if (str.size() > 10 || str.size() == 0 || str[0] < u'0' || str[0] > u'9')
+    goto error;
+  if (str.size() != 1 && str[0] == u'0')
+    goto error;
+
+  if (unlikely(str.size() == 10)) {
+    bool equal_max = true;
+    for (uint8_t i = 0; i < str.size(); ++i) {
+      if (!(u'0' <= str[i] && str[i] <= u'9')) {
+        goto error;
+      }
+      if (equal_max && str[i] > max_uint32_str[i]) {
+        goto error;
+      }
+      equal_max = equal_max && str[i] == max_uint32_str[i];
+      val = 10 * val + (str[i] - u'0');
+    }
+  } else {
+    for (uint8_t i = 0; i < str.size(); ++i) {
+      if (!(u'0' <= str[i] && str[i] <= u'9')) {
+        goto error;
+      }
+      val = 10 * val + (str[i] - u'0');
+    }
+  }
+  return val;
+error:
+  return nan("");
+}
+
 double StringToNumber(Handle<String> str) {
   return StringToNumber(str.val()->data());
 }

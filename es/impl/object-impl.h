@@ -440,8 +440,8 @@ bool DefineOwnProperty__Array(
     }
     return true;  // 3.n
   } else {
-    if (IsArrayIndex(P)) {  // 4
-      double index = StringToNumber(P);
+    double index = ToArrayIndex(P.val()->data());
+    if (!isnan(index)) {  // 4
       if (index >= old_len && !old_len_desc.val()->Writable())  // 4.b
         goto reject;
       bool succeeded = DefineOwnProperty__Base(e, O, P, desc, false);
