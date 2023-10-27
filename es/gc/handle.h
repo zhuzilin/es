@@ -40,6 +40,8 @@ class HandleScope {
   }
 
   static HeapObject** Add(HeapObject* val) {
+    if (reinterpret_cast<uint64_t>(val) & STACK_MASK)
+      goto normal;
     if ((Flag(val) & GCFlag::CONST)) {
       if (constant_pointers_count_ == kNumConstantHandle) {
         throw std::runtime_error("too much constant handles");
@@ -67,7 +69,7 @@ class HandleScope {
       singleton_pointers_count_++;
       return ptr;
     }
-
+normal:
     if (block_stack_.back().offset_ == kHandleBlockSize) {
       block_stack_.emplace_back(HandleBlock());
     }

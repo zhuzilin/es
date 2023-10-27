@@ -88,7 +88,7 @@ class JSObject : public JSValue {
   // This for for-in statement.
   std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> AllEnumerableProperties() {
     auto filter = [](JSValue* jsval) {
-      ASSERT(heap_obj->IsPropertyDescriptor());
+      ASSERT(jsval->IsPropertyDescriptor());
       PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(jsval);
       return desc->HasEnumerable() && desc->Enumerable();
     };

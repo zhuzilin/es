@@ -1,13 +1,16 @@
 namespace {
 
+constexpr uint64_t STACK_MASK = 7;
+constexpr uint64_t STACK_SHIFT = 3;
+
 enum Type {
   JS_UNINIT = 0,
   JS_UNDEFINED = 1,
   JS_NULL = 2,
   JS_BOOL = 3,
-  JS_STRING = 4,
-  JS_LONG_STRING = 5,
-  JS_NUMBER = 6,
+  JS_NUMBER = 4,
+  JS_STRING = 5,
+  JS_LONG_STRING = 6,
 
   JS_OBJECT = 1 << 6,
 

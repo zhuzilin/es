@@ -100,7 +100,9 @@ struct CopyingCollection : public GC<CopyingCollection> {
   }
 
   void Process(HeapObject** fld) {
-    if (*fld == nullptr || (Flag(*fld) & GCFlag::CONST))
+    if ((reinterpret_cast<uint64_t>(*fld) & STACK_MASK) ||
+        *fld == nullptr ||
+        (Flag(*fld) & GCFlag::CONST))
       return;
     HeapObject* from_ref = *fld;
 #ifdef GC_DEBUG

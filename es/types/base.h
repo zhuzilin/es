@@ -24,7 +24,7 @@ class JSValue {
 
   inline bool IsUndefined() { return IsUndefined(type()); }
   inline bool IsNull() { return type() == JS_NULL; }
-  inline bool IsBool() { return IsBool(type()); }
+  inline bool IsBool() { return IsBool(type());  }
   inline bool IsString() { return IsString(type()); }
   inline bool IsNumber() { return IsNumber(type()); }
   inline bool IsPrimitive() { return !IsObject(); }
@@ -63,7 +63,11 @@ class JSValue {
 
   inline bool IsError() { return type() == ERROR; }
 
-  inline Type type() { return header_.type_; }
+  inline Type stack_type() {
+    return static_cast<Type>(reinterpret_cast<uint64_t>(this) & STACK_MASK); }
+  inline Type type() {
+    return stack_type() ? stack_type() : header_.type_;
+  }
   inline void SetType(Type t) { header_.type_ = t; }
 
   static std::string ToString(JSValue* jsval);
@@ -81,61 +85,31 @@ class JSValue {
 class Undefined : public JSValue {
  public:
   static Handle<Undefined> Instance() {
-    static Handle<Undefined> singleton = Undefined::New(GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
- private:
-  static Handle<Undefined> New(flag_t flag) {
-    Handle<JSValue> jsval = HeapObject::New(0, flag);
-
-    jsval.val()->SetType(JS_UNDEFINED);
-    return Handle<Undefined>(jsval);
+    return Handle<Undefined>(reinterpret_cast<Undefined*>(JS_UNDEFINED));
   }
 };
 
 class Null : public JSValue {
  public:
   static Handle<Null> Instance() {
-    static Handle<Null> singleton = Null::New(GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
-  }
-
- private:
-  static Handle<Null> New(flag_t flag) {
-    Handle<JSValue> jsval = HeapObject::New(0, flag);
-
-    jsval.val()->SetType(JS_NULL);
-    return Handle<Null>(jsval);
+    return Handle<Null>(reinterpret_cast<Null*>(JS_NULL));
   }
 };
 
 class Bool : public JSValue {
  public:
   static Handle<Bool> True() {
-    static Handle<Bool> singleton = Bool::New(true, GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
+    return Handle<Bool>(reinterpret_cast<Bool*>((1 << STACK_SHIFT) | JS_BOOL));
   }
   static Handle<Bool> False() {
-    static Handle<Bool> singleton = Bool::New(false, GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
+    return Handle<Bool>(reinterpret_cast<Bool*>(JS_BOOL));
   }
 
   static Handle<Bool> Wrap(bool val) {
     return val ? True() : False();
   }
 
-  inline bool data() { return READ_VALUE(this, kJSValueOffset, bool); }
-
- private:
-  static Handle<Bool> New(bool val, flag_t flag) {
-    Handle<JSValue> jsval = HeapObject::New(kBoolSize, flag);
-
-    SET_VALUE(jsval.val(), kJSValueOffset, val, bool);
-
-    jsval.val()->SetType(JS_BOOL);
-    return Handle<Bool>(jsval);
-  }
+  inline bool data() { return reinterpret_cast<uint64_t>(this) >> STACK_SHIFT; }
 };
 
 class String : public JSValue {

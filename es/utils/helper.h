@@ -50,16 +50,29 @@ class Tracker {
   bool on_ = false;
 };
 
-void PrintSource(std::string comment, std::u16string str = u"", std::string postfix = "") {
-  std::cout << comment;
-  for (const auto& c: str)
-    std::cout << static_cast<char>(c);
-  std::cout << postfix << "\n";
-}
-
 std::string ToString(std::u16string str) {
   static std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
   return convert.to_bytes(str);
+}
+
+void PrintSource(std::string comment, std::u16string str = u"", std::string postfix = "", size_t limit = 100) {
+  std::cout << comment;
+  std::string s = ToString(str);
+  if (s.size() > limit) {
+    std::istringstream inputs(s);
+    s = "";
+    for (std::string line; std::getline(inputs, line, '\n');) {
+      if (s.size() > 0 &&
+          s.size() + line.size() - limit > limit - s.size() - line.size())
+        break;
+      if (s.size() > 0)
+        s += '\n';
+      s += line;
+    }
+  }
+  for (const auto& c: str)
+    std::cout << static_cast<char>(c);
+  std::cout << postfix << "\n";
 }
 
 std::string ToString(bool b) {
@@ -72,7 +85,7 @@ std::string ToString(const void *ptr) {
   return ss.str();
 }
 
-}  // namespace test
+}  // namespace log
 
 std::u16string StrCat(std::vector<std::u16string> vals) {
   size_t size = 0;

@@ -22,6 +22,7 @@ class HeapObject {
       std::cout << "HeapObject::New " << size << " " << int(flag) << "\n";
 #endif
     Handle<HeapObject> heap_obj(static_cast<HeapObject*>(Allocate(size + kSizeTSize, flag)));
+    ASSERT(reinterpret_cast<uint64_t>(heap_obj.val()) % 8 == 0);
 
     // type value should be init by each variable after their member elements
     // are initialized.
