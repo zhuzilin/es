@@ -63,6 +63,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
 #ifdef STATS
     std::cout << "Stats before CopyingCollection::Collect" << std::endl;
     Stats();
+    std::cout << "---------------------------------------" << std::endl;
 #endif
     Flip();
     Initialise(worklist_);
@@ -82,6 +83,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
 #ifdef STATS
     std::cout << "Stats after CopyingCollection::Collect" << std::endl;
     Stats();
+    std::cout << "--------------------------------------" << std::endl;
 #endif
   }
 
@@ -182,16 +184,22 @@ struct CopyingCollection : public GC<CopyingCollection> {
 
   void Stats() {
     std::map<Type, size_t> stats;
+    std::map<Type, size_t> count;
     char* ptr = tospace_;
     while (ptr != free_) {
       Header* header = reinterpret_cast<Header*>(ptr);
       HeapObject* heap_obj = reinterpret_cast<HeapObject*>(header + 1);
       stats[heap_obj->type()] += header->size;
+      count[heap_obj->type()]++;
       ptr += header->size;
     }
     for (auto pair : stats) {
       if (pair.second / 1024 / 1024)
-        std::cout << HeapObject::ToString(pair.first) << ": " << pair.second / 1024 / 1024 << " MB" << std::endl;
+        std::cout << HeapObject::ToString(pair.first) << ": " << pair.second / 1024 / 1024
+                  << " MB, average: " << pair.second / count[pair.first] << " B." << std::endl;
+      else if (pair.second / 1024)
+        std::cout << HeapObject::ToString(pair.first) << ": " << pair.second / 1024
+                  << " KB, average: " << pair.second / count[pair.first] << " B." << std::endl;
     }
   }
 

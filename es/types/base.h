@@ -224,6 +224,22 @@ class String : public JSValue {
     return substring;
   }
 
+  static Handle<String> Concat(Handle<String> a, Handle<String> b) {
+    if (a.val()->IsArrayIndex() || b.val()->IsArrayIndex()) {
+      return String::New(a.val()->data() + b.val()->data());
+    }
+    size_t size_a = a.val()->size();
+    size_t size_b = b.val()->size();
+    Handle<String> str = String::Alloc(size_a + size_b);
+    memcpy(str.val()->c_str(),
+           a.val()->c_str(),
+           size_a * kChar16Size);
+    memcpy(str.val()->c_str() + size_a,
+           b.val()->c_str(),
+           size_b * kChar16Size);
+    return str;
+  }
+
   static Handle<String> Empty() {
     static Handle<String> singleton = String::New(u"", GCFlag::CONST | GCFlag::SINGLE);
     return singleton;

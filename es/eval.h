@@ -1365,11 +1365,11 @@ Handle<JSValue> EvalAddOperator(Handle<Error>& e, Handle<JSValue> lval, Handle<J
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
 
   if (lprim.val()->IsString() || rprim.val()->IsString()) {
-    std::u16string lstr = ToU16String(e, lprim);
+    Handle<String> lstr = ToString(e, lprim);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    std::u16string rstr = ToU16String(e, rprim);
+    Handle<String> rstr = ToString(e, rprim);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    return String::New(lstr + rstr);
+    return String::Concat(lstr, rstr);
   }
 
   double lnum = ToNumber(e, lprim);
