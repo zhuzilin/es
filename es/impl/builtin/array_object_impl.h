@@ -329,7 +329,7 @@ Handle<JSValue> ArrayProto::map(Handle<Error>& e, Handle<JSValue> this_arg, std:
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       Handle<JSValue> mapped_value = Call(e, callbackfn, T, {k_value, Number::New(k), O});
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      AddValueProperty(A, p_k.val()->data(), mapped_value, true, true, true);
+      AddValueProperty(A, p_k, mapped_value, true, true, true);
     }
   }
   return A;

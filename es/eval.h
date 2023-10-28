@@ -1149,7 +1149,8 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
       if (expr.val()->IsReference()) {
         Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
         if (ref.val()->IsStrictReference() && ref.val()->GetBase().val()->IsEnvironmentRecord() &&
-            (ref.val()->GetReferencedName().val()->data() == u"eval" || ref.val()->GetReferencedName().val()->data() == u"arguments")) {
+            (StringEqual(ref.val()->GetReferencedName(), String::Eval()) ||
+             StringEqual(ref.val()->GetReferencedName(), String::Arguments()))) {
           e = Error::SyntaxError(u"cannot inc or dec on eval or arguments");
           return Handle<JSValue>();
         }
@@ -1521,8 +1522,8 @@ Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Han
         return Handle<JSValue>();
       }
       if (ref.val()->GetBase().val()->IsEnvironmentRecord() &&
-          (ref.val()->GetReferencedName().val()->data() == u"eval" ||
-          ref.val()->GetReferencedName().val()->data() == u"arguments")) {
+          (StringEqual(ref.val()->GetReferencedName(), String::Eval()) ||
+           StringEqual(ref.val()->GetReferencedName(), String::Arguments()))) {
         e = Error::SyntaxError(u"cannot assign on eval or arguments");
         return Handle<JSValue>();
       }
@@ -1671,7 +1672,8 @@ Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::v
     this_value = Undefined::Instance();
   }
   // indirect 
-  if (ref.val()->IsReference() && static_cast<Handle<Reference>>(ref).val()->GetReferencedName().val()->data() == u"eval") {
+  if (ref.val()->IsReference() &&
+      StringEqual(static_cast<Handle<Reference>>(ref).val()->GetReferencedName(), String::Eval())) {
     DirectEvalGuard guard;
     return Call(e, obj, this_value, arg_list);
   } else {

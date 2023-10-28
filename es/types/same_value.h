@@ -29,7 +29,7 @@ bool SameValue(Handle<JSValue> x, Handle<JSValue> y) {
     case Type::JS_STRING: {
       Handle<String> str_x = static_cast<Handle<String>>(x);
       Handle<String> str_y = static_cast<Handle<String>>(y);
-      return str_x.val()->data() == str_y.val()->data();
+      return StringEqual(str_x, str_y);
     }
     case Type::JS_BOOL: {
       Handle<Bool> b_x = static_cast<Handle<Bool>>(x);

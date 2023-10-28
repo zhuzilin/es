@@ -111,15 +111,15 @@ class Bool : public JSValue {
   inline bool data() { return reinterpret_cast<uint64_t>(this) >> STACK_SHIFT; }
 };
 
-double ToArrayIndex(std::u16string str);
+inline bool ToArrayIndex(const char16_t*, size_t, double&);
 std::u16string ArrayIndexToString(uint32_t index);
 
 class String : public JSValue {
  public:
   static Handle<String> New(const std::u16string& data, flag_t flag = 0) {
     size_t n = data.size();
-    double index = ToArrayIndex(data);
-    if (!isnan(index)) {
+    double index;
+    if (unlikely(ToArrayIndex(data.c_str(), n, index))) {
       return String::New(index, n);
     }
     Handle<String> str = String::Alloc(n, flag);
@@ -131,8 +131,8 @@ class String : public JSValue {
 
   static Handle<String> New(std::u16string&& data, flag_t flag = 0) {
     size_t n = data.size();
-    double index = ToArrayIndex(data);
-    if (!isnan(index)) {
+    double index;
+    if (unlikely(ToArrayIndex(data.c_str(), n, index))) {
       return String::New(index, n);
     }
     Handle<String> str = String::Alloc(n, flag);
@@ -152,7 +152,7 @@ class String : public JSValue {
     return String::New(index, n);
   }
 
-  bool IsArrayIndex() { return stack_type() == JS_STRING; }
+  bool IsArrayIndex() { return stack_type(); }
   uint32_t Index() {
     ASSERT(IsArrayIndex());
     return reinterpret_cast<uint64_t>(this) >> (STACK_SHIFT + 5);
@@ -208,8 +208,20 @@ class String : public JSValue {
   }
 
   static Handle<String> Substr(Handle<String> str, size_t pos, size_t len) {
-    std::u16string substring = str.val()->data().substr(pos, len);
-    return String::New(substring);
+    ASSERT(pos + len <= str.val()->size());
+    if (str.val()->IsArrayIndex()) {
+      std::cout << "not implemented yet" << std::endl;
+      assert(false);
+    }
+    double index;
+    if (ToArrayIndex(str.val()->c_str() + pos, len, index)) {
+      return String::New(index, len);
+    }
+    Handle<String> substring = String::Alloc(len);
+    memcpy(substring.val()->c_str(),
+           str.val()->c_str() + pos,
+           len * kChar16Size);
+    return substring;
   }
 
   static Handle<String> Empty() {
@@ -296,6 +308,11 @@ class String : public JSValue {
     return singleton;
   }
 
+  static Handle<String> Eval() {
+    static Handle<String> singleton = String::New(u"eval", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
   static Handle<String> Enumerable() {
     static Handle<String> singleton = String::New(u"enumerable", GCFlag::CONST | GCFlag::SINGLE);
     return singleton;
@@ -303,6 +320,16 @@ class String : public JSValue {
 
   static Handle<String> Configurable() {
     static Handle<String> singleton = String::New(u"configurable", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
+  static Handle<String> Caller() {
+    static Handle<String> singleton = String::New(u"caller", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
+  static Handle<String> Callee() {
+    static Handle<String> singleton = String::New(u"callee", GCFlag::CONST | GCFlag::SINGLE);
     return singleton;
   }
 
@@ -359,6 +386,10 @@ inline bool StringEqual(String* a, String* b) {
       return false;
   }
   return true;
+}
+
+inline bool StringEqual(Handle<String> a, Handle<String> b) {
+  return StringEqual(a.val(), b.val());
 }
 
 inline bool StringLessThan(String* a, String* b) {

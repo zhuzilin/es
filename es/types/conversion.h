@@ -39,7 +39,7 @@ bool ToBoolean(Handle<JSValue> input) {
     case Type::JS_LONG_STRING:
     case Type::JS_STRING: {
       Handle<String> str = static_cast<Handle<String>>(input);
-      return str.val()->data() != u"";
+      return !StringEqual(str, String::Empty());
     }
     default:
       if (input.val()->IsObject())
@@ -157,36 +157,35 @@ error:
 
 constexpr char16_t max_uint32_str[11] = u"4294967295";
 
-double ToArrayIndex(std::u16string str) {
-  uint32_t val = 0;
-  if (str.size() > 10 || str.size() == 0 || str[0] < u'0' || str[0] > u'9')
-    goto error;
-  if (str.size() != 1 && str[0] == u'0')
-    goto error;
+bool ToArrayIndex(const char16_t* str, size_t n, double& res) {
+  if (n > 10 || n == 0 || str[0] < u'0' || str[0] > u'9')
+    return false;
+  if (n != 1 && str[0] == u'0')
+    return false;
 
-  if (unlikely(str.size() == 10)) {
+  uint32_t val = 0;
+  if (unlikely(n == 10)) {
     bool equal_max = true;
-    for (uint8_t i = 0; i < str.size(); ++i) {
+    for (uint8_t i = 0; i < n; ++i) {
       if (!(u'0' <= str[i] && str[i] <= u'9')) {
-        goto error;
+        return false;
       }
       if (equal_max && str[i] > max_uint32_str[i]) {
-        goto error;
+        return false;
       }
       equal_max = equal_max && str[i] == max_uint32_str[i];
       val = 10 * val + (str[i] - u'0');
     }
   } else {
-    for (uint8_t i = 0; i < str.size(); ++i) {
+    for (uint8_t i = 0; i < n; ++i) {
       if (!(u'0' <= str[i] && str[i] <= u'9')) {
-        goto error;
+        return false;
       }
       val = 10 * val + (str[i] - u'0');
     }
   }
-  return val;
-error:
-  return nan("");
+  res = val;
+  return true;
 }
 
 std::u16string ArrayIndexToString(uint32_t index) {

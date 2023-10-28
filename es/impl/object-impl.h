@@ -35,14 +35,14 @@ Handle<JSValue> GetOwnProperty__String(Handle<StringObject> O, Handle<String> P)
   if (!val.val()->IsUndefined())
     return val;
   Handle<Error> e = Error::Ok();
-  int index = ToInteger(e, P);  // this will never has error.
-  if (!StringEqual(NumberToString(fabs(index)).val(), P.val()))
+  if (!P.val()->IsArrayIndex())
     return Undefined::Instance();
-  std::u16string str = static_cast<Handle<String>>(O.val()->PrimitiveValue()).val()->data();
-  int len = str.size();
+  uint32_t index = ToInteger(e, P);  // this will never has error.
+  Handle<String> str = static_cast<Handle<String>>(O.val()->PrimitiveValue());
+  uint32_t len = str.val()->size();
   if (len <= index)
     return Undefined::Instance();
-  Handle<String> substr = String::New(str.substr(index, 1));
+  Handle<String> substr = String::Substr(str, index, 1);
   Handle<PropertyDescriptor> desc = PropertyDescriptor::NewDataDescriptor(substr, true, false, false);
   return desc;
 }
@@ -104,13 +104,11 @@ Handle<JSValue> Get__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P
 Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle<String> P) {
   Handle<JSValue> V = Get__Base(e, O, P);
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  if (P.val()->data() == u"caller") {  // 2
-    if (V.val()->IsFunctionObject()) {
-      Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
-      if (func.val()->strict()) {
-        e = Error::TypeError(u"cannot get caller property from function in strict mode.");
-        return Handle<JSValue>();
-      }
+  if (V.val()->IsFunctionObject() && StringEqual(P, String::Caller())) {  // 2
+    Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
+    if (func.val()->strict()) {
+      e = Error::TypeError(u"cannot get caller property from function in strict mode.");
+      return Handle<JSValue>();
     }
   }
   return V;
@@ -119,7 +117,7 @@ Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle
 // 10.6
 Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P) {
   if (Runtime::TopContext().strict()) {
-    if (P.val()->data() == u"callee" || P.val()->data() == u"caller") {
+    if (StringEqual(P, String::Caller()) || StringEqual(P, String::Callee())) {
       e = Error::TypeError(u"access callee or caller in strict mode");
       return Handle<JSValue>();
     }
@@ -440,8 +438,8 @@ bool DefineOwnProperty__Array(
     }
     return true;  // 3.n
   } else {
-    double index = ToArrayIndex(P.val()->data());
-    if (!isnan(index)) {  // 4
+    if (P.val()->IsArrayIndex()) {  // 4
+      double index = P.val()->Index();
       if (index >= old_len && !old_len_desc.val()->Writable())  // 4.b
         goto reject;
       bool succeeded = DefineOwnProperty__Base(e, O, P, desc, false);

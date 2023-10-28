@@ -244,16 +244,20 @@ Handle<JSObject> Construct__RegExpConstructor(
   // Check is flag is valid
   std::unordered_map<char16_t, size_t> count;
   bool valid_flag = true;
-  for (auto c : F.val()->data()) {
-    if (c != u'g' && c != u'i' && c != u'm') {
-      valid_flag = false;
-      break;
+  if (F.val()->IsArrayIndex()) {
+    valid_flag = false;
+  } else {
+    for (auto c : F.val()->data()) {
+      if (c != u'g' && c != u'i' && c != u'm') {
+        valid_flag = false;
+        break;
+      }
+      if (count[c] > 0) {
+        valid_flag = false;
+        break;
+      }
+      count[c]++;
     }
-    if (count[c] > 0) {
-      valid_flag = false;
-      break;
-    }
-    count[c]++;
   }
   if (!valid_flag) {
     e = Error::SyntaxError(u"invalid RegExp flag: " + F.val()->data());

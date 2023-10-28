@@ -69,7 +69,7 @@ bool Equal(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y) {
     } else if (x.val()->IsString()) {
       Handle<String> sx = static_cast<Handle<String>>(x);
       Handle<String> sy = static_cast<Handle<String>>(y);
-      return sx.val()->data() == sy.val()->data();
+      return StringEqual(sx, sy);
     }
     return x.val() == y.val();
   }
@@ -131,7 +131,7 @@ bool StrictEqual(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y) {
     case Type::JS_STRING: {
       Handle<String> str_x = static_cast<Handle<String>>(x);
       Handle<String> str_y = static_cast<Handle<String>>(y);
-      return str_x.val()->data() == str_y.val()->data();
+      return StringEqual(str_x, str_y);
     }
     case Type::JS_BOOL: {
       Handle<Bool> b_x = static_cast<Handle<Bool>>(x);
