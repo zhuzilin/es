@@ -47,7 +47,6 @@ class HashMap : public JSValue {
 #endif
     Handle<JSValue> jsval = HeapObject::New(kElementOffset + num_bucket * kPtrSize - HeapObject::kHeapObjectOffset);
 
-    SET_VALUE(jsval.val(), kInlineCacheOffset, nullptr, ListNode*);
     SET_VALUE(jsval.val(), kNumBucketOffset, num_bucket, size_t);
     SET_VALUE(jsval.val(), kSizeOffset, 0, size_t);
     for (size_t i = 0; i < num_bucket; i++) {
@@ -62,23 +61,11 @@ class HashMap : public JSValue {
   void SetSize(size_t s) { SET_VALUE(this, kSizeOffset, s, size_t); }
   size_t num_bucket() { return READ_VALUE(this, kNumBucketOffset, size_t); }
 
-  ListNode* inline_cache() { return READ_VALUE(this, kInlineCacheOffset, ListNode*); }
-  void SetInlineCache(ListNode* node) { SET_VALUE(this, kInlineCacheOffset, node, ListNode*); }
-
   // Set can not be method as there can be gc happening inside.
   static Handle<HashMap> Set(Handle<HashMap> map, Handle<String> key, Handle<JSValue> val) {
-    // inline cache
-    ListNode* cache = map.val()->inline_cache();
-    if (cache != nullptr && StringEqual(cache->key(), key.val())) {
-      cache->SetVal(val.val());
-      return map;
-    }
-
     ListNode* old_node = map.val()->GetListNodeRaw(key);
     if (old_node != nullptr) {
       old_node->SetVal(val.val());
-      // update inline cache
-      map.val()->SetInlineCache(old_node);
       return map;
     }
 
@@ -89,8 +76,6 @@ class HashMap : public JSValue {
     // There will not be any new memory allocated after this line.
     // So we could use pointer.
     map.val()->SetSize(map.val()->size() + 1);
-    // update inline cache
-    map.val()->SetInlineCache(new_node.val());
     size_t offset = map.val()->ListHeadOffset(key.val());
     ListNode* head = map.val()->GetListHead(offset);
     if (head == nullptr || LessThan(key.val(), head->key())) {
@@ -159,27 +144,13 @@ class HashMap : public JSValue {
   }
 
   JSValue* GetRaw(Handle<String> key) {
-    // inline cache
-    ListNode* cache = inline_cache();
-    if (cache != nullptr && StringEqual(cache->key(), key.val())) {
-      return cache->val();
-    }
-
     ListNode* node = GetListNodeRaw(key);
     if (node == nullptr)
       return nullptr;
-    // update inline cache
-    SetInlineCache(node);
     return node->val();
   }
 
   void Delete(Handle<String> key) {
-    // inline cache
-    ListNode* cache = inline_cache();
-    if (cache != nullptr && StringEqual(cache->key(), key.val())) {
-      SetInlineCache(nullptr);
-    }
-
     size_t offset = ListHeadOffset(key.val());
     ListNode* head = GetListHead(offset);
     if (head == nullptr)
@@ -269,8 +240,7 @@ class HashMap : public JSValue {
   }
 
  public:
-  static constexpr size_t kInlineCacheOffset = HeapObject::kHeapObjectOffset;
-  static constexpr size_t kNumBucketOffset = kInlineCacheOffset + kPtrSize;
+  static constexpr size_t kNumBucketOffset = HeapObject::kHeapObjectOffset;
   static constexpr size_t kSizeOffset = kNumBucketOffset + kSizeTSize;
   static constexpr size_t kElementOffset = kSizeOffset + kSizeTSize;
 
