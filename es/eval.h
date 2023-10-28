@@ -68,7 +68,7 @@ Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, 
 Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, AST* expr, ValueGuard& guard);
 Handle<JSValue> EvalExpressionList(Handle<Error>& e, AST* ast);
 
-Handle<Reference> IdentifierResolution(std::u16string name);
+void IdentifierResolutionAndPutValue(Handle<Error>& e, std::u16string name, Handle<JSValue> value);
 
 Completion EvalProgram(AST* ast) {
   ASSERT(ast->type() == AST::AST_PROGRAM || ast->type() == AST::AST_FUNC_BODY);
@@ -200,12 +200,11 @@ std::u16string EvalVarDecl(Handle<Error>& e, AST* ast) {
   std::u16string ident = decl->ident().source();
   if (decl->init() == nullptr)
     return ident;
-  Handle<JSValue> lhs = IdentifierResolution(ident);
   Handle<JSValue> rhs = EvalAssignmentExpression(e, decl->init());
   if (unlikely(!e.val()->IsOk())) return ident;
   Handle<JSValue> value = GetValue(e, rhs);
   if (unlikely(!e.val()->IsOk())) return ident;
-  PutValue(e, lhs, value);
+  IdentifierResolutionAndPutValue(e, ident, value);
   if (unlikely(!e.val()->IsOk())) return ident;
   return ident;
 }
@@ -439,8 +438,7 @@ Completion EvalForInStatement(AST* ast) {
 
     for (auto pair : obj.val()->AllEnumerableProperties()) {
       Handle<String> P = pair.first;
-      Handle<Reference> var_ref = IdentifierResolution(var_name);
-      PutValue(e, var_ref, P);
+      IdentifierResolutionAndPutValue(e, var_name, P);
       if (unlikely(!e.val()->IsOk())) goto error;
 
       stmt = EvalStatement(for_in_stmt->statement());
@@ -840,17 +838,22 @@ Handle<JSValue> EvalPrimaryExpression(Handle<Error>& e, AST* ast) {
   return val;
 }
 
-Handle<Reference> IdentifierResolution(std::u16string name) {
+// This will prevent use from creating a new ref
+void IdentifierResolutionAndPutValue(Handle<Error>& e, std::u16string name, Handle<JSValue> value) {
   // 10.3.1 Identifier Resolution
   Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
   Handle<String> ref_name = String::New(name);
   bool strict = Runtime::TopContext().strict();
-  return GetIdentifierReference(env, ref_name, strict);
+  GetIdentifierReferenceAndPutValue(e, env, ref_name, strict, value);
 }
 
 Handle<Reference> EvalIdentifier(AST* ast) {
   ASSERT(ast->type() == AST::AST_EXPR_IDENT || ast->type() == AST::AST_EXPR_STRICT_FUTURE);
-  return IdentifierResolution(ast->source());
+  // 10.3.1 Identifier Resolution
+  Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
+  Handle<String> ref_name = String::New(ast->source());
+  bool strict = Runtime::TopContext().strict();
+  return GetIdentifierReference(env, ref_name, strict);
 }
 
 // This verson of string to number assumes the string is valid.

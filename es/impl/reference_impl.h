@@ -107,6 +107,20 @@ void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
   }
 }
 
+void PutValueEnvRec(Handle<Error>& e, Handle<JSValue> base, Handle<String> name, bool strict, Handle<JSValue> value) {
+  if (base.val()->IsUndefined()) {  // 3
+    if (strict) {  // 3.a
+      e = Error::ReferenceError(name.val()->data() + u" is not defined");
+      return;
+    }
+    Put(e, GlobalObject::Instance(), name, value, false);  // 3.b
+  } else {
+    ASSERT(base.val()->IsEnvironmentRecord());
+    Handle<EnvironmentRecord> er = static_cast<Handle<EnvironmentRecord>>(base);
+    SetMutableBinding(e, er, name, value, strict);
+  }
+}
+
 }  // namespace es
 
 #endif
