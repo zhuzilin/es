@@ -68,6 +68,7 @@ class Reference : public JSValue {
 
 Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V);
 void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W);
+Handle<JSValue> GetValueEnvRec(Handle<Error>& e, Handle<JSValue> base, Handle<String> name, bool strict);
 void PutValueEnvRec(Handle<Error>& e, Handle<JSValue> base, Handle<String> name, bool strict, Handle<JSValue> value);
 
 }  // namespace es

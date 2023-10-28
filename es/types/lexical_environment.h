@@ -69,6 +69,19 @@ void GetIdentifierReferenceAndPutValue(Handle<Error>& e, Handle<LexicalEnvironme
   return GetIdentifierReferenceAndPutValue(e, outer, name, strict, value);
 }
 
+Handle<JSValue> GetIdentifierReferenceAndGetValue(Handle<Error>& e, Handle<LexicalEnvironment> lex, Handle<String> name, bool strict) {
+  auto env_rec = lex.val()->env_rec();
+  bool exists = HasBinding(env_rec, name);
+  if (exists) {
+    return GetValueEnvRec(e, env_rec, name, strict);
+  }
+  auto outer = lex.val()->outer();
+  if (outer.IsNullptr()) {
+    return GetValueEnvRec(e, Undefined::Instance(), name, strict);
+  }
+  return GetIdentifierReferenceAndGetValue(e, outer, name, strict);
+}
+
 }  // namespace es
 
 #endif  // ES_LEXICAL_ENVIRONMENT_H

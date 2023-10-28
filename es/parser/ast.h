@@ -281,7 +281,7 @@ class Arguments : public AST {
 class LHS : public AST {
  public:
   LHS(AST* base, size_t new_count) :
-    AST(AST_EXPR_LHS), base_(base), new_count_(new_count) {}
+    AST(AST_EXPR_LHS), base_(base), total_count_(new_count), new_count_(new_count) {}
 
   ~LHS() override {
     for (auto args : args_list_)
@@ -299,19 +299,23 @@ class LHS : public AST {
   void AddArguments(Arguments* args) {
     order_.emplace_back(std::make_pair(args_list_.size(), CALL));
     args_list_.emplace_back(args);
+    total_count_++;
   }
 
   void AddIndex(AST* index) {
     order_.emplace_back(std::make_pair(index_list_.size(), INDEX));
     index_list_.emplace_back(index);
+    total_count_++;
   }
 
   void AddProp(Token prop_name) {
     order_.emplace_back(std::make_pair(prop_name_list_.size(), PROP));
     prop_name_list_.emplace_back(prop_name.source());
+    total_count_++;
   }
 
   AST* base() { return base_; }
+  size_t total_count() { return total_count_; }
   size_t new_count() { return new_count_; }
   std::vector<std::pair<size_t, PostfixType>> order() { return order_; }
   std::vector<Arguments*> args_list() { return args_list_; }
@@ -320,6 +324,7 @@ class LHS : public AST {
 
  private:
   AST* base_;
+  size_t total_count_;
   size_t new_count_;
 
   std::vector<std::pair<size_t, PostfixType>> order_;
