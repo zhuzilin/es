@@ -26,29 +26,12 @@ class ArgumentsObject : public JSObject {
   }
 };
 
-class GetterSetter : public JSValue {
- public:
-  static Handle<GetterSetter> New(Handle<Reference> ref) {
-    Handle<JSValue> jsval = HeapObject::New(kPtrSize, 0);
-
-    SET_HANDLE_VALUE(jsval.val(), kReferenceOffset, ref, Reference);
-
-    jsval.val()->SetType(JS_GET_SET);
-    return Handle<GetterSetter>(jsval);
-  }
-
-  Handle<Reference> ref() { return READ_HANDLE_VALUE(this, kReferenceOffset, Reference); }
-
- public:
-  static constexpr size_t kReferenceOffset = HeapObject::kHeapObjectOffset;
-};
-
 Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P);
 Handle<JSValue> GetOwnProperty__Arguments(Handle<ArgumentsObject> O, Handle<String> P);
 bool Delete__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, bool throw_flag);
 bool DefineOwnProperty__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
 
-Handle<JSValue> Call__GetterSetter(Handle<Error>& e, Handle<GetterSetter> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSValue> Call__GetterSetter(Handle<Error>& e, Handle<Reference> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 
 }  // namespace es
 

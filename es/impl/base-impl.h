@@ -58,8 +58,6 @@ std::string JSValue::ToString(JSValue* jsval) {
       return "ObjectEnvRec(" + log::ToString(jsval) + ")";
     case JS_LEX_ENV:
       return "LexicalEnvironment";
-    case JS_GET_SET:
-      return "GetterSetter(" + ToString(READ_VALUE(jsval, GetterSetter::kReferenceOffset, Reference*)) + ")";
     case ERROR:
       return static_cast<Error*>(jsval)->IsOk() ?
         "ok" :

@@ -58,7 +58,7 @@ class JSValue {
   inline bool IsEnvironmentRecord() { return type() == JS_ENV_REC_DECL || type() == JS_ENV_REC_OBJ; }
   inline bool IsLexicalEnvironment() { return type() == JS_LEX_ENV; }
 
-  inline bool IsGetterSetter() { return type() == JS_GET_SET; }
+  inline bool IsGetterSetter() { return type() == JS_REF; }
 
   inline bool IsError() { return type() == ERROR; }
 

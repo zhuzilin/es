@@ -45,8 +45,7 @@ Handle<ArgumentsObject> CreateArgumentsObject(
       if (mapped_names.find(name_str) == mapped_names.end()) {  // 11.c.ii
         mapped_names.insert(name_str);
         is_accessor_desc = true;
-        Handle<Reference> ref = Reference::New(env.val()->env_rec(), name, true);
-        Handle<GetterSetter> gs = GetterSetter::New(ref);
+        Handle<Reference> gs = Reference::New(env.val()->env_rec(), name, true);
         Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
         desc.val()->SetSet(gs);
         desc.val()->SetGet(gs);
@@ -61,7 +60,7 @@ Handle<ArgumentsObject> CreateArgumentsObject(
     indx--;  // 11.d
   }
   if (!strict) {  // 13
-    AddValueProperty(obj, u"callee", func, true, false, true);
+    AddValueProperty(obj, String::callee(), func, true, false, true);
   } else {  // 14
     Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
     // TODO(zhuzilin) thrower
