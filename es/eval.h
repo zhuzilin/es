@@ -1231,26 +1231,26 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
         if (expr.val()->IsReference()) {
           Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
           if (ref.val()->IsUnresolvableReference())
-            return String::Undefined();
+            return String::undefined();
         }
         Handle<JSValue> val = GetValue(e, expr);
         if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         switch (val.val()->type()) {
           case Type::JS_UNDEFINED:
-            return String::Undefined();
+            return String::undefined();
           case Type::JS_NULL:
-            return String::New(u"object");
+            return String::object();
           case Type::JS_BOOL:
-            return String::New(u"boolean");
+            return String::boolean();
           case Type::JS_NUMBER:
-            return String::New(u"number");
+            return String::number();
           case Type::JS_LONG_STRING:
           case Type::JS_STRING:
-            return String::New(u"string");
+            return String::string();
           default:
             if (val.val()->IsCallable())
-              return String::New(u"function");
-            return String::New(u"object");
+              return String::function();
+            return String::object();
         }
       } else if (op.source_ref() == u"void") {
         GetValue(e, expr);
@@ -1648,15 +1648,15 @@ Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::v
   Handle<JSValue> val = GetValue(e, ref);
   if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
-  if (!val.val()->IsObject()) {  // 4
-    e = Error::TypeError(u"calling non-object.");
-    return Handle<JSValue>();
-  }
-  auto obj = static_cast<Handle<JSObject>>(val);
-  if (!obj.val()->IsCallable()) {  // 5
+  if (unlikely(!val.val()->IsObject() && !val.val()->IsCallable())) {  // 4, 5
+    if (!val.val()->IsObject()) {
+      e = Error::TypeError(u"calling non-object.");
+      return Handle<JSValue>();
+    }
     e = Error::TypeError(u"calling non-callable.");
     return Handle<JSValue>();
   }
+  auto obj = static_cast<Handle<JSObject>>(val);
   Handle<JSValue> this_value;
   if (ref.val()->IsReference()) {
     Handle<Reference> r = static_cast<Handle<Reference>>(ref);

@@ -498,7 +498,7 @@ Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input) {
   ASSERT(input.val()->IsLanguageType());
   switch (input.val()->type()) {
     case Type::JS_UNDEFINED:
-      return String::Undefined();
+      return String::undefined();
     case Type::JS_NULL:
       return String::Null();
     case Type::JS_BOOL:

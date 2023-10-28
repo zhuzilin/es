@@ -245,7 +245,7 @@ class String : public JSValue {
     return singleton;
   }
 
-  static Handle<String> Undefined() {
+  static Handle<String> undefined() {
     static Handle<String> singleton = String::New(u"undefined", GCFlag::CONST | GCFlag::SINGLE);
     return singleton;
   }
@@ -339,13 +339,53 @@ class String : public JSValue {
     return singleton;
   }
 
-  static Handle<String> Caller() {
+  static Handle<String> caller() {
     static Handle<String> singleton = String::New(u"caller", GCFlag::CONST | GCFlag::SINGLE);
     return singleton;
   }
 
-  static Handle<String> Callee() {
+  static Handle<String> callee() {
     static Handle<String> singleton = String::New(u"callee", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
+  static Handle<String> object() {
+    static Handle<String> singleton = String::New(u"object", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
+  static Handle<String> boolean() {
+    static Handle<String> singleton = String::New(u"boolean", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
+  static Handle<String> number() {
+    static Handle<String> singleton = String::New(u"number", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
+  static Handle<String> string() {
+    static Handle<String> singleton = String::New(u"string", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
+  static Handle<String> function() {
+    static Handle<String> singleton = String::New(u"function", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
+  static Handle<String> message() {
+    static Handle<String> singleton = String::New(u"message", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
+  static Handle<String> valueOf() {
+    static Handle<String> singleton = String::New(u"valueOf", GCFlag::CONST | GCFlag::SINGLE);
+    return singleton;
+  }
+
+  static Handle<String> toString() {
+    static Handle<String> singleton = String::New(u"toString", GCFlag::CONST | GCFlag::SINGLE);
     return singleton;
   }
 

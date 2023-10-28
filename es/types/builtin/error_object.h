@@ -14,14 +14,14 @@ class ErrorProto : public JSObject {
 
   static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSValue> val = Runtime::TopValue();
-    if (!val.val()->IsObject()) {
+    if (unlikely(!val.val()->IsObject())) {
       e = Error::TypeError(u"Error.prototype.toString called with non-object value");
       return Handle<JSValue>();
     }
     Handle<JSObject> O = static_cast<Handle<JSObject>>(val);
     // TODO(zhuzilin) add name
     std::u16string name = u"Error";
-    Handle<JSValue> msg = Get(e, O, String::New(u"message"));
+    Handle<JSValue> msg = Get(e, O, String::message());
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (msg.val()->IsUndefined())
       return Undefined::Instance();

@@ -196,10 +196,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
     for (auto pair : stats) {
       if (pair.second / 1024 / 1024)
         std::cout << HeapObject::ToString(pair.first) << ": " << pair.second / 1024 / 1024
-                  << " MB, average: " << pair.second / count[pair.first] << " B." << std::endl;
-      else if (pair.second / 1024)
-        std::cout << HeapObject::ToString(pair.first) << ": " << pair.second / 1024
-                  << " KB, average: " << pair.second / count[pair.first] << " B." << std::endl;
+                  << " MB, count: " << count[pair.first] / 1024 << " K." << std::endl;
     }
   }
 

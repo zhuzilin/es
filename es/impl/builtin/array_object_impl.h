@@ -13,7 +13,7 @@ Handle<JSValue> ArrayProto::toString(Handle<Error>& e, Handle<JSValue> this_arg,
   Handle<JSValue> func = Get(e, array, String::New(u"join"));
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   if (!func.val()->IsCallable()) {
-    func = Get(e, ObjectProto::Instance(), String::New(u"toString"));
+    func = Get(e, ObjectProto::Instance(), String::toString());
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   }
   return Call(e, static_cast<Handle<JSObject>>(func), this_arg, vals);

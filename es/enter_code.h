@@ -39,10 +39,10 @@ Handle<ArgumentsObject> CreateArgumentsObject(
   std::set<std::u16string> mapped_names;
   while (indx >= 0) {  // 11
     bool is_accessor_desc = false;
-    if ((size_t)indx < names.val()->size()) {  // 11.c
+    if (!strict && (size_t)indx < names.val()->size()) {  // 11.c
       Handle<String> name = static_cast<Handle<String>>(names.val()->Get(indx));
       std::u16string name_str = name.val()->data();  // 11.c.i
-      if (!strict && mapped_names.find(name_str) == mapped_names.end()) {  // 11.c.ii
+      if (mapped_names.find(name_str) == mapped_names.end()) {  // 11.c.ii
         mapped_names.insert(name_str);
         is_accessor_desc = true;
         Handle<Reference> ref = Reference::New(env.val()->env_rec(), name, true);
@@ -67,8 +67,8 @@ Handle<ArgumentsObject> CreateArgumentsObject(
     // TODO(zhuzilin) thrower
     Handle<JSValue> thrower = Undefined::Instance();
     desc.val()->SetAccessorDescriptor(thrower, thrower, false, false);
-    DefineOwnProperty(Error::Empty(), obj, String::New(u"caller"), desc, false);
-    DefineOwnProperty(Error::Empty(), obj, String::New(u"callee"), desc, false);
+    DefineOwnProperty(Error::Empty(), obj, String::caller(), desc, false);
+    DefineOwnProperty(Error::Empty(), obj, String::callee(), desc, false);
   }
   TEST_LOG("exit CreateArgumentsObject");
   return obj;  // 15

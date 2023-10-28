@@ -34,11 +34,11 @@ class StringProto : public JSObject {
 
   static Handle<JSValue> valueOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
     Handle<JSValue> val = Runtime::TopValue();
-    if (!val.val()->IsObject()) {
-      e = Error::TypeError(u"String.prototype.valueOf called with non-object");
-      return Handle<JSValue>();
-    }
-    if (!val.val()->IsStringObject()) {
+    if (unlikely(!val.val()->IsStringObject())) {
+      if (!val.val()->IsObject()) {
+        e = Error::TypeError(u"String.prototype.valueOf called with non-object");
+        return Handle<JSValue>();
+      }
       e = Error::TypeError(u"String.prototype.valueOf called with non-string");
       return Handle<JSValue>();
     }

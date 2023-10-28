@@ -104,7 +104,7 @@ Handle<JSValue> Get__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P
 Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle<String> P) {
   Handle<JSValue> V = Get__Base(e, O, P);
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  if (V.val()->IsFunctionObject() && StringEqual(P, String::Caller())) {  // 2
+  if (V.val()->IsFunctionObject() && StringEqual(P, String::caller())) {  // 2
     Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
     if (func.val()->strict()) {
       e = Error::TypeError(u"cannot get caller property from function in strict mode.");
@@ -117,7 +117,7 @@ Handle<JSValue> Get__Function(Handle<Error>& e, Handle<FunctionObject> O, Handle
 // 10.6
 Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P) {
   if (Runtime::TopContext().strict()) {
-    if (StringEqual(P, String::Caller()) || StringEqual(P, String::Callee())) {
+    if (StringEqual(P, String::caller()) || StringEqual(P, String::callee())) {
       e = Error::TypeError(u"access callee or caller in strict mode");
       return Handle<JSValue>();
     }
@@ -246,11 +246,11 @@ bool Delete__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<Strin
 Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16string hint) {
   Handle<String> first, second;
   if (hint == u"String" || (hint == u"" && O.val()->IsDateObject())) {
-    first = String::New(u"toString");
-    second = String::New(u"valueOf");
+    first = String::toString();
+    second = String::valueOf();
   } else if (hint == u"Number" || (hint == u"" && !O.val()->IsDateObject())) {
-    first = String::New(u"valueOf");
-    second = String::New(u"toString");
+    first = String::valueOf();
+    second = String::toString();
   } else {
     assert(false);
   }

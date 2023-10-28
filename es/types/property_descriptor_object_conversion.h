@@ -29,7 +29,7 @@ Handle<JSValue> FromPropertyDescriptor(Handle<JSValue> value) {
 }
 
 Handle<PropertyDescriptor> ToPropertyDescriptor(Handle<Error>& e, Handle<JSValue> val) {
-  if (!val.val()->IsObject()) {
+  if (unlikely(!val.val()->IsObject())) {
     e = Error::TypeError();
     return Handle<PropertyDescriptor>();
   }
