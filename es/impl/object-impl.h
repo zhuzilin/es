@@ -537,7 +537,9 @@ void AddValueProperty(
   Handle<PropertyDescriptor> desc = PropertyDescriptor::NewDataDescriptor(
     value, writable, enumerable, configurable);
   // This should just like named_properties_[name] = desc
-  DefineOwnProperty(Error::Empty(), O, name, desc, false);
+  ASSERT(GetOwnProperty(O, P).val()->IsUndefined());
+  auto new_named_properties = HashMap::Set(Handle<HashMap>(O.val()->named_properties()), name, desc);
+  O.val()->SetNamedProperties(new_named_properties);
 }
 
 }  // namespace es
