@@ -31,6 +31,7 @@ Handle<ArgumentsObject> CreateArgumentsObject(
   Handle<FunctionObject> func, std::vector<Handle<JSValue>>& args,
   Handle<LexicalEnvironment> env, bool strict
 ) {
+  TEST_LOG("enter CreateArgumentsObject");
   Handle<FixedArray> names = func.val()->FormalParameters();
   int len = args.size();
   Handle<JSObject> obj = ArgumentsObject::New(len);
@@ -50,12 +51,12 @@ Handle<ArgumentsObject> CreateArgumentsObject(
         desc.val()->SetSet(gs);
         desc.val()->SetGet(gs);
         desc.val()->SetConfigurable(true);
-        DefineOwnProperty(Error::Empty(), obj, NumberToString(indx), desc, false);
+        DefineOwnProperty(Error::Empty(), obj, String::New(indx), desc, false);
       }
     }
     if (!is_accessor_desc) {
       Handle<JSValue> val = args[indx];  // 11.a
-      AddValueProperty(obj, NumberToString(indx), val, true, true, true);  // 11.b
+      AddValueProperty(obj, String::New(indx), val, true, true, true);  // 11.b
     }
     indx--;  // 11.d
   }
@@ -69,6 +70,7 @@ Handle<ArgumentsObject> CreateArgumentsObject(
     DefineOwnProperty(Error::Empty(), obj, String::New(u"caller"), desc, false);
     DefineOwnProperty(Error::Empty(), obj, String::New(u"callee"), desc, false);
   }
+  TEST_LOG("exit CreateArgumentsObject");
   return obj;  // 15
 }
 

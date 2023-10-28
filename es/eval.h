@@ -1024,7 +1024,7 @@ Handle<String> EvalString(Handle<Error>& e, AST* ast) {
   return EvalString(e, source);
 }
 
-std::u16string EvalPropertyName(Handle<Error>& e, Token token) {
+Handle<String> EvalPropertyName(Handle<Error>& e, Token token) {
   switch (token.type()) {
     case Token::TK_STRICT_FUTURE:
     case Token::TK_IDENT:
@@ -1032,13 +1032,13 @@ std::u16string EvalPropertyName(Handle<Error>& e, Token token) {
     case Token::TK_FUTURE:
     case Token::TK_NULL:
     case Token::TK_BOOL:
-      return token.source();
+      return String::New(token.source());
     case Token::TK_NUMBER:
-      return ToU16String(e, EvalNumber(token.source_ref()));
+      return ToString(e, EvalNumber(token.source_ref()));
     case Token::TK_STRING: {
       Handle<String> s = EvalString(e, token.source_ref());
-      if (unlikely(!e.val()->IsOk())) return u"";
-      return ToU16String(e, s);
+      if (unlikely(!e.val()->IsOk())) return String::Empty();
+      return s;
     }
     default:
       assert(false);
@@ -1052,7 +1052,6 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
   Handle<Object> obj = Object::New();
   // PropertyName : AssignmentExpression
   for (auto property : obj_ast->properties()) {
-    std::u16string prop_name = EvalPropertyName(e, property.key);
     Handle<PropertyDescriptor> desc;
     switch (property.type) {
       case ObjectLiteral::Property::NORMAL: {
@@ -1091,24 +1090,24 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
         break;
       }
     }
-    Handle<String> prop_name_str = String::New(prop_name);
+    Handle<String> prop_name_str = EvalPropertyName(e, property.key);
     auto previous = GetOwnProperty(obj, prop_name_str);  // 3
     if (!previous.val()->IsUndefined()) {  // 4
       Handle<PropertyDescriptor> previous_desc = static_cast<Handle<PropertyDescriptor>>(previous);
       if (strict &&
           previous_desc.val()->IsDataDescriptor() && desc.val()->IsDataDescriptor()) {  // 4.a
-        e = Error::SyntaxError(u"repeat object property name " + prop_name);
+        e = Error::SyntaxError(u"repeat object property name " + prop_name_str.val()->data());
         return Handle<JSValue>();
       }
       if ((previous_desc.val()->IsDataDescriptor() && desc.val()->IsAccessorDescriptor()) ||  // 4.b
           (previous_desc.val()->IsAccessorDescriptor() && desc.val()->IsDataDescriptor())) {  // 4.c
-        e = Error::SyntaxError(u"repeat object property name " + prop_name);
+        e = Error::SyntaxError(u"repeat object property name " + prop_name_str.val()->data());
         return Handle<JSValue>();
       }
       if (previous_desc.val()->IsAccessorDescriptor() && desc.val()->IsAccessorDescriptor() &&  // 4.d
           ((previous_desc.val()->HasGet() && desc.val()->HasGet()) ||
            (previous_desc.val()->HasSet() && desc.val()->HasSet()))) {
-        e = Error::SyntaxError(u"repeat object property name " + prop_name);
+        e = Error::SyntaxError(u"repeat object property name " + prop_name_str.val()->data());
         return Handle<JSValue>();
       }
     }

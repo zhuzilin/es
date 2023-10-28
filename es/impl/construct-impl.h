@@ -96,7 +96,7 @@ Handle<JSObject> Construct__ArrayConstructor(
   Handle<ArrayObject> arr = ArrayObject::New(arguments.size());
   for (size_t i = 0; i < arguments.size(); i++) {
     Handle<JSValue> arg = arguments[i];
-    AddValueProperty(arr, NumberToU16String(i), arg, true, true, true);
+    AddValueProperty(arr, NumberToString(i), arg, true, true, true);
   }
   return arr;
 }

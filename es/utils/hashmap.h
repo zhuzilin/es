@@ -69,7 +69,7 @@ class HashMap : public JSValue {
   static Handle<HashMap> Set(Handle<HashMap> map, Handle<String> key, Handle<JSValue> val) {
     // inline cache
     ListNode* cache = map.val()->inline_cache();
-    if (cache != nullptr && *cache->key() == *key.val()) {
+    if (cache != nullptr && StringEqual(cache->key(), key.val())) {
       cache->SetVal(val.val());
       return map;
     }
@@ -98,10 +98,10 @@ class HashMap : public JSValue {
       map.val()->SetListHead(offset, new_node.val());
       return map;
     }
-    ASSERT(*key.val() != *(head->key()));
+    ASSERT(!StringEqual(key.val(), head->key()));
     while (head->next() != nullptr) {
       String* next_key = head->next()->key();
-      ASSERT(*key.val() != *next_key);
+      ASSERT(!StringEqual(key.val(), next_key));
       if (LessThan(key.val(), next_key)) {
         new_node.val()->SetNext(head->next());
         head->SetNext(new_node.val());
@@ -129,11 +129,11 @@ class HashMap : public JSValue {
           node->SetNext(head);
           new_map.val()->SetListHead(offset, node);
         } else {
-          ASSERT(*node->key() != *(head->key()));
+          ASSERT(!StringEqual(node->key(), head->key()));
           bool inserted = false;
           while (head->next() != nullptr) {
             String* next_key = head->next()->key();
-            ASSERT(*node->key() != *next_key);
+            ASSERT(!StringEqual(node->key(), next_key));
             if (LessThan(node->key(), next_key)) {
               node->SetNext(head->next());
               head->SetNext(node);
@@ -161,7 +161,7 @@ class HashMap : public JSValue {
   JSValue* GetRaw(Handle<String> key) {
     // inline cache
     ListNode* cache = inline_cache();
-    if (cache != nullptr && *cache->key() == *key.val()) {
+    if (cache != nullptr && StringEqual(cache->key(), key.val())) {
       return cache->val();
     }
 
@@ -176,7 +176,7 @@ class HashMap : public JSValue {
   void Delete(Handle<String> key) {
     // inline cache
     ListNode* cache = inline_cache();
-    if (cache != nullptr && *cache->key() == *key.val()) {
+    if (cache != nullptr && StringEqual(cache->key(), key.val())) {
       SetInlineCache(nullptr);
     }
 
@@ -184,13 +184,13 @@ class HashMap : public JSValue {
     ListNode* head = GetListHead(offset);
     if (head == nullptr)
       return;
-    if (*(head->key()) == *key.val()) {
+    if (StringEqual(head->key(), key.val())) {
       SetListHead(offset, head->next());
       SetSize(size() - 1);
       return;
     }
     while (head->next() != nullptr) {
-      if (*key.val() == *(head->next()->key())) {
+      if (StringEqual(key.val(), head->next()->key())) {
         head->SetNext(head->next()->next());
         SetSize(size() - 1);
         return;
@@ -225,30 +225,13 @@ class HashMap : public JSValue {
   }
 
  private:
-  static bool IsIntegerIndices(String& a) {
-    if (a.size() == 1 && a[0] == u'0') {
-      return true;
-    }
-    if (!character::IsDecimalDigit(a[0]) || a[0] == u'0') {
-      return false;
-    }
-    for (size_t i = 1; i < a.size(); i++) {
-      if (!character::IsDecimalDigit(a[0]))
-        return false;
-    }
-    return true;
-  }
-
   // TODO(zhuzilin) The order of the properties are determined by ES5 spec.
   // However, array need to have a ordered property.
   // Try to follow the traverse order in ES6
   static bool LessThan(String* a, String* b) {
-    bool num_a = IsIntegerIndices(*a);
-    bool num_b = IsIntegerIndices(*b);
-    if (num_a && num_b) {
-      return a->size() == b->size() ? *a < *b : a->size() < b->size();
-    }
-    return num_a == num_b ? *a < *b : num_a > num_b;
+    bool num_a = a->IsArrayIndex();
+    bool num_b = b->IsArrayIndex();
+    return num_a == num_b ? StringLessThan(a, b) : num_a > num_b;
   }
 
   struct CompareListNode {
@@ -275,7 +258,7 @@ class HashMap : public JSValue {
     if (head == nullptr)
       return nullptr;
     while (head != nullptr) {
-      if (*key.val() == *(head->key())) {
+      if (StringEqual(key.val(), head->key())) {
         return head;
       } else if (LessThan(key.val(), head->key())) {
         return nullptr;

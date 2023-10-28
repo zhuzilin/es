@@ -72,7 +72,7 @@ class StringProto : public JSObject {
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     if (position < 0 || (size_t)position >= S.val()->size())
       return Number::NaN();
-    return Number::New((double)((*S.val())[position]));
+    return Number::New((double)(S.val()->get(position)));
   }
 
   static Handle<JSValue> concat(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {

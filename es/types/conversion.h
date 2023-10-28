@@ -189,7 +189,19 @@ error:
   return nan("");
 }
 
+std::u16string ArrayIndexToString(uint32_t index) {
+  if (index == 0) return u"0";
+  std::u16string s = u"";
+  while (index > 0) {
+    s = static_cast<char16_t>(u'0' + index % 10) + s;
+    index /= 10;
+  }
+  return s;
+}
+
 double StringToNumber(Handle<String> str) {
+  if (str.val()->IsArrayIndex())
+    return str.val()->Index();
   return StringToNumber(str.val()->data());
 }
 
@@ -472,10 +484,10 @@ std::string NumberToStdString(double m) {
 Handle<String> NumberToString(double m) {
   if (isnan(m))
     return String::NaN();
-  if (m == 0)
-    return String::Zero();
   if (isinf(m))
     return signbit(m) ? String::NegativeInfinity() : String::Infinity();
+  if (static_cast<double>(static_cast<uint32_t>(m)) == m)
+    return String::New(static_cast<uint32_t>(m));
   return String::New(NumberToU16String(m));
 }
 

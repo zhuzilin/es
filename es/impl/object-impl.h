@@ -36,7 +36,7 @@ Handle<JSValue> GetOwnProperty__String(Handle<StringObject> O, Handle<String> P)
     return val;
   Handle<Error> e = Error::Ok();
   int index = ToInteger(e, P);  // this will never has error.
-  if (*NumberToString(fabs(index)).val() != *P.val())
+  if (!StringEqual(NumberToString(fabs(index)).val(), P.val()))
     return Undefined::Instance();
   std::u16string str = static_cast<Handle<String>>(O.val()->PrimitiveValue()).val()->data();
   int len = str.size();
@@ -390,7 +390,7 @@ bool DefineOwnProperty__Array(
   auto old_len_desc = static_cast<Handle<PropertyDescriptor>>(GetOwnProperty(O, String::Length()));
   ASSERT(!old_len_desc.val()->IsUndefined());
   double old_len = ToNumber(e, old_len_desc.val()->Value());
-  if (*P.val() == *String::Length().val()) {  // 3
+  if (StringEqual(P.val(), String::Length().val())) {  // 3
     if (!desc.val()->HasValue()) {  // 3.a
       return DefineOwnProperty__Base(e, O, String::Length(), desc, throw_flag);
     }
@@ -535,7 +535,7 @@ void AddValueProperty(
   Handle<JSObject> O, Handle<String> name, Handle<JSValue> value, bool writable,
   bool enumerable, bool configurable
 ) {
-  TEST_LOG("AddValueProperty " + name.ToString() + " to " + value.ToString());
+  TEST_LOG("AddValueProperty " + O.ToString() + "." + name.ToString() + " = " + value.ToString());
   Handle<PropertyDescriptor> desc = PropertyDescriptor::NewDataDescriptor(
     value, writable, enumerable, configurable);
   // This should just like named_properties_[name] = desc

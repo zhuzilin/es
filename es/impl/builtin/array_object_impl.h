@@ -45,12 +45,12 @@ Handle<JSValue> ArrayProto::concat(Handle<Error>& e, Handle<JSValue> this_arg, s
         if (HasProperty(O, P)) {
           Handle<JSValue> sub_element = Get(e, O, P);
           if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-          AddValueProperty(A, NumberToU16String(n), sub_element, true, true, true);
+          AddValueProperty(A, NumberToString(n), sub_element, true, true, true);
         }
         n++;
       }
     } else {
-      AddValueProperty(A, NumberToU16String(n), E, true, true, true);
+      AddValueProperty(A, NumberToString(n), E, true, true, true);
       n++;
     }
   }
@@ -199,7 +199,7 @@ Handle<JSValue> ArrayProto::slice(Handle<Error>& e, Handle<JSValue> this_arg, st
     if (HasProperty(O, Pk)) {
       Handle<JSValue> k_value = Get(e, O, Pk);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      AddValueProperty(A, NumberToU16String(n), k_value, true, true, true);
+      AddValueProperty(A, NumberToString(n), k_value, true, true, true);
     }
     k++;
     n++;
@@ -363,7 +363,7 @@ Handle<JSValue> ArrayProto::filter(Handle<Error>& e, Handle<JSValue> this_arg, s
       Handle<JSValue> selected = Call(e, callbackfn, T, {k_value, Number::New(k), O});
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       if (ToBoolean(selected)) {
-        AddValueProperty(A, NumberToU16String(to), k_value, true, true, true);
+        AddValueProperty(A, NumberToString(to), k_value, true, true, true);
         to++;
       }
     }

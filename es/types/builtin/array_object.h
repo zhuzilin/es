@@ -18,10 +18,6 @@ std::u16string NumberToU16String(double m);
 double StringToNumber(Handle<String> source);
 Handle<JSObject> ToObject(Handle<Error>& e, Handle<JSValue> input);
 
-bool IsArrayIndex(Handle<String> P) {
-  return *P.val() == *NumberToString(uint32_t(StringToNumber(P))).val();
-}
-
 class ArrayProto : public JSObject {
  public:
   static  Handle<ArrayProto> Instance() {

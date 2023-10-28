@@ -45,7 +45,7 @@ Handle<JSValue> LessThan(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y,
     if (unlikely(!e.val()->IsOk())) return Undefined::Instance();
     Handle<String> sy = ToString(e, py);
     if (unlikely(!e.val()->IsOk())) return Undefined::Instance();
-    return Bool::Wrap(*sx.val() < *sy.val());
+    return Bool::Wrap(StringLessThan(sx.val(), sy.val()));
   }
 }
 

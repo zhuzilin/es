@@ -111,11 +111,18 @@ class Bool : public JSValue {
   inline bool data() { return reinterpret_cast<uint64_t>(this) >> STACK_SHIFT; }
 };
 
+double ToArrayIndex(std::u16string str);
+std::u16string ArrayIndexToString(uint32_t index);
+
 class String : public JSValue {
  public:
   static Handle<String> New(const std::u16string& data, flag_t flag = 0) {
     size_t n = data.size();
-    Handle<String> str = String::New(n, flag);
+    double index = ToArrayIndex(data);
+    if (!isnan(index)) {
+      return String::New(index, n);
+    }
+    Handle<String> str = String::Alloc(n, flag);
 
     memcpy(PTR(str.val(), kStringDataOffset), data.data(), n * kChar16Size);
 
@@ -124,31 +131,45 @@ class String : public JSValue {
 
   static Handle<String> New(std::u16string&& data, flag_t flag = 0) {
     size_t n = data.size();
-    Handle<String> str = String::New(n, flag);
+    double index = ToArrayIndex(data);
+    if (!isnan(index)) {
+      return String::New(index, n);
+    }
+    Handle<String> str = String::Alloc(n, flag);
 
     memcpy(PTR(str.val(), kStringDataOffset), data.data(), n * kChar16Size);
 
     return str;
   }
 
-  static Handle<String> New(size_t n, flag_t flag = 0) {
-    Handle<JSValue> jsval = HeapObject::New(kSizeTSize + n * kChar16Size, flag);
-
-    if (n < kLongStringSize) {
-      // The last digit is for decide whether hash is calculated.
-      SET_VALUE(jsval.val(), kLengthOffset, n << 16, size_t);
-      jsval.val()->SetType(JS_STRING);
-    } else {
-      SET_VALUE(jsval.val(), kLengthOffset, n << 1, size_t);
-      jsval.val()->SetType(JS_LONG_STRING);
+  static Handle<String> New(uint32_t index) {
+    size_t n = 1;
+    uint32_t tmp = index / 10;
+    while (tmp) {
+      n++;
+      tmp /= 10;
     }
-    return Handle<String>(jsval);
+    return String::New(index, n);
   }
 
-  std::u16string data() { return std::u16string(c_str(), size()); }
-  char16_t* c_str() { return TYPED_PTR(this, kStringDataOffset, char16_t); }
-  size_t length_slot() { return READ_VALUE(this, kLengthOffset, size_t); }
+  bool IsArrayIndex() { return stack_type() == JS_STRING; }
+  uint32_t Index() {
+    ASSERT(IsArrayIndex());
+    return reinterpret_cast<uint64_t>(this) >> (STACK_SHIFT + 5);
+  }
+  std::u16string data() {
+    if (IsArrayIndex())
+      return ArrayIndexToString(Index());
+    return std::u16string(c_str(), size());
+  }
+  size_t length_slot() {
+    ASSERT(!IsArrayIndex());
+    return READ_VALUE(this, kLengthOffset, size_t);
+  }
   size_t size() {
+    if (IsArrayIndex()) {
+      return (reinterpret_cast<uint64_t>(this) >> STACK_SHIFT) & 31;
+    }
     size_t slot = length_slot();
     switch (type()) {
       case JS_STRING:
@@ -160,6 +181,8 @@ class String : public JSValue {
     }
   }
   size_t Hash() {
+    if (IsArrayIndex())
+      return Index();
     size_t slot = length_slot();
     if (slot & 1) return slot >> 1;
     size_t hash = U16Hash(data());
@@ -169,20 +192,24 @@ class String : public JSValue {
     return hash >> 1;
   }
 
-  bool HasHash() { return length_slot() & 1; }
+  bool HasHash() { return IsArrayIndex() || (length_slot() & 1); }
 
-  char16_t& operator [](int index) {
+  char16_t get(size_t index) {
+    ASSERT(index < size());
+    if (IsArrayIndex()) {
+      uint32_t remains = size() - index - 1;
+      uint32_t index = Index();
+      while (remains) {
+        index /= 10;
+      }
+      return u'0' + index % 10;
+    }
     return c_str()[index];
   }
 
   static Handle<String> Substr(Handle<String> str, size_t pos, size_t len) {
-    Handle<String> substring = String::New(len);
-    memcpy(
-      PTR(substring.val(), kStringDataOffset),
-      str.val()->c_str() + pos,
-      len * kChar16Size
-    );
-    return substring;
+    std::u16string substring = str.val()->data().substr(pos, len);
+    return String::New(substring);
   }
 
   static Handle<String> Empty() {
@@ -216,8 +243,7 @@ class String : public JSValue {
   }
 
   static Handle<String> Zero() {
-    static Handle<String> singleton = String::New(u"0", GCFlag::CONST | GCFlag::SINGLE);
-    return singleton;
+    return String::New(u"0");
   }
 
   static Handle<String> Infinity() {
@@ -281,6 +307,32 @@ class String : public JSValue {
   }
 
  private:
+  static Handle<String> Alloc(size_t n, flag_t flag = 0) {
+    Handle<JSValue> jsval = HeapObject::New(kSizeTSize + n * kChar16Size, flag);
+
+    if (n < kLongStringSize) {
+      // The last digit is for decide whether hash is calculated.
+      SET_VALUE(jsval.val(), kLengthOffset, n << 16, size_t);
+      jsval.val()->SetType(JS_STRING);
+    } else {
+      SET_VALUE(jsval.val(), kLengthOffset, n << 1, size_t);
+      jsval.val()->SetType(JS_LONG_STRING);
+    }
+    return Handle<String>(jsval);
+  }
+
+  static Handle<String> New(uint32_t index, size_t size) {
+    return Handle<String>(reinterpret_cast<String*>(
+      (uint64_t(index) << (STACK_SHIFT + 5)) |  // 5 bits for size should be enough
+      (size << STACK_SHIFT) |
+      JS_STRING));
+  }
+
+  char16_t* c_str() {
+    ASSERT(!IsArrayIndex());
+    return TYPED_PTR(this, kStringDataOffset, char16_t);
+  }
+
   static constexpr size_t kLengthOffset = kJSValueOffset;
   static constexpr size_t kStringDataOffset = kLengthOffset + kSizeTSize;
 
@@ -289,34 +341,42 @@ class String : public JSValue {
   static constexpr std::hash<std::u16string> U16Hash = std::hash<std::u16string>{};
 };
 
-inline bool operator ==(String& a, String& b) {
-  if (a.HasHash() && b.HasHash()) {
-    if (a.length_slot() != b.length_slot())
+inline bool StringEqual(String* a, String* b) {
+  if (a->IsArrayIndex() != b->IsArrayIndex())
+    return false;
+  if (a->IsArrayIndex() && b->IsArrayIndex())
+    return a->Index() == b->Index();
+  if (a->HasHash() && b->HasHash()) {
+    if (a->length_slot() != b->length_slot())
       return false;
-  } else if (a.size() != b.size()) {
+  }
+  if (a->size() != b->size()) {
     return false;
   }
-  size_t size = a.size();
+  size_t size = a->size();
   for (size_t i = 0; i < size; i++) {
-    if (a[i] != b[i])
+    if (a->get(i) != b->get(i))
       return false;
   }
   return true;
 }
 
-inline bool operator !=(String& a, String& b) {
-  return !(a == b);
-}
-
-bool operator <(String& a, String& b) {
-  size_t size = a.size();
-  if (b.size() < size)
-    size = b.size();
-  for (size_t i = 0; i < size; i++) {
-    if (a[i] != b[i])
-      return a[i] < b[i];
+inline bool StringLessThan(String* a, String* b) {
+  if (a->IsArrayIndex() && b->IsArrayIndex()) {
+    return a->Index() < b->Index();
   }
-  return a.size() < b.size();
+  if (a->IsArrayIndex() || b->IsArrayIndex()) {
+    return a->data() < b->data();
+  }
+  size_t size_a = a->size();
+  size_t size_b = b->size();
+  size_t size = size_a < size_b ? size_a : size_b;
+
+  for (size_t i = 0; i < size; i++) {
+    if (a->get(i) != b->get(i))
+      return a->get(i) < b->get(i);
+  }
+  return size_a < size_b;
 }
 
 class Number : public JSValue {
@@ -368,11 +428,6 @@ class Number : public JSValue {
     }
     return READ_VALUE(this, kJSValueOffset, double);
   }
-
-  union Double2Uint64 {
-    double double_;
-    uint64_t uint64_;
-  };
 };
 
 class Error;

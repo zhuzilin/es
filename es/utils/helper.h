@@ -129,6 +129,11 @@ bool DefinitelyLessThan(double a, double b) {
   return (b - a) > ((fabs(a) < fabs(b) ? fabs(b) : fabs(a)) * kEpsilon);
 }
 
+union Double2Uint64 {
+  double double_;
+  uint64_t uint64_;
+};
+
 }  // namespace es
 
 
