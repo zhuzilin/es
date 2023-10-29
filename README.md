@@ -38,6 +38,20 @@ sh quickjs-test.sh
 
 The quickjs tests pass if there is no output.
 
+## Perf test
+
+Compile with:
+
+```
+g++ es.cc -std=c++17 -I$(PWD) -Wall -Wno-deprecated-declarations -Wextra -Wno-unused-parameter -o bin/es -O2 -DPERF -lprofiler
+```
+
+And run with:
+
+```
+CPUPROFILE_FREQUENCY=4000 bin/es xxx.js
+```
+
 ## Acknowledgement
 
 I've learned a lot from [Constellation/iv](https://github.com/Constellation/iv), [V8](https://v8.dev/) and thanks a lot for 

@@ -12,6 +12,9 @@
 #include <es/utils/helper.h>
 #include <es/gc/heap.h>
 #include <es/impl.h>
+#ifdef PERF
+#include <gperftools/profiler.h>
+#endif
 
 using namespace es;
 
@@ -38,8 +41,14 @@ int main(int argc, char* argv[]) {
   std::string filename(argv[1]);
   std::u16string source = ReadUTF8FileToUTF16String(filename);
 
+#ifdef PERF
+  ProfilerStart("parse_program");
+#endif
   Parser parser(source);
   AST* ast = parser.ParseProgram();
+#ifdef PERF
+  ProfilerStop();
+#endif
   if (ast->IsIllegal()) {
     size_t start = ast->start();
     for (size_t i = 0; i < 10; i++) {
@@ -68,12 +77,18 @@ int main(int argc, char* argv[]) {
 
   Init();
   Handle<Error> e = Error::Ok();
+#ifdef PERF
+  ProfilerStart("eval_program");
+#endif
   EnterGlobalCode(e, ast);
   if (unlikely(!e.val()->IsOk())) {
     std::cout << "\033[1;31m" << "Enter global failed: " << e.ToString() << "\033[0m" << "\n";
     return 0;
   }
   Completion res = EvalProgram(ast);
+#ifdef PERF
+  ProfilerStop();
+#endif
   switch (res.type()) {
     case Completion::THROW: {
       std::cout << "\033[1;31m" << "Uncaught ";

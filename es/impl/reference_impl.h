@@ -11,14 +11,14 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
   }
   TEST_LOG("GetValue V:" + V.ToString());
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
-  if (ref.val()->IsUnresolvableReference()) {
+  Handle<JSValue> base = ref.val()->GetBase();
+  if (Reference::IsUnresolvableReference(base)) {
     e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
     return Handle<JSValue>();
   }
-  Handle<JSValue> base = ref.val()->GetBase();
-  if (ref.val()->IsPropertyReference()) {  // 4
+  if (Reference::IsPropertyReference(base)) {  // 4
     // 4.a & 4.b
-    if (!ref.val()->HasPrimitiveBase()) {
+    if (!Reference::HasPrimitiveBase(base)) {
       ASSERT(base.val()->IsObject());
       Handle<JSObject> obj = static_cast<Handle<JSObject>>(base);
       return Get(e, obj, ref.val()->GetReferencedName());
@@ -56,16 +56,16 @@ void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
   TEST_LOG("PutValue V: " + V.ToString() + ", W: " + W.ToString());
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
   Handle<JSValue> base = ref.val()->GetBase();
-  if (ref.val()->IsUnresolvableReference()) {  // 3
+  if (Reference::IsUnresolvableReference(base)) {  // 3
     if (ref.val()->IsStrictReference()) {  // 3.a
       e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
       return;
     }
     Put(e, GlobalObject::Instance(), ref.val()->GetReferencedName(), W, false);  // 3.b
-  } else if (ref.val()->IsPropertyReference()) {
+  } else if (Reference::IsPropertyReference(base)) {
     bool throw_flag = ref.val()->IsStrictReference();
     Handle<String> P = ref.val()->GetReferencedName();
-    if (!ref.val()->HasPrimitiveBase()) {
+    if (!Reference::HasPrimitiveBase(base)) {
       ASSERT(base.val()->IsObject());
       Handle<JSObject> base_obj = static_cast<Handle<JSObject>>(base);
       Put(e, base_obj, P, W, throw_flag);

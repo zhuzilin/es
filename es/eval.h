@@ -1085,19 +1085,21 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
         if (!expr.val()->IsReference())  // 2
           return Bool::True();
         Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
-        if (ref.val()->IsUnresolvableReference()) {  // 3
-          if (ref.val()->IsStrictReference()) {
+        Handle<JSValue> base = ref.val()->GetBase();
+        bool is_strict_ref = ref.val()->IsStrictReference();
+        if (Reference::IsUnresolvableReference(base)) {  // 3
+          if (is_strict_ref) {
             e = Error::SyntaxError(u"delete not exist variable " + ref.val()->GetReferencedName().val()->data());
             return Bool::False();
           }
           return Bool::True();
         }
-        if (ref.val()->IsPropertyReference()) {  // 4
+        if (Reference::IsPropertyReference(base)) {  // 4
           Handle<JSObject> obj = ToObject(e, ref.val()->GetBase());
           if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
           return Bool::Wrap(Delete(e, obj, ref.val()->GetReferencedName(), ref.val()->IsStrictReference()));
         } else {
-          if (ref.val()->IsStrictReference()) {
+          if (is_strict_ref) {
             e = Error::SyntaxError(u"cannot delete environment record in strict mode");
             return Bool::False();
           }
@@ -1107,7 +1109,7 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
       } else if (op.source_ref() == u"typeof") {
         if (expr.val()->IsReference()) {
           Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
-          if (ref.val()->IsUnresolvableReference())
+          if (Reference::IsUnresolvableReference(ref.val()->GetBase()))
             return String::undefined();
         }
         Handle<JSValue> val = GetValue(e, expr);
@@ -1383,11 +1385,12 @@ Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Han
     // NOTE in 11.13.1.
     // TODO(zhuzilin) not sure how to implement the type error part of the note.
     if (ref.val()->IsStrictReference()) {
-      if (ref.val()->IsUnresolvableReference()) {
+      Handle<JSValue> base = ref.val()->GetBase();
+      if (Reference::IsUnresolvableReference(base)) {
         e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
         return Handle<JSValue>();
       }
-      if (ref.val()->GetBase().val()->IsEnvironmentRecord() &&
+      if (base.val()->IsEnvironmentRecord() &&
           (StringEqual(ref.val()->GetReferencedName(), String::eval()) ||
            StringEqual(ref.val()->GetReferencedName(), String::arguments()))) {
         e = Error::SyntaxError(u"cannot assign on eval or arguments");
@@ -1522,7 +1525,7 @@ Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::v
   if (ref.val()->IsReference()) {
     Handle<Reference> r = static_cast<Handle<Reference>>(ref);
     Handle<JSValue> base = r.val()->GetBase();
-    if (r.val()->IsPropertyReference()) {
+    if (Reference::IsPropertyReference(base)) {
       this_value = base;
     } else {
       ASSERT(base.val()->IsEnvironmentRecord());

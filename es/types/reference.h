@@ -17,27 +17,11 @@ class Reference : public JSValue {
     Handle<String> reference_name,
     bool strict_reference
   ) {
-    Handle<JSValue> jsval = HeapObject::New(kBitmaskOffset + kCharSize - kJSValueOffset);
-
-    Type base_type = base.val()->type();
-    char bitmask = 0;
-    if (strict_reference)
-      bitmask |= STRICT;
-    bool has_primitive_base = IsBool(base_type) ||
-                              IsString(base_type) ||
-                              IsNumber(base_type);
-    if (has_primitive_base)
-      bitmask |= HAS_PRIMITIVE_BASE;
-    bool is_property_reference = has_primitive_base || IsObject(base_type);
-    if (is_property_reference)
-      bitmask |= PROPERTY;
-    bool is_unresolvable_reference = IsUndefined(base_type);
-    if (is_unresolvable_reference)
-      bitmask |= UNRESOLVABLE;
+    Handle<JSValue> jsval = HeapObject::New(kStrictOffset + kBoolSize - kJSValueOffset);
 
     SET_HANDLE_VALUE(jsval.val(), kBaseOffset, base, JSValue);
     SET_HANDLE_VALUE(jsval.val(), kReferenceNameOffset, reference_name, String);
-    SET_VALUE(jsval.val(), kBitmaskOffset, bitmask, char);
+    SET_VALUE(jsval.val(), kStrictOffset, strict_reference, bool);
 
     jsval.val()->SetType(JS_REF);
     return Handle<Reference>(jsval);
@@ -45,18 +29,19 @@ class Reference : public JSValue {
 
   Handle<JSValue> GetBase() { return READ_HANDLE_VALUE(this, kBaseOffset, JSValue); }
   Handle<String> GetReferencedName() { return READ_HANDLE_VALUE(this, kReferenceNameOffset, String); }
-  inline char bitmask() {
-    return READ_VALUE(this, kBitmaskOffset, char);
+  bool IsStrictReference() { return READ_VALUE(this, kStrictOffset, bool); }
+
+  static bool HasPrimitiveBase(Handle<JSValue> base) {
+    Type base_type = base.val()->type();
+    return IsBool(base_type) || IsString(base_type) || IsNumber(base_type);
   }
-  bool IsStrictReference() { return bitmask() & STRICT; }
-  bool HasPrimitiveBase() { return bitmask() & HAS_PRIMITIVE_BASE; }
-  bool IsPropertyReference() { return bitmask() & PROPERTY; }
-  bool IsUnresolvableReference() { return bitmask() & UNRESOLVABLE; }
+  static bool IsPropertyReference(Handle<JSValue> base) { return base.val()->IsObject() || HasPrimitiveBase(base); }
+  static bool IsUnresolvableReference(Handle<JSValue> base) { return base.val()->IsUndefined(); }
 
  public:
   static constexpr size_t kBaseOffset = kJSValueOffset;
   static constexpr size_t kReferenceNameOffset = kBaseOffset + kPtrSize;
-  static constexpr size_t kBitmaskOffset = kReferenceNameOffset + kPtrSize;
+  static constexpr size_t kStrictOffset = kReferenceNameOffset + kPtrSize;
 
   enum Field {
     STRICT              = 1 << 0,
