@@ -12,7 +12,7 @@ class HeapObject;
 
 constexpr size_t kHandleBlockSize = 10 * 1024;
 constexpr size_t kNumSingletonHandle = 32;
-constexpr size_t kNumConstantHandle = 32;
+constexpr size_t kNumConstantHandle = 10 * 1024 * 1024;  // 10M
 
 struct HandleBlock {
   HandleBlock() :
@@ -42,18 +42,22 @@ class HandleScope {
   static HeapObject** Add(HeapObject* val) {
     if (reinterpret_cast<uint64_t>(val) & STACK_MASK)
       goto normal;
+#ifdef PARSER_ONLY
+    assert(Flag(val) & GCFlag::CONST);
+#endif
     if ((Flag(val) & GCFlag::CONST)) {
-      if (constant_pointers_count_ == kNumConstantHandle) {
+      if (constant_pointers_map_.size() == kNumConstantHandle) {
         throw std::runtime_error("too much constant handles");
       }
-      for (size_t i = 0; i < constant_pointers_count_; i++) {
-        if (constant_pointers_[i] == val) {
-          return constant_pointers_ + i;
-        }
+      auto iter = constant_pointers_map_.find(val);
+      if (iter != constant_pointers_map_.end()) {
+        size_t offset = iter->second;
+        return constant_pointers_ + offset;
       }
-      HeapObject** ptr = constant_pointers_ + constant_pointers_count_;
+      size_t offset = constant_pointers_map_.size();
+      HeapObject** ptr = constant_pointers_ + offset;
       *ptr = val;
-      constant_pointers_count_++;
+      constant_pointers_map_[val] = offset;
       return ptr;
     } else if ((Flag(val) & GCFlag::SINGLE)) {
       if (singleton_pointers_count_ == kNumSingletonHandle) {
@@ -70,7 +74,7 @@ class HandleScope {
       return ptr;
     }
 normal:
-    if (block_stack_.back().offset_ == kHandleBlockSize) {
+    if (block_stack_.size() == 0 || block_stack_.back().offset_ == kHandleBlockSize) {
       block_stack_.emplace_back(HandleBlock());
     }
     HandleBlock& block = block_stack_.back();
@@ -110,7 +114,7 @@ normal:
   static size_t singleton_pointers_count_;
 
   static HeapObject* constant_pointers_[kNumConstantHandle];
-  static size_t constant_pointers_count_;
+  static std::unordered_map<HeapObject*, uint32_t> constant_pointers_map_;
 
   static std::vector<HandleBlock> block_stack_;
 };
@@ -119,7 +123,7 @@ HeapObject* HandleScope::singleton_pointers_[kNumSingletonHandle];
 size_t HandleScope::singleton_pointers_count_ = 0;
 
 HeapObject* HandleScope::constant_pointers_[kNumConstantHandle];
-size_t HandleScope::constant_pointers_count_ = 0;
+std::unordered_map<HeapObject*, uint32_t> HandleScope::constant_pointers_map_;
 
 std::vector<HandleBlock> HandleScope::block_stack_;
 

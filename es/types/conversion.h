@@ -490,6 +490,20 @@ Handle<String> NumberToString(double m) {
   return String::New(NumberToU16String(m));
 }
 
+Handle<String> NumberToStringConst(double m) {
+#ifdef PARSER_TEST
+  std::cout << "NumberToStringConst " << m << std::endl;
+#endif
+  if (isnan(m))
+    return String::NaN();
+  if (isinf(m))
+    return signbit(m) ? String::NegativeInfinity() : String::Infinity();
+  if (static_cast<double>(static_cast<uint32_t>(m)) == m)
+    return String::New(static_cast<uint32_t>(m));
+  return String::New(NumberToU16String(m), GCFlag::CONST);
+}
+
+
 Handle<String> NumberToString(Handle<Number> num) {
   return NumberToString(num.val()->data());
 }

@@ -240,33 +240,35 @@ class String : public JSValue {
     return str;
   }
 
+  static Handle<JSValue> Eval(const std::u16string& source, flag_t flag);
+
   static Handle<String> Empty() {
-    static Handle<String> singleton = String::New(u"", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> undefined() {
-    static Handle<String> singleton = String::New(u"undefined", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"undefined", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> Null() {
-    static Handle<String> singleton = String::New(u"null", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"null", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> True() {
-    static Handle<String> singleton = String::New(u"true", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"true", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> False() {
-    static Handle<String> singleton = String::New(u"false", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"false", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> NaN() {
-    static Handle<String> singleton = String::New(u"NaN", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"NaN", GCFlag::CONST);
     return singleton;
   }
 
@@ -275,117 +277,117 @@ class String : public JSValue {
   }
 
   static Handle<String> Infinity() {
-    static Handle<String> singleton = String::New(u"Infinity", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"Infinity", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> NegativeInfinity() {
-    static Handle<String> singleton = String::New(u"-Infinity", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"-Infinity", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> Prototype() {
-    static Handle<String> singleton = String::New(u"prototype", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"prototype", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> Constructor() {
-    static Handle<String> singleton = String::New(u"constructor", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"constructor", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> Length() {
-    static Handle<String> singleton = String::New(u"length", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"length", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> Value() {
-    static Handle<String> singleton = String::New(u"value", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"value", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> Writable() {
-    static Handle<String> singleton = String::New(u"writable", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"writable", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> Get() {
-    static Handle<String> singleton = String::New(u"get", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"get", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> Set() {
-    static Handle<String> singleton = String::New(u"set", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"set", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> Arguments() {
-    static Handle<String> singleton = String::New(u"arguments", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"arguments", GCFlag::CONST);
     return singleton;
   }
 
-  static Handle<String> Eval() {
-    static Handle<String> singleton = String::New(u"eval", GCFlag::CONST | GCFlag::SINGLE);
+  static Handle<String> eval() {
+    static Handle<String> singleton = String::New(u"eval", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> Enumerable() {
-    static Handle<String> singleton = String::New(u"enumerable", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"enumerable", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> Configurable() {
-    static Handle<String> singleton = String::New(u"configurable", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"configurable", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> caller() {
-    static Handle<String> singleton = String::New(u"caller", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"caller", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> callee() {
-    static Handle<String> singleton = String::New(u"callee", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"callee", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> object() {
-    static Handle<String> singleton = String::New(u"object", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"object", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> boolean() {
-    static Handle<String> singleton = String::New(u"boolean", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"boolean", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> number() {
-    static Handle<String> singleton = String::New(u"number", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"number", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> string() {
-    static Handle<String> singleton = String::New(u"string", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"string", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> function() {
-    static Handle<String> singleton = String::New(u"function", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"function", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> message() {
-    static Handle<String> singleton = String::New(u"message", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"message", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> valueOf() {
-    static Handle<String> singleton = String::New(u"valueOf", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"valueOf", GCFlag::CONST);
     return singleton;
   }
 
   static Handle<String> toString() {
-    static Handle<String> singleton = String::New(u"toString", GCFlag::CONST | GCFlag::SINGLE);
+    static Handle<String> singleton = String::New(u"toString", GCFlag::CONST);
     return singleton;
   }
 
@@ -481,6 +483,8 @@ class Number : public JSValue {
     jsval.val()->SetType(JS_NUMBER);
     return Handle<Number>(jsval);
   }
+
+  static Handle<Number> Eval(const std::u16string& source, flag_t flag);
 
   static Handle<Number> NaN() {
     return Number::New(nan(""));

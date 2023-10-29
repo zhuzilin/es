@@ -9,6 +9,7 @@
 
 #include <es/parser/token.h>
 #include <es/utils/macros.h>
+#include <es/types/base.h>
 
 namespace es {
 
@@ -72,7 +73,22 @@ class AST {
 
   AST(Type type) : type_(type) {}
   AST(Type type, std::u16string source, size_t start, size_t end) :
-    type_(type), source_(source), start_(start), end_(end) {}
+    type_(type), source_(source), start_(start), end_(end) {
+    switch (type) {
+      case AST::AST_EXPR_IDENT:
+      case AST::AST_EXPR_STRICT_FUTURE:
+        jsval_ = String::New(source, GCFlag::CONST);
+        break;
+      case AST::AST_EXPR_STRING:
+        jsval_ = String::Eval(source, GCFlag::CONST);
+        break;
+      case AST::AST_EXPR_NUMBER:
+        jsval_ = Number::Eval(source, GCFlag::CONST);
+        break;
+      default:
+        jsval_ = Handle<JSValue>();
+    }
+  }
   virtual ~AST() {};
 
   Type type() { return type_; }
@@ -80,6 +96,7 @@ class AST {
   const std::u16string& source_ref() { return source_; }
   size_t start() { return start_; }
   size_t end() { return end_; }
+  Handle<JSValue> jsval() { return jsval_; }
 
   void SetSource(std::u16string source, size_t start, size_t end) {
     source_ = source;
@@ -98,6 +115,7 @@ class AST {
   size_t start_;
   size_t end_;
   std::u16string label_;
+  Handle<JSValue> jsval_;
 };
 
 class RegExpLiteral : public AST {
@@ -139,6 +157,7 @@ class ArrayLiteral : public AST {
   size_t len_;
 };
 
+Handle<String> NumberToStringConst(double m);
 class ObjectLiteral : public AST {
  public:
   ObjectLiteral() : AST(AST_EXPR_OBJ) {}
@@ -156,15 +175,36 @@ class ObjectLiteral : public AST {
       SET,
     };
 
-    Property(Token k, AST* v, Type t) : key(k), value(v), type(t) {}
+    Property(Token k, AST* v, Type t) : value(v), type(t) {
+      key = EvalPropertyName(k);
+    }
 
-    Token key;
+    Handle<String> key;
     AST* value;
     Type type;
   };
 
   void AddProperty(Property p) {
     properties_.emplace_back(p);
+  }
+
+  static Handle<String> EvalPropertyName(Token token) {
+    switch (token.type()) {
+      case Token::TK_STRICT_FUTURE:
+      case Token::TK_IDENT:
+      case Token::TK_KEYWORD:
+      case Token::TK_FUTURE:
+      case Token::TK_NULL:
+      case Token::TK_BOOL:
+        return String::New(token.source(), GCFlag::CONST);
+      case Token::TK_NUMBER:
+        return NumberToStringConst(Number::Eval(token.source_ref(), GCFlag::CONST).val()->data());
+      case Token::TK_STRING: {
+        return String::Eval(token.source_ref(), GCFlag::CONST);
+      }
+      default:
+        assert(false);
+    }
   }
 
   std::vector<Property> properties() { return properties_; }

@@ -55,6 +55,16 @@ class Error : public JSValue {
     return singleton;
   }
 
+  // Only used in parser
+  static Handle<Error> SyntaxErrorConst(std::u16string message, flag_t flag) {
+    std::cout << "SyntaxError const" << std::endl;
+    ASSERT(flag == GCFlag::CONST);
+    Handle<Error> error = Error::New(E_SYNTAX, Handle<JSValue>(), flag);
+    Handle<String> msg = message == u"" ? String::Empty() : String::New(message, flag);
+    error.val()->SetValue(msg);
+    return error;
+  }
+
   static Handle<Error> TypeError(std::u16string message = u"") {
     static Handle<Error> singleton = Error::New(E_TYPE, Handle<JSValue>(), GCFlag::SINGLE);
     singleton.val()->SetMessage(message);

@@ -874,222 +874,51 @@ void IdentifierResolutionAndPutValue(Handle<Error>& e, std::u16string name, Hand
 
 Handle<Reference> EvalIdentifier(AST* ast) {
   ASSERT(ast->type() == AST::AST_EXPR_IDENT || ast->type() == AST::AST_EXPR_STRICT_FUTURE);
+  ASSERT(!ast->jsval().IsNullptr());
   // 10.3.1 Identifier Resolution
   Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
-  Handle<String> ref_name = String::New(ast->source());
+  Handle<String> ref_name = ast->jsval();
   bool strict = Runtime::TopContext().strict();
   return GetIdentifierReference(env, ref_name, strict);
 }
 
 Handle<JSValue> EvalIdentifierAndGetValue(Handle<Error>& e, AST* ast) {
   ASSERT(ast->type() == AST::AST_EXPR_IDENT || ast->type() == AST::AST_EXPR_STRICT_FUTURE);
+  ASSERT(!ast->jsval().IsNullptr());
   // 10.3.1 Identifier Resolution
   Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
-  Handle<String> ref_name = String::New(ast->source());
+  Handle<String> ref_name = ast->jsval();
   bool strict = Runtime::TopContext().strict();
   return GetIdentifierReferenceAndGetValue(e, env, ref_name, strict);
 }
 
 void EvalIdentifierAndPutValue(Handle<Error>& e, AST* ast, Handle<JSValue> val) {
   ASSERT(ast->type() == AST::AST_EXPR_IDENT || ast->type() == AST::AST_EXPR_STRICT_FUTURE);
+  ASSERT(!ast->jsval().IsNullptr());
   // 10.3.1 Identifier Resolution
   Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
-  Handle<String> ref_name = String::New(ast->source());
+  Handle<String> ref_name = ast->jsval();
   bool strict = Runtime::TopContext().strict();
   return GetIdentifierReferenceAndPutValue(e, env, ref_name, strict, val);
 }
 
-
-// This verson of string to number assumes the string is valid.
-Handle<Number> EvalNumber(const std::u16string& source) {
-  double val = 0;
-  double frac = 1;
-  size_t pos = 0;
-  bool dot = false;
-  while (pos < source.size()) {
-    char16_t c = source[pos];
-    switch (c) {
-      case u'.':
-        dot = true;
-        break;
-      case u'e':
-      case u'E': {
-        double exp = 0;
-        bool sign = true;
-        pos++;  // skip e/E
-        c = source[pos];
-        if (c == u'-') {
-          sign = false;
-          pos++;  // skip -
-        } else if (c == u'+') {
-          sign = true;
-          pos++; // skip +;
-        }
-        while (pos < source.size()) {
-          c = source[pos];
-          exp *= 10;
-          exp += character::Digit(c);
-          pos++;
-        }
-        if (!sign)
-          exp = -exp;
-        return Number::New(val * pow(10.0, exp));
-      }
-      case u'x':
-      case u'X': {
-        ASSERT(val == 0);
-        pos++;
-        while (pos < source.size()) {
-          c = source[pos];
-          val *= 16;
-          val += character::Digit(c);
-          pos++;
-        }
-        return Number::New(val);
-      }
-      default:
-        if (dot) {
-          frac /= 10;
-          val += character::Digit(c) * frac;
-        } else {
-          val *= 10;
-          val += character::Digit(c);
-        }
-    }
-    pos++;
-  }
-  return Number::New(val);
-}
-
 Handle<Number> EvalNumber(AST* ast) {
   ASSERT(ast->type() == AST::AST_EXPR_NUMBER);
-  const std::u16string& source = ast->source();
-  return EvalNumber(source);
-}
-
-Handle<String> EvalString(Handle<Error>& e, const std::u16string& source) {
-  size_t pos = 1;
-  std::vector<std::u16string> vals;
-  while (pos < source.size() - 1) {
-    char16_t c = source[pos];
-    switch (c) {
-      case u'\\': {
-        pos++;
-        c = source[pos];
-        switch (c) {
-          case u'b':
-            pos++;
-            vals.emplace_back(u"\b");
-            break;
-          case u't':
-            pos++;
-            vals.emplace_back(u"\t");
-            break;
-          case u'n':
-            pos++;
-            vals.emplace_back(u"\n");
-            break;
-          case u'v':
-            pos++;
-            vals.emplace_back(u"\v");
-            break;
-          case u'f':
-            pos++;
-            vals.emplace_back(u"\f");
-            break;
-          case u'r':
-            pos++;
-            vals.emplace_back(u"\r");
-            break;
-          case u'0': {
-            pos++;
-            if (pos < source.size() && character::IsDecimalDigit(source[pos])) {
-              e = Error::SyntaxError(u"decimal digit after \\0");
-              return Handle<String>();
-            }
-            vals.emplace_back(std::u16string(1, 0));
-            break;
-          }
-          case u'x': {
-            pos++;  // skip 'x'
-            char16_t hex = 0;
-            for (size_t i = 0; i < 2; i++) {
-              hex *= 16;
-              hex += character::Digit(source[pos]);
-              pos++;
-            }
-            vals.emplace_back(std::u16string(1, hex));
-            break;
-          }
-          case u'u': {
-            pos++;  // skip 'u'
-            char16_t hex = 0;
-            for (size_t i = 0; i < 4; i++) {
-              hex *= 16;
-              hex += character::Digit(source[pos]);
-              pos++;
-            }
-            vals.emplace_back(std::u16string(1, hex));
-            break;
-          }
-          default:
-            c = source[pos];
-            if (character::IsLineTerminator(c)) {
-              pos++;
-              continue;
-            }
-            pos++;
-            vals.emplace_back(std::u16string(1, c));
-        }
-        break;
-      }
-      default: {
-        size_t start = pos;
-        while (true) {
-          if (pos == source.size() - 1 || source[pos] == u'\\')
-            break;
-          pos++;
-        }
-        size_t end = pos;
-        if (end == source.size() - 1 && vals.size() == 0)
-          return String::New(source.substr(start, end - start));
-        vals.emplace_back(source.substr(start, end - start));
-      }
-    }
-  }
-  if (vals.size() == 0) {
-    return String::Empty();
-  } else if (vals.size() == 1) {
-    return String::New(vals[0]);
-  }
-  return String::New(StrCat(vals));
+  ASSERT(!ast->jsval().IsNullptr());
+  ASSERT(ast->jsval().val()->IsNumber());
+  return ast->jsval();
 }
 
 Handle<String> EvalString(Handle<Error>& e, AST* ast) {
   ASSERT(ast->type() == AST::AST_EXPR_STRING);
-  const std::u16string& source = ast->source_ref();
-  return EvalString(e, source);
-}
-
-Handle<String> EvalPropertyName(Handle<Error>& e, Token token) {
-  switch (token.type()) {
-    case Token::TK_STRICT_FUTURE:
-    case Token::TK_IDENT:
-    case Token::TK_KEYWORD:
-    case Token::TK_FUTURE:
-    case Token::TK_NULL:
-    case Token::TK_BOOL:
-      return String::New(token.source());
-    case Token::TK_NUMBER:
-      return ToString(e, EvalNumber(token.source_ref()));
-    case Token::TK_STRING: {
-      Handle<String> s = EvalString(e, token.source_ref());
-      if (unlikely(!e.val()->IsOk())) return String::Empty();
-      return s;
-    }
-    default:
-      assert(false);
+  ASSERT(!ast->jsval().IsNullptr());
+  ASSERT(ast->jsval().val()->IsString() || ast->jsval().val()->IsError());
+  if (ast->jsval().val()->IsError()) {
+    e = ast->jsval();
+    return Handle<String>();
   }
+  Handle<String> s = ast->jsval();
+  return s;
 }
 
 Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
@@ -1137,7 +966,12 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
         break;
       }
     }
-    Handle<String> prop_name_str = EvalPropertyName(e, property.key);
+    Handle<JSValue> prop_name = property.key;
+    if (prop_name.val()->IsError()) {
+      e = prop_name;
+      return Handle<JSValue>();
+    }
+    Handle<String> prop_name_str = prop_name;
     auto previous = GetOwnProperty(obj, prop_name_str);  // 3
     if (!previous.val()->IsUndefined()) {  // 4
       Handle<PropertyDescriptor> previous_desc = static_cast<Handle<PropertyDescriptor>>(previous);
@@ -1196,7 +1030,7 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
       if (expr.val()->IsReference()) {
         Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
         if (ref.val()->IsStrictReference() && ref.val()->GetBase().val()->IsEnvironmentRecord() &&
-            (StringEqual(ref.val()->GetReferencedName(), String::Eval()) ||
+            (StringEqual(ref.val()->GetReferencedName(), String::eval()) ||
              StringEqual(ref.val()->GetReferencedName(), String::Arguments()))) {
           e = Error::SyntaxError(u"cannot inc or dec on eval or arguments");
           return Handle<JSValue>();
@@ -1558,7 +1392,7 @@ Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Han
         return Handle<JSValue>();
       }
       if (ref.val()->GetBase().val()->IsEnvironmentRecord() &&
-          (StringEqual(ref.val()->GetReferencedName(), String::Eval()) ||
+          (StringEqual(ref.val()->GetReferencedName(), String::eval()) ||
            StringEqual(ref.val()->GetReferencedName(), String::Arguments()))) {
         e = Error::SyntaxError(u"cannot assign on eval or arguments");
         return Handle<JSValue>();
@@ -1704,7 +1538,7 @@ Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::v
   }
   // indirect 
   if (ref.val()->IsReference() &&
-      StringEqual(static_cast<Handle<Reference>>(ref).val()->GetReferencedName(), String::Eval())) {
+      StringEqual(static_cast<Handle<Reference>>(ref).val()->GetReferencedName(), String::eval())) {
     DirectEvalGuard guard;
     return Call(e, obj, this_value, arg_list);
   } else {

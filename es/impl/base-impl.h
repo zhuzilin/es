@@ -111,6 +111,170 @@ std::string JSValue::ToString(JSValue* jsval) {
   }
 }
 
+Handle<JSValue> String::Eval(const std::u16string& source, flag_t flag) {
+#ifdef PARSER_TEST
+  std::cout << "String::Eval [" << log::ToString(source) << "] flag: " << static_cast<int>(flag) << std::endl;
+#endif
+  size_t pos = 1;
+  std::vector<std::u16string> vals;
+  while (pos < source.size() - 1) {
+    char16_t c = source[pos];
+    switch (c) {
+      case u'\\': {
+        pos++;
+        c = source[pos];
+        switch (c) {
+          case u'b':
+            pos++;
+            vals.emplace_back(u"\b");
+            break;
+          case u't':
+            pos++;
+            vals.emplace_back(u"\t");
+            break;
+          case u'n':
+            pos++;
+            vals.emplace_back(u"\n");
+            break;
+          case u'v':
+            pos++;
+            vals.emplace_back(u"\v");
+            break;
+          case u'f':
+            pos++;
+            vals.emplace_back(u"\f");
+            break;
+          case u'r':
+            pos++;
+            vals.emplace_back(u"\r");
+            break;
+          case u'0': {
+            pos++;
+            if (pos < source.size() && character::IsDecimalDigit(source[pos])) {
+              return Error::SyntaxErrorConst(u"decimal digit after \\0", flag);
+            }
+            vals.emplace_back(std::u16string(1, 0));
+            break;
+          }
+          case u'x': {
+            pos++;  // skip 'x'
+            char16_t hex = 0;
+            for (size_t i = 0; i < 2; i++) {
+              hex *= 16;
+              hex += character::Digit(source[pos]);
+              pos++;
+            }
+            vals.emplace_back(std::u16string(1, hex));
+            break;
+          }
+          case u'u': {
+            pos++;  // skip 'u'
+            char16_t hex = 0;
+            for (size_t i = 0; i < 4; i++) {
+              hex *= 16;
+              hex += character::Digit(source[pos]);
+              pos++;
+            }
+            vals.emplace_back(std::u16string(1, hex));
+            break;
+          }
+          default:
+            c = source[pos];
+            if (character::IsLineTerminator(c)) {
+              pos++;
+              continue;
+            }
+            pos++;
+            vals.emplace_back(std::u16string(1, c));
+        }
+        break;
+      }
+      default: {
+        size_t start = pos;
+        while (true) {
+          if (pos == source.size() - 1 || source[pos] == u'\\')
+            break;
+          pos++;
+        }
+        size_t end = pos;
+        if (end == source.size() - 1 && vals.size() == 0)
+          return String::New(source.substr(start, end - start), flag);
+        vals.emplace_back(source.substr(start, end - start));
+      }
+    }
+  }
+  if (vals.size() == 0) {
+    return String::Empty();
+  } else if (vals.size() == 1) {
+    return String::New(vals[0], flag);
+  }
+  return String::New(StrCat(vals), flag);
+}
+
+// This verson of string to number assumes the string is valid.
+Handle<Number> Number::Eval(const std::u16string& source, flag_t flag) {
+#ifdef PARSER_TEST
+  std::cout << "Number::Eval [" << log::ToString(source) << "] flag: " << static_cast<int>(flag) << std::endl;
+#endif
+  double val = 0;
+  double frac = 1;
+  size_t pos = 0;
+  bool dot = false;
+  while (pos < source.size()) {
+    char16_t c = source[pos];
+    switch (c) {
+      case u'.':
+        dot = true;
+        break;
+      case u'e':
+      case u'E': {
+        double exp = 0;
+        bool sign = true;
+        pos++;  // skip e/E
+        c = source[pos];
+        if (c == u'-') {
+          sign = false;
+          pos++;  // skip -
+        } else if (c == u'+') {
+          sign = true;
+          pos++; // skip +;
+        }
+        while (pos < source.size()) {
+          c = source[pos];
+          exp *= 10;
+          exp += character::Digit(c);
+          pos++;
+        }
+        if (!sign)
+          exp = -exp;
+        return Number::New(val * pow(10.0, exp), flag);
+      }
+      case u'x':
+      case u'X': {
+        ASSERT(val == 0);
+        pos++;
+        while (pos < source.size()) {
+          c = source[pos];
+          val *= 16;
+          val += character::Digit(c);
+          pos++;
+        }
+        return Number::New(val, flag);
+      }
+      default:
+        if (dot) {
+          frac /= 10;
+          val += character::Digit(c) * frac;
+        } else {
+          val *= 10;
+          val += character::Digit(c);
+        }
+    }
+    pos++;
+  }
+  return Number::New(val, flag);
+}
+
 }  // namespace es
 
 #endif  // ES_IMPL_BASE_IMPL_H
