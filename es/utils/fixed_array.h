@@ -24,6 +24,23 @@ class FixedArray : public JSValue {
     return Handle<FixedArray>(jsval);
   }
 
+  static Handle<FixedArray> New(uint32_t n) {
+#ifdef GC_DEBUG
+    if (unlikely(log::Debugger::On()))
+      std::cout << "FixedArray::New " << n << "\n";
+#endif
+    Handle<JSValue> jsval = HeapObject::New(kSizeTSize + n * kPtrSize);
+
+    SET_VALUE(jsval.val(), kSizeOffset, n, size_t);
+    for (size_t i = 0; i < n; i++) {
+      SET_VALUE(jsval.val(), kElementOffset + i * kPtrSize, nullptr, JSValue*);
+    }
+
+    SET_VALUE(jsval.val(), kSizeOffset, n, size_t);
+    jsval.val()->SetType(FIXED_ARRAY);
+    return Handle<FixedArray>(jsval);
+  }
+
   size_t size() { return READ_VALUE(this, kSizeOffset, size_t); }
   Handle<JSValue> Get(size_t i) { return READ_HANDLE_VALUE(this, kElementOffset + i * kPtrSize, JSValue); }
   JSValue* GetRaw(size_t i) { return READ_VALUE(this, kElementOffset + i * kPtrSize, JSValue*); }

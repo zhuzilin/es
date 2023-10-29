@@ -5,7 +5,7 @@
 
 namespace es {
 
-constexpr size_t kIntSize = sizeof(int);
+constexpr size_t kUint32Size = sizeof(uint32_t);
 constexpr size_t kSizeTSize = sizeof(size_t);
 constexpr size_t kBoolSize = sizeof(bool);
 constexpr size_t kDoubleSize = sizeof(double);

@@ -61,6 +61,7 @@ enum Type {
   HASHMAP     = 1 << 16 | 3,
   BINDING     = 1 << 16 | 4,
   LIST_NODE   = 1 << 16 | 5,
+  PROPERTY_MAP = 1 << 16 | 6,
 };
 
 }  // namespace es

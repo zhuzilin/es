@@ -66,6 +66,12 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
       }
       return pointers;
     }
+    case PROPERTY_MAP: {
+      return {
+        HEAP_PTR(heap_obj, PropertyMap::kFixedArrayOffset),
+        HEAP_PTR(heap_obj, PropertyMap::kHashMapOffset),
+      };
+    }
     case BINDING: {
       return {HEAP_PTR(heap_obj, Binding::kValueOffset)};
     }
@@ -212,6 +218,8 @@ std::string HeapObject::ToString(Type type) {
       return "FIXED_ARRAY";
     case HASHMAP:
       return "HASHMAP";
+    case PROPERTY_MAP:
+      return "PROPERTY_MAP";
     case BINDING:
       return "BINDING";
     case LIST_NODE:

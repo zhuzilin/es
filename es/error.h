@@ -93,7 +93,7 @@ class Error : public JSValue {
 #ifdef GC_DEBUG
     TEST_LOG("Error::New\n");
 #endif
-    Handle<JSValue> jsval = HeapObject::New(kIntSize + kPtrSize, flag);
+    Handle<JSValue> jsval = HeapObject::New(kUint32Size + kPtrSize, flag);
 
     SET_VALUE(jsval.val(), kErrorTypeOffset, t, ErrorType);
     SET_HANDLE_VALUE(jsval.val(), kValueOffset, val, JSValue);
@@ -104,7 +104,7 @@ class Error : public JSValue {
 
  public:
   static constexpr size_t kErrorTypeOffset = HeapObject::kHeapObjectOffset;
-  static constexpr size_t kValueOffset = kErrorTypeOffset + kIntSize;
+  static constexpr size_t kValueOffset = kErrorTypeOffset + kUint32Size;
 };
 
 }  // namespace es

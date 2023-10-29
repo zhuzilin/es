@@ -98,47 +98,6 @@ class HashMap : public JSValue {
     return map;
   }
 
-  static Handle<HashMap> Rehash(Handle<HashMap> map) {
-    size_t old_num_bucket = map.val()->num_bucket();
-    size_t new_num_bucket = (old_num_bucket + 1) * 2 - 1;
-    Handle<HashMap> new_map = HashMap::New(new_num_bucket);
-    for (size_t i = 0; i < old_num_bucket; i++) {
-      size_t offset = kElementOffset + i * kPtrSize;
-      ListNode* node = map.val()->GetListHead(offset);
-      while (node != nullptr) {
-        ListNode* next_node = node->next();
-        size_t offset = new_map.val()->ListHeadOffset(node->key());
-        ListNode* head = new_map.val()->GetListHead(offset);
-        // Need to make sure the list is sorted when rehashing
-        if (head == nullptr || LessThan(node->key(), head->key())) {
-          node->SetNext(head);
-          new_map.val()->SetListHead(offset, node);
-        } else {
-          ASSERT(!StringEqual(node->key(), head->key()));
-          bool inserted = false;
-          while (head->next() != nullptr) {
-            String* next_key = head->next()->key();
-            ASSERT(!StringEqual(node->key(), next_key));
-            if (LessThan(node->key(), next_key)) {
-              node->SetNext(head->next());
-              head->SetNext(node);
-              inserted = true;
-              break;
-            }
-            head = head->next();
-          }
-          if (!inserted) {
-            head->SetNext(node);
-            node->SetNext(nullptr);
-          }
-        }
-        node = next_node;
-      }
-    }
-    new_map.val()->SetSize(map.val()->size());
-    return new_map;
-  }
-
   Handle<JSValue> Get(Handle<String> key) {
     return Handle<JSValue>(GetRaw(key));
   }
@@ -196,6 +155,48 @@ class HashMap : public JSValue {
   }
 
  private:
+  static Handle<HashMap> Rehash(Handle<HashMap> map) {
+    size_t old_num_bucket = map.val()->num_bucket();
+    size_t new_num_bucket = (old_num_bucket + 1) * 2 - 1;
+    Handle<HashMap> new_map = HashMap::New(new_num_bucket);
+    for (size_t i = 0; i < old_num_bucket; i++) {
+      size_t offset = kElementOffset + i * kPtrSize;
+      ListNode* node = map.val()->GetListHead(offset);
+      while (node != nullptr) {
+        ListNode* next_node = node->next();
+        size_t offset = new_map.val()->ListHeadOffset(node->key());
+        ListNode* head = new_map.val()->GetListHead(offset);
+        // Need to make sure the list is sorted when rehashing
+        if (head == nullptr || LessThan(node->key(), head->key())) {
+          node->SetNext(head);
+          new_map.val()->SetListHead(offset, node);
+        } else {
+          ASSERT(!StringEqual(node->key(), head->key()));
+          bool inserted = false;
+          while (head->next() != nullptr) {
+            String* next_key = head->next()->key();
+            ASSERT(!StringEqual(node->key(), next_key));
+            if (LessThan(node->key(), next_key)) {
+              node->SetNext(head->next());
+              head->SetNext(node);
+              inserted = true;
+              break;
+            }
+            head = head->next();
+          }
+          if (!inserted) {
+            head->SetNext(node);
+            node->SetNext(nullptr);
+          }
+        }
+        node = next_node;
+      }
+    }
+    new_map.val()->SetSize(map.val()->size());
+    return new_map;
+  }
+
+
   // TODO(zhuzilin) The order of the properties are determined by ES5 spec.
   // However, array need to have a ordered property.
   // Try to follow the traverse order in ES6

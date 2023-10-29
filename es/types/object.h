@@ -13,7 +13,7 @@
 #include <es/types/property_descriptor.h>
 #include <es/error.h>
 #include <es/utils/helper.h>
-#include <es/utils/hashmap.h>
+#include <es/utils/property_map.h>
 
 namespace es {
 
@@ -30,7 +30,7 @@ class JSObject : public JSValue {
     inner_func callable,
     size_t size,
     flag_t flag = 0,
-    Handle<HashMap> property_map = Handle<HashMap>()
+    size_t property_map_num_fixed_slots = 0
   ) {
 #ifdef GC_DEBUG
     if (unlikely(log::Debugger::On()))
@@ -42,8 +42,7 @@ class JSObject : public JSValue {
     // could not forward the pointers.
     auto class_str = String::New(klass);
 
-    if (property_map.IsNullptr())
-      property_map = HashMap::New();
+    auto property_map = PropertyMap::New(property_map_num_fixed_slots);
 
     SET_HANDLE_VALUE(jsval.val(), kClassOffset, class_str, String);
     SET_VALUE(jsval.val(), kExtensibleOffset, extensible, bool);
@@ -53,18 +52,15 @@ class JSObject : public JSValue {
     // NOTE(zhuzilin) function pointer is different.
     TYPED_PTR(jsval.val(), kCallableOffset, inner_func)[0] = callable;
     SET_HANDLE_VALUE(jsval.val(), kPrototypeOffset, Null::Instance(), JSValue);
-    SET_HANDLE_VALUE(jsval.val(), kNamedPropertiesOffset, property_map, HashMap);
+    SET_HANDLE_VALUE(jsval.val(), kNamedPropertiesOffset, property_map, PropertyMap);
 
     jsval.val()->SetType(JS_OBJECT);
     return Handle<JSObject>(jsval);
   }
 
-  HashMap* named_properties() {
-    return READ_VALUE(this, kNamedPropertiesOffset, HashMap*);
+  PropertyMap* named_properties() {
+    return READ_VALUE(this, kNamedPropertiesOffset, PropertyMap*);
   };
-  void SetNamedProperties(Handle<HashMap> new_named_properties) {
-    SET_HANDLE_VALUE(this, kNamedPropertiesOffset, new_named_properties, HashMap);
-  }
 
   // Internal Preperties Common to All Objects
   Handle<JSValue> Prototype() { return READ_HANDLE_VALUE(this, kPrototypeOffset, JSValue); }

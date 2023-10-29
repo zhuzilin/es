@@ -308,8 +308,7 @@ bool DefineOwnProperty__Base(
       goto reject;
     }
     // 4.
-    auto new_named_properties = HashMap::Set(Handle<HashMap>(O.val()->named_properties()), P, desc);
-    O.val()->SetNamedProperties(new_named_properties);
+    PropertyMap::Set(Handle<PropertyMap>(O.val()->named_properties()), P, desc);
     return true;
   }
   if (desc.val()->bitmask() == 0) {  // 5
@@ -537,9 +536,8 @@ void AddValueProperty(
   Handle<PropertyDescriptor> desc = PropertyDescriptor::NewDataDescriptor(
     value, writable, enumerable, configurable);
   // This should just like named_properties_[name] = desc
-  ASSERT(GetOwnProperty(O, P).val()->IsUndefined());
-  auto new_named_properties = HashMap::Set(Handle<HashMap>(O.val()->named_properties()), name, desc);
-  O.val()->SetNamedProperties(new_named_properties);
+  ASSERT(GetOwnProperty(O, name).val()->IsUndefined());
+  PropertyMap::Set(Handle<PropertyMap>(O.val()->named_properties()), name, desc);
 }
 
 }  // namespace es

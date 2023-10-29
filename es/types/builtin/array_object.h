@@ -109,7 +109,7 @@ class ArrayObject : public JSObject {
  public:
   static Handle<ArrayObject> New(double len) {
     Handle<JSObject> jsobj = JSObject::New(
-      u"Array", true, Handle<JSValue>(), false, false, nullptr, 0
+      u"Array", true, Handle<JSValue>(), false, false, nullptr, 0, 0, len
     );
 
     jsobj.val()->SetType(OBJ_ARRAY);

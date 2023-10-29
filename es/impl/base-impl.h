@@ -66,6 +66,14 @@ std::string JSValue::ToString(JSValue* jsval) {
       return "FixedArray(" + std::to_string(READ_VALUE(jsval, FixedArray::kSizeOffset, size_t)) + ")";
     case HASHMAP:
       return "HashMap(" + std::to_string(READ_VALUE(jsval, HashMap::kSizeOffset, size_t)) + ")";
+    case PROPERTY_MAP: {
+      PropertyMap* map = static_cast<PropertyMap*>(jsval);
+      uint32_t num_fixed_slots = map->num_fixed_slots();
+      if (num_fixed_slots > 0)
+        return "PropertyMap(" + map->fixed_array().ToString() + "," + map->hashmap().ToString() + ")";
+      else
+        return "PropertyMap(" + map->hashmap().ToString() + ")";
+    }
     case BINDING:
       return "Binding(" + ToString(READ_VALUE(jsval, Binding::kValueOffset, JSValue*)) + ")";
     case LIST_NODE:
