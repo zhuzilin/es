@@ -79,6 +79,9 @@ class AST {
       case AST::AST_EXPR_STRICT_FUTURE:
         jsval_ = String::New(source, GCFlag::CONST);
         break;
+      case AST::AST_EXPR_BOOL:
+        jsval_ = Bool::Wrap(source == u"true");
+        break;
       case AST::AST_EXPR_STRING:
         jsval_ = String::Eval(source, GCFlag::CONST);
         break;
@@ -381,23 +384,49 @@ class Function : public AST {
 
   Function(Token name, std::vector<std::u16string> params, AST* body,
            std::u16string source, size_t start, size_t end) :
-    AST(AST_FUNC, source, start, end), name_(name), params_(params) {
+    AST(AST_FUNC, source, start, end) {
       ASSERT(body->type() == AST::AST_FUNC_BODY);
       body_ = body;
+      if (name.type() != Token::TK_NOT_FOUND) {
+        name_ = String::New(name.source(), GCFlag::CONST);
+        name_is_eval_or_arguments_ = name.source() == u"eval" || name.source() == u"arguments";
+      } else {
+        name_ = Handle<String>();
+        name_is_eval_or_arguments_ = false;
+      }
+      params_have_eval_or_arguments_ = false;
+      params_have_duplicated_ = false;
+      for (size_t i = 0; i < params.size(); ++i) {
+        params_.emplace_back(String::New(params[i], GCFlag::CONST));
+        if (params[i] == u"eval" || params[i] == u"arguments") {
+          params_have_eval_or_arguments_ = true;
+        }
+        for (size_t j = 0; j < i; ++j) {
+          if (params[i] == params[j]) {
+            params_have_duplicated_ = true;
+          }
+        }
+      }
     }
 
   ~Function() override {
     delete body_;
   }
 
-  bool is_named() { return name_.type() != Token::TK_NOT_FOUND; }
-  std::u16string name() { return name_.source(); }
-  std::vector<std::u16string>& params() { return params_; }
+  bool is_named() { return !name_.IsNullptr(); }
+  Handle<String> name() { return name_; }
+  bool name_is_eval_or_arguments() { return name_is_eval_or_arguments_; }
+  std::vector<Handle<String>> params() { return params_; }
+  bool params_have_eval_or_arguments() { return params_have_eval_or_arguments_; }
+  bool params_have_duplicated() { return params_have_duplicated_; }
   AST* body() { return body_; }
 
  private:
-  Token name_;
-  std::vector<std::u16string> params_;
+  bool name_is_eval_or_arguments_;
+  bool params_have_eval_or_arguments_;
+  bool params_have_duplicated_;
+  Handle<String> name_;
+  std::vector<Handle<String>> params_;
   AST* body_;
 };
 
@@ -501,14 +530,21 @@ class VarDecl : public AST {
     VarDecl(ident, nullptr, source, start, end) {}
 
   VarDecl(Token ident, AST* init, std::u16string source, size_t start, size_t end) :
-    AST(AST_STMT_VAR_DECL, source, start, end), ident_(ident), init_(init) {}
+    AST(AST_STMT_VAR_DECL, source, start, end), init_(init) {
+    ident_ = String::New(ident.source(), GCFlag::CONST);
+    is_strict_future_ = ident.type() == Token::TK_STRICT_FUTURE;
+    is_eval_or_arguments_ = ident.source() == u"eval" or ident.source() == u"arguments";
+  }
   ~VarDecl() { delete init_; }
 
-  Token& ident() { return ident_; }
+  Handle<String> ident() { return ident_; }
   AST* init() { return init_; }
+  bool is_strict_future() { return is_strict_future_; }
+  bool is_eval_or_arguments() { return is_eval_or_arguments_; }
 
- private:
-  Token ident_;
+  Handle<String> ident_;
+  bool is_strict_future_;
+  bool is_eval_or_arguments_;
   AST* init_;
 };
 
@@ -561,7 +597,9 @@ class Try : public AST {
 
   Try(AST* try_block, Token catch_ident, AST* catch_block, AST* finally_block,
       std::u16string source, size_t start, size_t end)
-    : AST(AST_STMT_TRY, source, start, end), try_block_(try_block), catch_ident_(catch_ident),
+    : AST(AST_STMT_TRY, source, start, end), try_block_(try_block),
+      catch_ident_(String::New(catch_ident.source(), GCFlag::CONST)),
+      catch_ident_is_eval_or_arguments_(catch_ident.source() == u"eval" || catch_ident.source() == u"arguments"),
       catch_block_(catch_block), finally_block_(finally_block) {}
 
   ~Try() {
@@ -573,13 +611,15 @@ class Try : public AST {
   }
 
   AST* try_block() { return try_block_; }
-  std::u16string catch_ident() { return catch_ident_.source(); };
+  Handle<String> catch_ident() { return catch_ident_; };
+  bool catch_ident_is_eval_or_arguments() { return catch_ident_is_eval_or_arguments_; }
   AST* catch_block() { return catch_block_; }
   AST* finally_block() { return finally_block_; }
 
  public:
   AST* try_block_;
-  Token catch_ident_;
+  Handle<String> catch_ident_;
+  bool catch_ident_is_eval_or_arguments_;
   AST* catch_block_;
   AST* finally_block_;
 };

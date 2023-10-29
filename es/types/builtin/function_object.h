@@ -103,18 +103,14 @@ class FunctionProto : public JSObject {
 class FunctionObject : public JSObject {
  public:
   static Handle<FunctionObject> New(
-    std::vector<std::u16string> names, AST* body, Handle<LexicalEnvironment> scope,
+    std::vector<Handle<String>> names, AST* body, Handle<LexicalEnvironment> scope,
     bool strict, size_t size = 0
   ) {
     Handle<JSObject> jsobj = JSObject::New(
       u"Function", true, Handle<JSValue>(), true, true, nullptr,
       kFunctionObjectOffset - kJSObjectOffset + size
     );
-    std::vector<Handle<String>> name_handles(names.size());
-    for (size_t i = 0; i < names.size(); i++) {
-      name_handles[i] = String::New(names[i]);
-    }
-    Handle<FixedArray> formal_parameter = FixedArray::New<String>(name_handles);
+    Handle<FixedArray> formal_parameter = FixedArray::New<String>(names);
 
     SET_HANDLE_VALUE(jsobj.val(), kFormalParametersOffset, formal_parameter, FixedArray);
     if (body != nullptr) {
@@ -273,36 +269,33 @@ Handle<JSValue> FunctionProto::bind(Handle<Error>& e, Handle<JSValue> this_arg, 
 
 Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function* func_ast) {
     ASSERT(func_ast->is_named());
-    std::u16string identifier = func_ast->name();
     Handle<es::LexicalEnvironment> func_env = NewDeclarativeEnvironment(  // 1
       Runtime::TopLexicalEnv()
     );
     auto env_rec = static_cast<Handle<DeclarativeEnvironmentRecord>>(func_env.val()->env_rec());  // 2
-    Handle<String> identifier_str = String::New(identifier);
+    Handle<String> identifier = func_ast->name();
     ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
     bool strict = body->strict() || Runtime::TopContext().strict();
     if (strict) {
       // 13.1
-      if (HaveDuplicate(func_ast->params())) {
+      if (func_ast->params_have_duplicated()) {
         e = Error::SyntaxError(u"have duplicate parameter name in strict mode");
         return Handle<JSValue>();
       }
-      for (auto name : func_ast->params()) {
-        if (name == u"eval" || name == u"arguments") {
-          e = Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
-          return Handle<JSValue>();
-        }
+      if (func_ast->name_is_eval_or_arguments()) {
+        e = Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
+        return Handle<JSValue>();
       }
-      if (func_ast->name() == u"eval" || func_ast->name() == u"arguments") {
+      if (func_ast->name_is_eval_or_arguments()) {
         e = Error::SyntaxError(u"function name cannot be eval or arguments in strict mode");
         return Handle<JSValue>();
       }
       for (VarDecl* d : body->var_decls()) {
-        if (d->ident().type() == Token::TK_STRICT_FUTURE) {
-          e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
+        if (d->is_strict_future()) {
+          e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().val()->data() + u" in strict mode");
           return Handle<JSValue>();
         }
-        if (d->ident().source_ref() == u"eval" || d->ident().source_ref() == u"arguments") {
+        if (d->is_eval_or_arguments()) {
           e = Error::SyntaxError(u"Unexpected eval or arguments in strict mode");
           return Handle<JSValue>();
         }
@@ -310,7 +303,7 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function
     }
     Handle<FunctionObject> closure = FunctionObject::New(
       func_ast->params(), func_ast->body(), func_env, strict);  // 4
-    CreateAndInitializeImmutableBinding(env_rec, identifier_str, closure);  // 5
+    CreateAndInitializeImmutableBinding(env_rec, identifier, closure);  // 5
     return closure;  // 6
 }
 
@@ -325,15 +318,13 @@ Handle<JSValue> EvalFunction(Handle<Error>& e, AST* ast) {
     bool strict = body->strict() || Runtime::TopContext().strict();
     if (strict) {
       // 13.1
-      if (HaveDuplicate(func_ast->params())) {
+      if (func_ast->params_have_duplicated()) {
         e = Error::SyntaxError(u"have duplicate parameter name in strict mode");
         return Handle<JSValue>();
       }
-      for (auto name : func_ast->params()) {
-        if (name == u"eval" || name == u"arguments") {
-          e = Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
-          return Handle<JSValue>();
-        }
+      if (func_ast->params_have_eval_or_arguments()) {
+        e = Error::SyntaxError(u"parameter name cannot be eval or arguments in strict mode");
+        return Handle<JSValue>();
       }
     }
     return FunctionObject::New(

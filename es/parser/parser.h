@@ -112,6 +112,32 @@ error:
     return true;
   }
 
+  bool ParseFormalParameterList(std::vector<Handle<String>>& params, flag_t flag) {
+    if (!lexer_.NextAndRewind().IsIdentifier()) {
+      // This only happens in new Function(...)
+      params = {};
+      return lexer_.Next().type() == Token::TK_EOS;
+    }
+    params.emplace_back(String::New(lexer_.Next().source(), flag));
+    Token token = lexer_.NextAndRewind();
+    // NOTE(zhuzilin) the EOS is for new Function("a,b,c", "")
+    while (token.type() != Token::TK_RPAREN && token.type() != Token::TK_EOS) {
+      if (token.type() != Token::TK_COMMA) {
+        params = {};
+        return false;
+      }
+      lexer_.Next();  // skip ,
+      token = lexer_.Next();
+      if (!token.IsIdentifier()) {
+        params = {};
+        return false;
+      }
+      params.emplace_back(String::New(token.source(), flag));
+      token = lexer_.NextAndRewind();
+    }
+    return true;
+  }
+
   AST* ParseFunction(bool must_be_named) {
     START_POS;
     assert(lexer_.Next().source() == u"function");

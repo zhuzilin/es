@@ -321,7 +321,7 @@ class String : public JSValue {
     return singleton;
   }
 
-  static Handle<String> Arguments() {
+  static Handle<String> arguments() {
     static Handle<String> singleton = String::New(u"arguments", GCFlag::CONST);
     return singleton;
   }
@@ -466,6 +466,16 @@ inline bool StringLessThan(String* a, String* b) {
       return a->get(i) < b->get(i);
   }
   return size_a < size_b;
+}
+
+bool HaveDuplicate(std::vector<Handle<String>> vals) {
+  for (size_t i = 0; i < vals.size(); i++) {
+    for (size_t j = i + 1; j < vals.size(); j++) {
+      if (StringEqual(vals[i], vals[j]))
+        return true;
+    }
+  }
+  return false;
 }
 
 class Number : public JSValue {

@@ -22,7 +22,7 @@ Completion EvalProgram(AST* ast);
 Completion EvalStatement(AST* ast);
 Completion EvalStatementList(std::vector<AST*> statements);
 Completion EvalBlockStatement(AST* ast);
-std::u16string EvalVarDecl(Handle<Error>& e, AST* ast);
+Handle<String> EvalVarDecl(Handle<Error>& e, AST* ast);
 Completion EvalVarStatement(AST* ast);
 Completion EvalIfStatement(AST* ast);
 Completion EvalForStatement(AST* ast);
@@ -72,7 +72,7 @@ Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, 
 Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, AST* expr, ValueGuard& guard);
 Handle<JSValue> EvalExpressionList(Handle<Error>& e, AST* ast);
 
-void IdentifierResolutionAndPutValue(Handle<Error>& e, std::u16string name, Handle<JSValue> value);
+void IdentifierResolutionAndPutValue(Handle<Error>& e, Handle<String> name, Handle<JSValue> value);
 
 Completion EvalProgram(AST* ast) {
   ASSERT(ast->type() == AST::AST_PROGRAM || ast->type() == AST::AST_FUNC_BODY);
@@ -198,10 +198,10 @@ Completion EvalBlockStatement(AST* ast) {
   return EvalStatementList(block->statements());
 }
 
-std::u16string EvalVarDecl(Handle<Error>& e, AST* ast) {
+Handle<String> EvalVarDecl(Handle<Error>& e, AST* ast) {
   ASSERT(ast->type() == AST::AST_STMT_VAR_DECL);
   VarDecl* decl = static_cast<VarDecl*>(ast);
-  std::u16string ident = decl->ident().source();
+  Handle<String> ident = decl->ident();
   if (decl->init() == nullptr)
     return ident;
   Handle<JSValue> rhs = EvalAssignmentExpression(e, decl->init());
@@ -414,7 +414,7 @@ Completion EvalForInStatement(AST* ast) {
   Handle<JSValue> V;
   if (for_in_stmt->expr0()->type() == AST::AST_STMT_VAR_DECL) {
     VarDecl* decl = static_cast<VarDecl*>(for_in_stmt->expr0());
-    std::u16string var_name = EvalVarDecl(e, decl);
+    Handle<String> var_name = EvalVarDecl(e, decl);
     if (unlikely(!e.val()->IsOk())) goto error;
     expr_val = EvalExpressionAndGetValue(e, for_in_stmt->expr1());
     if (unlikely(!e.val()->IsOk())) goto error;
@@ -654,7 +654,6 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   // Prevent garbage collect old env.
   Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
   Handle<LexicalEnvironment> catch_env = NewDeclarativeEnvironment(old_env);
-  Handle<String> ident_str = String::New(try_stmt->catch_ident());
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
   Handle<JSValue> val;
@@ -669,7 +668,7 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
     val = static_cast<Handle<JSValue>>(C.value());
   }
   CreateAndSetMutableBinding(
-    e, catch_env.val()->env_rec(), ident_str, false, static_cast<Handle<JSValue>>(val), false);  // 4 & 5
+    e, catch_env.val()->env_rec(), try_stmt->catch_ident(), false, static_cast<Handle<JSValue>>(val), false);  // 4 & 5
   if (unlikely(!e.val()->IsOk())) {
     return Completion(Completion::THROW, e, u"");
   }
@@ -683,7 +682,7 @@ Completion EvalTryStatement(AST* ast) {
   ASSERT(ast->type() == AST::AST_STMT_TRY);
   Try* try_stmt = static_cast<Try*>(ast);
   if (Runtime::TopContext().strict()) {
-    if (try_stmt->catch_ident() == u"eval" || try_stmt->catch_ident() == u"arguments") {
+    if (try_stmt->catch_ident_is_eval_or_arguments()) {
       Handle<Error> e = Error::SyntaxError(u"use eval or arguments as identifier of catch in strict mode");
       return Completion(Completion::THROW, e, u"");
     }
@@ -834,7 +833,7 @@ Handle<JSValue> EvalPrimaryExpression(Handle<Error>& e, AST* ast) {
       val = Null::Instance();
       break;
     case AST::AST_EXPR_BOOL:
-      val = ast->source() == u"true" ? Bool::True() : Bool::False();
+      val = ast->jsval();
       break;
     case AST::AST_EXPR_NUMBER:
       val = EvalNumber(ast);
@@ -864,12 +863,11 @@ Handle<JSValue> EvalPrimaryExpression(Handle<Error>& e, AST* ast) {
 }
 
 // This will prevent use from creating a new ref
-void IdentifierResolutionAndPutValue(Handle<Error>& e, std::u16string name, Handle<JSValue> value) {
+void IdentifierResolutionAndPutValue(Handle<Error>& e, Handle<String> name, Handle<JSValue> value) {
   // 10.3.1 Identifier Resolution
   Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
-  Handle<String> ref_name = String::New(name);
   bool strict = Runtime::TopContext().strict();
-  GetIdentifierReferenceAndPutValue(e, env, ref_name, strict, value);
+  GetIdentifierReferenceAndPutValue(e, env, name, strict, value);
 }
 
 Handle<Reference> EvalIdentifier(AST* ast) {
@@ -943,11 +941,9 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
         Function* func_ast = static_cast<Function*>(property.value);
         bool strict_func = static_cast<ProgramOrFunctionBody*>(func_ast->body())->strict();
         if (strict || strict_func) {
-          for (auto name : func_ast->params()) {
-            if (name == u"eval" || name == u"arguments") {
-              e = Error::SyntaxError(u"object cannot have getter or setter named eval or arguments");
-              return Handle<JSValue>();
-            }
+          if (func_ast->params_have_eval_or_arguments()) {
+            e = Error::SyntaxError(u"object cannot have getter or setter named eval or arguments");
+            return Handle<JSValue>();
           }
         }
         Handle<FunctionObject> closure = FunctionObject::New(
@@ -1031,7 +1027,7 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
         Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
         if (ref.val()->IsStrictReference() && ref.val()->GetBase().val()->IsEnvironmentRecord() &&
             (StringEqual(ref.val()->GetReferencedName(), String::eval()) ||
-             StringEqual(ref.val()->GetReferencedName(), String::Arguments()))) {
+             StringEqual(ref.val()->GetReferencedName(), String::arguments()))) {
           e = Error::SyntaxError(u"cannot inc or dec on eval or arguments");
           return Handle<JSValue>();
         }
@@ -1393,7 +1389,7 @@ Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Han
       }
       if (ref.val()->GetBase().val()->IsEnvironmentRecord() &&
           (StringEqual(ref.val()->GetReferencedName(), String::eval()) ||
-           StringEqual(ref.val()->GetReferencedName(), String::Arguments()))) {
+           StringEqual(ref.val()->GetReferencedName(), String::arguments()))) {
         e = Error::SyntaxError(u"cannot assign on eval or arguments");
         return Handle<JSValue>();
       }

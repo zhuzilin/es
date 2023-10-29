@@ -101,16 +101,6 @@ std::u16string StrCat(std::vector<std::u16string> vals) {
   return res;
 }
 
-bool HaveDuplicate(std::vector<std::u16string> vals) {
-  for (size_t i = 0; i < vals.size(); i++) {
-    for (size_t j = 0; j < vals.size(); j++) {
-      if (i != j && vals[i] == vals[j])
-        return true;
-    }
-  }
-  return false;
-}
-
 // From Knuth https://stackoverflow.com/a/253874/5163915
 static constexpr double kEpsilon = 1e-15;
 bool ApproximatelyEqual(double a, double b) {

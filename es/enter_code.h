@@ -111,7 +111,7 @@ void DeclarationBindingInstantiation(
   // 5
   for (Function* func_decl : body->func_decls()) {
     ASSERT(func_decl->is_named());
-    Handle<String> fn = String::New(func_decl->name());
+    Handle<String> fn = func_decl->name();
     Handle<FunctionObject> fo = InstantiateFunctionDeclaration(e, func_decl);
     if (unlikely(!e.val()->IsOk())) return;
     bool func_already_declared = HasBinding(env, fn);
@@ -133,7 +133,7 @@ void DeclarationBindingInstantiation(
               !(existing_prop_desc.val()->HasWritable() && existing_prop_desc.val()->Writable() &&
                 existing_prop_desc.val()->HasEnumerable() && existing_prop_desc.val()->Enumerable())) {
             e = Error::TypeError(
-              u"existing desc of " + func_decl->name() + " is accessor "
+              u"existing desc of " + func_decl->name().val()->data() + " is accessor "
               u"but not both configurable and enumerable");
             return;
           }
@@ -145,22 +145,22 @@ void DeclarationBindingInstantiation(
   // 7
   if (code_type == CODE_FUNC) {
     // 6
-    bool arguments_already_declared = HasBinding(env, String::Arguments());
+    bool arguments_already_declared = HasBinding(env, String::arguments());
     if (!arguments_already_declared) {
       auto args_obj = CreateArgumentsObject(f, args, Runtime::TopContext().variable_env(), strict);
       if (strict) {  // 7.b
         Handle<DeclarativeEnvironmentRecord> decl_env = static_cast<Handle<DeclarativeEnvironmentRecord>>(env);
-        CreateAndInitializeImmutableBinding(decl_env, String::Arguments(), args_obj);
+        CreateAndInitializeImmutableBinding(decl_env, String::arguments(), args_obj);
       } else {  // 7.c
         // NOTE(zhuzlin) I'm not sure if this should be false.
-        CreateAndSetMutableBinding(e, env, String::Arguments(), false, args_obj, false);
+        CreateAndSetMutableBinding(e, env, String::arguments(), false, args_obj, false);
       }
     }
   }
   // 8
   std::vector<VarDecl*>& decls = body->var_decls();
   for (VarDecl* d : decls) {
-    Handle<String> dn = String::New(d->ident().source());
+    Handle<String> dn = d->ident();
     bool var_already_declared = HasBinding(env, dn);
     if (!var_already_declared) {
       CreateAndSetMutableBinding(e, env, dn, configurable_bindings, Undefined::Instance(), strict);
@@ -181,11 +181,11 @@ void EnterGlobalCode(Handle<Error>& e, AST* ast) {
   }
   if (program->strict()) {
     for (VarDecl* d : program->var_decls()) {
-      if (d->ident().type() == Token::TK_STRICT_FUTURE) {
-        e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
+      if (d->is_strict_future()) {
+        e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().val()->data() + u" in strict mode");
         return;
       }
-      if (d->ident().source_ref() == u"eval" || d->ident().source_ref() == u"arguments") {
+      if (d->is_eval_or_arguments()) {
         e = Error::SyntaxError(u"Unexpected eval or arguments in strict mode");
         return;
       }
@@ -224,11 +224,11 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
     variable_env = strict_var_env;
 
     for (VarDecl* d : program->var_decls()) {
-      if (d->ident().type() == Token::TK_STRICT_FUTURE) {
-        e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().source_ref() + u" in strict mode");
+      if (d->is_strict_future()) {
+        e = Error::SyntaxError(u"Unexpected future reserved word " + d->ident().val()->data() + u" in strict mode");
         return;
       }
-      if (d->ident().source_ref() == u"eval" || d->ident().source_ref() == u"arguments") {
+      if (d->is_eval_or_arguments()) {
         e = Error::SyntaxError(u"Unexpected eval or arguments in strict mode");
         return;
       }

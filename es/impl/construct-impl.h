@@ -142,11 +142,11 @@ Handle<JSObject> Construct__FunctionConstructor(
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   }
   std::u16string P_view = Runtime::Global()->AddSource(std::move(P));
-  std::vector<std::u16string> names;
+  std::vector<Handle<String>> names;
   AST* body_ast;
   if (P_view.size() > 0) {
     Parser parser(P_view);
-    if (!parser.ParseFormalParameterList(names)) {
+    if (!parser.ParseFormalParameterList(names, 0)) {
       e = Error::SyntaxError(u"invalid parameter name");
       return Handle<JSValue>();
     }
@@ -169,7 +169,7 @@ Handle<JSObject> Construct__FunctionConstructor(
       return Handle<JSValue>();
     }
     for (auto name : names) {
-      if (name == u"eval" || name == u"arguments") {
+      if (StringEqual(name, String::eval()) || StringEqual(name, String::arguments())) {
         e = Error::SyntaxError(u"param name cannot be eval or arguments in strict mode");
         return Handle<JSValue>();
       }
