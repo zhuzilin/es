@@ -1470,7 +1470,7 @@ Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast) {
       }
       case LHS::PostfixType::PROP: {
         auto prop = lhs->prop_name_list()[pair.first];
-        base = EvalIndexExpression(e, base, String::New(prop), guard);
+        base = EvalIndexExpression(e, base, prop, guard);
         if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         break;
       }

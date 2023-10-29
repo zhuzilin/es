@@ -353,7 +353,7 @@ class LHS : public AST {
 
   void AddProp(Token prop_name) {
     order_.emplace_back(std::make_pair(prop_name_list_.size(), PROP));
-    prop_name_list_.emplace_back(prop_name.source());
+    prop_name_list_.emplace_back(String::New(prop_name.source(), GCFlag::CONST));
     total_count_++;
   }
 
@@ -363,7 +363,7 @@ class LHS : public AST {
   std::vector<std::pair<size_t, PostfixType>> order() { return order_; }
   std::vector<Arguments*> args_list() { return args_list_; }
   std::vector<AST*> index_list() { return index_list_; }
-  std::vector<std::u16string> prop_name_list() { return prop_name_list_; }
+  std::vector<Handle<String>> prop_name_list() { return prop_name_list_; }
 
  private:
   AST* base_;
@@ -373,7 +373,7 @@ class LHS : public AST {
   std::vector<std::pair<size_t, PostfixType>> order_;
   std::vector<Arguments*> args_list_;
   std::vector<AST*> index_list_;
-  std::vector<std::u16string> prop_name_list_;
+  std::vector<Handle<String>> prop_name_list_;
 };
 
 class Function : public AST {
