@@ -42,8 +42,10 @@ Completion EvalExpressionStatement(AST* ast);
 Handle<JSValue> EvalExpression(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalPrimaryExpression(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalExpressionAndGetValue(Handle<Error>& e, AST* ast);
+void EvalExpressionAndPutValue(Handle<Error>& e, AST* ast, Handle<JSValue> val);
 Handle<Reference> EvalIdentifier(AST* ast);
 Handle<JSValue> EvalIdentifierAndGetValue(Handle<Error>& e, AST* ast);
+void EvalIdentifierAndPutValue(Handle<Error>& e, AST* ast, Handle<JSValue> val);
 Handle<Number> EvalNumber(AST* ast);
 Handle<String> EvalString(Handle<Error>& e, AST* ast);
 Handle<Object> EvalObject(Handle<Error>& e, AST* ast);
@@ -453,9 +455,7 @@ Completion EvalForInStatement(AST* ast) {
     obj = ToObject(e, expr_val);
     for (auto pair : obj.val()->AllEnumerableProperties()) {
       Handle<String> P = pair.first;
-      Handle<JSValue> lhs_ref = EvalExpression(e, for_in_stmt->expr0());
-      if (unlikely(!e.val()->IsOk())) goto error;
-      PutValue(e, lhs_ref, P);
+      EvalExpressionAndPutValue(e, for_in_stmt->expr0(), P);
       if (unlikely(!e.val()->IsOk())) goto error;
 
       stmt = EvalStatement(for_in_stmt->statement());
@@ -745,6 +745,32 @@ Handle<JSValue> EvalExpressionAndGetValue(Handle<Error>& e, AST* ast) {
   }
 }
 
+void EvalExpressionAndPutValue(Handle<Error>& e, AST* ast, Handle<JSValue> val) {
+  while (ast->type() == AST::AST_EXPR_LHS) {
+    LHS* lhs = static_cast<LHS*>(ast);
+    if (lhs->total_count() != 0)
+      break;
+    ast = lhs->base();
+  }
+  switch (ast->type()) {
+    case AST::AST_EXPR_STRICT_FUTURE:
+      if (Runtime::TopContext().strict()) {
+        e = Error::SyntaxError(u"future reserved word " + ast->source() + u" used");
+        return;
+      }
+      [[fallthrough]];
+    case AST::AST_EXPR_IDENT: {
+      return EvalIdentifierAndPutValue(e, ast, val);
+    }
+    default: {
+      Handle<JSValue> ref = EvalExpression(e, ast);
+      if (unlikely(!e.val()->IsOk()))
+        return;
+      PutValue(e, ref, val);
+    }
+  }
+}
+
 Handle<JSValue> EvalExpression(Handle<Error>& e, AST* ast) {
   ASSERT(ast->type() <= AST::AST_EXPR || ast->type() == AST::AST_FUNC);
   Handle<JSValue> val;
@@ -863,6 +889,16 @@ Handle<JSValue> EvalIdentifierAndGetValue(Handle<Error>& e, AST* ast) {
   bool strict = Runtime::TopContext().strict();
   return GetIdentifierReferenceAndGetValue(e, env, ref_name, strict);
 }
+
+void EvalIdentifierAndPutValue(Handle<Error>& e, AST* ast, Handle<JSValue> val) {
+  ASSERT(ast->type() == AST::AST_EXPR_IDENT || ast->type() == AST::AST_EXPR_STRICT_FUTURE);
+  // 10.3.1 Identifier Resolution
+  Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
+  Handle<String> ref_name = String::New(ast->source());
+  bool strict = Runtime::TopContext().strict();
+  return GetIdentifierReferenceAndPutValue(e, env, ref_name, strict, val);
+}
+
 
 // This verson of string to number assumes the string is valid.
 Handle<Number> EvalNumber(const std::u16string& source) {

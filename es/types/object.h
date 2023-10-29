@@ -29,7 +29,8 @@ class JSObject : public JSValue {
     bool is_callable,
     inner_func callable,
     size_t size,
-    flag_t flag = 0
+    flag_t flag = 0,
+    Handle<HashMap> property_map = Handle<HashMap>()
   ) {
 #ifdef GC_DEBUG
     if (unlikely(log::Debugger::On()))
@@ -40,7 +41,9 @@ class JSObject : public JSValue {
     // the front, because the jsval is not initialized with JSObject vptr and therefore
     // could not forward the pointers.
     auto class_str = String::New(klass);
-    auto property_map = HashMap::New();
+
+    if (property_map.IsNullptr())
+      property_map = HashMap::New();
 
     SET_HANDLE_VALUE(jsval.val(), kClassOffset, class_str, String);
     SET_VALUE(jsval.val(), kExtensibleOffset, extensible, bool);
