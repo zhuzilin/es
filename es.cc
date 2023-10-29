@@ -60,6 +60,12 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
+#ifdef PARSER_ONLY
+  std::cout << "finish parsing" << std::endl;
+  return 0;
+#endif
+
+
   Init();
   Handle<Error> e = Error::Ok();
   EnterGlobalCode(e, ast);
