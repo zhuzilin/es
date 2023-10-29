@@ -52,7 +52,7 @@ class ErrorObject : public JSObject {
     jsobj.val()->SetType(OBJ_ERROR);
     Handle<ErrorObject> obj(jsobj);
     obj.val()->SetPrototype(ErrorProto::Instance());
-    AddValueProperty(obj, u"message", e.val()->value(), true, false, false);
+    AddValueProperty(obj, String::message(), e.val()->value(), true, false, false);
     return obj;
   }
 

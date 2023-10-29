@@ -33,7 +33,7 @@ class Console : public JSObject {
 
     jsobj.val()->SetType(OBJ_HOST);
     Handle<Console> obj(jsobj);
-    AddFuncProperty(obj, u"log", log, false, false, false);
+    AddFuncProperty(obj, String::New(u"log", GCFlag::CONST), log, false, false, false);
     return obj;
   }
 };

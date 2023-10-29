@@ -150,7 +150,7 @@ void AddValueProperty(
 }
 
 void AddFuncProperty(
-  Handle<JSObject> O, std::u16string name, inner_func callable, bool writable,
+  Handle<JSObject> O, Handle<String> name, inner_func callable, bool writable,
   bool enumerable, bool configurable
 );
 

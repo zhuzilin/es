@@ -266,41 +266,41 @@ void InitGlobalObject() {
   HandleScope scope;
   auto global_obj = GlobalObject::Instance();
   // 15.1.1 Value Properties of the Global Object
-  AddValueProperty(global_obj, u"NaN", Number::NaN(), false, false, false);
-  AddValueProperty(global_obj, u"Infinity", Number::Infinity(), false, false, false);
-  AddValueProperty(global_obj, u"undefined", Undefined::Instance(), false, false, false);
+  AddValueProperty(global_obj, String::New(u"NaN", GCFlag::CONST), Number::NaN(), false, false, false);
+  AddValueProperty(global_obj, String::New(u"Infinity", GCFlag::CONST), Number::Infinity(), false, false, false);
+  AddValueProperty(global_obj, String::New(u"undefined", GCFlag::CONST), Undefined::Instance(), false, false, false);
   // 15.1.2 Function Properties of the Global Object
-  AddFuncProperty(global_obj, u"eval", GlobalObject::eval, true, false, true);
-  AddFuncProperty(global_obj, u"parseInt", GlobalObject::parseInt, true, false, true);
-  AddFuncProperty(global_obj, u"parseFloat", GlobalObject::parseFloat, true, false, true);
-  AddFuncProperty(global_obj, u"isNaN", GlobalObject::isNaN, true, false, true);
-  AddFuncProperty(global_obj, u"isFinite", GlobalObject::isFinite, true, false, true);
+  AddFuncProperty(global_obj, String::New(u"eval", GCFlag::CONST), GlobalObject::eval, true, false, true);
+  AddFuncProperty(global_obj, String::New(u"parseInt", GCFlag::CONST), GlobalObject::parseInt, true, false, true);
+  AddFuncProperty(global_obj, String::New(u"parseFloat", GCFlag::CONST), GlobalObject::parseFloat, true, false, true);
+  AddFuncProperty(global_obj, String::New(u"isNaN", GCFlag::CONST), GlobalObject::isNaN, true, false, true);
+  AddFuncProperty(global_obj, String::New(u"isFinite", GCFlag::CONST), GlobalObject::isFinite, true, false, true);
   // 15.1.3 URI Handling Function Properties
-  AddFuncProperty(global_obj, u"decodeURI", GlobalObject::decodeURI, true, false, true);
-  AddFuncProperty(global_obj, u"decodeURIComponent", GlobalObject::decodeURIComponent, true, false, true);
-  AddFuncProperty(global_obj, u"encodeURI", GlobalObject::encodeURI, true, false, true);
-  AddFuncProperty(global_obj, u"encodeURIComponent", GlobalObject::encodeURIComponent, true, false, true);
+  AddFuncProperty(global_obj, String::New(u"decodeURI", GCFlag::CONST), GlobalObject::decodeURI, true, false, true);
+  AddFuncProperty(global_obj, String::New(u"decodeURIComponent", GCFlag::CONST), GlobalObject::decodeURIComponent, true, false, true);
+  AddFuncProperty(global_obj, String::New(u"encodeURI", GCFlag::CONST), GlobalObject::encodeURI, true, false, true);
+  AddFuncProperty(global_obj, String::New(u"encodeURIComponent", GCFlag::CONST), GlobalObject::encodeURIComponent, true, false, true);
   // 15.1.4 Constructor Properties of the Global Object
-  AddValueProperty(global_obj, u"Object", ObjectConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Function", FunctionConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Number", NumberConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Boolean", BoolConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"String", StringConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Array", ArrayConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Date", DateConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"RegExp", RegExpConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"Error", ErrorConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"Object", GCFlag::CONST), ObjectConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"Function", GCFlag::CONST), FunctionConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"Number", GCFlag::CONST), NumberConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"Boolean", GCFlag::CONST), BoolConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"String", GCFlag::CONST), StringConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"Array", GCFlag::CONST), ArrayConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"Date", GCFlag::CONST), DateConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"RegExp", GCFlag::CONST), RegExpConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"Error", GCFlag::CONST), ErrorConstructor::Instance(), true, false, true);
   // TODO(zhuzilin) differentiate errors.
-  AddValueProperty(global_obj, u"EvalError", ErrorConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"RangeError", ErrorConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"ReferenceError", ErrorConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"SyntaxError", ErrorConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"TypeError", ErrorConstructor::Instance(), true, false, true);
-  AddValueProperty(global_obj, u"URIError", ErrorConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"EvalError", GCFlag::CONST), ErrorConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"RangeError", GCFlag::CONST), ErrorConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"ReferenceError", GCFlag::CONST), ErrorConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"SyntaxError", GCFlag::CONST), ErrorConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"TypeError", GCFlag::CONST), ErrorConstructor::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"URIError", GCFlag::CONST), ErrorConstructor::Instance(), true, false, true);
 
-  AddValueProperty(global_obj, u"Math", Math::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"Math", GCFlag::CONST), Math::Instance(), true, false, true);
 
-  AddValueProperty(global_obj, u"console", Console::Instance(), true, false, true);
+  AddValueProperty(global_obj, String::New(u"console", GCFlag::CONST), Console::Instance(), true, false, true);
 }
 
 void InitObject() {
@@ -308,32 +308,32 @@ void InitObject() {
   constructor.val()->SetPrototype(FunctionProto::Instance());
   // 15.2.3 Properties of the Object Constructor
   AddValueProperty(constructor, String::Prototype(), ObjectProto::Instance(), false, false, false);
-  AddFuncProperty(constructor, u"toString", ObjectConstructor::toString, true, false, false);
-  AddFuncProperty(constructor, u"getPrototypeOf", ObjectConstructor::getPrototypeOf, true, false, false);
-  AddFuncProperty(constructor, u"getOwnPropertyDescriptor", ObjectConstructor::getOwnPropertyDescriptor, true, false, false);
-  AddFuncProperty(constructor, u"getOwnPropertyNames", ObjectConstructor::getOwnPropertyNames, true, false, false);
-  AddFuncProperty(constructor, u"create", ObjectConstructor::create, true, false, false);
-  AddFuncProperty(constructor, u"defineProperty", ObjectConstructor::defineProperty, true, false, false);
-  AddFuncProperty(constructor, u"defineProperties", ObjectConstructor::defineProperties, true, false, false);
-  AddFuncProperty(constructor, u"seal", ObjectConstructor::seal, true, false, false);
-  AddFuncProperty(constructor, u"freeze", ObjectConstructor::freeze, true, false, false);
-  AddFuncProperty(constructor, u"preventExtensions", ObjectConstructor::preventExtensions, true, false, false);
-  AddFuncProperty(constructor, u"isSealed", ObjectConstructor::isSealed, true, false, false);
-  AddFuncProperty(constructor, u"isFrozen", ObjectConstructor::isFrozen, true, false, false);
-  AddFuncProperty(constructor, u"isExtensible", ObjectConstructor::isExtensible, true, false, false);
-  AddFuncProperty(constructor, u"keys", ObjectConstructor::keys, true, false, false);
+  AddFuncProperty(constructor, String::New(u"toString", GCFlag::CONST), ObjectConstructor::toString, true, false, false);
+  AddFuncProperty(constructor, String::New(u"getPrototypeOf", GCFlag::CONST), ObjectConstructor::getPrototypeOf, true, false, false);
+  AddFuncProperty(constructor, String::New(u"getOwnPropertyDescriptor", GCFlag::CONST), ObjectConstructor::getOwnPropertyDescriptor, true, false, false);
+  AddFuncProperty(constructor, String::New(u"getOwnPropertyNames", GCFlag::CONST), ObjectConstructor::getOwnPropertyNames, true, false, false);
+  AddFuncProperty(constructor, String::New(u"create", GCFlag::CONST), ObjectConstructor::create, true, false, false);
+  AddFuncProperty(constructor, String::New(u"defineProperty", GCFlag::CONST), ObjectConstructor::defineProperty, true, false, false);
+  AddFuncProperty(constructor, String::New(u"defineProperties", GCFlag::CONST), ObjectConstructor::defineProperties, true, false, false);
+  AddFuncProperty(constructor, String::New(u"seal", GCFlag::CONST), ObjectConstructor::seal, true, false, false);
+  AddFuncProperty(constructor, String::New(u"freeze", GCFlag::CONST), ObjectConstructor::freeze, true, false, false);
+  AddFuncProperty(constructor, String::New(u"preventExtensions", GCFlag::CONST), ObjectConstructor::preventExtensions, true, false, false);
+  AddFuncProperty(constructor, String::New(u"isSealed", GCFlag::CONST), ObjectConstructor::isSealed, true, false, false);
+  AddFuncProperty(constructor, String::New(u"isFrozen", GCFlag::CONST), ObjectConstructor::isFrozen, true, false, false);
+  AddFuncProperty(constructor, String::New(u"isExtensible", GCFlag::CONST), ObjectConstructor::isExtensible, true, false, false);
+  AddFuncProperty(constructor, String::New(u"keys", GCFlag::CONST), ObjectConstructor::keys, true, false, false);
   // ES6
-  AddFuncProperty(constructor, u"setPrototypeOf", ObjectConstructor::setPrototypeOf, true, false, false);
+  AddFuncProperty(constructor, String::New(u"setPrototypeOf", GCFlag::CONST), ObjectConstructor::setPrototypeOf, true, false, false);
 
   Handle<ObjectProto> proto = ObjectProto::Instance();
   // 15.2.4 Properties of the Object Prototype Object
   AddValueProperty(proto, String::Constructor(), ObjectConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"toString", ObjectProto::toString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleString", ObjectProto::toLocaleString, true, false, false);
-  AddFuncProperty(proto, u"valueOf", ObjectProto::valueOf, true, false, false);
-  AddFuncProperty(proto, u"hasOwnProperty", ObjectProto::hasOwnProperty, true, false, false);
-  AddFuncProperty(proto, u"isPrototypeOf", ObjectProto::isPrototypeOf, true, false, false);
-  AddFuncProperty(proto, u"propertyIsEnumerable", ObjectProto::propertyIsEnumerable, true, false, false);
+  AddFuncProperty(proto, String::New(u"toString", GCFlag::CONST), ObjectProto::toString, true, false, false);
+  AddFuncProperty(proto, String::New(u"toLocaleString", GCFlag::CONST), ObjectProto::toLocaleString, true, false, false);
+  AddFuncProperty(proto, String::New(u"valueOf", GCFlag::CONST), ObjectProto::valueOf, true, false, false);
+  AddFuncProperty(proto, String::New(u"hasOwnProperty", GCFlag::CONST), ObjectProto::hasOwnProperty, true, false, false);
+  AddFuncProperty(proto, String::New(u"isPrototypeOf", GCFlag::CONST), ObjectProto::isPrototypeOf, true, false, false);
+  AddFuncProperty(proto, String::New(u"propertyIsEnumerable", GCFlag::CONST), ObjectProto::propertyIsEnumerable, true, false, false);
 }
 
 void InitFunction() {
@@ -343,17 +343,17 @@ void InitFunction() {
   // 15.3.3 Properties of the Function Constructor
   AddValueProperty(constructor, String::Prototype(), FunctionProto::Instance(), false, false, false);
   AddValueProperty(constructor, String::Length(), Number::New(1), false, false, false);
-  AddFuncProperty(constructor, u"toString", FunctionConstructor::toString, true, false, false);
+  AddFuncProperty(constructor, String::New(u"toString", GCFlag::CONST), FunctionConstructor::toString, true, false, false);
 
   Handle<FunctionProto> proto = FunctionProto::Instance();
   proto.val()->SetPrototype(ObjectProto::Instance());
   // 15.2.4 Properties of the Function Prototype Function
   AddValueProperty(proto, String::Constructor(), FunctionConstructor::Instance(), false, false, false);
   AddValueProperty(proto, String::Length(), Number::Zero(), true, false, false);
-  AddFuncProperty(proto, u"toString", FunctionProto::toString, true, false, false);
-  AddFuncProperty(proto, u"apply", FunctionProto::apply, true, false, false);
-  AddFuncProperty(proto, u"call", FunctionProto::call, true, false, false);
-  AddFuncProperty(proto, u"bind", FunctionProto::bind, true, false, false);
+  AddFuncProperty(proto, String::New(u"toString", GCFlag::CONST), FunctionProto::toString, true, false, false);
+  AddFuncProperty(proto, String::New(u"apply", GCFlag::CONST), FunctionProto::apply, true, false, false);
+  AddFuncProperty(proto, String::New(u"call", GCFlag::CONST), FunctionProto::call, true, false, false);
+  AddFuncProperty(proto, String::New(u"bind", GCFlag::CONST), FunctionProto::bind, true, false, false);
 }
 
 void InitNumber() {
@@ -363,22 +363,22 @@ void InitNumber() {
   // 15.3.3 Properties of the Number Constructor
   AddValueProperty(constructor, String::Prototype(), NumberProto::Instance(), false, false, false);
   AddValueProperty(constructor, String::Length(), Number::New(1), false, false, false);
-  AddValueProperty(constructor, u"MAX_VALUE", Number::New(1.7976931348623157e308), false, false, false);
-  AddValueProperty(constructor, u"MIN_VALUE", Number::New(5e-324), false, false, false);
-  AddValueProperty(constructor, u"NaN", Number::NaN(), false, false, false);
-  AddValueProperty(constructor, u"NEGATIVE_INFINITY", Number::NegativeInfinity(), false, false, false);
-  AddValueProperty(constructor, u"POSITIVE_INFINITY", Number::Infinity(), false, false, false);
+  AddValueProperty(constructor, String::New(u"MAX_VALUE", GCFlag::CONST), Number::New(1.7976931348623157e308), false, false, false);
+  AddValueProperty(constructor, String::New(u"MIN_VALUE", GCFlag::CONST), Number::New(5e-324), false, false, false);
+  AddValueProperty(constructor, String::New(u"NaN", GCFlag::CONST), Number::NaN(), false, false, false);
+  AddValueProperty(constructor, String::New(u"NEGATIVE_INFINITY", GCFlag::CONST), Number::NegativeInfinity(), false, false, false);
+  AddValueProperty(constructor, String::New(u"POSITIVE_INFINITY", GCFlag::CONST), Number::Infinity(), false, false, false);
 
   Handle<NumberProto> proto = NumberProto::Instance();
   proto.val()->SetPrototype(ObjectProto::Instance());
   // 15.2.4 Properties of the Number Prototype Number
   AddValueProperty(proto, String::Constructor(), NumberConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"toString", NumberProto::toString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleString", NumberProto::toLocaleString, true, false, false);
-  AddFuncProperty(proto, u"valueOf", NumberProto::valueOf, true, false, false);
-  AddFuncProperty(proto, u"toFixed", NumberProto::toFixed, true, false, false);
-  AddFuncProperty(proto, u"toExponential", NumberProto::toExponential, true, false, false);
-  AddFuncProperty(proto, u"toPrecision", NumberProto::toPrecision, true, false, false);
+  AddFuncProperty(proto, String::New(u"toString", GCFlag::CONST), NumberProto::toString, true, false, false);
+  AddFuncProperty(proto, String::New(u"toLocaleString", GCFlag::CONST), NumberProto::toLocaleString, true, false, false);
+  AddFuncProperty(proto, String::New(u"valueOf", GCFlag::CONST), NumberProto::valueOf, true, false, false);
+  AddFuncProperty(proto, String::New(u"toFixed", GCFlag::CONST), NumberProto::toFixed, true, false, false);
+  AddFuncProperty(proto, String::New(u"toExponential", GCFlag::CONST), NumberProto::toExponential, true, false, false);
+  AddFuncProperty(proto, String::New(u"toPrecision", GCFlag::CONST), NumberProto::toPrecision, true, false, false);
 }
 
 void InitError() {
@@ -392,9 +392,9 @@ void InitError() {
   proto.val()->SetPrototype(ObjectProto::Instance());
   // 15.11.4 Properties of the Error Prototype Object
   AddValueProperty(proto, String::Constructor(), ErrorConstructor::Instance(), false, false, false);
-  AddValueProperty(proto, u"name", String::New(u"Error"), false, false, false);
-  AddValueProperty(proto, u"message", String::Empty(), true, false, false);
-  AddFuncProperty(proto, u"toString", ErrorProto::toString, true, false, false);
+  AddValueProperty(proto, String::New(u"name", GCFlag::CONST), String::New(u"Error", GCFlag::CONST), false, false, false);
+  AddValueProperty(proto, String::New(u"message", GCFlag::CONST), String::Empty(), true, false, false);
+  AddFuncProperty(proto, String::New(u"toString", GCFlag::CONST), ErrorProto::toString, true, false, false);
 }
 
 void InitBool() {
@@ -403,14 +403,14 @@ void InitBool() {
   constructor.val()->SetPrototype(FunctionProto::Instance());
   // 15.6.3 Properties of the Boolean Constructor
   AddValueProperty(constructor, String::Prototype(), BoolProto::Instance(), false, false, false);
-  AddFuncProperty(constructor, u"toString", BoolConstructor::toString, true, false, false);
+  AddFuncProperty(constructor, String::New(u"toString", GCFlag::CONST), BoolConstructor::toString, true, false, false);
 
   Handle<BoolProto> proto = BoolProto::Instance();
   proto.val()->SetPrototype(ObjectProto::Instance());
   // 15.6.4 Properties of the Boolean Prototype Object
   AddValueProperty(proto, String::Constructor(), BoolConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"toString", BoolProto::toString, true, false, false);
-  AddFuncProperty(proto, u"valueOf", BoolProto::valueOf, true, false, false);
+  AddFuncProperty(proto, String::New(u"toString", GCFlag::CONST), BoolProto::toString, true, false, false);
+  AddFuncProperty(proto, String::New(u"valueOf", GCFlag::CONST), BoolProto::valueOf, true, false, false);
 }
 
 void InitString() {
@@ -420,33 +420,33 @@ void InitString() {
   // 15.3.3 Properties of the String Constructor
   AddValueProperty(constructor, String::Prototype(), StringProto::Instance(), false, false, false);
   AddValueProperty(constructor, String::Length(), Number::New(1), true, false, false);
-  AddFuncProperty(constructor, u"fromCharCode", StringConstructor::fromCharCode, true, false, false);
-  AddFuncProperty(constructor, u"toString", StringConstructor::toString, true, false, false);
+  AddFuncProperty(constructor, String::New(u"fromCharCode", GCFlag::CONST), StringConstructor::fromCharCode, true, false, false);
+  AddFuncProperty(constructor, String::New(u"toString", GCFlag::CONST), StringConstructor::toString, true, false, false);
 
   Handle<StringProto> proto = StringProto::Instance();
   proto.val()->SetPrototype(ObjectProto::Instance());
   // 15.2.4 Properties of the String Prototype String
   AddValueProperty(proto, String::Constructor(), StringConstructor::Instance(), false, false, false);
   AddValueProperty(proto, String::Length(), Number::Zero(), true, false, false);
-  AddFuncProperty(proto, u"toString", StringProto::toString, true, false, false);
-  AddFuncProperty(proto, u"valueOf", StringProto::valueOf, true, false, false);
-  AddFuncProperty(proto, u"charAt", StringProto::charAt, true, false, false);
-  AddFuncProperty(proto, u"charCodeAt", StringProto::charCodeAt, true, false, false);
-  AddFuncProperty(proto, u"concat", StringProto::concat, true, false, false);
-  AddFuncProperty(proto, u"indexOf", StringProto::indexOf, true, false, false);
-  AddFuncProperty(proto, u"lastIndexOf", StringProto::lastIndexOf, true, false, false);
-  AddFuncProperty(proto, u"localeCompare", StringProto::localeCompare, true, false, false);
-  AddFuncProperty(proto, u"match", StringProto::match, true, false, false);
-  AddFuncProperty(proto, u"replace", StringProto::replace, true, false, false);
-  AddFuncProperty(proto, u"search", StringProto::search, true, false, false);
-  AddFuncProperty(proto, u"slice", StringProto::slice, true, false, false);
-  AddFuncProperty(proto, u"split", StringProto::split, true, false, false);
-  AddFuncProperty(proto, u"substring", StringProto::substring, true, false, false);
-  AddFuncProperty(proto, u"toLowerCase", StringProto::toLowerCase, true, false, false);
-  AddFuncProperty(proto, u"toLocaleLowerCase", StringProto::toLocaleLowerCase, true, false, false);
-  AddFuncProperty(proto, u"toUpperCase", StringProto::toUpperCase, true, false, false);
-  AddFuncProperty(proto, u"toLocaleUpperCase", StringProto::toLocaleUpperCase, true, false, false);
-  AddFuncProperty(proto, u"trim", StringProto::trim, true, false, false);
+  AddFuncProperty(proto, String::New(u"toString", GCFlag::CONST), StringProto::toString, true, false, false);
+  AddFuncProperty(proto, String::New(u"valueOf", GCFlag::CONST), StringProto::valueOf, true, false, false);
+  AddFuncProperty(proto, String::New(u"charAt", GCFlag::CONST), StringProto::charAt, true, false, false);
+  AddFuncProperty(proto, String::New(u"charCodeAt", GCFlag::CONST), StringProto::charCodeAt, true, false, false);
+  AddFuncProperty(proto, String::New(u"concat", GCFlag::CONST), StringProto::concat, true, false, false);
+  AddFuncProperty(proto, String::New(u"indexOf", GCFlag::CONST), StringProto::indexOf, true, false, false);
+  AddFuncProperty(proto, String::New(u"lastIndexOf", GCFlag::CONST), StringProto::lastIndexOf, true, false, false);
+  AddFuncProperty(proto, String::New(u"localeCompare", GCFlag::CONST), StringProto::localeCompare, true, false, false);
+  AddFuncProperty(proto, String::New(u"match", GCFlag::CONST), StringProto::match, true, false, false);
+  AddFuncProperty(proto, String::New(u"replace", GCFlag::CONST), StringProto::replace, true, false, false);
+  AddFuncProperty(proto, String::New(u"search", GCFlag::CONST), StringProto::search, true, false, false);
+  AddFuncProperty(proto, String::New(u"slice", GCFlag::CONST), StringProto::slice, true, false, false);
+  AddFuncProperty(proto, String::New(u"split", GCFlag::CONST), StringProto::split, true, false, false);
+  AddFuncProperty(proto, String::New(u"substring", GCFlag::CONST), StringProto::substring, true, false, false);
+  AddFuncProperty(proto, String::New(u"toLowerCase", GCFlag::CONST), StringProto::toLowerCase, true, false, false);
+  AddFuncProperty(proto, String::New(u"toLocaleLowerCase", GCFlag::CONST), StringProto::toLocaleLowerCase, true, false, false);
+  AddFuncProperty(proto, String::New(u"toUpperCase", GCFlag::CONST), StringProto::toUpperCase, true, false, false);
+  AddFuncProperty(proto, String::New(u"toLocaleUpperCase", GCFlag::CONST), StringProto::toLocaleUpperCase, true, false, false);
+  AddFuncProperty(proto, String::New(u"trim", GCFlag::CONST), StringProto::trim, true, false, false);
 }
 
 void InitArray() {
@@ -456,35 +456,35 @@ void InitArray() {
   // 15.6.3 Properties of the Arrayean Constructor
   AddValueProperty(constructor, String::Length(), Number::New(1), false, false, false);
   AddValueProperty(constructor, String::Prototype(), ArrayProto::Instance(), false, false, false);
-  AddFuncProperty(constructor, u"isArray", ArrayConstructor::isArray, true, false, false);
-  AddFuncProperty(constructor, u"toString", ArrayConstructor::toString, true, false, false);
+  AddFuncProperty(constructor, String::New(u"isArray", GCFlag::CONST), ArrayConstructor::isArray, true, false, false);
+  AddFuncProperty(constructor, String::New(u"toString", GCFlag::CONST), ArrayConstructor::toString, true, false, false);
 
   Handle<ArrayProto> proto = ArrayProto::Instance();
   proto.val()->SetPrototype(ObjectProto::Instance());
   // 15.6.4 Properties of the Arrayean Prototype Object
   AddValueProperty(proto, String::Length(), Number::Zero(), false, false, false);
   AddValueProperty(proto, String::Constructor(), ArrayConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"toString", ArrayProto::toString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleString", ArrayProto::toLocaleString, true, false, false);
-  AddFuncProperty(proto, u"concat", ArrayProto::concat, true, false, false);
-  AddFuncProperty(proto, u"join", ArrayProto::join, true, false, false);
-  AddFuncProperty(proto, u"pop", ArrayProto::pop, true, false, false);
-  AddFuncProperty(proto, u"push", ArrayProto::push, true, false, false);
-  AddFuncProperty(proto, u"reverse", ArrayProto::reverse, true, false, false);
-  AddFuncProperty(proto, u"shift", ArrayProto::shift, true, false, false);
-  AddFuncProperty(proto, u"slice", ArrayProto::slice, true, false, false);
-  AddFuncProperty(proto, u"sort", ArrayProto::sort, true, false, false);
-  AddFuncProperty(proto, u"splice", ArrayProto::splice, true, false, false);
-  AddFuncProperty(proto, u"unshift", ArrayProto::unshift, true, false, false);
-  AddFuncProperty(proto, u"indexOf", ArrayProto::indexOf, true, false, false);
-  AddFuncProperty(proto, u"lastIndexOf", ArrayProto::lastIndexOf, true, false, false);
-  AddFuncProperty(proto, u"every", ArrayProto::every, true, false, false);
-  AddFuncProperty(proto, u"some", ArrayProto::some, true, false, false);
-  AddFuncProperty(proto, u"forEach", ArrayProto::forEach, true, false, false);
-  AddFuncProperty(proto, u"map", ArrayProto::map, true, false, false);
-  AddFuncProperty(proto, u"filter", ArrayProto::filter, true, false, false);
-  AddFuncProperty(proto, u"reduce", ArrayProto::reduce, true, false, false);
-  AddFuncProperty(proto, u"reduceRight", ArrayProto::reduceRight, true, false, false);
+  AddFuncProperty(proto, String::New(u"toString", GCFlag::CONST), ArrayProto::toString, true, false, false);
+  AddFuncProperty(proto, String::New(u"toLocaleString", GCFlag::CONST), ArrayProto::toLocaleString, true, false, false);
+  AddFuncProperty(proto, String::New(u"concat", GCFlag::CONST), ArrayProto::concat, true, false, false);
+  AddFuncProperty(proto, String::New(u"join", GCFlag::CONST), ArrayProto::join, true, false, false);
+  AddFuncProperty(proto, String::New(u"pop", GCFlag::CONST), ArrayProto::pop, true, false, false);
+  AddFuncProperty(proto, String::New(u"push", GCFlag::CONST), ArrayProto::push, true, false, false);
+  AddFuncProperty(proto, String::New(u"reverse", GCFlag::CONST), ArrayProto::reverse, true, false, false);
+  AddFuncProperty(proto, String::New(u"shift", GCFlag::CONST), ArrayProto::shift, true, false, false);
+  AddFuncProperty(proto, String::New(u"slice", GCFlag::CONST), ArrayProto::slice, true, false, false);
+  AddFuncProperty(proto, String::New(u"sort", GCFlag::CONST), ArrayProto::sort, true, false, false);
+  AddFuncProperty(proto, String::New(u"splice", GCFlag::CONST), ArrayProto::splice, true, false, false);
+  AddFuncProperty(proto, String::New(u"unshift", GCFlag::CONST), ArrayProto::unshift, true, false, false);
+  AddFuncProperty(proto, String::New(u"indexOf", GCFlag::CONST), ArrayProto::indexOf, true, false, false);
+  AddFuncProperty(proto, String::New(u"lastIndexOf", GCFlag::CONST), ArrayProto::lastIndexOf, true, false, false);
+  AddFuncProperty(proto, String::New(u"every", GCFlag::CONST), ArrayProto::every, true, false, false);
+  AddFuncProperty(proto, String::New(u"some", GCFlag::CONST), ArrayProto::some, true, false, false);
+  AddFuncProperty(proto, String::New(u"forEach", GCFlag::CONST), ArrayProto::forEach, true, false, false);
+  AddFuncProperty(proto, String::New(u"map", GCFlag::CONST), ArrayProto::map, true, false, false);
+  AddFuncProperty(proto, String::New(u"filter", GCFlag::CONST), ArrayProto::filter, true, false, false);
+  AddFuncProperty(proto, String::New(u"reduce", GCFlag::CONST), ArrayProto::reduce, true, false, false);
+  AddFuncProperty(proto, String::New(u"reduceRight", GCFlag::CONST), ArrayProto::reduceRight, true, false, false);
 }
 
 void InitDate() {
@@ -494,82 +494,82 @@ void InitDate() {
   // 15.6.3 Properties of the Dateean Constructor
   AddValueProperty(constructor, String::Length(), Number::New(7), false, false, false);
   AddValueProperty(constructor, String::Prototype(), DateProto::Instance(), false, false, false);
-  AddFuncProperty(constructor, u"parse", DateConstructor::parse, true, false, false);
-  AddFuncProperty(constructor, u"UTC", DateConstructor::UTC, true, false, false);
-  AddFuncProperty(constructor, u"now", DateConstructor::now, true, false, false);
-  AddFuncProperty(constructor, u"toString", DateConstructor::toString, true, false, false);
+  AddFuncProperty(constructor, String::New(u"parse", GCFlag::CONST), DateConstructor::parse, true, false, false);
+  AddFuncProperty(constructor, String::New(u"UTC", GCFlag::CONST), DateConstructor::UTC, true, false, false);
+  AddFuncProperty(constructor, String::New(u"now", GCFlag::CONST), DateConstructor::now, true, false, false);
+  AddFuncProperty(constructor, String::New(u"toString", GCFlag::CONST), DateConstructor::toString, true, false, false);
 
   Handle<DateProto> proto = DateProto::Instance();
   proto.val()->SetPrototype(ObjectProto::Instance());
   // 15.6.4 Properties of the Dateean Prototype Object
   AddValueProperty(proto, String::Length(), Number::Zero(), false, false, false);
   AddValueProperty(proto, String::Constructor(), DateConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"toString", DateProto::toString, true, false, false);
-  AddFuncProperty(proto, u"toDateString", DateProto::toDateString, true, false, false);
-  AddFuncProperty(proto, u"toTimeString", DateProto::toTimeString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleString", DateProto::toLocaleString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleDateString", DateProto::toLocaleDateString, true, false, false);
-  AddFuncProperty(proto, u"toLocaleTimeString", DateProto::toLocaleTimeString, true, false, false);
-  AddFuncProperty(proto, u"valueOf", DateProto::valueOf, true, false, false);
-  AddFuncProperty(proto, u"getTime", DateProto::getTime, true, false, false);
-  AddFuncProperty(proto, u"getFullYear", DateProto::getFullYear, true, false, false);
-  AddFuncProperty(proto, u"getUTCFullYear", DateProto::getUTCFullYear, true, false, false);
-  AddFuncProperty(proto, u"getMonth", DateProto::getMonth, true, false, false);
-  AddFuncProperty(proto, u"getUTCMonth", DateProto::getUTCMonth, true, false, false);
-  AddFuncProperty(proto, u"getDate", DateProto::getDate, true, false, false);
-  AddFuncProperty(proto, u"getUTCDate", DateProto::getUTCDate, true, false, false);
-  AddFuncProperty(proto, u"getUTCDay", DateProto::getUTCDay, true, false, false);
-  AddFuncProperty(proto, u"getHours", DateProto::getHours, true, false, false);
-  AddFuncProperty(proto, u"getUTCHours", DateProto::getUTCHours, true, false, false);
-  AddFuncProperty(proto, u"getMinutes", DateProto::getMinutes, true, false, false);
-  AddFuncProperty(proto, u"getUTCMinutes", DateProto::getUTCMinutes, true, false, false);
-  AddFuncProperty(proto, u"getSeconds", DateProto::getSeconds, true, false, false);
-  AddFuncProperty(proto, u"getUTCSeconds", DateProto::getUTCSeconds, true, false, false);
-  AddFuncProperty(proto, u"getMilliseconds", DateProto::getMilliseconds, true, false, false);
-  AddFuncProperty(proto, u"getUTCMilliseconds", DateProto::getUTCMilliseconds, true, false, false);
-  AddFuncProperty(proto, u"getTimezoneOffset", DateProto::getTimezoneOffset, true, false, false);
-  AddFuncProperty(proto, u"setTime", DateProto::setTime, true, false, false);
-  AddFuncProperty(proto, u"setMilliseconds", DateProto::setMilliseconds, true, false, false);
-  AddFuncProperty(proto, u"setUTCMilliseconds", DateProto::setUTCMilliseconds, true, false, false);
-  AddFuncProperty(proto, u"setSeconds", DateProto::setSeconds, true, false, false);
-  AddFuncProperty(proto, u"setUTCSeconds", DateProto::setUTCSeconds, true, false, false);
-  AddFuncProperty(proto, u"setMinutes", DateProto::setMinutes, true, false, false);
-  AddFuncProperty(proto, u"setHours", DateProto::setHours, true, false, false);
-  AddFuncProperty(proto, u"setUTCHours", DateProto::setUTCHours, true, false, false);
-  AddFuncProperty(proto, u"setDate", DateProto::setDate, true, false, false);
-  AddFuncProperty(proto, u"setUTCDate", DateProto::setUTCDate, true, false, false);
-  AddFuncProperty(proto, u"setMonth", DateProto::setMonth, true, false, false);
-  AddFuncProperty(proto, u"setUTCMonth", DateProto::setUTCMonth, true, false, false);
-  AddFuncProperty(proto, u"setFullYear", DateProto::setFullYear, true, false, false);
-  AddFuncProperty(proto, u"setUTCFullYear", DateProto::setUTCFullYear, true, false, false);
-  AddFuncProperty(proto, u"toUTCString", DateProto::toUTCString, true, false, false);
-  AddFuncProperty(proto, u"toISOString", DateProto::toISOString, true, false, false);
-  AddFuncProperty(proto, u"toJSON", DateProto::toJSON, true, false, false);
+  AddFuncProperty(proto, String::New(u"toString", GCFlag::CONST), DateProto::toString, true, false, false);
+  AddFuncProperty(proto, String::New(u"toDateString", GCFlag::CONST), DateProto::toDateString, true, false, false);
+  AddFuncProperty(proto, String::New(u"toTimeString", GCFlag::CONST), DateProto::toTimeString, true, false, false);
+  AddFuncProperty(proto, String::New(u"toLocaleString", GCFlag::CONST), DateProto::toLocaleString, true, false, false);
+  AddFuncProperty(proto, String::New(u"toLocaleDateString", GCFlag::CONST), DateProto::toLocaleDateString, true, false, false);
+  AddFuncProperty(proto, String::New(u"toLocaleTimeString", GCFlag::CONST), DateProto::toLocaleTimeString, true, false, false);
+  AddFuncProperty(proto, String::New(u"valueOf", GCFlag::CONST), DateProto::valueOf, true, false, false);
+  AddFuncProperty(proto, String::New(u"getTime", GCFlag::CONST), DateProto::getTime, true, false, false);
+  AddFuncProperty(proto, String::New(u"getFullYear", GCFlag::CONST), DateProto::getFullYear, true, false, false);
+  AddFuncProperty(proto, String::New(u"getUTCFullYear", GCFlag::CONST), DateProto::getUTCFullYear, true, false, false);
+  AddFuncProperty(proto, String::New(u"getMonth", GCFlag::CONST), DateProto::getMonth, true, false, false);
+  AddFuncProperty(proto, String::New(u"getUTCMonth", GCFlag::CONST), DateProto::getUTCMonth, true, false, false);
+  AddFuncProperty(proto, String::New(u"getDate", GCFlag::CONST), DateProto::getDate, true, false, false);
+  AddFuncProperty(proto, String::New(u"getUTCDate", GCFlag::CONST), DateProto::getUTCDate, true, false, false);
+  AddFuncProperty(proto, String::New(u"getUTCDay", GCFlag::CONST), DateProto::getUTCDay, true, false, false);
+  AddFuncProperty(proto, String::New(u"getHours", GCFlag::CONST), DateProto::getHours, true, false, false);
+  AddFuncProperty(proto, String::New(u"getUTCHours", GCFlag::CONST), DateProto::getUTCHours, true, false, false);
+  AddFuncProperty(proto, String::New(u"getMinutes", GCFlag::CONST), DateProto::getMinutes, true, false, false);
+  AddFuncProperty(proto, String::New(u"getUTCMinutes", GCFlag::CONST), DateProto::getUTCMinutes, true, false, false);
+  AddFuncProperty(proto, String::New(u"getSeconds", GCFlag::CONST), DateProto::getSeconds, true, false, false);
+  AddFuncProperty(proto, String::New(u"getUTCSeconds", GCFlag::CONST), DateProto::getUTCSeconds, true, false, false);
+  AddFuncProperty(proto, String::New(u"getMilliseconds", GCFlag::CONST), DateProto::getMilliseconds, true, false, false);
+  AddFuncProperty(proto, String::New(u"getUTCMilliseconds", GCFlag::CONST), DateProto::getUTCMilliseconds, true, false, false);
+  AddFuncProperty(proto, String::New(u"getTimezoneOffset", GCFlag::CONST), DateProto::getTimezoneOffset, true, false, false);
+  AddFuncProperty(proto, String::New(u"setTime", GCFlag::CONST), DateProto::setTime, true, false, false);
+  AddFuncProperty(proto, String::New(u"setMilliseconds", GCFlag::CONST), DateProto::setMilliseconds, true, false, false);
+  AddFuncProperty(proto, String::New(u"setUTCMilliseconds", GCFlag::CONST), DateProto::setUTCMilliseconds, true, false, false);
+  AddFuncProperty(proto, String::New(u"setSeconds", GCFlag::CONST), DateProto::setSeconds, true, false, false);
+  AddFuncProperty(proto, String::New(u"setUTCSeconds", GCFlag::CONST), DateProto::setUTCSeconds, true, false, false);
+  AddFuncProperty(proto, String::New(u"setMinutes", GCFlag::CONST), DateProto::setMinutes, true, false, false);
+  AddFuncProperty(proto, String::New(u"setHours", GCFlag::CONST), DateProto::setHours, true, false, false);
+  AddFuncProperty(proto, String::New(u"setUTCHours", GCFlag::CONST), DateProto::setUTCHours, true, false, false);
+  AddFuncProperty(proto, String::New(u"setDate", GCFlag::CONST), DateProto::setDate, true, false, false);
+  AddFuncProperty(proto, String::New(u"setUTCDate", GCFlag::CONST), DateProto::setUTCDate, true, false, false);
+  AddFuncProperty(proto, String::New(u"setMonth", GCFlag::CONST), DateProto::setMonth, true, false, false);
+  AddFuncProperty(proto, String::New(u"setUTCMonth", GCFlag::CONST), DateProto::setUTCMonth, true, false, false);
+  AddFuncProperty(proto, String::New(u"setFullYear", GCFlag::CONST), DateProto::setFullYear, true, false, false);
+  AddFuncProperty(proto, String::New(u"setUTCFullYear", GCFlag::CONST), DateProto::setUTCFullYear, true, false, false);
+  AddFuncProperty(proto, String::New(u"toUTCString", GCFlag::CONST), DateProto::toUTCString, true, false, false);
+  AddFuncProperty(proto, String::New(u"toISOString", GCFlag::CONST), DateProto::toISOString, true, false, false);
+  AddFuncProperty(proto, String::New(u"toJSON", GCFlag::CONST), DateProto::toJSON, true, false, false);
 }
 
 void InitMath() {
   HandleScope scope;
   Handle<JSObject> math = Math::Instance();
   // 15.8.1 Value Properties of the Math Object
-  AddValueProperty(math, String::New(u"E"), Number::New(2.7182818284590452354), false, false, false);
-  AddValueProperty(math, String::New(u"LN10"), Number::New(2.302585092994046), false, false, false);
-  AddValueProperty(math, String::New(u"LN2"), Number::New(0.6931471805599453), false, false, false);
-  AddValueProperty(math, String::New(u"LOG2E"), Number::New(1.4426950408889634), false, false, false);
-  AddValueProperty(math, String::New(u"LOG10E"), Number::New(0.4342944819032518), false, false, false);
-  AddValueProperty(math, String::New(u"PI"), Number::New(3.1415926535897932), false, false, false);
-  AddValueProperty(math, String::New(u"SQRT1_2"), Number::New(0.7071067811865476), false, false, false);
-  AddValueProperty(math, String::New(u"SQRT2"), Number::New(1.4142135623730951), false, false, false);
+  AddValueProperty(math, String::New(u"E", GCFlag::CONST), Number::New(2.7182818284590452354), false, false, false);
+  AddValueProperty(math, String::New(u"LN10", GCFlag::CONST), Number::New(2.302585092994046), false, false, false);
+  AddValueProperty(math, String::New(u"LN2", GCFlag::CONST), Number::New(0.6931471805599453), false, false, false);
+  AddValueProperty(math, String::New(u"LOG2E", GCFlag::CONST), Number::New(1.4426950408889634), false, false, false);
+  AddValueProperty(math, String::New(u"LOG10E", GCFlag::CONST), Number::New(0.4342944819032518), false, false, false);
+  AddValueProperty(math, String::New(u"PI", GCFlag::CONST), Number::New(3.1415926535897932), false, false, false);
+  AddValueProperty(math, String::New(u"SQRT1_2", GCFlag::CONST), Number::New(0.7071067811865476), false, false, false);
+  AddValueProperty(math, String::New(u"SQRT2", GCFlag::CONST), Number::New(1.4142135623730951), false, false, false);
   // 15.8.2 Function Properties of the Math Object
-  AddFuncProperty(math, u"abs", Math::abs, false, false, false);
-  AddFuncProperty(math, u"ceil", Math::ceil, false, false, false);
-  AddFuncProperty(math, u"cos", Math::cos, false, false, false);
-  AddFuncProperty(math, u"exp", Math::exp, false, false, false);
-  AddFuncProperty(math, u"floor", Math::floor, false, false, false);
-  AddFuncProperty(math, u"max", Math::max, false, false, false);
-  AddFuncProperty(math, u"pow", Math::pow, false, false, false);
-  AddFuncProperty(math, u"round", Math::round, false, false, false);
-  AddFuncProperty(math, u"sin", Math::sin, false, false, false);
-  AddFuncProperty(math, u"sqrt", Math::sqrt, false, false, false);
+  AddFuncProperty(math, String::New(u"abs", GCFlag::CONST), Math::abs, false, false, false);
+  AddFuncProperty(math, String::New(u"ceil", GCFlag::CONST), Math::ceil, false, false, false);
+  AddFuncProperty(math, String::New(u"cos", GCFlag::CONST), Math::cos, false, false, false);
+  AddFuncProperty(math, String::New(u"exp", GCFlag::CONST), Math::exp, false, false, false);
+  AddFuncProperty(math, String::New(u"floor", GCFlag::CONST), Math::floor, false, false, false);
+  AddFuncProperty(math, String::New(u"max", GCFlag::CONST), Math::max, false, false, false);
+  AddFuncProperty(math, String::New(u"pow", GCFlag::CONST), Math::pow, false, false, false);
+  AddFuncProperty(math, String::New(u"round", GCFlag::CONST), Math::round, false, false, false);
+  AddFuncProperty(math, String::New(u"sin", GCFlag::CONST), Math::sin, false, false, false);
+  AddFuncProperty(math, String::New(u"sqrt", GCFlag::CONST), Math::sqrt, false, false, false);
 }
 
 void InitRegExp() {
@@ -583,9 +583,9 @@ void InitRegExp() {
   proto.val()->SetPrototype(ObjectProto::Instance());
   // 15.6.4 Properties of the RegExp Prototype Object
   AddValueProperty(proto, String::Constructor(), RegExpConstructor::Instance(), false, false, false);
-  AddFuncProperty(proto, u"exec", RegExpProto::exec, true, false, false);
-  AddFuncProperty(proto, u"test", RegExpProto::test, true, false, false);
-  AddFuncProperty(proto, u"toString", RegExpProto::toString, true, false, false);
+  AddFuncProperty(proto, String::New(u"exec", GCFlag::CONST), RegExpProto::exec, true, false, false);
+  AddFuncProperty(proto, String::New(u"test", GCFlag::CONST), RegExpProto::test, true, false, false);
+  AddFuncProperty(proto, String::New(u"toString", GCFlag::CONST), RegExpProto::toString, true, false, false);
 };
 
 void Init() {

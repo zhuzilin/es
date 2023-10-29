@@ -336,7 +336,7 @@ Handle<JSValue> EvalFunction(Handle<Error>& e, AST* ast) {
 
 // TODO(zhuzilin) move this function to a better place
 void AddFuncProperty(
-  Handle<JSObject> O, std::u16string name, inner_func callable, bool writable,
+  Handle<JSObject> O, Handle<String> name, inner_func callable, bool writable,
   bool enumerable, bool configurable
 ) {
   Handle<JSObject> value = JSObject::New(
