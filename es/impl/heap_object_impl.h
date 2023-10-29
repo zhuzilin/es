@@ -23,6 +23,7 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
     case JS_NUMBER:
       return {};
     case JS_REF:
+    case JS_GET_SET:
       return {
         HEAP_PTR(heap_obj, Reference::kBaseOffset),
         HEAP_PTR(heap_obj, Reference::kReferenceNameOffset)
@@ -203,6 +204,8 @@ std::string HeapObject::ToString(Type type) {
 
     case JS_REF:
       return "JS_REF";
+    case JS_GET_SET:
+      return "JS_GET_SET";
     case JS_PROP_DESC:
       return "JS_PROP_DESC";
     case JS_ENV_REC_DECL:

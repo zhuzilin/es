@@ -42,13 +42,6 @@ class Reference : public JSValue {
   static constexpr size_t kBaseOffset = kJSValueOffset;
   static constexpr size_t kReferenceNameOffset = kBaseOffset + kPtrSize;
   static constexpr size_t kStrictOffset = kReferenceNameOffset + kPtrSize;
-
-  enum Field {
-    STRICT              = 1 << 0,
-    HAS_PRIMITIVE_BASE  = 1 << 1,
-    PROPERTY            = 1 << 2,
-    UNRESOLVABLE        = 1 << 3,
-  };
 };
 
 Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V);

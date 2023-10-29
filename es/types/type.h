@@ -53,6 +53,7 @@ enum Type {
   JS_ENV_REC_DECL = 1 << 8 | 3,
   JS_ENV_REC_OBJ  = 1 << 8 | 4,
   JS_LEX_ENV      = 1 << 8 | 5,
+  JS_GET_SET      = 1 << 8 | 6,
 
   NON_JSVALUE  = 1 << 16,
 

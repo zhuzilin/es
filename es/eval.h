@@ -68,7 +68,7 @@ Handle<JSValue> EvalAssignmentExpression(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast);
 std::vector<Handle<JSValue>> EvalArgumentsList(Handle<Error>& e, Arguments* ast);
 Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::vector<Handle<JSValue>> arg_list);
-Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, Handle<String> identifier_name, ValueGuard& guard);
+Handle<Reference> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, Handle<String> identifier_name, ValueGuard& guard);
 Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, AST* expr, ValueGuard& guard);
 Handle<JSValue> EvalExpressionList(Handle<Error>& e, AST* ast);
 
@@ -1546,7 +1546,7 @@ Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::v
 }
 
 // 11.2.1 Property Accessors
-Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, Handle<String> identifier_name, ValueGuard& guard) {
+Handle<Reference> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, Handle<String> identifier_name, ValueGuard& guard) {
   Handle<JSValue> base_value = GetValue(e, base_ref);
   if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();

@@ -45,7 +45,7 @@ Handle<ArgumentsObject> CreateArgumentsObject(
       if (mapped_names.find(name_str) == mapped_names.end()) {  // 11.c.ii
         mapped_names.insert(name_str);
         is_accessor_desc = true;
-        Handle<Reference> gs = Reference::New(env.val()->env_rec(), name, true);
+        Handle<GetterSetter> gs = GetterSetter::New(env.val()->env_rec(), name, true);
         Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
         desc.val()->SetSet(gs);
         desc.val()->SetGet(gs);

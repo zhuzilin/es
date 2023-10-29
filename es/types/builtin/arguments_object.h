@@ -26,12 +26,39 @@ class ArgumentsObject : public JSObject {
   }
 };
 
+class GetterSetter : public JSValue {
+ public:
+  static Handle<Reference> New(
+    Handle<JSValue> base,
+    Handle<String> reference_name,
+    bool strict_reference
+  ) {
+    Handle<JSValue> jsval = HeapObject::New(kStrictOffset + kBoolSize - kJSValueOffset);
+
+    SET_HANDLE_VALUE(jsval.val(), kBaseOffset, base, JSValue);
+    SET_HANDLE_VALUE(jsval.val(), kReferenceNameOffset, reference_name, String);
+    SET_VALUE(jsval.val(), kStrictOffset, strict_reference, bool);
+
+    jsval.val()->SetType(JS_GET_SET);
+    return Handle<Reference>(jsval);
+  }
+
+  Handle<JSValue> GetBase() { return READ_HANDLE_VALUE(this, kBaseOffset, JSValue); }
+  Handle<String> GetReferencedName() { return READ_HANDLE_VALUE(this, kReferenceNameOffset, String); }
+  bool IsStrictReference() { return READ_VALUE(this, kStrictOffset, bool); }
+
+ public:
+  static constexpr size_t kBaseOffset = kJSValueOffset;
+  static constexpr size_t kReferenceNameOffset = kBaseOffset + kPtrSize;
+  static constexpr size_t kStrictOffset = kReferenceNameOffset + kPtrSize;
+};
+
 Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P);
 Handle<JSValue> GetOwnProperty__Arguments(Handle<ArgumentsObject> O, Handle<String> P);
 bool Delete__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, bool throw_flag);
 bool DefineOwnProperty__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
 
-Handle<JSValue> Call__GetterSetter(Handle<Error>& e, Handle<Reference> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
+Handle<JSValue> Call__GetterSetter(Handle<Error>& e, Handle<GetterSetter> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 
 }  // namespace es
 

@@ -68,6 +68,7 @@ class ExecutionContext {
 
   bool strict_;
   std::stack<std::u16string> label_stack_;
+  std::stack<std::pair<Handle<String>, Handle<JSValue>>> reference_stack_;
   size_t iteration_layers_;
   size_t switch_layers_;
 };

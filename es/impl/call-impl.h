@@ -42,7 +42,7 @@ Handle<JSValue> Call(
   } else if (O.val()->IsFunctionProto()) {
     return Call__FunctionProto(e, static_cast<Handle<FunctionProto>>(O), this_arg, arguments);
   } else if (O.val()->IsGetterSetter()) {
-    return Call__GetterSetter(e, static_cast<Handle<Reference>>(O), this_arg, arguments);
+    return Call__GetterSetter(e, static_cast<Handle<GetterSetter>>(O), this_arg, arguments);
   } else {
     return Call__Base(e, O, this_arg, arguments);
   }
@@ -188,13 +188,17 @@ Handle<JSValue> Call__StringConstructor(
 }
 
 Handle<JSValue> Call__GetterSetter(
-  Handle<Error>& e, Handle<Reference> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
+  Handle<Error>& e, Handle<GetterSetter> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   ASSERT(arguments.size() < 2);
+  Handle<GetterSetter> gs = static_cast<Handle<GetterSetter>>(O);
+  Handle<JSValue> base = gs.val()->GetBase();
+  Handle<String> name = gs.val()->GetReferencedName();
+  bool is_strict = gs.val()->IsStrictReference();
   if (arguments.size() == 0) {
-    return GetValue(e, O);
+    return GetValueEnvRec(e, base, name, is_strict);
   } else {
-    PutValue(e, O, arguments[0]);
+    PutValueEnvRec(e, base, name, is_strict, arguments[0]);
     return Handle<JSValue>();
   }
 }
