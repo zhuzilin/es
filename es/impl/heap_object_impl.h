@@ -67,10 +67,13 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
       return pointers;
     }
     case PROPERTY_MAP: {
-      return {
-        HEAP_PTR(heap_obj, PropertyMap::kFixedArrayOffset),
-        HEAP_PTR(heap_obj, PropertyMap::kHashMapOffset),
-      };
+      size_t n = READ_VALUE(heap_obj, PropertyMap::kNumFixedSlotsOffset, size_t);
+      std::vector<HeapObject**> pointers(n + 1);
+      for (size_t i = 0; i < n; i++) {
+        pointers[i] = HEAP_PTR(heap_obj, PropertyMap::kElementOffset + i * kPtrSize);
+      }
+      pointers[n] = HEAP_PTR(heap_obj, PropertyMap::kHashMapOffset);
+      return pointers;
     }
     case BINDING: {
       return {HEAP_PTR(heap_obj, Binding::kValueOffset)};

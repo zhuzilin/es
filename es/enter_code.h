@@ -50,12 +50,14 @@ Handle<ArgumentsObject> CreateArgumentsObject(
         desc.val()->SetSet(gs);
         desc.val()->SetGet(gs);
         desc.val()->SetConfigurable(true);
-        DefineOwnProperty(Error::Empty(), obj, String::New(indx), desc, false);
+        obj.val()->named_properties()->SetRawArray(indx, desc.val());
       }
     }
     if (!is_accessor_desc) {
       Handle<JSValue> val = args[indx];  // 11.a
-      AddValueProperty(obj, String::New(indx), val, true, true, true);  // 11.b
+      Handle<PropertyDescriptor> desc = PropertyDescriptor::NewDataDescriptor(
+        val, true, true, true);
+      obj.val()->named_properties()->SetRawArray(indx, desc.val()); // 11.b
     }
     indx--;  // 11.d
   }

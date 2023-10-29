@@ -20,47 +20,37 @@ class PropertyMap : public JSValue {
     if (num_fixed_slots > kMaxPropertyMapSize)
       num_fixed_slots = kMaxPropertyMapSize;
 
-    Handle<JSValue> jsval = HeapObject::New(2 * kUint32Size + 2 * kPtrSize);
+    Handle<JSValue> jsval = HeapObject::New(kElementOffset + num_fixed_slots * kPtrSize - HeapObject::kHeapObjectOffset);
 
-    Handle<FixedArray> fixed_array;
-    if (num_fixed_slots > 0)
-      fixed_array = FixedArray::New(num_fixed_slots);
     Handle<HashMap> hashmap = HashMap::New();
-
-    SET_VALUE(jsval.val(), kNumFixedSlotsOffset, num_fixed_slots, uint32_t);
-    SET_VALUE(jsval.val(), kFixedSlotsBitMaskOffset, 0, uint32_t);
-    SET_HANDLE_VALUE(jsval.val(), kFixedArrayOffset, fixed_array, FixedArray);
+    SET_VALUE(jsval.val(), kNumFixedSlotsOffset, num_fixed_slots, size_t);
     SET_HANDLE_VALUE(jsval.val(), kHashMapOffset, hashmap, HashMap);
+
+    for (size_t i = 0; i < num_fixed_slots; ++i) {
+      SET_VALUE(jsval.val(), kElementOffset + i * kPtrSize, nullptr, JSValue*);
+    }
 
     jsval.val()->SetType(PROPERTY_MAP);
     return Handle<PropertyMap>(jsval);
   }
 
   uint32_t num_fixed_slots() { return READ_VALUE(this, kNumFixedSlotsOffset, uint32_t); }
-  bool HasBitMask(uint32_t index) {
-    uint32_t bitmask = READ_VALUE(this, kFixedSlotsBitMaskOffset, uint32_t);
-    return bitmask & (1 << index);
-  }
-  void SetBitMask(uint32_t index) {
-    uint32_t bitmask = READ_VALUE(this, kFixedSlotsBitMaskOffset, uint32_t);
-    SET_VALUE(this, kFixedSlotsBitMaskOffset, bitmask | (1 << index), uint32_t);
-  }
-  void UnsetBitMask(uint32_t index) {
-    uint32_t bitmask = READ_VALUE(this, kFixedSlotsBitMaskOffset, uint32_t);
-    SET_VALUE(this, kFixedSlotsBitMaskOffset, bitmask & (~(1 << index)), uint32_t);
-  }
-
-  Handle<FixedArray> fixed_array() { return READ_HANDLE_VALUE(this, kFixedArrayOffset, FixedArray); }
   Handle<HashMap> hashmap() { return READ_HANDLE_VALUE(this, kHashMapOffset, HashMap); }
   void SetHashMap(Handle<HashMap> hashmap) { SET_HANDLE_VALUE(this, kHashMapOffset, hashmap, HashMap); }
+  JSValue* GetRawArray(size_t index) {
+    ASSERT(index < num_fixed_slots());
+    return READ_VALUE(this, kElementOffset + index * kPtrSize, JSValue*);
+  }
+  void SetRawArray(size_t index, JSValue* val) {
+    ASSERT(index < num_fixed_slots());
+    SET_VALUE(this, kElementOffset + index * kPtrSize, val, JSValue*);
+  }
 
   // Set can not be method as there can be gc happening inside.
   static void Set(Handle<PropertyMap> map, Handle<String> key, Handle<JSValue> val) {
     if (map.val()->IsSmallArrayIndex(key)) {
       uint32_t index = key.val()->Index();
-      auto array = map.val()->fixed_array();
-      array.val()->Set(index, val);
-      map.val()->SetBitMask(index);
+      map.val()->SetRawArray(index, val.val());
       return;
     }
     auto hashmap = map.val()->hashmap();
@@ -71,11 +61,7 @@ class PropertyMap : public JSValue {
   Handle<JSValue> Get(Handle<String> key) {
     if (IsSmallArrayIndex(key)) {
       uint32_t index = key.val()->Index();
-      if (HasBitMask(index)) {
-        return fixed_array().val()->Get(index);
-      } else {
-        return Handle<JSValue>();
-      }
+      return Handle<JSValue>(GetRawArray(index));
     }
     return hashmap().val()->Get(key);
   }
@@ -83,11 +69,7 @@ class PropertyMap : public JSValue {
   JSValue* GetRaw(Handle<String> key) {
     if (IsSmallArrayIndex(key)) {
       uint32_t index = key.val()->Index();
-      if (HasBitMask(index)) {
-        return fixed_array().val()->GetRaw(index);
-      } else {
-        return nullptr;
-      }
+      return GetRawArray(index);
     }
     return hashmap().val()->GetRaw(key);
   }
@@ -95,10 +77,7 @@ class PropertyMap : public JSValue {
   void Delete(Handle<String> key) {
     if (IsSmallArrayIndex(key)) {
       uint32_t index = key.val()->Index();
-      if (HasBitMask(index)) {
-        fixed_array().val()->Set(index, Handle<JSValue>());
-        UnsetBitMask(index);
-      }
+      SetRawArray(index, nullptr);
       return;
     }
     hashmap().val()->Delete(key);
@@ -106,11 +85,10 @@ class PropertyMap : public JSValue {
 
   std::vector<std::pair<String*, JSValue*>> SortedKeyValPairs(bool (*filter)(JSValue*)) {
     std::vector<std::pair<String*, JSValue*>> result;
-    auto array = fixed_array();
     for (uint32_t i = 0; i < num_fixed_slots(); ++i) {
-      if (HasBitMask(i)) {
-        result.emplace_back(std::make_pair(String::New(i).val(), array.val()->GetRaw(i)));
-      }
+      JSValue* val = GetRawArray(i);
+      if (val != nullptr)
+        result.emplace_back(std::make_pair(String::New(i).val(), GetRawArray(i)));
     }
     std::vector<std::pair<String*, JSValue*>> hashmap_result = hashmap().val()->SortedKeyValPairs(filter);
     result.insert(result.end(), hashmap_result.begin(), hashmap_result.end());
@@ -124,11 +102,10 @@ class PropertyMap : public JSValue {
 
  public:
   static constexpr size_t kNumFixedSlotsOffset = HeapObject::kHeapObjectOffset;
-  static constexpr size_t kFixedSlotsBitMaskOffset = kNumFixedSlotsOffset + kUint32Size;
-  static constexpr size_t kFixedArrayOffset = kFixedSlotsBitMaskOffset + kUint32Size;
-  static constexpr size_t kHashMapOffset = kFixedArrayOffset + kPtrSize;
+  static constexpr size_t kHashMapOffset = kNumFixedSlotsOffset + kSizeTSize;
+  static constexpr size_t kElementOffset = kHashMapOffset + kPtrSize;
 
-  static constexpr size_t kMaxPropertyMapSize = 32;
+  static constexpr size_t kMaxPropertyMapSize = 128;
 };
 
 }  // namespace es
