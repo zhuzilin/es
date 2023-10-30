@@ -9,8 +9,9 @@ enum Type {
   JS_NULL = 2,
   JS_BOOL = 3,
   JS_NUMBER = 4,
-  JS_STRING = 5,
-  JS_LONG_STRING = 6,
+  JS_REF = 5,
+  JS_STRING = 6,
+  JS_LONG_STRING = 7,
 
   JS_OBJECT = 1 << 6,
 
@@ -48,7 +49,6 @@ enum Type {
 
   SPEC_TYPE = 1 << 8,
 
-  JS_REF          = 1 << 8 | 1,
   JS_PROP_DESC    = 1 << 8 | 2,
   JS_ENV_REC_DECL = 1 << 8 | 3,
   JS_ENV_REC_OBJ  = 1 << 8 | 4,

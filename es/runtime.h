@@ -58,7 +58,7 @@ class ExecutionContext {
 
   Handle<Reference> AddReference(Handle<JSValue> base, Handle<String> name) {
     references_.emplace_back(base, name);
-    return Reference::Get(references_.size() - 1);
+    return Reference::New(references_.size() - 1);
   }
 
   StackReference GetReference(size_t i) {
