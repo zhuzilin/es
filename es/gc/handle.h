@@ -4,39 +4,26 @@
 #include <vector>
 
 #include <es/utils/macros.h>
+#include <es/utils/block_stack.h>
 #include <es/gc/header.h>
 
 namespace es {
 
 class HeapObject;
 
-constexpr size_t kHandleBlockSize = 10 * 1024;
 constexpr size_t kNumSingletonHandle = 32;
 constexpr size_t kNumConstantHandle = 10 * 1024 * 1024;  // 10M
 
-struct HandleBlock {
-  HandleBlock() :
-    pointers_(new HeapObject*[kHandleBlockSize]), offset_(0) {}
-
-  std::unique_ptr<HeapObject*[]> pointers_;
-  size_t offset_;
-};
-
 class HandleScope {
  public:
+  using HandleBlockStack = BlockStack<HeapObject*, 10 * 1024>;
+
   HandleScope() {
-    if (block_stack_.size() == 0) {
-      block_stack_.emplace_back(HandleBlock());
-    }
-    start_block_idx_ = block_stack_.size() - 1;
-    start_block_offset_ = block_stack_.back().offset_;
+    start_idx_ = block_stack_.GetNextPosition();
   }
 
   ~HandleScope() {
-    while (block_stack_.size() > start_block_idx_ + 1) {
-      block_stack_.pop_back();
-    }
-    block_stack_[start_block_idx_].offset_ = start_block_offset_;
+    block_stack_.Rewind(start_idx_);
   }
 
   static HeapObject** Add(HeapObject* val) {
@@ -74,41 +61,31 @@ class HandleScope {
       return ptr;
     }
 normal:
-    if (block_stack_.size() == 0 || block_stack_.back().offset_ == kHandleBlockSize) {
-      block_stack_.emplace_back(HandleBlock());
-    }
-    HandleBlock& block = block_stack_.back();
-    size_t offset = block.offset_;
-    block.pointers_.get()[offset] = val;
-    block.offset_++;
-    return block.pointers_.get() + offset;
+    return block_stack_.Add(val);
   }
 
   static std::vector<HeapObject**> AllPointers() {
     size_t num_pointers = singleton_pointers_count_;
     if (likely(block_stack_.size() > 0)) {
-      num_pointers += (block_stack_.size() - 1) * kHandleBlockSize + block_stack_.back().offset_;
+      num_pointers += block_stack_.num_elements();
     }
     std::vector<HeapObject**> pointers(num_pointers);
     for (size_t i = 0; i < singleton_pointers_count_; i++) {
       pointers[i] = singleton_pointers_ + i;
     }
     size_t offset = singleton_pointers_count_;
-    for (size_t i = 0; i < block_stack_.size() - 1; i++) {
-      for (size_t j = 0; j < kHandleBlockSize; j++) {
-        pointers[offset + j] = block_stack_[i].pointers_.get() + j;
+    for (size_t i = 0; i < block_stack_.size(); i++) {
+      size_t limit = i == block_stack_.size() - 1 ? block_stack_.back().offset_ : HandleBlockStack::kBlockSize;
+      for (size_t j = 0; j < limit; j++) {
+        pointers[offset + j] = block_stack_.get({i, j});
       }
-      offset += kHandleBlockSize;
-    }
-    for (size_t j = 0; j < block_stack_.back().offset_; j++) {
-      pointers[offset + j] = block_stack_.back().pointers_.get() + j;
+      offset += block_stack_.kBlockSize;
     }
     return pointers;
   }
 
  private:
-  size_t start_block_idx_;
-  size_t start_block_offset_;
+  HandleBlockStack::Idx start_idx_;
 
   static HeapObject* singleton_pointers_[kNumSingletonHandle];
   static size_t singleton_pointers_count_;
@@ -116,16 +93,15 @@ normal:
   static HeapObject* constant_pointers_[kNumConstantHandle];
   static std::unordered_map<HeapObject*, uint32_t> constant_pointers_map_;
 
-  static std::vector<HandleBlock> block_stack_;
+  static HandleBlockStack block_stack_;
 };
 
 HeapObject* HandleScope::singleton_pointers_[kNumSingletonHandle];
 size_t HandleScope::singleton_pointers_count_ = 0;
+HandleScope::HandleBlockStack HandleScope::block_stack_;
 
 HeapObject* HandleScope::constant_pointers_[kNumConstantHandle];
 std::unordered_map<HeapObject*, uint32_t> HandleScope::constant_pointers_map_;
-
-std::vector<HandleBlock> HandleScope::block_stack_;
 
 // Handle is used to solve the following situation:
 // ```
