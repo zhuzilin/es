@@ -138,8 +138,8 @@ class Handle {
   Handle(Handle<S> base) {
 #ifdef GC_DEBUG
     // Make sure the type conversion is correct.
-    S* a = nullptr;
-    T* b = static_cast<T*>(a);
+    // S* a = nullptr;
+    // T* b = static_cast<T*>(a);
 #endif
     ptr_ = reinterpret_cast<T**>(base.ptr());
   }

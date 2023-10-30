@@ -70,7 +70,7 @@ void PrintSource(std::string comment, std::u16string str = u"", std::string post
       s += line;
     }
   }
-  for (const auto& c: str)
+  for (const auto& c: s)
     std::cout << static_cast<char>(c);
   std::cout << postfix << "\n";
 }

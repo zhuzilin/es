@@ -8,18 +8,33 @@
 #include <es/types/lexical_environment.h>
 #include <es/types/reference.h>
 #include <es/types/builtin/global_object.h>
+#include <es/utils/block_stack.h>
 
 namespace es {
 
 class ExecutionContext {
- public: 
+ public:
+  struct StackReference {
+    Handle<JSValue> base;
+    Handle<String> name;
+  };
+
+  using ReferenceBlockStack = BlockStack<StackReference, 1024>;
+
   ExecutionContext(
     Handle<LexicalEnvironment> variable_env,
     Handle<LexicalEnvironment> lexical_env,
     Handle<JSValue> this_binding,
     bool strict
   ) : variable_env_(variable_env), lexical_env_(lexical_env), this_binding_(this_binding),
-      strict_(strict), iteration_layers_(0), switch_layers_(0) {
+      strict_(strict), iteration_layers_(0), switch_layers_(0),
+      start_idx_(ref_block_stack_.GetNextPosition()), num_references_(0) {
+  }
+
+  // could not do this in ~Execution
+  // as the std::vector resize will trigger the destructor
+  void Rewind() {
+    ref_block_stack_.Rewind(start_idx_);
   }
 
   Handle<LexicalEnvironment> variable_env() { return variable_env_; }
@@ -48,23 +63,17 @@ class ExecutionContext {
     label_stack_.pop();
   }
 
-  struct StackReference {
-    Handle<JSValue> base;
-    Handle<String> name;
-
-    StackReference(Handle<JSValue> base, Handle<String> name) :
-      base(base), name(name) {}
-  };
-
   Handle<Reference> AddReference(Handle<JSValue> base, Handle<String> name) {
-    references_.emplace_back(base, name);
-    return Reference::New(references_.size() - 1);
+    // Must create ref before add to block stack.
+    Handle<Reference> ref = Reference::New(num_references_);
+    ref_block_stack_.Add({base, name});
+    num_references_++;
+    return ref;
   }
 
   StackReference GetReference(size_t i) {
-    ASSERT(i < references_.size());
-    auto ref = references_[i];
-    return ref;
+    ASSERT(i < num_references_);
+    return *ref_block_stack_.get(start_idx_ + i);
   }
 
   void EnterIteration() { iteration_layers_++; }
@@ -81,17 +90,7 @@ class ExecutionContext {
   }
   bool InSwitch() { return switch_layers_ != 0; }
 
-  std::vector<HeapObject**> Pointers() {
-    std::vector<HeapObject**> pointers(3 + 2 * references_.size(), nullptr);
-    pointers[0] = reinterpret_cast<HeapObject**>(variable_env().ptr());
-    pointers[1] = reinterpret_cast<HeapObject**>(lexical_env().ptr());
-    pointers[2] = reinterpret_cast<HeapObject**>(this_binding().ptr());
-    for (size_t i = 0; i < references_.size(); ++i) {
-      pointers[3 + i * 2] = reinterpret_cast<HeapObject**>(references_[i].base.ptr());
-      pointers[3 + i * 2 + 1] = reinterpret_cast<HeapObject**>(references_[i].name.ptr());
-    }
-    return pointers;
-  }
+  static ReferenceBlockStack& ref_block_stack() { return ref_block_stack_; }
 
  private:
   Handle<LexicalEnvironment> variable_env_;
@@ -100,10 +99,15 @@ class ExecutionContext {
 
   bool strict_;
   std::stack<std::u16string> label_stack_;
-  std::vector<StackReference> references_;
   size_t iteration_layers_;
   size_t switch_layers_;
+
+  static ReferenceBlockStack ref_block_stack_;
+  ReferenceBlockStack::Idx start_idx_;
+  size_t num_references_;
 };
+
+ExecutionContext::ReferenceBlockStack ExecutionContext::ref_block_stack_;
 
 class Runtime {
  public:
@@ -125,6 +129,7 @@ class Runtime {
   }
 
   void PopContext() {
+    context_stack_.back().Rewind();
     context_stack_.pop_back();
   }
 
@@ -146,13 +151,32 @@ class Runtime {
   }
 
   std::vector<HeapObject**> Pointers() {
-    std::vector<HeapObject**> pointers;
-    for (size_t i = 0; i < context_stack_.size(); i++) {
-      auto context_pointers = context_stack_[i].Pointers();
-      pointers.insert(pointers.end(), context_pointers.begin(), context_pointers.end());
+    auto& ref_block_stack = ExecutionContext::ref_block_stack();
+    size_t num_context_pointers = context_stack_.size() * 3 + ref_block_stack.num_elements() * 2;
+    std::vector<HeapObject**> pointers(num_context_pointers);
+    for (size_t i = 0; i < context_stack_.size(); ++i) {
+      pointers[3 * i] = reinterpret_cast<HeapObject**>(context_stack_[i].lexical_env().ptr());
+      pointers[3 * i + 1] = reinterpret_cast<HeapObject**>(context_stack_[i].variable_env().ptr());
+      pointers[3 * i + 2] = reinterpret_cast<HeapObject**>(context_stack_[i].this_binding().ptr());
+    }
+    size_t offset = 3 * context_stack_.size();
+    for (size_t i = 0; i < ref_block_stack.size(); ++i) {
+      size_t limit = i == ref_block_stack.size() - 1 ?
+        ref_block_stack.back().offset_ :
+        ExecutionContext::ReferenceBlockStack::kBlockSize;
+      for (size_t j = 0; j < limit; ++j) {
+        pointers[offset + 2 * j] = reinterpret_cast<HeapObject**>(ref_block_stack.get({i, j})->base.ptr());
+        pointers[offset + 2 * j + 1] = reinterpret_cast<HeapObject**>(ref_block_stack.get({i, j})->name.ptr());
+      }
+      offset += 2 * ExecutionContext::ReferenceBlockStack::kBlockSize;
     }
     auto scope_pointers = HandleScope::AllPointers();
     pointers.insert(pointers.end(), scope_pointers.begin(), scope_pointers.end());
+#ifdef GC_DEBUG
+    for (size_t i = 0; i < pointers.size(); ++i) {
+      assert(pointers[i] != nullptr);
+    }
+#endif
     return pointers;
   }
 

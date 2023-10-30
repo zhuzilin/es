@@ -110,7 +110,7 @@ Completion EvalProgram(AST* ast) {
 }
 
 Completion EvalStatement(AST* ast) {
-  TEST_LOG("EvalStatement ", ast->source());
+  TEST_LOG("EvalStatement\n", ast->source());
   Completion C(Completion::NORMAL, Handle<JSValue>(), u"");
   JSValue* val = nullptr;
   {

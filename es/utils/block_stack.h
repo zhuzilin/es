@@ -20,6 +20,12 @@ class BlockStack {
   struct Idx {
     size_t block_idx;
     size_t element_idx;
+
+    Idx operator+(size_t offset) {
+      size_t new_element_idx = (element_idx + offset) % kBlockSize;
+      size_t new_block_idx = block_idx + (element_idx + offset) / kBlockSize;
+      return {new_block_idx, new_element_idx};
+    }
   };
 
   BlockStack() : stack_(1) {}
@@ -30,7 +36,7 @@ class BlockStack {
   void pop_back() { stack_.pop_back(); }
   Block& operator [](size_t block_idx) { return stack_[block_idx]; }
   T* get(Idx idx) {
-    ASSERT(idx.block_idx < size() && idx.element_idx < kBlockSize);
+    assert(idx.block_idx < size() && idx.element_idx < kBlockSize);
     return stack_[idx.block_idx].pointers_.get() + idx.element_idx;
   }
 

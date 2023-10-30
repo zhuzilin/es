@@ -7,9 +7,9 @@
 
 namespace es {
 
-constexpr size_t kNewSpaceSize = 4000U * 1024 * 1024;  // 500MB
+constexpr size_t kNewSpaceSize = 4000U * 1024 * 1024;  // 4GB
 constexpr size_t kConstantSegmentSize = 100 * 1024 * 1024;  // 100MB
-constexpr size_t kBigObjectSegmentSize = 1024 * 1024 * 1024;  // 1GB
+constexpr size_t kBigObjectSegmentSize = 100 * 1024 * 1024;  // 1GB
 constexpr size_t kBigObjectThres = 10 * 1024 * 1024;  // 10MB
 
 class Heap {

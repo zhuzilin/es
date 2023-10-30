@@ -68,7 +68,9 @@ struct CopyingCollection : public GC<CopyingCollection> {
     Flip();
     Initialise(worklist_);
     auto root_pointers = Runtime::Global()->Pointers();
-    ASSERT(root_pointers.size() > 0);
+#ifdef GC_DEBUG
+    assert(root_pointers.size() > 0);
+#endif
     for (HeapObject** fld : root_pointers) {
       Process(fld);
     }
@@ -88,15 +90,23 @@ struct CopyingCollection : public GC<CopyingCollection> {
   }
 
   void Flip() {
+#ifdef GC_DEBUG
+    std::cout << "before Flip [" << static_cast<void *>(tospace_) << ", " << static_cast<void *>(top_) << "]\n";
+#endif
     std::swap(fromspace_, tospace_);
     top_ = tospace_ + extent_;
     free_ = tospace_;
     memset(tospace_, 0, extent_);
+#ifdef GC_DEBUG
+    std::cout << "after Flip [" << static_cast<void *>(tospace_) << ", " << static_cast<void *>(top_) << "]\n";
+#endif
   }
 
   void Scan(void* ref) {
     HeapObject* heap_ref = static_cast<HeapObject*>(ref);
-    ASSERT(heap_ref != nullptr);
+#ifdef GC_DEBUG
+    assert(heap_ref != nullptr);
+#endif
     auto ref_pointers = HeapObject::Pointers(heap_ref);
     for (HeapObject** fld : ref_pointers) {
       Process(fld);
@@ -104,19 +114,19 @@ struct CopyingCollection : public GC<CopyingCollection> {
   }
 
   void Process(HeapObject** fld) {
-    if ((reinterpret_cast<uint64_t>(*fld) & STACK_MASK) ||
-        *fld == nullptr ||
-        (Flag(*fld) & GCFlag::CONST))
-      return;
     HeapObject* from_ref = *fld;
+    if ((reinterpret_cast<uint64_t>(from_ref) & STACK_MASK) ||
+        from_ref == nullptr ||
+        (Flag(from_ref) & GCFlag::CONST))
+      return;
 #ifdef GC_DEBUG
-    ASSERT(from_ref != nullptr);
+    assert(InHeap(from_ref));
 #endif
     if (InToSpace(from_ref)) {
       return;
     }
 #ifdef GC_DEBUG
-    ASSERT(InFromSpace(from_ref));
+    assert(InFromSpace(from_ref));
 #endif
     *fld = static_cast<HeapObject*>(Forward(from_ref));
   }
@@ -127,25 +137,27 @@ struct CopyingCollection : public GC<CopyingCollection> {
       to_ref = Copy(from_ref);
     }
 #ifdef GC_DEBUG
-    ASSERT(InToSpace(to_ref));
+    assert(InToSpace(to_ref));
 #endif
     return to_ref;
   }
 
   void* Copy(void* from_ref) {
-    ASSERT(InFromSpace(from_ref));
+#ifdef GC_DEBUG
+    assert(InFromSpace(from_ref));
+#endif
     char* to_ref = free_ + sizeof(Header);
     size_t size = Size(from_ref);
     free_ += size;
 #ifdef GC_DEBUG
-    ASSERT(InToSpace(free_) || free_ == tospace_ + extent_);
-    ASSERT(ForwardAddress(from_ref) == nullptr);
+    assert(InToSpace(free_) || free_ == tospace_ + extent_);
+    assert(ForwardAddress(from_ref) == nullptr);
 #endif
     MemCopy(H(to_ref), H(from_ref), size);
     SetForwardAddress(from_ref, to_ref);
 #ifdef GC_DEBUG
-    ASSERT(ForwardAddress(to_ref) == nullptr);
-    ASSERT(InToSpace(ForwardAddress(from_ref)));
+    assert(ForwardAddress(to_ref) == nullptr);
+    assert(InToSpace(ForwardAddress(from_ref)));
 #endif
     Add(worklist_, to_ref);
     return to_ref;
