@@ -11,9 +11,11 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
   }
   TEST_LOG("GetValue V:" + V.ToString());
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
-  Handle<JSValue> base = ref.val()->GetBase();
-  Handle<String> name = ref.val()->GetReferencedName();
-  bool is_strict = ref.val()->IsStrictReference();
+
+  auto stack_ref = Runtime::TopContext().GetReference(ref.val()->id());
+  Handle<JSValue> base = stack_ref.base;
+  Handle<String> name = stack_ref.name;
+  bool is_strict = Runtime::TopContext().strict();
 
   if (Reference::IsUnresolvableReference(base)) {
     e = Error::ReferenceError(name.val()->data() + u" is not defined");
@@ -58,9 +60,12 @@ void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
   }
   TEST_LOG("PutValue V: " + V.ToString() + ", W: " + W.ToString());
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
-  Handle<JSValue> base = ref.val()->GetBase();
-  Handle<String> name = ref.val()->GetReferencedName();
-  bool is_strict = ref.val()->IsStrictReference();
+
+  auto stack_ref = Runtime::TopContext().GetReference(ref.val()->id());
+  Handle<JSValue> base = stack_ref.base;
+  Handle<String> name = stack_ref.name;
+  bool is_strict = Runtime::TopContext().strict();
+
   if (Reference::IsUnresolvableReference(base)) {  // 3
     if (is_strict) {  // 3.a
       e = Error::ReferenceError(name.val()->data() + u" is not defined");

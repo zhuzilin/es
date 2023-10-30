@@ -1025,9 +1025,13 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
     case Token::TK_DEC: {  // --
       if (expr.val()->IsReference()) {
         Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
-        if (ref.val()->IsStrictReference() && ref.val()->GetBase().val()->IsEnvironmentRecord() &&
-            (StringEqual(ref.val()->GetReferencedName(), String::eval()) ||
-             StringEqual(ref.val()->GetReferencedName(), String::arguments()))) {
+        auto stack_ref = Runtime::TopContext().GetReference(ref.val()->id());
+        Handle<JSValue> base = stack_ref.base;
+        Handle<String> ref_name = stack_ref.name;
+        bool is_strict_ref = Runtime::TopContext().strict();
+        if (is_strict_ref && base.val()->IsEnvironmentRecord() &&
+            (StringEqual(ref_name, String::eval()) ||
+             StringEqual(ref_name, String::arguments()))) {
           e = Error::SyntaxError(u"cannot inc or dec on eval or arguments");
           return Handle<JSValue>();
         }
@@ -1085,31 +1089,35 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
         if (!expr.val()->IsReference())  // 2
           return Bool::True();
         Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
-        Handle<JSValue> base = ref.val()->GetBase();
-        bool is_strict_ref = ref.val()->IsStrictReference();
+        auto stack_ref = Runtime::TopContext().GetReference(ref.val()->id());
+        Handle<JSValue> base = stack_ref.base;
+        Handle<String> ref_name = stack_ref.name;
+        bool is_strict_ref = Runtime::TopContext().strict();
         if (Reference::IsUnresolvableReference(base)) {  // 3
           if (is_strict_ref) {
-            e = Error::SyntaxError(u"delete not exist variable " + ref.val()->GetReferencedName().val()->data());
+            e = Error::SyntaxError(u"delete not exist variable " + ref_name.val()->data());
             return Bool::False();
           }
           return Bool::True();
         }
         if (Reference::IsPropertyReference(base)) {  // 4
-          Handle<JSObject> obj = ToObject(e, ref.val()->GetBase());
+          Handle<JSObject> obj = ToObject(e, base);
           if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-          return Bool::Wrap(Delete(e, obj, ref.val()->GetReferencedName(), ref.val()->IsStrictReference()));
+          return Bool::Wrap(Delete(e, obj, ref_name, is_strict_ref));
         } else {
           if (is_strict_ref) {
             e = Error::SyntaxError(u"cannot delete environment record in strict mode");
             return Bool::False();
           }
-          Handle<EnvironmentRecord> bindings = static_cast<Handle<EnvironmentRecord>>(ref.val()->GetBase());
-          return Bool::Wrap(DeleteBinding(e, bindings, ref.val()->GetReferencedName()));
+          Handle<EnvironmentRecord> bindings = static_cast<Handle<EnvironmentRecord>>(base);
+          return Bool::Wrap(DeleteBinding(e, bindings, ref_name));
         }
       } else if (op.source_ref() == u"typeof") {
         if (expr.val()->IsReference()) {
           Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
-          if (Reference::IsUnresolvableReference(ref.val()->GetBase()))
+          auto stack_ref = Runtime::TopContext().GetReference(ref.val()->id());
+          Handle<JSValue> base = stack_ref.base;
+          if (Reference::IsUnresolvableReference(base))
             return String::undefined();
         }
         Handle<JSValue> val = GetValue(e, expr);
@@ -1382,17 +1390,20 @@ Handle<JSValue> EvalLogicalOperator(Handle<Error>& e, Token& op, AST* lhs, AST* 
 Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Handle<JSValue> rval) {
   if (lref.val()->IsReference()) {
     Handle<Reference> ref = static_cast<Handle<Reference>>(lref);
+    bool is_strict_ref = Runtime::TopContext().strict();
     // NOTE in 11.13.1.
     // TODO(zhuzilin) not sure how to implement the type error part of the note.
-    if (ref.val()->IsStrictReference()) {
-      Handle<JSValue> base = ref.val()->GetBase();
+    if (is_strict_ref) {
+      auto stack_ref = Runtime::TopContext().GetReference(ref.val()->id());
+      Handle<JSValue> base = stack_ref.base;
+      Handle<String> ref_name = stack_ref.name;
       if (Reference::IsUnresolvableReference(base)) {
-        e = Error::ReferenceError(ref.val()->GetReferencedName().val()->data() + u" is not defined");
+        e = Error::ReferenceError(ref_name.val()->data() + u" is not defined");
         return Handle<JSValue>();
       }
       if (base.val()->IsEnvironmentRecord() &&
-          (StringEqual(ref.val()->GetReferencedName(), String::eval()) ||
-           StringEqual(ref.val()->GetReferencedName(), String::arguments()))) {
+          (StringEqual(ref_name, String::eval()) ||
+           StringEqual(ref_name, String::arguments()))) {
         e = Error::SyntaxError(u"cannot assign on eval or arguments");
         return Handle<JSValue>();
       }
@@ -1524,7 +1535,9 @@ Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::v
   Handle<JSValue> this_value;
   if (ref.val()->IsReference()) {
     Handle<Reference> r = static_cast<Handle<Reference>>(ref);
-    Handle<JSValue> base = r.val()->GetBase();
+    auto stack_ref = Runtime::TopContext().GetReference(r.val()->id());
+    Handle<JSValue> base = stack_ref.base;
+    Handle<String> ref_name = stack_ref.name;
     if (Reference::IsPropertyReference(base)) {
       this_value = base;
     } else {
@@ -1532,17 +1545,15 @@ Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::v
       auto env_rec = static_cast<Handle<EnvironmentRecord>>(base);
       this_value = ImplicitThisValue(env_rec);
     }
+    // indirect
+    if (StringEqual(ref_name, String::eval())) {
+      DirectEvalGuard guard;
+      return Call(e, obj, this_value, arg_list);
+    }
   } else {
     this_value = Undefined::Instance();
   }
-  // indirect 
-  if (ref.val()->IsReference() &&
-      StringEqual(static_cast<Handle<Reference>>(ref).val()->GetReferencedName(), String::eval())) {
-    DirectEvalGuard guard;
-    return Call(e, obj, this_value, arg_list);
-  } else {
-    return Call(e, obj, this_value, arg_list);
-  }
+  return Call(e, obj, this_value, arg_list);
 }
 
 // 11.2.1 Property Accessors
@@ -1555,7 +1566,7 @@ Handle<Reference> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref
   if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   bool strict = Runtime::TopContext().strict();
-  return Reference::New(base_value, identifier_name, strict);
+  return Runtime::TopContext().AddReference(base_value, identifier_name);
 }
 
 Handle<JSValue> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref, AST* expr, ValueGuard& guard) {

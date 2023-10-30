@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
   std::u16string source = ReadUTF8FileToUTF16String(filename);
 
 #ifdef PERF
-  ProfilerStart("parse_program");
+  ProfilerStart("parse_program.profile");
 #endif
   Parser parser(source);
   AST* ast = parser.ParseProgram();
@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
   Init();
   Handle<Error> e = Error::Ok();
 #ifdef PERF
-  ProfilerStart("eval_program");
+  ProfilerStart("eval_program.profile");
 #endif
   EnterGlobalCode(e, ast);
   if (unlikely(!e.val()->IsOk())) {

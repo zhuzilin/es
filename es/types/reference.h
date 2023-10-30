@@ -12,24 +12,16 @@ Handle<JSObject> ToObject(Handle<Error>& e, Handle<JSValue> input);
 
 class Reference : public JSValue {
  public:
-  static Handle<Reference> New(
-    Handle<JSValue> base,
-    Handle<String> reference_name,
-    bool strict_reference
-  ) {
-    Handle<JSValue> jsval = HeapObject::New(kStrictOffset + kBoolSize - kJSValueOffset);
-
-    SET_HANDLE_VALUE(jsval.val(), kBaseOffset, base, JSValue);
-    SET_HANDLE_VALUE(jsval.val(), kReferenceNameOffset, reference_name, String);
-    SET_VALUE(jsval.val(), kStrictOffset, strict_reference, bool);
-
-    jsval.val()->SetType(JS_REF);
-    return Handle<Reference>(jsval);
+  static Handle<Reference> Get(size_t ref_id) {
+    if (ref_id < const_references_.size()) {
+      return const_references_[ref_id];
+    }
+    ASSERT(const_references_.size() == ref_id);
+    const_references_.emplace_back(Reference::New(ref_id, GCFlag::CONST));
+    return const_references_[ref_id];
   }
 
-  Handle<JSValue> GetBase() { return READ_HANDLE_VALUE(this, kBaseOffset, JSValue); }
-  Handle<String> GetReferencedName() { return READ_HANDLE_VALUE(this, kReferenceNameOffset, String); }
-  bool IsStrictReference() { return READ_VALUE(this, kStrictOffset, bool); }
+  size_t id() { return READ_VALUE(this, kIdOffset, size_t); }
 
   static bool HasPrimitiveBase(Handle<JSValue> base) {
     Type base_type = base.val()->type();
@@ -38,11 +30,25 @@ class Reference : public JSValue {
   static bool IsPropertyReference(Handle<JSValue> base) { return base.val()->IsObject() || HasPrimitiveBase(base); }
   static bool IsUnresolvableReference(Handle<JSValue> base) { return base.val()->IsUndefined(); }
 
+ private:
+  static Handle<Reference> New(
+    size_t ref_id,
+    flag_t flag
+  ) {
+    Handle<JSValue> jsval = HeapObject::New(kReferenceSize - kJSValueOffset, flag);
+    SET_VALUE(jsval.val(), kIdOffset, ref_id, size_t);
+
+    jsval.val()->SetType(JS_REF);
+    return Handle<Reference>(jsval);
+  }
+  static std::vector<Handle<Reference>> const_references_;
+
  public:
-  static constexpr size_t kBaseOffset = kJSValueOffset;
-  static constexpr size_t kReferenceNameOffset = kBaseOffset + kPtrSize;
-  static constexpr size_t kStrictOffset = kReferenceNameOffset + kPtrSize;
+  static constexpr size_t kIdOffset = kJSValueOffset;
+  static constexpr size_t kReferenceSize = kIdOffset + kSizeTSize;
 };
+
+std::vector<Handle<Reference>> Reference::const_references_;
 
 Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V);
 void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W);

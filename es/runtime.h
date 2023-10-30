@@ -6,6 +6,7 @@
 
 #include <es/types/object.h>
 #include <es/types/lexical_environment.h>
+#include <es/types/reference.h>
 #include <es/types/builtin/global_object.h>
 
 namespace es {
@@ -47,6 +48,25 @@ class ExecutionContext {
     label_stack_.pop();
   }
 
+  struct StackReference {
+    Handle<JSValue> base;
+    Handle<String> name;
+
+    StackReference(Handle<JSValue> base, Handle<String> name) :
+      base(base), name(name) {}
+  };
+
+  Handle<Reference> AddReference(Handle<JSValue> base, Handle<String> name) {
+    references_.emplace_back(base, name);
+    return Reference::Get(references_.size() - 1);
+  }
+
+  StackReference GetReference(size_t i) {
+    ASSERT(i < references_.size());
+    auto ref = references_[i];
+    return ref;
+  }
+
   void EnterIteration() { iteration_layers_++; }
   void ExitIteration() {
     if (iteration_layers_ != 0)
@@ -61,6 +81,18 @@ class ExecutionContext {
   }
   bool InSwitch() { return switch_layers_ != 0; }
 
+  std::vector<HeapObject**> Pointers() {
+    std::vector<HeapObject**> pointers(3 + 2 * references_.size(), nullptr);
+    pointers[0] = reinterpret_cast<HeapObject**>(variable_env().ptr());
+    pointers[1] = reinterpret_cast<HeapObject**>(lexical_env().ptr());
+    pointers[2] = reinterpret_cast<HeapObject**>(this_binding().ptr());
+    for (size_t i = 0; i < references_.size(); ++i) {
+      pointers[3 + i * 2] = reinterpret_cast<HeapObject**>(references_[i].base.ptr());
+      pointers[3 + i * 2 + 1] = reinterpret_cast<HeapObject**>(references_[i].name.ptr());
+    }
+    return pointers;
+  }
+
  private:
   Handle<LexicalEnvironment> variable_env_;
   Handle<LexicalEnvironment> lexical_env_;
@@ -68,7 +100,7 @@ class ExecutionContext {
 
   bool strict_;
   std::stack<std::u16string> label_stack_;
-  std::stack<std::pair<Handle<String>, Handle<JSValue>>> reference_stack_;
+  std::vector<StackReference> references_;
   size_t iteration_layers_;
   size_t switch_layers_;
 };
@@ -114,11 +146,10 @@ class Runtime {
   }
 
   std::vector<HeapObject**> Pointers() {
-    std::vector<HeapObject**> pointers(3 * context_stack_.size());
+    std::vector<HeapObject**> pointers;
     for (size_t i = 0; i < context_stack_.size(); i++) {
-      pointers[3 * i] = reinterpret_cast<HeapObject**>(context_stack_[i].variable_env().ptr());
-      pointers[3 * i + 1] = reinterpret_cast<HeapObject**>(context_stack_[i].lexical_env().ptr());
-      pointers[3 * i + 2] = reinterpret_cast<HeapObject**>(context_stack_[i].this_binding().ptr());
+      auto context_pointers = context_stack_[i].Pointers();
+      pointers.insert(pointers.end(), context_pointers.begin(), context_pointers.end());
     }
     auto scope_pointers = HandleScope::AllPointers();
     pointers.insert(pointers.end(), scope_pointers.begin(), scope_pointers.end());

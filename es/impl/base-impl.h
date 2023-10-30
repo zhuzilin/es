@@ -36,10 +36,12 @@ std::string JSValue::ToString(JSValue* jsval) {
       return log::ToString(static_cast<String*>(jsval)->data());
     case JS_NUMBER:
       return NumberToStdString(static_cast<Number*>(jsval)->data());
-    case JS_REF:
+    case JS_REF: {
+      return "ref(" + std::to_string(static_cast<Reference*>(jsval)->id()) + ")";
+    }
     case JS_GET_SET: {
-      String* name = READ_VALUE(jsval, Reference::kReferenceNameOffset, String*);
-      return "ref(" + ToString(name) + ")";
+      String* name = READ_VALUE(jsval, GetterSetter::kReferenceNameOffset, String*);
+      return "GetterSetter(" + ToString(name) + ")";
     }
     case JS_PROP_DESC: {
       PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(jsval);

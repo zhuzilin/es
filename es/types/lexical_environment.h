@@ -43,18 +43,7 @@ Handle<LexicalEnvironment> NewObjectEnvironment(Handle<JSObject> obj, Handle<Lex
   return LexicalEnvironment::New(lex, env_rec);
 }
 
-Handle<Reference> GetIdentifierReference(Handle<LexicalEnvironment> lex, Handle<String> name, bool strict) {
-  auto env_rec = lex.val()->env_rec();
-  bool exists = HasBinding(env_rec, name);
-  if (exists) {
-    return Reference::New(env_rec, name, strict);
-  }
-  auto outer = lex.val()->outer();
-  if (outer.IsNullptr()) {
-    return Reference::New(Undefined::Instance(), name, strict);
-  }
-  return GetIdentifierReference(outer, name, strict);
-}
+Handle<Reference> GetIdentifierReference(Handle<LexicalEnvironment> lex, Handle<String> name, bool strict);
 
 void GetIdentifierReferenceAndPutValue(Handle<Error>& e, Handle<LexicalEnvironment> lex, Handle<String> name, bool strict, Handle<JSValue> value) {
   auto env_rec = lex.val()->env_rec();
