@@ -67,7 +67,7 @@ Handle<JSValue> Call__Function(
   Handle<Error>& e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   ProgramOrFunctionBody* code = O.val()->Code();
-  TEST_LOG("enter FunctionObject::Call\n", code->source());
+  TEST_LOG("\033[1;32menter FunctionObject::Call\033[0m\n\n", code->source(), "\n");
   EnterFunctionCode(e, O, code, this_arg, arguments, O.val()->strict());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
 

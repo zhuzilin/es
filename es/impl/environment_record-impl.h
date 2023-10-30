@@ -54,7 +54,7 @@ void CreateAndSetMutableBinding__Object(
   Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool D, Handle<JSValue> V, bool S
 ) {
   ASSERT(V.val()->IsLanguageType());
-  Handle<PropertyDescriptor> desc = PropertyDescriptor::NewDataDescriptor(V, true, true, D);
+  StackPropertyDescriptor desc = StackPropertyDescriptor::NewDataDescriptor(V, true, true, D);
   DefineOwnProperty(e, env_rec.val()->bindings(), N, desc, true);
 }
 

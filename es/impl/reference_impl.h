@@ -9,12 +9,11 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
   if (!(V.val()->IsReference())) {
     return V;
   }
-  TEST_LOG("GetValue V:" + V.ToString());
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
-
   auto stack_ref = Runtime::TopContext().GetReference(ref.val()->id());
   Handle<JSValue> base = stack_ref.base;
   Handle<String> name = stack_ref.name;
+  TEST_LOG("GetValue: " + base.ToString() + "." + name.ToString());
   bool is_strict = Runtime::TopContext().strict();
 
   if (Reference::IsUnresolvableReference(base)) {
@@ -30,15 +29,14 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
     } else {  // special [[Get]]
       Handle<JSObject> O = ToObject(e, base);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      Handle<JSValue> tmp = GetProperty(O, name);
-      if (tmp.val()->IsUndefined())
+      StackPropertyDescriptor desc = GetProperty(O, name);
+      if (desc.IsUndefined())
         return Undefined::Instance();
-      Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(tmp);
-      if (desc.val()->IsDataDescriptor()) {
-        return desc.val()->Value();
+      if (desc.IsDataDescriptor()) {
+        return desc.Value();
       } else {
-        ASSERT(desc.val()->IsAccessorDescriptor());
-        Handle<JSValue> getter = desc.val()->Get();
+        ASSERT(desc.IsAccessorDescriptor());
+        Handle<JSValue> getter = desc.Get();
         if (getter.val()->IsUndefined()) {
           return Undefined::Instance();
         }
@@ -58,12 +56,11 @@ void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
     e = Error::ReferenceError(u"put value to non-reference.");
     return;
   }
-  TEST_LOG("PutValue V: " + V.ToString() + ", W: " + W.ToString());
   Handle<Reference> ref = static_cast<Handle<Reference>>(V);
-
   auto stack_ref = Runtime::TopContext().GetReference(ref.val()->id());
   Handle<JSValue> base = stack_ref.base;
   Handle<String> name = stack_ref.name;
+  TEST_LOG("PutValue: " + base.ToString() + "." + name.ToString() + " = " + W.ToString());
   bool is_strict = Runtime::TopContext().strict();
 
   if (Reference::IsUnresolvableReference(base)) {  // 3
@@ -84,20 +81,18 @@ void PutValue(Handle<Error>& e, Handle<JSValue> V, Handle<JSValue> W) {
           e = Error::TypeError();
         return;
       }
-      Handle<JSValue> tmp = GetOwnProperty(O, name);  // 3
-      if(!tmp.val()->IsUndefined()) {
-        Handle<PropertyDescriptor> own_desc = static_cast<Handle<PropertyDescriptor>>(tmp);
-        if (own_desc.val()->IsDataDescriptor()) {  // 4
+      StackPropertyDescriptor desc = GetOwnProperty(O, name);  // 3
+      if(!desc.IsUndefined()) {
+        if (desc.IsDataDescriptor()) {  // 4
           if (is_strict)
             e = Error::TypeError();
           return;
         }
       }
-      tmp = GetProperty(O, name);
-      if (!tmp.val()->IsUndefined()) {
-        Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(tmp);
-        if (desc.val()->IsAccessorDescriptor()) {  // 4
-          Handle<JSValue> setter = desc.val()->Set();
+      desc = GetProperty(O, name);
+      if (!desc.IsUndefined()) {
+        if (desc.IsAccessorDescriptor()) {  // 4
+          Handle<JSValue> setter = desc.Set();
           ASSERT(!setter.val()->IsUndefined());
           Handle<JSObject> setter_obj = static_cast<Handle<JSObject>>(setter);
           Call(e, setter_obj, base, {W});

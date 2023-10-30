@@ -5,10 +5,52 @@
 #include <unordered_map>
 
 #include <es/types/base.h>
+#include <es/types/property_descriptor.h>
 #include <es/utils/hashmap.h>
 #include <es/utils/fixed_array.h>
 
 namespace es {
+
+// These 2 conversions only happens here.
+Handle<JSValue> ToHeap(StackPropertyDescriptor desc) {
+  if (desc.IsUndefined())
+    return Undefined::Instance();
+  auto new_desc = PropertyDescriptor::New();
+  if (desc.HasValue())
+    new_desc.val()->SetValue(desc.Value());
+  if (desc.HasWritable())
+    new_desc.val()->SetWritable(desc.Writable());
+  if (desc.HasGet())
+    new_desc.val()->SetGet(desc.Get());
+  if (desc.HasSet())
+    new_desc.val()->SetSet(desc.Set());
+  if (desc.HasConfigurable())
+    new_desc.val()->SetConfigurable(desc.Configurable());
+  if (desc.HasEnumerable())
+    new_desc.val()->SetEnumerable(desc.Enumerable());
+  return new_desc;
+}
+
+StackPropertyDescriptor ToStack(JSValue* val) {
+  if (val == nullptr || val->IsUndefined())
+    return StackPropertyDescriptor::Undefined();
+  ASSERT(val->IsPropertyDescriptor());
+  PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(val);
+  StackPropertyDescriptor new_desc;
+  if (desc->HasValue())
+    new_desc.SetValue(desc->Value());
+  if (desc->HasWritable())
+    new_desc.SetWritable(desc->Writable());
+  if (desc->HasGet())
+    new_desc.SetGet(desc->Get());
+  if (desc->HasSet())
+    new_desc.SetSet(desc->Set());
+  if (desc->HasConfigurable())
+    new_desc.SetConfigurable(desc->Configurable());
+  if (desc->HasEnumerable())
+    new_desc.SetEnumerable(desc->Enumerable());
+  return new_desc;
+}
 
 class PropertyMap : public JSValue {
  public:
@@ -47,7 +89,8 @@ class PropertyMap : public JSValue {
   }
 
   // Set can not be method as there can be gc happening inside.
-  static void Set(Handle<PropertyMap> map, Handle<String> key, Handle<JSValue> val) {
+  static void Set(Handle<PropertyMap> map, Handle<String> key, StackPropertyDescriptor desc) {
+    Handle<PropertyDescriptor> val = ToHeap(desc);
     if (map.val()->IsSmallArrayIndex(key)) {
       uint32_t index = key.val()->Index();
       map.val()->SetRawArray(index, val.val());
@@ -58,20 +101,15 @@ class PropertyMap : public JSValue {
     map.val()->SetHashMap(hashmap);
   }
 
-  Handle<JSValue> Get(Handle<String> key) {
+  StackPropertyDescriptor Get(Handle<String> key) {
+    JSValue* val;
     if (IsSmallArrayIndex(key)) {
       uint32_t index = key.val()->Index();
-      return Handle<JSValue>(GetRawArray(index));
+      val = GetRawArray(index);
+    } else {
+      val = hashmap().val()->GetRaw(key);
     }
-    return hashmap().val()->Get(key);
-  }
-
-  JSValue* GetRaw(Handle<String> key) {
-    if (IsSmallArrayIndex(key)) {
-      uint32_t index = key.val()->Index();
-      return GetRawArray(index);
-    }
-    return hashmap().val()->GetRaw(key);
+    return ToStack(val);
   }
 
   void Delete(Handle<String> key) {
@@ -83,15 +121,20 @@ class PropertyMap : public JSValue {
     hashmap().val()->Delete(key);
   }
 
-  std::vector<std::pair<String*, JSValue*>> SortedKeyValPairs(bool (*filter)(JSValue*)) {
-    std::vector<std::pair<String*, JSValue*>> result;
+  template<typename Filter>
+  std::vector<std::pair<String*, StackPropertyDescriptor>> SortedKeyValPairs(Filter filter) {
+    std::vector<std::pair<String*, StackPropertyDescriptor>> result;
     for (uint32_t i = 0; i < num_fixed_slots(); ++i) {
-      JSValue* val = GetRawArray(i);
-      if (val != nullptr)
-        result.emplace_back(std::make_pair(String::New(i).val(), GetRawArray(i)));
+      StackPropertyDescriptor val = ToStack(GetRawArray(i));
+      if (!val.IsUndefined())
+        result.emplace_back(std::make_pair(String::New(i).val(), val));
     }
-    std::vector<std::pair<String*, JSValue*>> hashmap_result = hashmap().val()->SortedKeyValPairs(filter);
-    result.insert(result.end(), hashmap_result.begin(), hashmap_result.end());
+    std::vector<std::pair<String*, JSValue*>> hashmap_result = hashmap().val()->SortedKeyValPairs();
+    for (auto pair : hashmap_result) {
+      auto desc = ToStack(pair.second);
+      if (filter(desc))
+        result.emplace_back(pair.first, desc);
+    }
     return result;
   }
 

@@ -46,10 +46,10 @@ std::string JSValue::ToString(JSValue* jsval) {
     case JS_PROP_DESC: {
       PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(jsval);
       std::string res = "PropertyDescriptor{";
-      if (desc->HasValue()) res += "v: " + ToString(READ_VALUE(jsval, PropertyDescriptor::kValueOffset, JSValue*)) + ", ";
+      if (desc->HasValue()) res += "v: " + desc->Value().ToString() + ", ";
       if (desc->HasWritable()) res += "w: " + log::ToString(desc->Writable()) + ", ";
-      if (desc->HasGet()) res += "get: " + ToString(READ_VALUE(jsval, PropertyDescriptor::kGetOffset, JSValue*)) + ", ";
-      if (desc->HasSet()) res += "set: " + ToString(READ_VALUE(jsval, PropertyDescriptor::kSetOffset, JSValue*)) + ", ";
+      if (desc->HasGet()) res += "get: " + desc->Get().ToString() + ", ";
+      if (desc->HasSet()) res += "set: " + desc->Set().ToString() + ", ";
       if (desc->HasEnumerable()) res += "e: " + log::ToString(desc->Enumerable()) + ", ";
       if (desc->HasConfigurable()) res += "c: " + log::ToString(desc->Configurable());
       res += '}';

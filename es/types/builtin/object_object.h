@@ -7,8 +7,8 @@
 namespace es {
 
 Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input);
-Handle<JSValue> FromPropertyDescriptor(Handle<JSValue> value);
-Handle<PropertyDescriptor> ToPropertyDescriptor(Handle<Error>& e, Handle<JSValue> obj);
+Handle<JSValue> FromPropertyDescriptor(StackPropertyDescriptor value);
+StackPropertyDescriptor ToPropertyDescriptor(Handle<Error>& e, Handle<JSValue> obj);
 
 class ObjectProto : public JSObject {
  public:
@@ -51,8 +51,8 @@ class ObjectProto : public JSObject {
     Handle<JSObject> O = ToObject(e, val);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
 
-    Handle<JSValue> desc = GetOwnProperty(O, P);
-    return Bool::Wrap(!desc.val()->IsUndefined());
+    StackPropertyDescriptor desc = GetOwnProperty(O, P);
+    return Bool::Wrap(!desc.IsUndefined());
   }
 
   static Handle<JSValue> isPrototypeOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
@@ -122,7 +122,7 @@ class ObjectConstructor : public JSObject {
     }
     Handle<String> name = vals.size() < 2 ?
       ::es::ToString(e, Undefined::Instance()) : ::es::ToString(e, vals[1]);
-    Handle<JSValue> desc = GetOwnProperty(static_cast<Handle<JSObject>>(vals[0]), name);
+    StackPropertyDescriptor desc = GetOwnProperty(static_cast<Handle<JSObject>>(vals[0]), name);
     return FromPropertyDescriptor(desc);
   }
 
@@ -156,7 +156,7 @@ class ObjectConstructor : public JSObject {
     }
     Handle<String> name = ::es::ToString(e, vals[1]);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    Handle<PropertyDescriptor> desc = ToPropertyDescriptor(e, vals[2]);
+    StackPropertyDescriptor desc = ToPropertyDescriptor(e, vals[2]);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     DefineOwnProperty(e, O, name, desc, true);
     return O;

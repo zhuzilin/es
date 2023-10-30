@@ -292,7 +292,7 @@ class StringConstructor : public JSObject {
   }
 };
 
-Handle<JSValue> GetOwnProperty__String(Handle<StringObject> O, Handle<String> P);
+StackPropertyDescriptor GetOwnProperty__String(Handle<StringObject> O, Handle<String> P);
 Handle<JSValue> Call__StringConstructor(Handle<Error>& e, Handle<StringConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 Handle<JSObject> Construct__StringConstructor(Handle<Error>& e, Handle<StringConstructor> O, std::vector<Handle<JSValue>> arguments);
 

@@ -85,23 +85,18 @@ class JSObject : public JSValue {
   inner_func callable() { return TYPED_PTR(this, kCallableOffset, inner_func)[0]; }
 
   // This for for-in statement.
-  std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> AllEnumerableProperties() {
-    auto filter = [](JSValue* jsval) {
-      ASSERT(jsval->IsPropertyDescriptor());
-      PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(jsval);
-      return desc->HasEnumerable() && desc->Enumerable();
+  std::vector<std::pair<Handle<String>, StackPropertyDescriptor>> AllEnumerableProperties() {
+    auto filter = [](StackPropertyDescriptor desc) {
+      return desc.HasEnumerable() && desc.Enumerable();
     };
-    std::vector<std::pair<Handle<String>, Handle<PropertyDescriptor>>> result;
+    std::vector<std::pair<Handle<String>, StackPropertyDescriptor>> result;
     for (auto pair : named_properties()->SortedKeyValPairs(filter)) {
-      result.emplace_back(std::make_pair(
-        Handle<String>(pair.first),
-        Handle<PropertyDescriptor>(static_cast<PropertyDescriptor*>(pair.second))
-      ));
+      result.emplace_back(std::make_pair(Handle<String>(pair.first), pair.second));
     }
     if (!Prototype().val()->IsNull()) {
       Handle<JSObject> proto = static_cast<Handle<JSObject>>(Prototype());
       for (auto pair : proto.val()->AllEnumerableProperties()) {
-        if (named_properties()->GetRaw(pair.first) == nullptr) {
+        if (named_properties()->Get(pair.first).IsUndefined()) {
           result.emplace_back(pair);
         }
       }
@@ -123,17 +118,17 @@ class JSObject : public JSValue {
 
 Handle<JSValue> Get(Handle<Error>& e, Handle<JSObject> O, Handle<String> P);
 Handle<JSValue> Get__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P);
-Handle<JSValue> GetOwnProperty(Handle<JSObject> O, Handle<String> P);
-Handle<JSValue> GetOwnProperty__Base(Handle<JSObject> O, Handle<String> P);
-Handle<JSValue> GetProperty(Handle<JSObject> O, Handle<String> P);
+StackPropertyDescriptor GetOwnProperty(Handle<JSObject> O, Handle<String> P);
+StackPropertyDescriptor GetOwnProperty__Base(Handle<JSObject> O, Handle<String> P);
+StackPropertyDescriptor GetProperty(Handle<JSObject> O, Handle<String> P);
 void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag);
 bool CanPut(Handle<JSObject> O, Handle<String> P);
 bool HasProperty(Handle<JSObject> O, Handle<String> P);
 bool Delete(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool throw_flag);
 bool Delete__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool throw_flag);
 Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16string hint);
-bool DefineOwnProperty(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
-bool DefineOwnProperty__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
+bool DefineOwnProperty(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, StackPropertyDescriptor desc, bool throw_flag);
+bool DefineOwnProperty__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, StackPropertyDescriptor desc, bool throw_flag);
 bool HasInstance(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> V);
 bool HasInstance__Base(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> V);
 

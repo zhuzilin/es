@@ -64,10 +64,10 @@ Handle<ArgumentsObject> CreateArgumentsObject(
   if (!strict) {  // 13
     AddValueProperty(obj, String::callee(), func, true, false, true);
   } else {  // 14
-    Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
     // TODO(zhuzilin) thrower
     Handle<JSValue> thrower = Undefined::Instance();
-    desc.val()->SetAccessorDescriptor(thrower, thrower, false, false);
+    StackPropertyDescriptor desc;
+    desc.SetAccessorDescriptor(thrower, thrower, false, false);
     DefineOwnProperty(Error::Empty(), obj, String::caller(), desc, false);
     DefineOwnProperty(Error::Empty(), obj, String::callee(), desc, false);
   }
@@ -121,17 +121,15 @@ void DeclarationBindingInstantiation(
     } else {
       if (env.val() == LexicalEnvironment::Global().val()->env_rec().val()) {  // 5.e
         auto go = GlobalObject::Instance();
-        auto existing_prop = GetProperty(go, fn);
-        ASSERT(existing_prop.val()->IsPropertyDescriptor());
-        auto existing_prop_desc = static_cast<Handle<PropertyDescriptor>>(existing_prop);
-        if (existing_prop_desc.val()->Configurable()) {  // 5.e.iii
-          auto new_desc = PropertyDescriptor::NewDataDescriptor(Undefined::Instance(), true, true, configurable_bindings);
+        StackPropertyDescriptor existing_prop_desc = GetProperty(go, fn);
+        if (existing_prop_desc.Configurable()) {  // 5.e.iii
+          auto new_desc = StackPropertyDescriptor::NewDataDescriptor(Undefined::Instance(), true, true, configurable_bindings);
           DefineOwnProperty(e, go, fn, new_desc, true);
           if (unlikely(!e.val()->IsOk())) return;
         } else {  // 5.e.iv
-          if (existing_prop_desc.val()->IsAccessorDescriptor() ||
-              !(existing_prop_desc.val()->HasWritable() && existing_prop_desc.val()->Writable() &&
-                existing_prop_desc.val()->HasEnumerable() && existing_prop_desc.val()->Enumerable())) {
+          if (existing_prop_desc.IsAccessorDescriptor() ||
+              !(existing_prop_desc.HasWritable() && existing_prop_desc.Writable() &&
+                existing_prop_desc.HasEnumerable() && existing_prop_desc.Enumerable())) {
             e = Error::TypeError(
               u"existing desc of " + func_decl->name().val()->data() + " is accessor "
               u"but not both configurable and enumerable");

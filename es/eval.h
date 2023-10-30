@@ -110,7 +110,7 @@ Completion EvalProgram(AST* ast) {
 }
 
 Completion EvalStatement(AST* ast) {
-  TEST_LOG("EvalStatement\n", ast->source());
+  TEST_LOG("\033[1;33mEvalStatement\033[0m\n", ast->source(), "\n");
   Completion C(Completion::NORMAL, Handle<JSValue>(), u"");
   JSValue* val = nullptr;
   {
@@ -926,14 +926,14 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
   Handle<Object> obj = Object::New();
   // PropertyName : AssignmentExpression
   for (auto property : obj_ast->properties()) {
-    Handle<PropertyDescriptor> desc;
+    StackPropertyDescriptor desc;
     switch (property.type) {
       case ObjectLiteral::Property::NORMAL: {
         Handle<JSValue> expr_value = EvalAssignmentExpression(e, property.value);
         if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         Handle<JSValue> prop_value = GetValue(e, expr_value);
         if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-        desc = PropertyDescriptor::NewDataDescriptor(prop_value, true, true, true);
+        desc = StackPropertyDescriptor::NewDataDescriptor(prop_value, true, true, true);
         break;
       }
       default: {
@@ -951,14 +951,13 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
           Runtime::TopLexicalEnv(),
           strict || strict_func
         );
-        desc = PropertyDescriptor::New();
         if (property.type == ObjectLiteral::Property::GET) {
-          desc.val()->SetGet(closure);
+          desc.SetGet(closure);
         } else {
-          desc.val()->SetSet(closure);
+          desc.SetSet(closure);
         }
-        desc.val()->SetEnumerable(true);
-        desc.val()->SetConfigurable(true);
+        desc.SetEnumerable(true);
+        desc.SetConfigurable(true);
         break;
       }
     }
@@ -968,22 +967,24 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
       return Handle<JSValue>();
     }
     Handle<String> prop_name_str = prop_name;
-    auto previous = GetOwnProperty(obj, prop_name_str);  // 3
-    if (!previous.val()->IsUndefined()) {  // 4
-      Handle<PropertyDescriptor> previous_desc = static_cast<Handle<PropertyDescriptor>>(previous);
+    auto previous_desc = GetOwnProperty(obj, prop_name_str);  // 3
+    if (!previous_desc.IsUndefined()) {  // 4
       if (strict &&
-          previous_desc.val()->IsDataDescriptor() && desc.val()->IsDataDescriptor()) {  // 4.a
+          previous_desc.IsDataDescriptor() && desc.IsDataDescriptor()) {  // 4.a
+        std::cout << "error 1" << std::endl;
         e = Error::SyntaxError(u"repeat object property name " + prop_name_str.val()->data());
         return Handle<JSValue>();
       }
-      if ((previous_desc.val()->IsDataDescriptor() && desc.val()->IsAccessorDescriptor()) ||  // 4.b
-          (previous_desc.val()->IsAccessorDescriptor() && desc.val()->IsDataDescriptor())) {  // 4.c
+      if ((previous_desc.IsDataDescriptor() && desc.IsAccessorDescriptor()) ||  // 4.b
+          (previous_desc.IsAccessorDescriptor() && desc.IsDataDescriptor())) {  // 4.c
+          std::cout << "error 2" << std::endl;
         e = Error::SyntaxError(u"repeat object property name " + prop_name_str.val()->data());
         return Handle<JSValue>();
       }
-      if (previous_desc.val()->IsAccessorDescriptor() && desc.val()->IsAccessorDescriptor() &&  // 4.d
-          ((previous_desc.val()->HasGet() && desc.val()->HasGet()) ||
-           (previous_desc.val()->HasSet() && desc.val()->HasSet()))) {
+      if (previous_desc.IsAccessorDescriptor() && desc.IsAccessorDescriptor() &&  // 4.d
+          ((previous_desc.HasGet() && desc.HasGet()) ||
+           (previous_desc.HasSet() && desc.HasSet()))) {
+            std::cout << "error 3" << std::endl;
         e = Error::SyntaxError(u"repeat object property name " + prop_name_str.val()->data());
         return Handle<JSValue>();
       }

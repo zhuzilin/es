@@ -9,66 +9,65 @@ namespace es {
 
 bool ToBoolean(Handle<JSValue> input);
 
-Handle<JSValue> FromPropertyDescriptor(Handle<JSValue> value) {
-  if (value.val()->IsUndefined()) {
+Handle<JSValue> FromPropertyDescriptor(StackPropertyDescriptor desc) {
+  if (desc.IsUndefined()) {
     return Undefined::Instance();
   }
-  Handle<PropertyDescriptor> desc = static_cast<Handle<PropertyDescriptor>>(value);
   Handle<JSObject> obj = Object::New();
-  if (desc.val()->IsDataDescriptor()) {
-    AddValueProperty(obj, String::Value(), desc.val()->Value(), true, true, true);
-    AddValueProperty(obj, String::Writable(), Bool::Wrap(desc.val()->Writable()), true, true, true);
+  if (desc.IsDataDescriptor()) {
+    AddValueProperty(obj, String::Value(), desc.Value(), true, true, true);
+    AddValueProperty(obj, String::Writable(), Bool::Wrap(desc.Writable()), true, true, true);
   } else {
-    ASSERT(desc.val()->IsAccessorDescriptor());
-    AddValueProperty(obj, String::Get(), desc.val()->Get(), true, true, true);
-    AddValueProperty(obj, String::Set(), desc.val()->Set(), true, true, true);
+    ASSERT(desc.IsAccessorDescriptor());
+    AddValueProperty(obj, String::Get(), desc.Get(), true, true, true);
+    AddValueProperty(obj, String::Set(), desc.Set(), true, true, true);
   }
-  AddValueProperty(obj, String::Enumerable(), Bool::Wrap(desc.val()->Enumerable()), true, true, true);
-  AddValueProperty(obj, String::Configurable(), Bool::Wrap(desc.val()->Configurable()), true, true, true);
+  AddValueProperty(obj, String::Enumerable(), Bool::Wrap(desc.Enumerable()), true, true, true);
+  AddValueProperty(obj, String::Configurable(), Bool::Wrap(desc.Configurable()), true, true, true);
   return obj;
 }
 
-Handle<PropertyDescriptor> ToPropertyDescriptor(Handle<Error>& e, Handle<JSValue> val) {
+StackPropertyDescriptor ToPropertyDescriptor(Handle<Error>& e, Handle<JSValue> val) {
   if (unlikely(!val.val()->IsObject())) {
     e = Error::TypeError();
-    return Handle<PropertyDescriptor>();
+    return StackPropertyDescriptor();
   }
   Handle<JSObject> obj = static_cast<Handle<JSObject>>(val);
-  Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
+  StackPropertyDescriptor desc;
   if (HasProperty(obj, String::Enumerable())) {
     Handle<JSValue> value = Get(e, obj, String::Enumerable());
-    desc.val()->SetEnumerable(ToBoolean(value));
+    desc.SetEnumerable(ToBoolean(value));
   }
   if (HasProperty(obj, String::Configurable())) {
     Handle<JSValue> value = Get(e, obj, String::Configurable());
-    desc.val()->SetConfigurable(ToBoolean(value));
+    desc.SetConfigurable(ToBoolean(value));
   }
   if (HasProperty(obj, String::Value())) {
     Handle<JSValue> value = Get(e, obj, String::Value());
-    desc.val()->SetValue(value);
+    desc.SetValue(value);
   }
   if (HasProperty(obj, String::Writable())) {
     Handle<JSValue> value = Get(e, obj, String::Writable());
-    desc.val()->SetWritable(ToBoolean(value));
+    desc.SetWritable(ToBoolean(value));
   }
   if (HasProperty(obj, String::Get())) {
     Handle<JSValue> value = Get(e, obj, String::Get());
     if (!value.val()->IsCallable() && !value.val()->IsUndefined()) {
       e = Error::TypeError(u"getter not callable.");
     }
-    desc.val()->SetGet(value);
+    desc.SetGet(value);
   }
   if (HasProperty(obj, String::Set())) {
     Handle<JSValue> value = Get(e, obj, String::Set());
     if (!value.val()->IsCallable() && !value.val()->IsUndefined()) {
       e = Error::TypeError(u"setter not callable.");
     }
-    desc.val()->SetSet(value);
+    desc.SetSet(value);
   }
-  if (desc.val()->HasSet() || desc.val()->HasGet()) {
-    if (desc.val()->HasValue() || desc.val()->HasWritable()) {
+  if (desc.HasSet() || desc.HasGet()) {
+    if (desc.HasValue() || desc.HasWritable()) {
       e = Error::TypeError(u"cannot have both get/set and value/writable");
-      return Handle<PropertyDescriptor>();
+      return StackPropertyDescriptor();
     }
   }
   return desc;

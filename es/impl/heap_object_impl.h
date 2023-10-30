@@ -28,12 +28,21 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
         HEAP_PTR(heap_obj, GetterSetter::kBaseOffset),
         HEAP_PTR(heap_obj, GetterSetter::kReferenceNameOffset)
       };
-    case JS_PROP_DESC:
-      return {
-        HEAP_PTR(heap_obj, PropertyDescriptor::kValueOffset),
-        HEAP_PTR(heap_obj, PropertyDescriptor::kGetOffset),
-        HEAP_PTR(heap_obj, PropertyDescriptor::kSetOffset)
-      };
+    case JS_PROP_DESC: {
+      PropertyDescriptor* desc = reinterpret_cast<PropertyDescriptor*>(heap_obj);
+      if (desc->IsDataDescriptor()) {
+        return {
+          HEAP_PTR(heap_obj, PropertyDescriptor::kValueOffset)
+        };
+      } else if (desc->IsAccessorDescriptor()){
+        return {
+          HEAP_PTR(heap_obj, PropertyDescriptor::kGetOffset),
+          HEAP_PTR(heap_obj, PropertyDescriptor::kSetOffset)
+        };
+      } else {
+        assert(false);
+      }
+    }
     case JS_ENV_REC_DECL:
       return {
         HEAP_PTR(heap_obj, DeclarativeEnvironmentRecord::kBindingsOffset)

@@ -131,7 +131,7 @@ class HashMap : public JSValue {
     }
   }
 
-  std::vector<std::pair<String*, JSValue*>> SortedKeyValPairs(bool (*filter)(JSValue*)) {
+  std::vector<std::pair<String*, JSValue*>> SortedKeyValPairs() {
     std::priority_queue<ListNode*, std::vector<ListNode*>, CompareListNode> pq;
     for (size_t i = 0; i < num_bucket(); i++) {
       size_t offset = kElementOffset + i * kPtrSize;
@@ -144,9 +144,7 @@ class HashMap : public JSValue {
     while (!pq.empty()) {
       ListNode* node = pq.top();
       pq.pop();
-      if (filter(node->val())) {
-        result.emplace_back(std::make_pair(node->key(), node->val()));
-      }
+      result.emplace_back(std::make_pair(node->key(), node->val()));
       if (node->next() != nullptr) {
         pq.push(node->next());
       }

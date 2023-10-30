@@ -117,7 +117,7 @@ class ArrayObject : public JSObject {
     obj.val()->SetPrototype(ArrayProto::Instance());
     // Not using AddValueProperty here to by pass the override DefineOwnProperty
     Handle<Number> len_num = Number::New(len);
-    Handle<PropertyDescriptor> desc = PropertyDescriptor::NewDataDescriptor(
+    StackPropertyDescriptor desc = StackPropertyDescriptor::NewDataDescriptor(
       len_num, true, false, false);
     DefineOwnProperty__Base(Error::Empty(), obj, String::Length(), desc, false);
     return obj;
@@ -152,7 +152,7 @@ class ArrayConstructor : public JSObject {
   }
 };
 
-bool DefineOwnProperty__Array(Handle<Error>& e, Handle<ArrayObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
+bool DefineOwnProperty__Array(Handle<Error>& e, Handle<ArrayObject> O, Handle<String> P, StackPropertyDescriptor desc, bool throw_flag);
 Handle<JSObject> Construct__ArrayConstructor(Handle<Error>& e, Handle<ArrayConstructor> O,  std::vector<Handle<JSValue>> arguments);
 
 }  // namespace es

@@ -54,9 +54,9 @@ class GetterSetter : public JSValue {
 };
 
 Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P);
-Handle<JSValue> GetOwnProperty__Arguments(Handle<ArgumentsObject> O, Handle<String> P);
+StackPropertyDescriptor GetOwnProperty__Arguments(Handle<ArgumentsObject> O, Handle<String> P);
 bool Delete__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, bool throw_flag);
-bool DefineOwnProperty__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, Handle<PropertyDescriptor> desc, bool throw_flag);
+bool DefineOwnProperty__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, StackPropertyDescriptor desc, bool throw_flag);
 
 Handle<JSValue> Call__GetterSetter(Handle<Error>& e, Handle<GetterSetter> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments = {});
 
