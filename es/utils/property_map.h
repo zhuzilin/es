@@ -59,9 +59,6 @@ class PropertyMap : public JSValue {
     if (unlikely(log::Debugger::On()))
       std::cout << "PropertyMap::New" << "\n";
 #endif
-    if (num_fixed_slots > kMaxPropertyMapSize)
-      num_fixed_slots = kMaxPropertyMapSize;
-
     Handle<JSValue> jsval = HeapObject::New(kElementOffset + num_fixed_slots * kPtrSize - HeapObject::kHeapObjectOffset);
 
     Handle<HashMap> hashmap = HashMap::New();
@@ -147,8 +144,6 @@ class PropertyMap : public JSValue {
   static constexpr size_t kNumFixedSlotsOffset = HeapObject::kHeapObjectOffset;
   static constexpr size_t kHashMapOffset = kNumFixedSlotsOffset + kSizeTSize;
   static constexpr size_t kElementOffset = kHashMapOffset + kPtrSize;
-
-  static constexpr size_t kMaxPropertyMapSize = 128;
 };
 
 }  // namespace es
