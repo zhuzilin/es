@@ -86,13 +86,14 @@ error:
     return new AST(AST::AST_ILLEGAL, TOKEN_SOURCE);
   }
 
-  bool ParseFormalParameterList(std::vector<std::u16string>& params) {
+  template<flag_t flag = 0>
+  bool ParseFormalParameterList(std::vector<Handle<String>>& params) {
     if (!lexer_.NextAndRewind().IsIdentifier()) {
       // This only happens in new Function(...)
       params = {};
       return lexer_.Next().type() == Token::TK_EOS;
     }
-    params.emplace_back(lexer_.Next().source());
+    params.emplace_back(String::New<flag>(lexer_.Next().source()));
     Token token = lexer_.NextAndRewind();
     // NOTE(zhuzilin) the EOS is for new Function("a,b,c", "")
     while (token.type() != Token::TK_RPAREN && token.type() != Token::TK_EOS) {
@@ -106,33 +107,7 @@ error:
         params = {};
         return false;
       }
-      params.emplace_back(token.source());
-      token = lexer_.NextAndRewind();
-    }
-    return true;
-  }
-
-  bool ParseFormalParameterList(std::vector<Handle<String>>& params, flag_t flag) {
-    if (!lexer_.NextAndRewind().IsIdentifier()) {
-      // This only happens in new Function(...)
-      params = {};
-      return lexer_.Next().type() == Token::TK_EOS;
-    }
-    params.emplace_back(String::New(lexer_.Next().source(), flag));
-    Token token = lexer_.NextAndRewind();
-    // NOTE(zhuzilin) the EOS is for new Function("a,b,c", "")
-    while (token.type() != Token::TK_RPAREN && token.type() != Token::TK_EOS) {
-      if (token.type() != Token::TK_COMMA) {
-        params = {};
-        return false;
-      }
-      lexer_.Next();  // skip ,
-      token = lexer_.Next();
-      if (!token.IsIdentifier()) {
-        params = {};
-        return false;
-      }
-      params.emplace_back(String::New(token.source(), flag));
+      params.emplace_back(String::New<flag>(token.source()));
       token = lexer_.NextAndRewind();
     }
     return true;
@@ -150,7 +125,7 @@ error:
     // Identifier_opt
     Token token = lexer_.Next();
     if (token.IsIdentifier()) {
-      name = String::New(token.source_ref(), GCFlag::CONST);
+      name = String::New<GCFlag::CONST>(token.source_ref());
       token = lexer_.Next();  // skip "("
     } else if (must_be_named) {
       goto error;
@@ -160,7 +135,7 @@ error:
     }
     token = lexer_.NextAndRewind();
     if (token.IsIdentifier()) {
-      if (!ParseFormalParameterList(params, GCFlag::CONST)) {
+      if (!ParseFormalParameterList<GCFlag::CONST>(params)) {
         goto error;
       }
     }
@@ -250,7 +225,7 @@ error:
             if (!param.IsIdentifier()) {
               goto error;
             }
-            params.emplace_back(String::New(param.source_ref(), GCFlag::CONST));
+            params.emplace_back(String::New<GCFlag::CONST>(param.source_ref()));
           }
           if (lexer_.Next().type() != Token::TK_RPAREN) { // Skip )
             goto error;

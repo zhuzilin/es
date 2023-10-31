@@ -12,23 +12,13 @@
 
 namespace es {
 
-void* Allocate(size_t size, flag_t flag);
-
 class HeapObject {
  public:
-  static Handle<HeapObject> New(size_t size, flag_t flag = 0) {
-#ifdef GC_DEBUG
-    if (unlikely(log::Debugger::On()))
-      std::cout << "HeapObject::New " << size << " " << int(flag) << "\n";
-#endif
-    Handle<HeapObject> heap_obj(static_cast<HeapObject*>(Allocate(size + kHeapObjectOffset, flag)));
-    ASSERT(reinterpret_cast<uint64_t>(heap_obj.val()) % 8 == 0);
+  template<flag_t flag = 0>
+  static Handle<HeapObject> New(size_t size);
 
-    // type value should be init by each variable after their member elements
-    // are initialized.
-    heap_obj.val()->SetType(JS_UNINIT);
-    return heap_obj;
-  }
+  template<uint32_t size, flag_t flag = 0>
+  static Handle<HeapObject> New();
 
   inline Type type() { return h_.type; }
   inline void SetType(Type t) { h_.type = t; }

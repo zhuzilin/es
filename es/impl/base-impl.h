@@ -117,9 +117,10 @@ std::string JSValue::ToString(JSValue* jsval) {
   }
 }
 
-Handle<JSValue> String::Eval(const std::u16string& source, flag_t flag) {
+template<flag_t flag>
+Handle<JSValue> String::Eval(const std::u16string& source) {
 #ifdef PARSER_TEST
-  std::cout << "String::Eval [" << log::ToString(source) << "] flag: " << static_cast<int>(flag) << std::endl;
+  std::cout << "String::Eval [" << log::ToString(source) << "]" << std::endl;
 #endif
   size_t pos = 1;
   std::vector<std::u16string> vals;
@@ -157,7 +158,7 @@ Handle<JSValue> String::Eval(const std::u16string& source, flag_t flag) {
           case u'0': {
             pos++;
             if (pos < source.size() && character::IsDecimalDigit(source[pos])) {
-              return Error::SyntaxErrorConst(u"decimal digit after \\0", flag);
+              return Error::SyntaxErrorConst(u"decimal digit after \\0");
             }
             vals.emplace_back(std::u16string(1, 0));
             break;
@@ -204,7 +205,7 @@ Handle<JSValue> String::Eval(const std::u16string& source, flag_t flag) {
         }
         size_t end = pos;
         if (end == source.size() - 1 && vals.size() == 0)
-          return String::New(source.substr(start, end - start), flag);
+          return String::New<flag>(source.substr(start, end - start));
         vals.emplace_back(source.substr(start, end - start));
       }
     }
@@ -212,15 +213,16 @@ Handle<JSValue> String::Eval(const std::u16string& source, flag_t flag) {
   if (vals.size() == 0) {
     return String::Empty();
   } else if (vals.size() == 1) {
-    return String::New(vals[0], flag);
+    return String::New<flag>(vals[0]);
   }
-  return String::New(StrCat(vals), flag);
+  return String::New<flag>(StrCat(vals));
 }
 
 // This verson of string to number assumes the string is valid.
-Handle<Number> Number::Eval(const std::u16string& source, flag_t flag) {
+template<flag_t flag>
+Handle<Number> Number::Eval(const std::u16string& source) {
 #ifdef PARSER_TEST
-  std::cout << "Number::Eval [" << log::ToString(source) << "] flag: " << static_cast<int>(flag) << std::endl;
+  std::cout << "Number::Eval [" << log::ToString(source) << "]" << std::endl;
 #endif
   double val = 0;
   double frac = 1;
@@ -253,7 +255,7 @@ Handle<Number> Number::Eval(const std::u16string& source, flag_t flag) {
         }
         if (!sign)
           exp = -exp;
-        return Number::New(val * pow(10.0, exp), flag);
+        return Number::New<flag>(val * pow(10.0, exp));
       }
       case u'x':
       case u'X': {
@@ -265,7 +267,7 @@ Handle<Number> Number::Eval(const std::u16string& source, flag_t flag) {
           val += character::Digit(c);
           pos++;
         }
-        return Number::New(val, flag);
+        return Number::New<flag>(val);
       }
       default:
         if (dot) {
@@ -278,7 +280,7 @@ Handle<Number> Number::Eval(const std::u16string& source, flag_t flag) {
     }
     pos++;
   }
-  return Number::New(val, flag);
+  return Number::New<flag>(val);
 }
 
 }  // namespace es

@@ -14,7 +14,7 @@ Handle<String> NumberToString(double m);
 class NumberProto : public JSObject {
  public:
   static Handle<NumberProto> Instance() {
-    static Handle<NumberProto> singleton = NumberProto::New(GCFlag::SINGLE);
+    static Handle<NumberProto> singleton = NumberProto::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -69,9 +69,10 @@ class NumberProto : public JSObject {
   }
 
  private:
-  static Handle<NumberProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Number", true, Number::Zero(), false, false, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<NumberProto> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Number", true, Number::Zero(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<NumberProto>(jsobj);
@@ -81,8 +82,8 @@ class NumberProto : public JSObject {
 class NumberObject : public JSObject {
  public:
   static Handle<NumberObject> New(Handle<JSValue> primitive_value) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Number", true, primitive_value, false, false, nullptr, 0
+    Handle<JSObject> jsobj = JSObject::New<0>(
+      u"Number", true, primitive_value, false, false, nullptr
     );
 
     jsobj.val()->SetType(OBJ_NUMBER);
@@ -95,7 +96,7 @@ class NumberObject : public JSObject {
 class NumberConstructor : public JSObject {
  public:
   static  Handle<NumberConstructor> Instance() {
-    static  Handle<NumberConstructor> singleton = NumberConstructor::New(GCFlag::SINGLE);
+    static  Handle<NumberConstructor> singleton = NumberConstructor::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -104,9 +105,10 @@ class NumberConstructor : public JSObject {
   }
 
  private:
-  static Handle<NumberConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Number", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<NumberConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Number", true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_NUMBER_CONSTRUCTOR);
     return Handle<NumberConstructor>(jsobj);

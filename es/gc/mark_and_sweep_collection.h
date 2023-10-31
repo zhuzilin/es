@@ -32,7 +32,13 @@ struct MarkAndSweepCollection : public GC<MarkAndSweepCollection> {
     Cell* next;
   };
 
-  void* AllocateImpl(size_t size, flag_t flag) {
+  template<size_t size, flag_t flag>
+  void* AllocateImpl() {
+    return AllocateImpl<flag>(size);
+  }
+
+  template<flag_t flag>
+  void* AllocateImpl(size_t size) {
     // First-fit allocation
     Cell* cell = free_list_;
     while(cell != nullptr && cell->size < size) {
@@ -80,13 +86,13 @@ struct MarkAndSweepCollection : public GC<MarkAndSweepCollection> {
 
   void CollectImpl() {
 #ifdef GC_DEBUG
-    std::cout << "enter MarkAndSweepCollection::Collect " << FreeSpace() / 1024U / 1024 << "\n";
+    std::cout << "\033[2menter\033[0m MarkAndSweepCollection::Collect " << FreeSpace() / 1024U / 1024 << "\n";
 #endif
     ClearFreeList();
     MarkFromRoot();
     Sweep();
 #ifdef GC_DEBUG
-    std::cout << "exit MarkAndSweepCollection::Collect " << FreeSpace() / 1024U / 1024 << "\n";
+    std::cout << "\033[2mexit\033[0m MarkAndSweepCollection::Collect " << FreeSpace() / 1024U / 1024 << "\n";
 #endif
   }
 

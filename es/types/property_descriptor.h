@@ -193,13 +193,9 @@ class StackPropertyDescriptor {
 class PropertyDescriptor : public JSValue {
  public:
   static Handle<PropertyDescriptor> New() {
-    Handle<JSValue> jsval = HeapObject::New(kDescSize - kJSValueOffset);
+    Handle<JSValue> jsval = HeapObject::New<kDescSize - kJSValueOffset>();
 
     jsval.val()->SetBitMask(0);
-    SET_HANDLE_VALUE(jsval.val(), kValueOffset, Undefined::Instance(), JSValue);
-    SET_HANDLE_VALUE(jsval.val(), kGetOffset, Undefined::Instance(), JSValue);
-    SET_HANDLE_VALUE(jsval.val(), kSetOffset, Undefined::Instance(), JSValue);
-    SET_VALUE(jsval.val(), kWritableOffset, false, bool);
 
     jsval.val()->SetType(JS_PROP_DESC);
     return Handle<PropertyDescriptor>(jsval);
@@ -208,15 +204,13 @@ class PropertyDescriptor : public JSValue {
   static Handle<PropertyDescriptor> NewDataDescriptor(
     Handle<JSValue> value, bool writable, bool enumerable, bool configurable
   ) {
-    Handle<JSValue> jsval = HeapObject::New(kDescSize - kJSValueOffset);
+    Handle<JSValue> jsval = HeapObject::New<kDescSize - kJSValueOffset>();
 
     char bitmask = VALUE | WRITABLE | ENUMERABLE | CONFIGURABLE;
     if (enumerable) bitmask |= ENUMERABLE_V;
     if (configurable) bitmask |= CONFIGURABLE_V;
     jsval.val()->SetBitMask(bitmask);
     SET_HANDLE_VALUE(jsval.val(), kValueOffset, value, JSValue);
-    SET_HANDLE_VALUE(jsval.val(), kGetOffset, Undefined::Instance(), JSValue);
-    SET_HANDLE_VALUE(jsval.val(), kSetOffset, Undefined::Instance(), JSValue);
     SET_VALUE(jsval.val(), kWritableOffset, writable, bool);
 
     jsval.val()->SetType(JS_PROP_DESC);

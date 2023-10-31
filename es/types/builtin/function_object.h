@@ -24,7 +24,7 @@ void EnterFunctionCode(
 class FunctionProto : public JSObject {
  public:
   static Handle<FunctionProto> Instance() {
-    static Handle<FunctionProto> singleton = FunctionProto::New(GCFlag::SINGLE);
+    static Handle<FunctionProto> singleton = FunctionProto::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -91,9 +91,10 @@ class FunctionProto : public JSObject {
   static Handle<JSValue> bind(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
 
  private:
-  static Handle<FunctionProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Function", true, Handle<JSValue>(), false, true, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<FunctionProto> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Function", true, Handle<JSValue>(), false, true, nullptr);
 
     jsobj.val()->SetType(OBJ_FUNC_PROTO);
     return Handle<FunctionProto>(jsobj);
@@ -198,7 +199,7 @@ class BindFunctionObject : public FunctionObject {
 class FunctionConstructor : public JSObject {
  public:
   static Handle<FunctionConstructor> Instance() {
-    static Handle<FunctionConstructor> singleton = FunctionConstructor::New(GCFlag::SINGLE);
+    static Handle<FunctionConstructor> singleton = FunctionConstructor::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -207,9 +208,10 @@ class FunctionConstructor : public JSObject {
   }
 
  private:
-  static Handle<FunctionConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Function", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<FunctionConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Function", true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_FUNC_CONSTRUCTOR);
     return Handle<FunctionConstructor>(jsobj);
@@ -339,8 +341,8 @@ void AddFuncProperty(
   Handle<JSObject> O, Handle<String> name, inner_func callable, bool writable,
   bool enumerable, bool configurable
 ) {
-  Handle<JSObject> value = JSObject::New(
-    u"InternalFunc", false, Handle<JSValue>(), false, true, callable, 0);
+  Handle<JSObject> value = JSObject::New<0>(
+    u"InternalFunc", false, Handle<JSValue>(), false, true, callable);
   value.val()->SetType(Type::OBJ_INNER_FUNC);
   value.val()->SetPrototype(FunctionProto::Instance());
   AddValueProperty(O, name, value, writable, enumerable, configurable);

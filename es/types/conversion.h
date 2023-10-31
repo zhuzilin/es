@@ -500,7 +500,7 @@ Handle<String> NumberToStringConst(double m) {
     return signbit(m) ? String::NegativeInfinity() : String::Infinity();
   if (static_cast<double>(static_cast<uint32_t>(m)) == m)
     return String::New(static_cast<uint32_t>(m));
-  return String::New(NumberToU16String(m), GCFlag::CONST);
+  return String::New<GCFlag::CONST>(NumberToU16String(m));
 }
 
 

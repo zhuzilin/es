@@ -8,7 +8,7 @@ namespace es {
 
 // 15.1.2.1 eval(X)
 Handle<JSValue> GlobalObject::eval(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-  TEST_LOG("enter GlobalObject::eval");
+  TEST_LOG("\033[2menter\033[0m GlobalObject::eval");
   if (vals.size() == 0)
     return Undefined::Instance();
   if (!vals[0].val()->IsString())

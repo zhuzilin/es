@@ -13,7 +13,7 @@ StackPropertyDescriptor ToPropertyDescriptor(Handle<Error>& e, Handle<JSValue> o
 class ObjectProto : public JSObject {
  public:
   static Handle<ObjectProto> Instance() {
-    static Handle<ObjectProto> singleton = ObjectProto::New(GCFlag::SINGLE);
+    static Handle<ObjectProto> singleton = ObjectProto::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -75,9 +75,10 @@ class ObjectProto : public JSObject {
   }
 
  private:
-  static Handle<ObjectProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Object", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<ObjectProto> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Object", true, Handle<JSValue>(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OBJECT);
     return Handle<ObjectProto>(jsobj);
@@ -87,8 +88,8 @@ class ObjectProto : public JSObject {
 class Object : public JSObject {
  public:
   static Handle<Object> New(size_t num_properties = 0) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Object", true, Handle<JSValue>(), false, false, nullptr, 0, 0, 0, num_properties
+    Handle<JSObject> jsobj = JSObject::New<0>(
+      u"Object", true, Handle<JSValue>(), false, false, nullptr, 0, 0, num_properties
     );
 
     jsobj.val()->SetType(OBJ_OBJECT);
@@ -101,7 +102,7 @@ class Object : public JSObject {
 class ObjectConstructor : public JSObject {
  public:
   static Handle<ObjectConstructor> Instance() {
-    static Handle<ObjectConstructor> singleton = ObjectConstructor::New(GCFlag::SINGLE);
+    static Handle<ObjectConstructor> singleton = ObjectConstructor::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -227,9 +228,10 @@ class ObjectConstructor : public JSObject {
   }
 
  private:
-  static Handle<ObjectConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Object", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<ObjectConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Object", true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_OBJECT_CONSTRUCTOR);
     return Handle<ObjectConstructor>(jsobj);

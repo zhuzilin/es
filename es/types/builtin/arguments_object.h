@@ -13,8 +13,8 @@ namespace es {
 class ArgumentsObject : public JSObject {
  public:
   static Handle<ArgumentsObject> New(size_t len) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Arguments", true, Handle<JSValue>(), false, false, nullptr, 0, 0, len
+    Handle<JSObject> jsobj = JSObject::New<0, 0>(
+      u"Arguments", true, Handle<JSValue>(), false, false, nullptr, len
     );
 
     jsobj.val()->SetType(OBJ_ARGUMENTS);
@@ -33,7 +33,7 @@ class GetterSetter : public JSValue {
     Handle<String> reference_name,
     bool strict_reference
   ) {
-    Handle<JSValue> jsval = HeapObject::New(kStrictOffset + kBoolSize - kJSValueOffset);
+    Handle<JSValue> jsval = HeapObject::New<kStrictOffset + kBoolSize - kJSValueOffset>();
 
     SET_HANDLE_VALUE(jsval.val(), kBaseOffset, base, JSValue);
     SET_HANDLE_VALUE(jsval.val(), kReferenceNameOffset, reference_name, String);

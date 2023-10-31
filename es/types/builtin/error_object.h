@@ -8,7 +8,7 @@ namespace es {
 class ErrorProto : public JSObject {
  public:
   static Handle<ErrorProto> Instance() {
-    static Handle<ErrorProto> singleton = ErrorProto::New(GCFlag::SINGLE);
+    static Handle<ErrorProto> singleton = ErrorProto::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -31,9 +31,10 @@ class ErrorProto : public JSObject {
   }
 
  private:
-  static Handle<ErrorProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Error", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<ErrorProto> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Error", true, Handle<JSValue>(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<ErrorProto>(jsobj);
@@ -43,8 +44,8 @@ class ErrorProto : public JSObject {
 class ErrorObject : public JSObject {
  public:
   static Handle<ErrorObject> New(Handle<Error> e) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Error", true, Handle<JSValue>(), false, false, nullptr, kPtrSize
+    Handle<JSObject> jsobj = JSObject::New<kPtrSize>(
+      u"Error", true, Handle<JSValue>(), false, false, nullptr
     );
 
     SET_HANDLE_VALUE(jsobj.val(), kErrorOffset, e, Error);
@@ -67,7 +68,7 @@ class ErrorObject : public JSObject {
 class ErrorConstructor : public JSObject {
  public:
   static Handle<ErrorConstructor> Instance() {
-    static Handle<ErrorConstructor> singleton = ErrorConstructor::New(GCFlag::SINGLE);
+    static Handle<ErrorConstructor> singleton = ErrorConstructor::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -76,9 +77,10 @@ class ErrorConstructor : public JSObject {
   }
 
  private:
-  static Handle<ErrorConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Error", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<ErrorConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Error", true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_ERROR_CONSTRUCTOR);
     return Handle<ErrorConstructor>(jsobj);

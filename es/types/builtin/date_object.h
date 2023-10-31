@@ -8,7 +8,7 @@ namespace es {
 class DateProto : public JSObject {
  public:
   static Handle<DateProto> Instance() {
-    static Handle<DateProto> singleton = DateProto::New(GCFlag::SINGLE);
+    static Handle<DateProto> singleton = DateProto::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -185,9 +185,10 @@ class DateProto : public JSObject {
   }
 
  private:
-  static Handle<DateProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Date", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<DateProto> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Date", true, Handle<JSValue>(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<DateProto>(jsobj);
@@ -197,8 +198,8 @@ class DateProto : public JSObject {
 class DateObject : public JSObject {
  public:
   static Handle<DateObject> New(Handle<JSValue> primitive_value) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Date", true, Handle<JSValue>(), false, false, nullptr, 0
+    Handle<JSObject> jsobj = JSObject::New<0>(
+      u"Date", true, Handle<JSValue>(), false, false, nullptr
     );
 
     jsobj.val()->SetType(OBJ_DATE);
@@ -213,7 +214,7 @@ class DateObject : public JSObject {
 class DateConstructor : public JSObject {
  public:
   static Handle<DateConstructor> Instance() {
-    static Handle<DateConstructor> singleton = DateConstructor::New(GCFlag::SINGLE);
+    static Handle<DateConstructor> singleton = DateConstructor::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -234,9 +235,10 @@ class DateConstructor : public JSObject {
   }
 
  private:
-  static Handle<DateConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Date", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<DateConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Date", true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_DATE_CONSTRUCTOR);
     return Handle<DateConstructor>(jsobj);

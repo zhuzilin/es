@@ -77,16 +77,16 @@ class AST {
     switch (type) {
       case AST::AST_EXPR_IDENT:
       case AST::AST_EXPR_STRICT_FUTURE:
-        jsval_ = String::New(source, GCFlag::CONST);
+        jsval_ = String::New<GCFlag::CONST>(source);
         break;
       case AST::AST_EXPR_BOOL:
         jsval_ = Bool::Wrap(source == u"true");
         break;
       case AST::AST_EXPR_STRING:
-        jsval_ = String::Eval(source, GCFlag::CONST);
+        jsval_ = String::Eval<GCFlag::CONST>(source);
         break;
       case AST::AST_EXPR_NUMBER:
-        jsval_ = Number::Eval(source, GCFlag::CONST);
+        jsval_ = Number::Eval<GCFlag::CONST>(source);
         break;
       default:
         jsval_ = Handle<JSValue>();
@@ -199,11 +199,11 @@ class ObjectLiteral : public AST {
       case Token::TK_FUTURE:
       case Token::TK_NULL:
       case Token::TK_BOOL:
-        return String::New(token.source(), GCFlag::CONST);
+        return String::New<GCFlag::CONST>(token.source());
       case Token::TK_NUMBER:
-        return NumberToStringConst(Number::Eval(token.source_ref(), GCFlag::CONST).val()->data());
+        return NumberToStringConst(Number::Eval<GCFlag::CONST>(token.source_ref()).val()->data());
       case Token::TK_STRING: {
-        return String::Eval(token.source_ref(), GCFlag::CONST);
+        return String::Eval<GCFlag::CONST>(token.source_ref());
       }
       default:
         assert(false);
@@ -353,7 +353,7 @@ class LHS : public AST {
 
   void AddProp(Token prop_name) {
     order_.emplace_back(std::make_pair(prop_name_list_.size(), PROP));
-    prop_name_list_.emplace_back(String::New(prop_name.source(), GCFlag::CONST));
+    prop_name_list_.emplace_back(String::New<GCFlag::CONST>(prop_name.source()));
     total_count_++;
   }
 
@@ -524,7 +524,7 @@ class VarDecl : public AST {
 
   VarDecl(Token ident, AST* init, std::u16string source, size_t start, size_t end) :
     AST(AST_STMT_VAR_DECL, source, start, end), init_(init) {
-    ident_ = String::New(ident.source(), GCFlag::CONST);
+    ident_ = String::New<GCFlag::CONST>(ident.source());
     is_strict_future_ = ident.type() == Token::TK_STRICT_FUTURE;
     is_eval_or_arguments_ = ident.source() == u"eval" or ident.source() == u"arguments";
   }
@@ -591,7 +591,7 @@ class Try : public AST {
   Try(AST* try_block, Token catch_ident, AST* catch_block, AST* finally_block,
       std::u16string source, size_t start, size_t end)
     : AST(AST_STMT_TRY, source, start, end), try_block_(try_block),
-      catch_ident_(String::New(catch_ident.source(), GCFlag::CONST)),
+      catch_ident_(String::New<GCFlag::CONST>(catch_ident.source())),
       catch_ident_is_eval_or_arguments_(catch_ident.source() == u"eval" || catch_ident.source() == u"arguments"),
       catch_block_(catch_block), finally_block_(finally_block) {}
 

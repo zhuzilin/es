@@ -77,10 +77,10 @@ TEST(TestPrimitiveConversion, ToBoolean) {
   }
 
   // String
-  b = ToBoolean(String::New(u""));
+  b = ToBoolean(String::New<GCFlag::CONST>(u""));
   EXPECT_EQ(false, b);
 
-  b = ToBoolean(String::New(u"abc"));
+  b = ToBoolean(String::New<GCFlag::CONST>(u"abc"));
   EXPECT_EQ(true, b);
 }
 

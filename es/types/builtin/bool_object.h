@@ -10,7 +10,7 @@ bool ToBoolean(Handle<JSValue>);
 class BoolProto : public JSObject {
  public:
   static Handle<BoolProto> Instance() {
-    static Handle<BoolProto> singleton = BoolProto::New(GCFlag::SINGLE);
+    static Handle<BoolProto> singleton = BoolProto::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -42,9 +42,10 @@ class BoolProto : public JSObject {
   }
 
  private:
-  static Handle<BoolProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Boolean", true, Bool::False(), false, false, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<BoolProto> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Boolean", true, Bool::False(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<BoolProto>(jsobj);
@@ -54,8 +55,8 @@ class BoolProto : public JSObject {
 class BoolObject : public JSObject {
  public:
   static Handle<BoolObject> New(Handle<JSValue> primitive_value) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Boolean", true, primitive_value, false, false, nullptr, 0
+    Handle<JSObject> jsobj = JSObject::New<0>(
+      u"Boolean", true, primitive_value, false, false, nullptr
     );
 
     jsobj.val()->SetType(OBJ_BOOL);
@@ -69,7 +70,7 @@ class BoolObject : public JSObject {
 class BoolConstructor : public JSObject {
  public:
   static Handle<BoolConstructor> Instance() {
-    static Handle<BoolConstructor> singleton = BoolConstructor::New(GCFlag::SINGLE);
+    static Handle<BoolConstructor> singleton = BoolConstructor::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -78,9 +79,10 @@ class BoolConstructor : public JSObject {
   }
 
  private:
-  static Handle<BoolConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Boolean", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<BoolConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Boolean", true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_BOOL_CONSTRUCTOR);
     return Handle<BoolConstructor>(jsobj);

@@ -41,9 +41,7 @@ void CreateAndSetMutableBinding__Declarative(
   Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool D, Handle<JSValue> V, bool S
 ) {
   ASSERT(V.val()->IsLanguageType());
-  Handle<Binding> b = Binding::New(
-    Undefined::Instance(), D, true);
-  b.val()->SetValue(V);
+  Handle<Binding> b = Binding::New(V, D, true);
   auto new_bindings = HashMapV2::Set(Handle<HashMapV2>(env_rec.val()->bindings()), N, b);
   env_rec.val()->SetBindings(new_bindings);
 }
@@ -73,7 +71,7 @@ void SetMutableBinding(
 void SetMutableBinding__Declarative(
   Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
 ) {
-  TEST_LOG("enter SetMutableBinding__Declarative ", N.val()->data(), " to " + V.ToString());
+  TEST_LOG("\033[2menter\033[0m SetMutableBinding__Declarative ", N.val()->data(), " to " + V.ToString());
   ASSERT(V.val()->IsLanguageType());
   // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,
   // the value stored in bindings_ won't change.
@@ -89,7 +87,7 @@ void SetMutableBinding__Declarative(
 void SetMutableBinding__Object(
   Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V, bool S
 ) {
-  TEST_LOG("enter SetMutableBinding__Object " + N.ToString() + " to " + V.ToString());
+  TEST_LOG("\033[2menter\033[0m SetMutableBinding__Object " + N.ToString() + " to " + V.ToString());
   ASSERT(V.val()->IsLanguageType());
   Put(e, env_rec.val()->bindings(), N, V, S);
 }
@@ -109,7 +107,7 @@ Handle<JSValue> GetBindingValue(
 Handle<JSValue> GetBindingValue__Declarative(
   Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
-  TEST_LOG("enter GetBindingValue__Declarative " + N.ToString());
+  TEST_LOG("\033[2menter\033[0m GetBindingValue__Declarative " + N.ToString());
   Binding* b = static_cast<Binding*>(env_rec.val()->bindings()->GetRaw(N));
   ASSERT(b != nullptr);
   if (b->value().val()->IsUndefined() && !b->is_mutable()) {
@@ -130,7 +128,7 @@ Handle<JSValue> GetBindingValue__Declarative(
 Handle<JSValue> GetBindingValue__Object(
   Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
-  TEST_LOG("enter GetBindingValue__Object " + N.ToString());
+  TEST_LOG("\033[2menter\033[0m GetBindingValue__Object " + N.ToString());
   bool value = HasBinding(env_rec, N);
   if (!value) {
     if (S) {

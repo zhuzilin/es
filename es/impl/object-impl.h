@@ -66,7 +66,7 @@ StackPropertyDescriptor GetProperty(Handle<JSObject> O, Handle<String> P) {
 
 // [[Get]]
 Handle<JSValue> Get(Handle<Error>& e, Handle<JSObject> O, Handle<String> P) {
-  TEST_LOG("enter Get " + HeapObject::ToString(O.val()->type()) + "." + P.ToString());
+  TEST_LOG("\033[2menter\033[0m Get " + HeapObject::ToString(O.val()->type()) + "." + P.ToString());
   if (O.val()->IsFunctionObject()) {
     return Get__Function(e, static_cast<Handle<FunctionObject>>(O), P);
   } else if (O.val()->IsArgumentsObject()) {
@@ -150,7 +150,7 @@ bool CanPut(Handle<JSObject> O, Handle<String> P) {
 // [[Put]]
 // 8.12.5 [[Put]] ( P, V, Throw )
 void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
-  TEST_LOG("enter Put " + O.ToString() + "." + P.ToString() + " = " + V.ToString());
+  TEST_LOG("\033[2menter\033[0m Put " + O.ToString() + "." + P.ToString() + " = " + V.ToString());
   ASSERT(V.val()->IsLanguageType());
   if (!CanPut(O, P)) {  // 1
     if (throw_flag) {  // 1.a
@@ -271,7 +271,7 @@ Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16strin
 bool DefineOwnProperty(
   Handle<Error>& e, Handle<JSObject> O, Handle<String> P, StackPropertyDescriptor desc, bool throw_flag
 ) {
-  TEST_LOG("enter DefineOwnProperty " + HeapObject::ToString(O.val()->type()) + "." + P.ToString() + " = " + desc.ToString());
+  TEST_LOG("\033[2menter\033[0m DefineOwnProperty " + HeapObject::ToString(O.val()->type()) + "." + P.ToString() + " = " + desc.ToString());
   if (O.val()->IsArrayObject()) {
     return DefineOwnProperty__Array(e, static_cast<Handle<ArrayObject>>(O), P, desc, throw_flag);
   } else if (O.val()->IsArgumentsObject()) {

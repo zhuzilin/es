@@ -16,7 +16,7 @@ Handle<String> NumberToString(double m);
 class StringProto : public JSObject {
  public:
   static Handle<StringProto> Instance() {
-    static Handle<StringProto> singleton = StringProto::New(GCFlag::SINGLE);
+    static Handle<StringProto> singleton = StringProto::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -235,9 +235,10 @@ class StringProto : public JSObject {
   }
 
  private:
-  static Handle<StringProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"String", true, String::Empty(), false, false, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<StringProto> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"String", true, String::Empty(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<StringProto>(jsobj);
@@ -247,8 +248,8 @@ class StringProto : public JSObject {
 class StringObject : public JSObject {
  public:
   static Handle<StringObject> New(Handle<JSValue> primitive_value) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"String", true, primitive_value, false, false, nullptr, 0
+    Handle<JSObject> jsobj = JSObject::New<0>(
+      u"String", true, primitive_value, false, false, nullptr
     );
 
     jsobj.val()->SetType(OBJ_STRING);
@@ -264,7 +265,7 @@ class StringObject : public JSObject {
 class StringConstructor : public JSObject {
  public:
   static Handle<StringConstructor> Instance() {
-    static Handle<StringConstructor> singleton = StringConstructor::New(GCFlag::SINGLE);
+    static Handle<StringConstructor> singleton = StringConstructor::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -283,9 +284,10 @@ class StringConstructor : public JSObject {
   }
 
  private:
-  static Handle<StringConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"String", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<StringConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"String", true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_STRING_CONSTRUCTOR);
     return Handle<StringConstructor>(jsobj);

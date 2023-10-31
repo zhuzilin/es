@@ -21,6 +21,7 @@ typedef Handle<JSValue> (*inner_func)(Handle<Error>&, Handle<JSValue>, std::vect
 
 class JSObject : public JSValue {
  public:
+  template<flag_t flag = 0>
   static Handle<JSObject> New(
     std::u16string klass,
     bool extensible,
@@ -29,7 +30,6 @@ class JSObject : public JSValue {
     bool is_callable,
     inner_func callable,
     size_t size,
-    flag_t flag = 0,
     size_t property_map_num_fixed_slots = 0,
     size_t property_map_hashmap_capacity = 0
   ) {
@@ -37,7 +37,44 @@ class JSObject : public JSValue {
     if (unlikely(log::Debugger::On()))
       std::cout << "JSObject::New " << log::ToString(klass) << "\n";
 #endif
-    Handle<JSValue> jsval = HeapObject::New(kJSObjectOffset - kJSValueOffset + size, flag);
+    Handle<JSValue> jsval = HeapObject::New<flag>(kJSObjectOffset - kJSValueOffset + size);
+    // NOTE(zhuzilin) We need to put the operation that may need memory allocation to
+    // the front, because the jsval is not initialized with JSObject vptr and therefore
+    // could not forward the pointers.
+    auto class_str = String::New(klass);
+
+    auto property_map = PropertyMap::New(property_map_num_fixed_slots, property_map_hashmap_capacity);
+
+    SET_HANDLE_VALUE(jsval.val(), kClassOffset, class_str, String);
+    SET_VALUE(jsval.val(), kExtensibleOffset, extensible, bool);
+    SET_HANDLE_VALUE(jsval.val(), kPrimitiveValueOffset, primitive_value, JSValue);
+    SET_VALUE(jsval.val(), kIsConstructorOffset, is_constructor, bool);
+    SET_VALUE(jsval.val(), kIsCallableOffset, is_callable, bool);
+    // NOTE(zhuzilin) function pointer is different.
+    TYPED_PTR(jsval.val(), kCallableOffset, inner_func)[0] = callable;
+    SET_HANDLE_VALUE(jsval.val(), kPrototypeOffset, Null::Instance(), JSValue);
+    SET_HANDLE_VALUE(jsval.val(), kNamedPropertiesOffset, property_map, PropertyMap);
+
+    jsval.val()->SetType(JS_OBJECT);
+    return Handle<JSObject>(jsval);
+  }
+
+  template<size_t size, flag_t flag = 0>
+  static Handle<JSObject> New(
+    std::u16string klass,
+    bool extensible,
+    Handle<JSValue> primitive_value,
+    bool is_constructor,
+    bool is_callable,
+    inner_func callable,
+    size_t property_map_num_fixed_slots = 0,
+    size_t property_map_hashmap_capacity = 0
+  ) {
+#ifdef GC_DEBUG
+    if (unlikely(log::Debugger::On()))
+      std::cout << "JSObject::New " << log::ToString(klass) << "\n";
+#endif
+    Handle<JSValue> jsval = HeapObject::New<kJSObjectOffset - kJSValueOffset + size, flag>();
     // NOTE(zhuzilin) We need to put the operation that may need memory allocation to
     // the front, because the jsval is not initialized with JSObject vptr and therefore
     // could not forward the pointers.

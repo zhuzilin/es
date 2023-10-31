@@ -11,7 +11,7 @@ Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input);
 class RegExpProto : public JSObject {
  public:
   static Handle<RegExpProto> Instance() {
-    static Handle<RegExpProto> singleton = RegExpProto::New(GCFlag::SINGLE);
+    static Handle<RegExpProto> singleton = RegExpProto::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -26,9 +26,10 @@ class RegExpProto : public JSObject {
   static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals);
 
  private:
-  static Handle<RegExpProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"RegExp", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<RegExpProto> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"RegExp", true, Handle<JSValue>(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<RegExpProto>(jsobj);
@@ -38,10 +39,8 @@ class RegExpProto : public JSObject {
 class RegExpObject : public JSObject {
  public:
   static Handle<RegExpObject> New(Handle<String> pattern, Handle<String> flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"RegExp", true, Handle<JSValue>(), false, false, nullptr,
-      kRegExpObjectOffset - kJSObjectOffset
-    );
+    Handle<JSObject> jsobj = JSObject::New<kRegExpObjectOffset - kJSObjectOffset>(
+      u"RegExp", true, Handle<JSValue>(), false, false, nullptr);
 
     SET_HANDLE_VALUE(jsobj.val(), kPatternOffset, pattern, String);
     SET_HANDLE_VALUE(jsobj.val(), kFlagOffset, flag, String);
@@ -93,7 +92,7 @@ class RegExpObject : public JSObject {
 class RegExpConstructor : public JSObject {
  public:
   static Handle<RegExpConstructor> Instance() {
-    static Handle<RegExpConstructor> singleton = RegExpConstructor::New(GCFlag::SINGLE);
+    static Handle<RegExpConstructor> singleton = RegExpConstructor::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -102,9 +101,10 @@ class RegExpConstructor : public JSObject {
   }
 
  private:
-  static Handle<RegExpConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"RegExp", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<RegExpConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"RegExp", true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_REGEXP_CONSTRUCTOR);
     return Handle<RegExpConstructor>(jsobj);

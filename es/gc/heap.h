@@ -19,14 +19,25 @@ class Heap {
     return &singleton;
   }
 
-  void* Allocate(size_t size_with_header, flag_t flag) {
-    if (flag & GCFlag::CONST)
-      return constant_space_.New(size_with_header, flag);
-    if (unlikely(size_with_header > kBigObjectThres)) {
-      flag |= GCFlag::BIG;
-      return big_object_space_.New(size_with_header, flag);
+  template<size_t size_with_header, flag_t flag>
+  void* Allocate() {
+    if constexpr (flag & GCFlag::CONST)
+      return constant_space_.New<size_with_header, flag>();
+    if constexpr (size_with_header > kBigObjectThres) {
+      return big_object_space_.New<size_with_header, flag | GCFlag::BIG>();
     } else {
-      return new_space_.New(size_with_header, flag);
+      return new_space_.New<size_with_header, flag>();
+    }
+  }
+
+  template<flag_t flag>
+  void* Allocate(size_t size_with_header) {
+    if constexpr (flag & GCFlag::CONST)
+      return constant_space_.New<flag>(size_with_header);
+    if (unlikely(size_with_header > kBigObjectThres)) {
+      return big_object_space_.New<flag | GCFlag::BIG>(size_with_header);
+    } else {
+      return new_space_.New<flag>(size_with_header);
     }
   }
 
@@ -42,8 +53,14 @@ class Heap {
   NoCollection big_object_space_;
 };
 
-inline void* Allocate(size_t size_with_header, flag_t flag) {
-  return Heap::Global()->Allocate(size_with_header, flag);
+template<uint32_t size_with_header, flag_t flag>
+inline void* Allocate() {
+  return Heap::Global()->Allocate<size_with_header, flag>();
+}
+
+template<flag_t flag>
+inline void* Allocate(uint32_t size_with_header) {
+  return Heap::Global()->Allocate<flag>(size_with_header);
 }
 
 }  // namespace es

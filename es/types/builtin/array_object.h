@@ -21,7 +21,7 @@ Handle<JSObject> ToObject(Handle<Error>& e, Handle<JSValue> input);
 class ArrayProto : public JSObject {
  public:
   static  Handle<ArrayProto> Instance() {
-    static  Handle<ArrayProto> singleton = ArrayProto::New(GCFlag::SINGLE);
+    static  Handle<ArrayProto> singleton = ArrayProto::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -96,9 +96,10 @@ class ArrayProto : public JSObject {
   }
 
  private:
-  static Handle<ArrayProto> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Array", true, Handle<JSValue>(), false, false, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<ArrayProto> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Array", true, Handle<JSValue>(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<ArrayProto>(jsobj);
@@ -108,8 +109,8 @@ class ArrayProto : public JSObject {
 class ArrayObject : public JSObject {
  public:
   static Handle<ArrayObject> New(double len) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Array", true, Handle<JSValue>(), false, false, nullptr, 0, 0, len
+    Handle<JSObject> jsobj = JSObject::New<0, 0>(
+      u"Array", true, Handle<JSValue>(), false, false, nullptr, len
     );
 
     jsobj.val()->SetType(OBJ_ARRAY);
@@ -127,7 +128,7 @@ class ArrayObject : public JSObject {
 class ArrayConstructor : public JSObject {
  public:
   static  Handle<ArrayConstructor> Instance() {
-    static  Handle<ArrayConstructor> singleton = ArrayConstructor::New(GCFlag::SINGLE);
+    static  Handle<ArrayConstructor> singleton = ArrayConstructor::New<GCFlag::SINGLE>();
     return singleton;
   }
 
@@ -143,9 +144,10 @@ class ArrayConstructor : public JSObject {
   }
 
  private:
-  static Handle<ArrayConstructor> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
-      u"Array", true, Handle<JSValue>(), true, true, nullptr, 0, flag);
+  template<flag_t flag>
+  static Handle<ArrayConstructor> New() {
+    Handle<JSObject> jsobj = JSObject::New<0, flag>(
+      u"Array", true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_ARRAY_CONSTRUCTOR);
     return Handle<ArrayConstructor>(jsobj);

@@ -12,6 +12,28 @@ std::string Handle<T>::ToString() {
   return JSValue::ToString(val());
 }
 
+template<flag_t flag>
+Handle<HeapObject> HeapObject::New(size_t size) {
+  Handle<HeapObject> heap_obj(static_cast<HeapObject*>(Allocate<flag>(size + kHeapObjectOffset)));
+  ASSERT(reinterpret_cast<uint64_t>(heap_obj.val()) % 8 == 0);
+
+  // type value should be init by each variable after their member elements
+  // are initialized.
+  heap_obj.val()->SetType(JS_UNINIT);
+  return heap_obj;
+}
+
+template<uint32_t size, flag_t flag>
+Handle<HeapObject> HeapObject::New() {
+  Handle<HeapObject> heap_obj(static_cast<HeapObject*>(Allocate<size + kHeapObjectOffset, flag>()));
+  ASSERT(reinterpret_cast<uint64_t>(heap_obj.val()) % 8 == 0);
+
+  // type value should be init by each variable after their member elements
+  // are initialized.
+  heap_obj.val()->SetType(JS_UNINIT);
+  return heap_obj;
+}
+
 std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
   switch (reinterpret_cast<JSValue*>(heap_obj)->type()) {
     case JS_UNINIT:

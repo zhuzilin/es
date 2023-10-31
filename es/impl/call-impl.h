@@ -76,15 +76,15 @@ Handle<JSValue> Call__Function(
     result = EvalProgram(code);
   }
   Runtime::Global()->PopContext();   // 3
-  TEST_LOG("exit FunctionObject::Call\n", code->source());
+  TEST_LOG("\033[1;32mexit FunctionObject::Call\033[0m\n");
   switch (result.type()) {
     case Completion::RETURN:
       if (unlikely(log::Debugger::On()))
-        log::PrintSource("exit FunctionObject::Call RETURN");
+        log::PrintSource("\033[2mexit\033[0m FunctionObject::Call RETURN");
       return result.value();
     case Completion::THROW: {
       if (unlikely(log::Debugger::On()))
-        log::PrintSource("exit FunctionObject::Call THROW");
+        log::PrintSource("\033[2mexit\033[0m FunctionObject::Call THROW");
       Handle<JSValue> throw_value = result.value();
       if (throw_value.val()->IsError()) {
         e = throw_value;
@@ -99,7 +99,7 @@ Handle<JSValue> Call__Function(
     }
     default:
       if (unlikely(log::Debugger::On()))
-        log::PrintSource("exit FunctionObject::Call NORMAL");
+        log::PrintSource("\033[2mexit\033[0m FunctionObject::Call NORMAL");
       ASSERT(result.type() == Completion::NORMAL);
       return Undefined::Instance();
   }
@@ -108,7 +108,7 @@ Handle<JSValue> Call__Function(
 Handle<JSValue> Call__BindFunction(
   Handle<Error>& e, Handle<BindFunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> extra_args
 ) {
-  TEST_LOG("enter BindFunctionObject::Call");
+  TEST_LOG("\033[2menter\033[0m BindFunctionObject::Call");
   Handle<FixedArray> bound_args = O.val()->BoundArgs();
   Handle<JSObject> target_function = O.val()->TargetFunction();
 

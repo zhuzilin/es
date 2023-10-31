@@ -10,7 +10,7 @@ namespace es {
 class LexicalEnvironment : public JSValue {
  public:
   static Handle<LexicalEnvironment> New(Handle<LexicalEnvironment> outer, Handle<EnvironmentRecord> env_rec) {
-    Handle<JSValue> jsval = HeapObject::New(2 * kPtrSize);
+    Handle<JSValue> jsval = HeapObject::New<2 * kPtrSize>();
 
     SET_HANDLE_VALUE(jsval.val(), kOuterOffset, outer, LexicalEnvironment);
     SET_HANDLE_VALUE(jsval.val(), kEnvRecOffset, env_rec, EnvironmentRecord);

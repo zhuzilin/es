@@ -16,7 +16,7 @@ class ListNode : public JSValue {
     if (unlikely(log::Debugger::On()))
       std::cout << "ListNode::New" << "\n";
 #endif
-    Handle<JSValue> jsval = HeapObject::New(3 * kPtrSize);
+    Handle<JSValue> jsval = HeapObject::New<3 * kPtrSize>();
 
     SET_HANDLE_VALUE(jsval.val(), kKeyOffset, key, String);
     SET_HANDLE_VALUE(jsval.val(), kValOffset, val, JSValue);

@@ -13,8 +13,9 @@ namespace es {
 // EnvironmentRecord is also of type JSValue 
 class EnvironmentRecord : public JSValue {
  public:
-  static Handle<EnvironmentRecord> New(size_t size) {
-    Handle<JSValue> jsval = HeapObject::New(size);
+  template<size_t size>
+  static Handle<EnvironmentRecord> New() {
+    Handle<JSValue> jsval = HeapObject::New<size>();
     return static_cast<Handle<EnvironmentRecord>>(jsval);
   }
 
@@ -32,7 +33,7 @@ class Binding : public JSValue {
     if (unlikely(log::Debugger::On()))
       std::cout << "Binding::New" << "\n";
 #endif
-    Handle<JSValue> jsval = HeapObject::New(kBindingOffset - HeapObject::kHeapObjectOffset);
+    Handle<JSValue> jsval = HeapObject::New<kBindingOffset - HeapObject::kHeapObjectOffset>();
 
     SET_HANDLE_VALUE(jsval.val(), kValueOffset, value, JSValue);
     SET_VALUE(jsval.val(), kCanDeleteOffset, can_delete, bool);
@@ -58,7 +59,7 @@ class Binding : public JSValue {
 class DeclarativeEnvironmentRecord : public EnvironmentRecord {
  public:
   static Handle<DeclarativeEnvironmentRecord> New(size_t num_decls) {
-    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New(kPtrSize);
+    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New<kPtrSize>();
     auto bindings = HashMapV2::New(num_decls);
 
     SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, bindings, HashMapV2);
@@ -80,7 +81,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
 class ObjectEnvironmentRecord : public EnvironmentRecord {
  public:
   static Handle<ObjectEnvironmentRecord> New(Handle<JSObject> obj, bool provide_this = false) {
-    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New(kPtrSize + kBoolSize);
+    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New<kPtrSize + kBoolSize>();
 
     SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, obj, JSObject);
     SET_VALUE(env_rec.val(), kProvideThisOffset, provide_this, bool);

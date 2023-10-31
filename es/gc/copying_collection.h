@@ -42,7 +42,23 @@ struct CopyingCollection : public GC<CopyingCollection> {
     free_ = tospace_;
   }
 
-  void* AllocateImpl(size_t size, flag_t flag) {
+  template<size_t size, flag_t flag>
+  void* AllocateImpl() {
+    char* result = free_;
+    char* newfree = result + size;
+    if (unlikely(newfree > top_))
+      return nullptr;
+    free_ = newfree;
+    // Set header
+    Header* header = reinterpret_cast<Header*>(result);
+    header->size = size;
+    header->flag = flag;
+    header->forward_address = nullptr;
+    return result;
+  }
+
+  template<flag_t flag>
+  void* AllocateImpl(size_t size) {
     char* result = free_;
     char* newfree = result + size;
     if (unlikely(newfree > top_))
@@ -58,7 +74,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
 
   void CollectImpl() {
 #ifdef GC_DEBUG
-    std::cout << "enter CopyingCollection::Collect " << (free_ - tospace_) / 1024 << " KB \n";
+    std::cout << "\033[2menter\033[0m CopyingCollection::Collect " << (free_ - tospace_) / 1024 << " KB \n";
 #endif
 #ifdef STATS
     std::cout << "Stats before CopyingCollection::Collect" << std::endl;
@@ -92,7 +108,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
     }
     memset(fromspace_, 0, extent_);
 #ifdef GC_DEBUG
-    std::cout << "exit CopyingCollection::Collect " << (free_ - tospace_) / 1024 << " KB \n";
+    std::cout << "\033[2mexit\033[0m CopyingCollection::Collect " << (free_ - tospace_) / 1024 << " KB \n";
 #endif
 #ifdef STATS
     std::cout << "Stats after CopyingCollection::Collect" << std::endl;

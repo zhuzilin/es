@@ -44,9 +44,9 @@ Handle<JSObject> Construct(Handle<Error>& e, Handle<JSObject> O, std::vector<Han
 Handle<JSObject> Construct__Function(
   Handle<Error>& e, Handle<FunctionObject> O, std::vector<Handle<JSValue>> arguments
 ) {
-  TEST_LOG("enter FunctionObject::Construct");
+  TEST_LOG("\033[2menter\033[0m FunctionObject::Construct");
   // NOTE(zhuzilin) I'm not sure if the object type should be OBJ_OBJECT or OBJ_OTHER...
-  Handle<JSObject> obj = JSObject::New(u"Object", true, Handle<JSValue>(), false, false, nullptr, 0);
+  Handle<JSObject> obj = JSObject::New<0>(u"Object", true, Handle<JSValue>(), false, false, nullptr);
   obj.val()->SetType(Type::OBJ_OBJECT);
   Handle<JSValue> proto = Get(e, O, String::Prototype());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
@@ -124,7 +124,7 @@ Handle<JSObject> Construct__ErrorConstructor(
 Handle<JSObject> Construct__FunctionConstructor(
   Handle<Error>& e, Handle<FunctionConstructor> O, std::vector<Handle<JSValue>> arguments
 ) {
-  TEST_LOG("enter FunctionConstructor::Construct");
+  TEST_LOG("\033[2menter\033[0m FunctionConstructor::Construct");
   size_t arg_count = arguments.size();
   std::u16string P = u"";
   std::u16string body = u"";
@@ -146,7 +146,7 @@ Handle<JSObject> Construct__FunctionConstructor(
   AST* body_ast;
   if (P_view.size() > 0) {
     Parser parser(P_view);
-    if (!parser.ParseFormalParameterList(names, 0)) {
+    if (!parser.ParseFormalParameterList(names)) {
       e = Error::SyntaxError(u"invalid parameter name");
       return Handle<JSValue>();
     }

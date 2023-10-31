@@ -14,7 +14,7 @@ double ToNumber(Handle<Error>& e, Handle<JSValue> input);
 class GlobalObject : public JSObject {
  public:
   static Handle<GlobalObject> Instance() {
-    static Handle<GlobalObject> singleton(GlobalObject::New(GCFlag::SINGLE));
+    static Handle<GlobalObject> singleton(GlobalObject::New<GCFlag::SINGLE>());
     return singleton;
   }
 
@@ -57,15 +57,16 @@ class GlobalObject : public JSObject {
   }
 
  private:
-  static Handle<GlobalObject> New(flag_t flag) {
-    Handle<JSObject> jsobj = JSObject::New(
+  template<flag_t flag>
+  static Handle<GlobalObject> New() {
+    Handle<JSObject> jsobj = JSObject::New<kBoolSize, flag>(
       // 15.1 The values of the [[Prototype]] and [[Class]]
       // of the global object are implementation-dependent.
       u"Global",
       // NOTE(zhuzilin) global object need to have [[Extensible]] as true,
       // otherwise we cannot define variable in global code, as global varaibles
       // are the property of global object.
-      true, Handle<JSValue>(), false, false, nullptr, kBoolSize, flag
+      true, Handle<JSValue>(), false, false, nullptr
     );
 
     SET_VALUE(jsobj.val(), kDirectEvalOffset, false, bool);

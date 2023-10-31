@@ -22,63 +22,62 @@ class Error : public JSValue {
 
   // TODO(zhuzilin) Fix memory leakage here.
   static Handle<Error> Ok() {
-    static Handle<Error> singleton = Error::New(E_OK, String::Empty(), GCFlag::SINGLE);
+    static Handle<Error> singleton = Error::New<E_OK, GCFlag::SINGLE>(String::Empty());
     return singleton;
   }
 
   static Handle<Error>& Empty() {
-    static Handle<Error> singleton = Error::New(E_OK, Handle<JSValue>(), GCFlag::SINGLE);
+    static Handle<Error> singleton = Error::New<E_OK, GCFlag::SINGLE>(Handle<JSValue>());
     return singleton;
   }
 
   static Handle<Error> EvalError() {
-    static Handle<Error> singleton = Error::New(E_EVAL, Handle<JSValue>(), GCFlag::SINGLE);
+    static Handle<Error> singleton = Error::New<E_EVAL, GCFlag::SINGLE>(Handle<JSValue>());
     singleton.val()->SetMessage(u"");
     return singleton;
   }
 
   static Handle<Error> RangeError(std::u16string message) {
-    static Handle<Error> singleton = Error::New(E_EVAL, Handle<JSValue>(), GCFlag::SINGLE);
+    static Handle<Error> singleton = Error::New<E_EVAL, GCFlag::SINGLE>(Handle<JSValue>());
     singleton.val()->SetMessage(message);
     return singleton;
   }
 
   static Handle<Error> ReferenceError(std::u16string message) {
-    static Handle<Error> singleton = Error::New(E_REFERENCE, Handle<JSValue>(), GCFlag::SINGLE);
+    static Handle<Error> singleton = Error::New<E_REFERENCE, GCFlag::SINGLE>(Handle<JSValue>());
     singleton.val()->SetMessage(message);
     return singleton;
   }
 
   static Handle<Error> SyntaxError(std::u16string message) {
-    static Handle<Error> singleton = Error::New(E_SYNTAX, Handle<JSValue>(), GCFlag::SINGLE);
+    static Handle<Error> singleton = Error::New<E_SYNTAX, GCFlag::SINGLE>(Handle<JSValue>());
     singleton.val()->SetMessage(message);
     return singleton;
   }
 
   // Only used in parser
-  static Handle<Error> SyntaxErrorConst(std::u16string message, flag_t flag) {
+  static Handle<Error> SyntaxErrorConst(std::u16string message) {
     std::cout << "SyntaxError const" << std::endl;
-    ASSERT(flag == GCFlag::CONST);
-    Handle<Error> error = Error::New(E_SYNTAX, Handle<JSValue>(), flag);
-    Handle<String> msg = message == u"" ? String::Empty() : String::New(message, flag);
+    Handle<Error> error = Error::New<E_SYNTAX, GCFlag::CONST>(Handle<JSValue>());
+    Handle<String> msg = message == u"" ? String::Empty() : String::New<GCFlag::CONST>(message);
     error.val()->SetValue(msg);
     return error;
   }
 
   static Handle<Error> TypeError(std::u16string message = u"") {
-    static Handle<Error> singleton = Error::New(E_TYPE, Handle<JSValue>(), GCFlag::SINGLE);
+    static Handle<Error> singleton = Error::New<E_TYPE, GCFlag::SINGLE>(Handle<JSValue>());
     singleton.val()->SetMessage(message);
     return singleton;
   }
 
   static Handle<Error> UriError() {
-    static Handle<Error> singleton = Error::New(E_URI, Handle<JSValue>(), GCFlag::SINGLE);
+    static Handle<Error> singleton = Error::New<E_URI, GCFlag::SINGLE>(Handle<JSValue>());
     singleton.val()->SetMessage(u"");
     return singleton;
   }
 
   static Handle<Error> NativeError(Handle<JSValue> val) {
-    static Handle<Error> singleton = Error::New(E_NATIVE, Handle<JSValue>(), GCFlag::SINGLE);
+    static Handle<Error> singleton = Error::New<E_NATIVE, GCFlag::SINGLE>(Handle<JSValue>());
     singleton.val()->SetValue(val);
     return singleton;
   }
@@ -99,11 +98,12 @@ class Error : public JSValue {
   bool IsNativeError() { return error_type() == E_NATIVE; }
 
  private:
-  static Handle<Error> New(ErrorType t, Handle<JSValue> val, uint8_t flag) {
+  template<ErrorType t, flag_t flag = 0>
+  static Handle<Error> New(Handle<JSValue> val) {
 #ifdef GC_DEBUG
     TEST_LOG("Error::New\n");
 #endif
-    Handle<JSValue> jsval = HeapObject::New(kUint32Size + kPtrSize, flag);
+    Handle<JSValue> jsval = HeapObject::New<kUint32Size + kPtrSize, flag>();
 
     SET_VALUE(jsval.val(), kErrorTypeOffset, t, ErrorType);
     SET_HANDLE_VALUE(jsval.val(), kValueOffset, val, JSValue);
