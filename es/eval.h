@@ -653,7 +653,9 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   Handle<Error> e = Error::Ok();
   // Prevent garbage collect old env.
   Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
-  Handle<LexicalEnvironment> catch_env = NewDeclarativeEnvironment(old_env);
+  // this 8 is randomly picked.
+  Handle<LexicalEnvironment> catch_env = NewDeclarativeEnvironment(
+    old_env, DeclarativeEnvironmentRecord::kDefaultNumDecls);
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
   Handle<JSValue> val;

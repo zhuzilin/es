@@ -217,7 +217,7 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
   bool strict = Runtime::TopContext().strict() ||
                 (program->strict() && GlobalObject::Instance().val()->direct_eval());
   if (strict) {  // 3
-    Handle<LexicalEnvironment> strict_var_env = NewDeclarativeEnvironment(lexical_env);
+    Handle<LexicalEnvironment> strict_var_env = NewDeclarativeEnvironment(lexical_env, program->num_decls());
     lexical_env = strict_var_env;
     variable_env = strict_var_env;
 
@@ -254,7 +254,7 @@ void EnterFunctionCode(
   } else {
     this_binding = this_arg;
   }
-  Handle<LexicalEnvironment> local_env = NewDeclarativeEnvironment(func.val()->Scope());
+  Handle<LexicalEnvironment> local_env = NewDeclarativeEnvironment(func.val()->Scope(), body->num_decls());
   Runtime::Global()->AddContext(ExecutionContext(local_env, local_env, this_binding, strict));  // 8
   // 9
   DeclarationBindingInstantiation(e, body, CODE_FUNC, func, args);

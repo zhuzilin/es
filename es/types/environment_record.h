@@ -57,9 +57,9 @@ class Binding : public JSValue {
 
 class DeclarativeEnvironmentRecord : public EnvironmentRecord {
  public:
-  static Handle<DeclarativeEnvironmentRecord> New() {
+  static Handle<DeclarativeEnvironmentRecord> New(size_t num_decls) {
     Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New(kPtrSize);
-    auto bindings = HashMapV2::New(kDefaultHashMapSize);
+    auto bindings = HashMapV2::New(num_decls);
 
     SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, bindings, HashMapV2);
     env_rec.val()->SetType(JS_ENV_REC_DECL);
@@ -74,7 +74,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
  public:
   static constexpr size_t kBindingsOffset = kEnvironmentRecordOffset;
 
-  static constexpr size_t kDefaultHashMapSize = 8;
+  static constexpr size_t kDefaultNumDecls = 8;
 };
 
 class ObjectEnvironmentRecord : public EnvironmentRecord {

@@ -9,6 +9,24 @@
 
 namespace es {
 
+bool IsPowerOf2(uint32_t v) {
+  return !(v & (v - 1));
+}
+
+// https://stackoverflow.com/a/466242/5163915
+uint32_t NextPowerOf2(uint32_t v) {
+  if (IsPowerOf2(v))
+    return v;
+  v--;
+  v |= v >> 1;
+  v |= v >> 2;
+  v |= v >> 4;
+  v |= v >> 8;
+  v |= v >> 16;
+  v++;
+  return v;
+}
+
 // NOTE(zhuzilin) For now, the key type will be String*.
 class HashMapV2 : public JSValue {
  public:
@@ -25,6 +43,10 @@ class HashMapV2 : public JSValue {
     if (unlikely(log::Debugger::On()))
       std::cout << "HashMapV2::New" << "\n";
 #endif
+    capacity = NextPowerOf2(capacity);
+    if (capacity < kDefaultHashMapSize)
+      capacity = kDefaultHashMapSize;
+
     Handle<JSValue> jsval = HeapObject::New(kElementOffset + capacity * sizeof(Entry) - HeapObject::kHeapObjectOffset);
 
     SET_VALUE(jsval.val(), kCapacityOffset, capacity, uint32_t);

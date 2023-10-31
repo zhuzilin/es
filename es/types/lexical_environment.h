@@ -24,7 +24,7 @@ class LexicalEnvironment : public JSValue {
 
   static Handle<LexicalEnvironment> Global() {
     static Handle<LexicalEnvironment> singleton = LexicalEnvironment::New(
-      Handle<LexicalEnvironment>(), ObjectEnvironmentRecord::New(GlobalObject::Instance()));
+      Handle<LexicalEnvironment>(), ObjectEnvironmentRecord::New(GlobalObject::Instance(), false));
     return singleton;
   }
 
@@ -33,12 +33,12 @@ class LexicalEnvironment : public JSValue {
   static constexpr size_t kEnvRecOffset = kOuterOffset + kPtrSize;
 };
 
-Handle<LexicalEnvironment> NewDeclarativeEnvironment(Handle<LexicalEnvironment> lex) {
-  Handle<DeclarativeEnvironmentRecord> env_rec = DeclarativeEnvironmentRecord::New();
+Handle<LexicalEnvironment> NewDeclarativeEnvironment(Handle<LexicalEnvironment> lex, size_t num_decls) {
+  Handle<DeclarativeEnvironmentRecord> env_rec = DeclarativeEnvironmentRecord::New(num_decls);
   return LexicalEnvironment::New(lex, env_rec);
 }
 
-Handle<LexicalEnvironment> NewObjectEnvironment(Handle<JSObject> obj, Handle<LexicalEnvironment> lex, bool provide_this = false) {
+Handle<LexicalEnvironment> NewObjectEnvironment(Handle<JSObject> obj, Handle<LexicalEnvironment> lex, bool provide_this) {
   Handle<ObjectEnvironmentRecord> env_rec = ObjectEnvironmentRecord::New(obj, provide_this);
   return LexicalEnvironment::New(lex, env_rec);
 }

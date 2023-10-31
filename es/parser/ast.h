@@ -456,6 +456,8 @@ class ProgramOrFunctionBody : public AST {
   std::vector<VarDecl*>& var_decls() { return var_decls_; }
   void SetVarDecls(std::vector<VarDecl*>&& var_decls) { var_decls_ = var_decls; }
 
+  size_t num_decls() { return func_decls_.size() + var_decls_.size(); }
+
  private:
   bool strict_;
   std::vector<Function*> func_decls_;
