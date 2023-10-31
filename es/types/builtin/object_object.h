@@ -86,9 +86,9 @@ class ObjectProto : public JSObject {
 
 class Object : public JSObject {
  public:
-  static Handle<Object> New() {
+  static Handle<Object> New(size_t num_properties = 0) {
     Handle<JSObject> jsobj = JSObject::New(
-      u"Object", true, Handle<JSValue>(), false, false, nullptr, 0
+      u"Object", true, Handle<JSValue>(), false, false, nullptr, 0, 0, 0, num_properties
     );
 
     jsobj.val()->SetType(OBJ_OBJECT);

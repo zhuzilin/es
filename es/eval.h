@@ -925,7 +925,7 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
   ASSERT(ast->type() == AST::AST_EXPR_OBJ);
   ObjectLiteral* obj_ast = static_cast<ObjectLiteral*>(ast);
   bool strict = Runtime::TopContext().strict();
-  Handle<Object> obj = Object::New();
+  Handle<Object> obj = Object::New(obj_ast->properties().size());
   // PropertyName : AssignmentExpression
   for (auto property : obj_ast->properties()) {
     StackPropertyDescriptor desc;

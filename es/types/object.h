@@ -30,7 +30,8 @@ class JSObject : public JSValue {
     inner_func callable,
     size_t size,
     flag_t flag = 0,
-    size_t property_map_num_fixed_slots = 0
+    size_t property_map_num_fixed_slots = 0,
+    size_t property_map_hashmap_capacity = 0
   ) {
 #ifdef GC_DEBUG
     if (unlikely(log::Debugger::On()))
@@ -42,7 +43,7 @@ class JSObject : public JSValue {
     // could not forward the pointers.
     auto class_str = String::New(klass);
 
-    auto property_map = PropertyMap::New(property_map_num_fixed_slots);
+    auto property_map = PropertyMap::New(property_map_num_fixed_slots, property_map_hashmap_capacity);
 
     SET_HANDLE_VALUE(jsval.val(), kClassOffset, class_str, String);
     SET_VALUE(jsval.val(), kExtensibleOffset, extensible, bool);

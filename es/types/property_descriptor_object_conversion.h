@@ -13,7 +13,7 @@ Handle<JSValue> FromPropertyDescriptor(StackPropertyDescriptor desc) {
   if (desc.IsUndefined()) {
     return Undefined::Instance();
   }
-  Handle<JSObject> obj = Object::New();
+  Handle<JSObject> obj = Object::New(4);
   if (desc.IsDataDescriptor()) {
     AddValueProperty(obj, String::Value(), desc.Value(), true, true, true);
     AddValueProperty(obj, String::Writable(), Bool::Wrap(desc.Writable()), true, true, true);
