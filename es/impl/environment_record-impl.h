@@ -44,7 +44,7 @@ void CreateAndSetMutableBinding__Declarative(
   Handle<Binding> b = Binding::New(
     Undefined::Instance(), D, true);
   b.val()->SetValue(V);
-  auto new_bindings = HashMap::Set(Handle<HashMap>(env_rec.val()->bindings()), N, b);
+  auto new_bindings = HashMapV2::Set(Handle<HashMapV2>(env_rec.val()->bindings()), N, b);
   env_rec.val()->SetBindings(new_bindings);
 }
 
@@ -204,7 +204,7 @@ void CreateAndInitializeImmutableBinding(
   Handle<Binding> b = Binding::New(
     Undefined::Instance(), false, false);
   b.val()->SetValue(V);
-  auto new_bindings = HashMap::Set(Handle<HashMap>(env_rec.val()->bindings()), N, b);
+  auto new_bindings = HashMapV2::Set(Handle<HashMapV2>(env_rec.val()->bindings()), N, b);
   env_rec.val()->SetBindings(new_bindings);
 }
 

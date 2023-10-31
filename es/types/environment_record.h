@@ -59,20 +59,22 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
  public:
   static Handle<DeclarativeEnvironmentRecord> New() {
     Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New(kPtrSize);
-    auto bindings = HashMap::New();
+    auto bindings = HashMapV2::New(kDefaultHashMapSize);
 
-    SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, bindings, HashMap);
+    SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, bindings, HashMapV2);
     env_rec.val()->SetType(JS_ENV_REC_DECL);
     return Handle<DeclarativeEnvironmentRecord>(env_rec);
   }
 
-  HashMap* bindings() { return READ_VALUE(this, kBindingsOffset, HashMap*); }
-  void SetBindings(Handle<HashMap> new_binding) {
-    SET_HANDLE_VALUE(this, kBindingsOffset, new_binding, HashMap);
+  HashMapV2* bindings() { return READ_VALUE(this, kBindingsOffset, HashMapV2*); }
+  void SetBindings(Handle<HashMapV2> new_binding) {
+    SET_HANDLE_VALUE(this, kBindingsOffset, new_binding, HashMapV2);
   }
 
  public:
   static constexpr size_t kBindingsOffset = kEnvironmentRecordOffset;
+
+  static constexpr size_t kDefaultHashMapSize = 8;
 };
 
 class ObjectEnvironmentRecord : public EnvironmentRecord {
