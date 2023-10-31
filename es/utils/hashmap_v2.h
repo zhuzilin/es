@@ -34,7 +34,16 @@ class HashMapV2 : public JSValue {
     String* key;
     JSValue* val;
     uint32_t hash;
+    union {
+      struct {
+        bool can_delete;
+        bool is_mutable;
+      };
+      uint32_t meta_;
+    };
   };
+
+  static void DoNothing(Entry* entry) {}
 
   static_assert(sizeof(Entry) == 24);
 
@@ -81,7 +90,10 @@ class HashMapV2 : public JSValue {
   const Entry* map_end() { return TYPED_PTR(this, kElementOffset, Entry) + capacity(); }
 
   // Set can not be method as there can be gc happening inside.
-  static Handle<HashMapV2> Set(Handle<HashMapV2> map, Handle<String> key, Handle<JSValue> val) {
+  template<typename EntryFn = decltype(DoNothing)>
+  static Handle<HashMapV2> Set(
+    Handle<HashMapV2> map, Handle<String> key, Handle<JSValue> val, EntryFn entry_fn = DoNothing
+  ) {
     if (map.val()->occupancy() + map.val()->occupancy() / 4 + 1 >= map.val()->capacity()) {
       Handle<HashMapV2> new_map = Resize(map);
       HashMapV2::released_maps_[map.val()->capacity()].push(map.val());
@@ -98,6 +110,7 @@ class HashMapV2 : public JSValue {
     }
     p->hash = hash;
     p->val = val.val();
+    entry_fn(p);
     return map;
   }
 
@@ -125,11 +138,13 @@ class HashMapV2 : public JSValue {
     return Handle<JSValue>(GetRaw(key));
   }
 
-  JSValue* GetRaw(Handle<String> key) {
+  template<typename EntryFn = decltype(DoNothing)>
+  JSValue* GetRaw(Handle<String> key, EntryFn entry_fn = DoNothing) {
     uint32_t hash = key.val()->Hash();
     Entry* p = Probe(key.val(), hash);
     if (p->key == nullptr)
       return nullptr;
+    entry_fn(p);
     return p->val;
   }
 
@@ -226,6 +241,7 @@ class HashMapV2 : public JSValue {
         new_p->hash = p->hash;
         new_p->key = p->key;
         new_p->val = p->val;
+        new_p->meta_ = p->meta_;
         n--;
       }
     }

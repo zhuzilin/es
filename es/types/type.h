@@ -60,10 +60,10 @@ enum Type : uint16_t {
   ERROR       = 1 << 10 | 1,
   FIXED_ARRAY = 1 << 10 | 2,
   HASHMAP     = 1 << 10 | 3,
-  BINDING     = 1 << 10 | 4,
+  HASHMAP_V2  = 1 << 10 | 4,
   LIST_NODE   = 1 << 10 | 5,
   PROPERTY_MAP = 1 << 10 | 6,
-  HASHMAP_V2 = 1 << 10 | 7,
+  
 };
 
 }  // namespace es

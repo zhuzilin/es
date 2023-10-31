@@ -75,8 +75,6 @@ std::string JSValue::ToString(JSValue* jsval) {
       PropertyMap* map = static_cast<PropertyMap*>(jsval);
       return "PropertyMap(" + std::to_string(map->num_fixed_slots()) + "," + map->hashmap().ToString() + ")";
     }
-    case BINDING:
-      return "Binding(" + ToString(READ_VALUE(jsval, Binding::kValueOffset, JSValue*)) + ")";
     case LIST_NODE:
       return "ListNode(" + ToString(READ_VALUE(jsval, ListNode::kKeyOffset, String*)) + ")";
     case OBJ_ARRAY: {

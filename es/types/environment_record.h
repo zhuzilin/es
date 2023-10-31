@@ -26,36 +26,6 @@ class EnvironmentRecord : public JSValue {
   static constexpr size_t kEnvironmentRecordOffset = kJSValueOffset;
 };
 
-class Binding : public JSValue {
- public:
-  static Handle<Binding> New(Handle<JSValue> value, bool can_delete, bool is_mutable) {
-#ifdef GC_DEBUG
-    if (unlikely(log::Debugger::On()))
-      std::cout << "Binding::New" << "\n";
-#endif
-    Handle<JSValue> jsval = HeapObject::New<kBindingOffset - HeapObject::kHeapObjectOffset>();
-
-    SET_HANDLE_VALUE(jsval.val(), kValueOffset, value, JSValue);
-    SET_VALUE(jsval.val(), kCanDeleteOffset, can_delete, bool);
-    SET_VALUE(jsval.val(), kIsMutableOffset, is_mutable, bool);
-
-    jsval.val()->SetType(BINDING);
-    return Handle<Binding>(jsval);
-  }
-
-  Handle<JSValue> value() { return READ_HANDLE_VALUE(this, kValueOffset, JSValue); };
-  void SetValue(Handle<JSValue> value) { SET_HANDLE_VALUE(this, kValueOffset, value, JSValue); }
-  bool can_delete() { return READ_VALUE(this, kCanDeleteOffset, bool); }
-  bool is_mutable() { return READ_VALUE(this, kIsMutableOffset, bool); }
-
- public:
-  static constexpr size_t kValueOffset = HeapObject::kHeapObjectOffset;
-  static constexpr size_t kCanDeleteOffset = kValueOffset + kPtrSize;
-  static constexpr size_t kIsMutableOffset = kCanDeleteOffset + kBoolSize;
-  static constexpr size_t kBindingOffset = kIsMutableOffset + kBoolSize;
-};
-
-
 class DeclarativeEnvironmentRecord : public EnvironmentRecord {
  public:
   static Handle<DeclarativeEnvironmentRecord> New(size_t num_decls) {

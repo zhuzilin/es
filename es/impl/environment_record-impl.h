@@ -16,7 +16,7 @@ bool HasBinding(Handle<EnvironmentRecord> env_rec, Handle<String> N) {
 
 // 10.2.1.1.1 HasBinding(N)
 bool HasBinding__Declarative(Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N) {
-  return static_cast<Binding*>(env_rec.val()->bindings()->GetRaw(N)) != nullptr;
+  return env_rec.val()->bindings()->GetRaw(N) != nullptr;
 }
 
 // 10.2.1.2.1 HasBinding(N)
@@ -41,8 +41,11 @@ void CreateAndSetMutableBinding__Declarative(
   Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool D, Handle<JSValue> V, bool S
 ) {
   ASSERT(V.val()->IsLanguageType());
-  Handle<Binding> b = Binding::New(V, D, true);
-  auto new_bindings = HashMapV2::Set(Handle<HashMapV2>(env_rec.val()->bindings()), N, b);
+  auto entry_fn = [D](HashMapV2::Entry* p) {
+    p->can_delete = D;
+    p->is_mutable = true;
+  };
+  auto new_bindings = HashMapV2::Set(Handle<HashMapV2>(env_rec.val()->bindings()), N, V, entry_fn);
   env_rec.val()->SetBindings(new_bindings);
 }
 
@@ -73,12 +76,15 @@ void SetMutableBinding__Declarative(
 ) {
   TEST_LOG("\033[2menter\033[0m SetMutableBinding__Declarative ", N.val()->data(), " to " + V.ToString());
   ASSERT(V.val()->IsLanguageType());
-  // NOTE(zhuzilin) If we do note b = bindings_[N] and change b.value,
-  // the value stored in bindings_ won't change.
-  Binding* binding = static_cast<Binding*>(env_rec.val()->bindings()->GetRaw(N));
-  if (binding->is_mutable()) {
-    binding->SetValue(V);
-  } else if (S) {
+  bool is_mutable;
+  auto entry_fn = [&is_mutable, V](HashMapV2::Entry* p) mutable {
+    is_mutable = p->is_mutable;
+    if (p->is_mutable) {
+      p->val = V.val();
+    }
+  };
+  env_rec.val()->bindings()->GetRaw(N, entry_fn);
+  if (!is_mutable && S) {
     e = Error::TypeError(u"set value to immutable binding");
   }
 }
@@ -108,9 +114,14 @@ Handle<JSValue> GetBindingValue__Declarative(
   Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
   TEST_LOG("\033[2menter\033[0m GetBindingValue__Declarative " + N.ToString());
-  Binding* b = static_cast<Binding*>(env_rec.val()->bindings()->GetRaw(N));
-  ASSERT(b != nullptr);
-  if (b->value().val()->IsUndefined() && !b->is_mutable()) {
+  bool is_immutable_undefined;
+  auto entry_fn = [&is_immutable_undefined] (HashMapV2::Entry* p) mutable {
+    is_immutable_undefined = p->val->IsUndefined() && !p->is_mutable;
+  };
+  // This will always get value.
+  JSValue* V = env_rec.val()->bindings()->GetRaw(N, entry_fn);
+  ASSERT(V != nullptr);
+  if (is_immutable_undefined) {
     if (S) {
       e = Error::ReferenceError(N.val()->data() + u" is not defined");
       return Handle<JSValue>();
@@ -120,8 +131,8 @@ Handle<JSValue> GetBindingValue__Declarative(
       return Undefined::Instance();
     }
   }
-  TEST_LOG("GetBindingValue ", N.val()->data(), " " + b->value().ToString());
-  return b->value();
+  TEST_LOG("GetBindingValue ", N.val()->data(), " " + JSValue::ToString(V));
+  return Handle<JSValue>(V);
 }
 
 // 10.2.1.2.4 GetBindingValue(N,S)
@@ -156,9 +167,13 @@ bool DeleteBinding(
 bool DeleteBinding__Declarative(
   Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N
 ) {
-  Binding* b = static_cast<Binding*>(env_rec.val()->bindings()->GetRaw(N));
-  if (b == nullptr) return true;
-  if (!b->can_delete()) {
+  bool can_delete;
+  auto entry_fn = [&can_delete](HashMapV2::Entry* p) mutable {
+    can_delete = p->can_delete;
+  };
+  JSValue* V = env_rec.val()->bindings()->GetRaw(N, entry_fn);
+  if (V == nullptr) return true;
+  if (!can_delete) {
     return false;
   }
   env_rec.val()->bindings()->Delete(N);
@@ -199,10 +214,11 @@ Handle<JSValue> ImplicitThisValue__Object(Handle<ObjectEnvironmentRecord> env_re
 void CreateAndInitializeImmutableBinding(
   Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, Handle<JSValue> V
 ) {
-  Handle<Binding> b = Binding::New(
-    Undefined::Instance(), false, false);
-  b.val()->SetValue(V);
-  auto new_bindings = HashMapV2::Set(Handle<HashMapV2>(env_rec.val()->bindings()), N, b);
+  auto entry_fn = [](HashMapV2::Entry* p) {
+    p->can_delete = false;
+    p->is_mutable = false;
+  };
+  auto new_bindings = HashMapV2::Set(Handle<HashMapV2>(env_rec.val()->bindings()), N, V, entry_fn);
   env_rec.val()->SetBindings(new_bindings);
 }
 
