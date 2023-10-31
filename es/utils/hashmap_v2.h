@@ -36,6 +36,14 @@ class HashMapV2 : public JSValue {
     uint32_t hash;
     union {
       struct {
+        bool has_writable;
+        bool has_configurable;
+        bool has_enumerable;
+        bool writable : 1;
+        bool configurable : 1;
+        bool enumerable : 1;
+      };
+      struct {
         bool can_delete;
         bool is_mutable;
       };
@@ -43,9 +51,10 @@ class HashMapV2 : public JSValue {
     };
   };
 
-  static void DoNothing(Entry* entry) {}
-
   static_assert(sizeof(Entry) == 24);
+
+  static void DoNothing(Entry* entry) {}
+  static JSValue* ReturnValue(Entry* entry) { return entry->val; }
 
   static Handle<HashMapV2> New(size_t capacity = kDefaultHashMapSize) {
 #ifdef GC_DEBUG
@@ -210,7 +219,8 @@ class HashMapV2 : public JSValue {
     set_occupancy(occupancy() - 1);
   }
 
-  std::vector<std::pair<String*, JSValue*>> SortedKeyValPairs() {
+  template<typename T = JSValue*, typename EntryFn = decltype(ReturnValue)>
+  std::vector<std::pair<String*, T>> SortedKeyValPairs(EntryFn entry_fn = ReturnValue) {
     std::priority_queue<Entry*, std::vector<Entry*>, CompareListNode> pq;
     uint32_t n = occupancy();
     for (Entry* p = map_start(); n > 0; ++p) {
@@ -219,11 +229,11 @@ class HashMapV2 : public JSValue {
         n--;
       }
     }
-    std::vector<std::pair<String*, JSValue*>> result;
+    std::vector<std::pair<String*, T>> result;
     while (!pq.empty()) {
       Entry* p = pq.top();
       pq.pop();
-      result.emplace_back(std::make_pair(p->key, p->val));
+      result.emplace_back(std::make_pair(p->key, entry_fn(p)));
     }
     return result;
   }

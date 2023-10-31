@@ -88,14 +88,28 @@ class PropertyMap : public JSValue {
 
   // Set can not be method as there can be gc happening inside.
   static void Set(Handle<PropertyMap> map, Handle<String> key, StackPropertyDescriptor desc) {
-    Handle<PropertyDescriptor> val = ToHeap(desc);
     if (map.val()->IsSmallArrayIndex(key)) {
+      Handle<PropertyDescriptor> val = ToHeap(desc);
       uint32_t index = key.val()->Index();
       map.val()->SetRawArray(index, val.val());
       return;
     }
     auto hashmap = map.val()->hashmap();
-    hashmap = HashMapV2::Set(hashmap, key, val);
+    if (desc.IsDataDescriptor()) {
+      auto entry_fn = [&desc] (HashMapV2::Entry* p) {
+        p->has_writable = desc.HasWritable();
+        p->writable = desc.Writable();
+        p->has_configurable = desc.HasConfigurable();
+        p->configurable = desc.Configurable();
+        p->has_enumerable = desc.HasEnumerable();
+        p->enumerable = desc.Enumerable();
+      };
+      ASSERT(desc.HasValue());
+      hashmap = HashMapV2::Set(hashmap, key, desc.Value(), entry_fn);
+    } else {
+      Handle<PropertyDescriptor> val = ToHeap(desc);
+      hashmap = HashMapV2::Set(hashmap, key, val);
+    }
     map.val()->SetHashMap(hashmap);
   }
 
@@ -104,10 +118,32 @@ class PropertyMap : public JSValue {
     if (IsSmallArrayIndex(key)) {
       uint32_t index = key.val()->Index();
       val = GetRawArray(index);
+      return ToStack(val);
     } else {
-      val = hashmap().val()->GetRaw(key);
+      StackPropertyDescriptor desc;
+      auto entry_fn = [&desc](HashMapV2::Entry* p) mutable {
+        if (p->key == nullptr) {
+          desc = StackPropertyDescriptor::Undefined();
+          return;
+        }
+        ASSERT(p != nullptr && p->val != nullptr);
+        if (p->val->IsPropertyDescriptor()) {
+          desc = ToStack(p->val);
+        } else {
+          desc.SetValue(Handle<JSValue>(p->val));
+          if (p->has_writable)
+            desc.SetWritable(p->writable);
+          if (p->has_configurable)
+            desc.SetConfigurable(p->configurable);
+          if (p->has_enumerable)
+            desc.SetEnumerable(p->enumerable);
+        }
+      };
+      JSValue* val = hashmap().val()->GetRaw(key, entry_fn);
+      if (val == nullptr)
+        return StackPropertyDescriptor::Undefined();
+      return desc;
     }
-    return ToStack(val);
   }
 
   void Delete(Handle<String> key) {
@@ -127,11 +163,30 @@ class PropertyMap : public JSValue {
       if (!val.IsUndefined())
         result.emplace_back(std::make_pair(String::New(i).val(), val));
     }
-    std::vector<std::pair<String*, JSValue*>> hashmap_result = hashmap().val()->SortedKeyValPairs();
+    auto entry_fn = [](HashMapV2::Entry* p) -> StackPropertyDescriptor {
+      if (p->key == nullptr) {
+        return StackPropertyDescriptor::Undefined();
+      }
+      ASSERT(p->val != nullptr);
+      if (p->val->IsPropertyDescriptor()) {
+        return ToStack(p->val);
+      } else {
+        StackPropertyDescriptor desc;
+        desc.SetValue(Handle<JSValue>(p->val));
+        if (p->has_writable)
+          desc.SetWritable(p->writable);
+        if (p->has_configurable)
+          desc.SetConfigurable(p->configurable);
+        if (p->has_enumerable)
+          desc.SetEnumerable(p->enumerable);
+        return desc;
+      }
+    };
+    std::vector<std::pair<String*, StackPropertyDescriptor>> hashmap_result =
+      hashmap().val()->SortedKeyValPairs<StackPropertyDescriptor>(entry_fn);
     for (auto pair : hashmap_result) {
-      auto desc = ToStack(pair.second);
-      if (filter(desc))
-        result.emplace_back(pair.first, desc);
+      if (filter(pair.second))
+        result.emplace_back(pair.first, pair.second);
     }
     return result;
   }
