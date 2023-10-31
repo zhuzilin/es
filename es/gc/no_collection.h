@@ -14,7 +14,7 @@ struct NoCollection : public GC<NoCollection> {
     segment_size_(segment_size), memsize_(0), offset_(0) {}
 
   void* AllocateImpl(size_t size, flag_t flag) {
-    if (offset_ + size > memsize_) {
+    if (unlikely(offset_ + size > memsize_)) {
       return nullptr;
     }
     void* ptr = TYPED_PTR(mem_, offset_, void*);

@@ -68,12 +68,10 @@ int main(int argc, char* argv[]) {
               << log::ToString(source.substr(ast->end(), end - ast->end())) << "\n";
     return 0;
   }
-
 #ifdef PARSER_ONLY
   std::cout << "finish parsing" << std::endl;
   return 0;
 #endif
-
 
   Init();
   Handle<Error> e = Error::Ok();

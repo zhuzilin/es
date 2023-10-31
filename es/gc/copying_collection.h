@@ -165,14 +165,14 @@ struct CopyingCollection : public GC<CopyingCollection> {
 #ifdef GC_DEBUG
     assert(InFromSpace(from_ref));
 #endif
-    char* to_ref = free_ + sizeof(Header);
+    char* to_ref = free_;
     size_t size = Size(from_ref);
     free_ += size;
 #ifdef GC_DEBUG
     assert(InToSpace(free_) || free_ == tospace_ + extent_);
     assert(ForwardAddress(from_ref) == nullptr);
 #endif
-    MemCopy(H(to_ref), H(from_ref), size);
+    MemCopy(to_ref, from_ref, size);
     SetForwardAddress(from_ref, to_ref);
 #ifdef GC_DEBUG
     assert(ForwardAddress(to_ref) == nullptr);
@@ -207,7 +207,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
   void Initialise(void* worklist) { scan_ = free_; }
   bool IsEmpty(void* worklist) { return scan_ == free_; }
   void* Remove(void* worklist) {
-    void* ref = static_cast<Header*>(scan_) + 1;
+    void* ref = scan_;
     scan_ = static_cast<char*>(scan_) + Size(ref);
     return ref;
   }
@@ -219,7 +219,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
     char* ptr = tospace_;
     while (ptr != free_) {
       Header* header = reinterpret_cast<Header*>(ptr);
-      HeapObject* heap_obj = reinterpret_cast<HeapObject*>(header + 1);
+      HeapObject* heap_obj = reinterpret_cast<HeapObject*>(header);
       stats[heap_obj->type()] += header->size;
       count[heap_obj->type()]++;
       ptr += header->size;

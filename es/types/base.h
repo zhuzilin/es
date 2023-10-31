@@ -65,20 +65,19 @@ class JSValue {
   inline Type stack_type() {
     return static_cast<Type>(reinterpret_cast<uint64_t>(this) & STACK_MASK); }
   inline Type type() {
-    return stack_type() ? stack_type() : header_.type_;
+    return stack_type() ? stack_type() : h_.type;
   }
-  inline void SetType(Type t) { header_.type_ = t; }
+  inline void SetType(Type t) { h_.type = t; }
+
+  inline uint8_t bitmask() { return h_.bitmask; }
+  inline void SetBitMask(uint8_t bitmask) { h_.bitmask = bitmask; }
 
   static std::string ToString(JSValue* jsval);
 
  public:
   static constexpr size_t kJSValueOffset = HeapObject::kHeapObjectOffset;
 
-  struct Header {
-    Type type_;
-    uint32_t placeholder_;
-  };
-  Header header_;
+  Header h_;
 };
 
 class Undefined : public JSValue {

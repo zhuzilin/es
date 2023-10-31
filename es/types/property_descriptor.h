@@ -193,9 +193,9 @@ class StackPropertyDescriptor {
 class PropertyDescriptor : public JSValue {
  public:
   static Handle<PropertyDescriptor> New() {
-    Handle<JSValue> jsval = HeapObject::New(kConfigurableOffset + kBoolSize - kBitmaskOffset);
+    Handle<JSValue> jsval = HeapObject::New(kConfigurableOffset + kBoolSize - kJSValueOffset);
 
-    SET_VALUE(jsval.val(), kBitmaskOffset, 0, char);
+    jsval.val()->SetBitMask(0);
     SET_HANDLE_VALUE(jsval.val(), kValueOffset, Undefined::Instance(), JSValue);
     SET_HANDLE_VALUE(jsval.val(), kGetOffset, Undefined::Instance(), JSValue);
     SET_HANDLE_VALUE(jsval.val(), kSetOffset, Undefined::Instance(), JSValue);
@@ -210,10 +210,10 @@ class PropertyDescriptor : public JSValue {
   static Handle<PropertyDescriptor> NewDataDescriptor(
     Handle<JSValue> value, bool writable, bool enumerable, bool configurable
   ) {
-    Handle<JSValue> jsval = HeapObject::New(kConfigurableOffset + kBoolSize - kBitmaskOffset);
+    Handle<JSValue> jsval = HeapObject::New(kConfigurableOffset + kBoolSize - kJSValueOffset);
 
     char bitmask = VALUE | WRITABLE | ENUMERABLE | CONFIGURABLE;
-    SET_VALUE(jsval.val(), kBitmaskOffset, bitmask, char);
+    jsval.val()->SetBitMask(bitmask);
     SET_HANDLE_VALUE(jsval.val(), kValueOffset, value, JSValue);
     SET_HANDLE_VALUE(jsval.val(), kGetOffset, Undefined::Instance(), JSValue);
     SET_HANDLE_VALUE(jsval.val(), kSetOffset, Undefined::Instance(), JSValue);
@@ -241,42 +241,42 @@ class PropertyDescriptor : public JSValue {
   inline bool HasValue() { return bitmask() & VALUE; }
   inline Handle<JSValue> Value() { return READ_HANDLE_VALUE(this, kValueOffset, JSValue); }
   inline void SetValue(Handle<JSValue> value) {
-    SET_VALUE(this, kBitmaskOffset, bitmask() | VALUE, char);
+    SetBitMask(bitmask() | VALUE);
     SET_HANDLE_VALUE(this, kValueOffset, value, JSValue);
   }
 
   inline bool HasWritable() {return bitmask() & WRITABLE; }
   inline bool Writable() { return READ_VALUE(this, kWritableOffset, bool); }
   inline void SetWritable(bool writable) {
-    SET_VALUE(this, kBitmaskOffset, bitmask() | WRITABLE, char);
+    SetBitMask(bitmask() | WRITABLE);
     SET_VALUE(this, kWritableOffset, writable, bool);
   }
 
   inline bool HasGet() {return bitmask() & GET; }
   inline Handle<JSValue> Get() { return READ_HANDLE_VALUE(this, kGetOffset, JSValue); }
   inline void SetGet(Handle<JSValue> getter) {
-    SET_VALUE(this, kBitmaskOffset, bitmask() | GET, char);
+    SetBitMask(bitmask() | GET);
     SET_HANDLE_VALUE(this, kGetOffset, getter, JSValue);
   }
 
   inline bool HasSet() { return bitmask() & SET; }
   inline Handle<JSValue> Set() { return READ_HANDLE_VALUE(this, kSetOffset, JSValue); }
   inline void SetSet(Handle<JSValue> setter) {
-    SET_VALUE(this, kBitmaskOffset, bitmask() | SET, char);
+    SetBitMask(bitmask() | SET);
     SET_HANDLE_VALUE(this, kSetOffset, setter, JSValue);
   }
 
   inline bool HasEnumerable() { return bitmask() & ENUMERABLE; }
   inline bool Enumerable() { return READ_VALUE(this, kEnumerableOffset, bool); }
   inline void SetEnumerable(bool enumerable) {
-    SET_VALUE(this, kBitmaskOffset, bitmask() | ENUMERABLE, char);
+    SetBitMask(bitmask() | ENUMERABLE);
     SET_VALUE(this, kEnumerableOffset, enumerable, bool);
   }
 
   inline bool HasConfigurable() { return bitmask() & CONFIGURABLE; }
   inline bool Configurable() { return READ_VALUE(this, kConfigurableOffset, bool); }
   inline void SetConfigurable(bool configurable) {
-    SET_VALUE(this, kBitmaskOffset, bitmask() | CONFIGURABLE, char);
+    SetBitMask(bitmask() | CONFIGURABLE);
     SET_VALUE(this, kConfigurableOffset, configurable, bool);
   }
 
@@ -315,7 +315,7 @@ class PropertyDescriptor : public JSValue {
   }
 
   inline void Reset(char new_bitmask, bool enumerable, bool configurable) {
-    SET_VALUE(this, kBitmaskOffset, new_bitmask, char);
+    SetBitMask(new_bitmask);
     SET_HANDLE_VALUE(this, kValueOffset, Undefined::Instance(), JSValue);
     SET_HANDLE_VALUE(this, kGetOffset, Undefined::Instance(), JSValue);
     SET_HANDLE_VALUE(this, kSetOffset, Undefined::Instance(), JSValue);
@@ -340,12 +340,8 @@ class PropertyDescriptor : public JSValue {
     return true;
   }
 
-  char bitmask() { return READ_VALUE(this, kBitmaskOffset, char); }
-  void SetBitMask(char bitmask) { SET_VALUE(this, kBitmaskOffset, bitmask, char); }
-
  public:
-  static constexpr size_t kBitmaskOffset = kJSValueOffset;
-  static constexpr size_t kValueOffset = kBitmaskOffset + kCharSize;
+  static constexpr size_t kValueOffset = kJSValueOffset;
   static constexpr size_t kGetOffset = kValueOffset + kPtrSize;
   static constexpr size_t kSetOffset = kGetOffset + kPtrSize;
   static constexpr size_t kWritableOffset = kSetOffset + kPtrSize;
@@ -353,7 +349,7 @@ class PropertyDescriptor : public JSValue {
   static constexpr size_t kConfigurableOffset = kEnumerableOffset + kBoolSize;
 
  private:
-  enum Field {
+  enum Field : uint8_t {
     VALUE        = 1 << 0,
     WRITABLE     = 1 << 1,
     GET          = 1 << 2,

@@ -15,15 +15,17 @@ enum GCFlag {
 typedef uint8_t flag_t;
 
 struct Header {
-  flag_t flag = 0;
-  uint32_t size = 0;
   union {
     void* forward_address = nullptr;
     void* next_obj;
   };
+  uint32_t size = 0;
+  Type type = Type::JS_UNINIT;
+  flag_t flag = 0;
+  uint8_t bitmask = 0;
 };
 
-inline Header* H(void* ref) { return static_cast<Header*>(ref) - 1; }
+inline Header* H(void* ref) { return static_cast<Header*>(ref); }
 inline flag_t Flag(void* ref) { return H(ref)->flag; }
 inline size_t Size(void* ref) { return H(ref)->size; }
 inline void* ForwardAddress(void* ref) { return H(ref)->forward_address; }

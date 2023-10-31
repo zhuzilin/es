@@ -19,14 +19,14 @@ class Heap {
     return &singleton;
   }
 
-  void* Allocate(size_t size, flag_t flag) {
+  void* Allocate(size_t size_with_header, flag_t flag) {
     if (flag & GCFlag::CONST)
-      return constant_space_.New(size, flag);
-    if (unlikely(size > kBigObjectThres)) {
+      return constant_space_.New(size_with_header, flag);
+    if (unlikely(size_with_header > kBigObjectThres)) {
       flag |= GCFlag::BIG;
-      return big_object_space_.New(size, flag);
+      return big_object_space_.New(size_with_header, flag);
     } else {
-      return new_space_.New(size, flag);
+      return new_space_.New(size_with_header, flag);
     }
   }
 
@@ -42,8 +42,8 @@ class Heap {
   NoCollection big_object_space_;
 };
 
-inline void* Allocate(size_t size, flag_t flag) {
-  return Heap::Global()->Allocate(size, flag);
+inline void* Allocate(size_t size_with_header, flag_t flag) {
+  return Heap::Global()->Allocate(size_with_header, flag);
 }
 
 }  // namespace es

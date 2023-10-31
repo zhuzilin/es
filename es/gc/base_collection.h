@@ -14,9 +14,8 @@ constexpr size_t kAlignmentMask = (1 << kAlignmentBits) - 1;
 template<typename T>
 class GC {
  public:
-  void* New(size_t size, flag_t flag) {
-    size_t size_with_header = size + sizeof(Header);
-    if (size_with_header & kAlignmentMask) {
+  void* New(size_t size_with_header, flag_t flag) {
+    if (unlikely(size_with_header & kAlignmentMask)) {
       size_with_header = ((size_with_header >> 3) + 1) << 3;
     }
     void* ref = Allocate(size_with_header, flag);
@@ -36,8 +35,7 @@ class GC {
         throw std::runtime_error("Out of memory");
       }
     }
-    void* body = static_cast<Header*>(ref) + 1;
-    return body;
+    return ref;
   }
 
  private:

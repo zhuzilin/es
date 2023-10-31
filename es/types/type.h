@@ -3,7 +3,7 @@ namespace {
 constexpr uint64_t STACK_MASK = 7;
 constexpr uint64_t STACK_SHIFT = 3;
 
-enum Type {
+enum Type : uint16_t {
   JS_UNINIT = 0,
   JS_UNDEFINED = 1,
   JS_NULL = 2,
@@ -55,15 +55,15 @@ enum Type {
   JS_LEX_ENV      = 1 << 8 | 5,
   JS_GET_SET      = 1 << 8 | 6,
 
-  NON_JSVALUE  = 1 << 16,
+  NON_JSVALUE  = 1 << 10,
 
-  ERROR       = 1 << 16 | 1,
-  FIXED_ARRAY = 1 << 16 | 2,
-  HASHMAP     = 1 << 16 | 3,
-  BINDING     = 1 << 16 | 4,
-  LIST_NODE   = 1 << 16 | 5,
-  PROPERTY_MAP = 1 << 16 | 6,
-  HASHMAP_V2 = 1 << 16 | 7,
+  ERROR       = 1 << 10 | 1,
+  FIXED_ARRAY = 1 << 10 | 2,
+  HASHMAP     = 1 << 10 | 3,
+  BINDING     = 1 << 10 | 4,
+  LIST_NODE   = 1 << 10 | 5,
+  PROPERTY_MAP = 1 << 10 | 6,
+  HASHMAP_V2 = 1 << 10 | 7,
 };
 
 }  // namespace es
