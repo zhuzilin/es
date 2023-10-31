@@ -67,6 +67,8 @@ std::string JSValue::ToString(JSValue* jsval) {
         ToString(READ_VALUE(jsval, Error::kValueOffset, JSValue*));
     case FIXED_ARRAY:
       return "FixedArray(" + std::to_string(READ_VALUE(jsval, FixedArray::kSizeOffset, size_t)) + ")";
+    case HASHMAP_V2:
+      return "HashMap(" + std::to_string(READ_VALUE(jsval, HashMapV2::kOccupancyOffset, size_t)) + ")";
     case HASHMAP:
       return "HashMap(" + std::to_string(READ_VALUE(jsval, HashMap::kSizeOffset, size_t)) + ")";
     case PROPERTY_MAP: {
@@ -110,6 +112,7 @@ std::string JSValue::ToString(JSValue* jsval) {
       if (jsval->IsObject()) {
         return ToString(READ_VALUE(jsval, JSObject::kClassOffset, String*));
       }
+      std::cout << "\033[1;31m" << HeapObject::ToString(jsval->type()) << "\033[0m" << std::endl;
       assert(false);
   }
 }

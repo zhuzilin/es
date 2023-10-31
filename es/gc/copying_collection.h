@@ -58,7 +58,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
 
   void CollectImpl() {
 #ifdef GC_DEBUG
-    std::cout << "enter CopyingCollection::Collect " << (free_ - tospace_) << "B \n";
+    std::cout << "enter CopyingCollection::Collect " << (free_ - tospace_) / 1024 << " KB \n";
 #endif
 #ifdef STATS
     std::cout << "Stats before CopyingCollection::Collect" << std::endl;
@@ -70,6 +70,18 @@ struct CopyingCollection : public GC<CopyingCollection> {
     auto root_pointers = Runtime::Global()->Pointers();
 #ifdef GC_DEBUG
     assert(root_pointers.size() > 0);
+    for (HeapObject** fld : root_pointers) {
+      assert(fld != nullptr && "empty root_pointers");
+      HeapObject* ref = *fld;
+      if (!((reinterpret_cast<uint64_t>(ref) & STACK_MASK) ||
+             ref == nullptr ||
+             (Flag(ref) & GCFlag::CONST) ||
+             InHeap(ref))) {
+        std::cout << "error root pointer: " << fld << std::endl;
+        std::cout << "ref:" << ref << " type: " << HeapObject::ToString((ref)->type()) << std::endl;
+        assert(false);
+      }
+    }
 #endif
     for (HeapObject** fld : root_pointers) {
       Process(fld);
@@ -80,7 +92,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
     }
     memset(fromspace_, 0, extent_);
 #ifdef GC_DEBUG
-    std::cout << "exit CopyingCollection::Collect " << (free_ - tospace_) << "B \n";
+    std::cout << "exit CopyingCollection::Collect " << (free_ - tospace_) / 1024 << " KB \n";
 #endif
 #ifdef STATS
     std::cout << "Stats after CopyingCollection::Collect" << std::endl;
@@ -109,6 +121,9 @@ struct CopyingCollection : public GC<CopyingCollection> {
 #endif
     auto ref_pointers = HeapObject::Pointers(heap_ref);
     for (HeapObject** fld : ref_pointers) {
+#ifdef GC_DEBUG
+      assert(fld != nullptr && "empty ref_pointers");
+#endif
       Process(fld);
     }
   }
@@ -120,6 +135,10 @@ struct CopyingCollection : public GC<CopyingCollection> {
         (Flag(from_ref) & GCFlag::CONST))
       return;
 #ifdef GC_DEBUG
+    if (!InHeap(from_ref)) {
+      std::cout << "from_ref: " << from_ref << std::endl;
+      std::cout << "type: " << HeapObject::ToString(from_ref->type()) << std::endl;
+    }
     assert(InHeap(from_ref));
 #endif
     if (InToSpace(from_ref)) {

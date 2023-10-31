@@ -7,6 +7,7 @@
 #include <es/types/base.h>
 #include <es/types/property_descriptor.h>
 #include <es/utils/hashmap.h>
+#include <es/utils/hashmap_v2.h>
 #include <es/utils/fixed_array.h>
 
 namespace es {
@@ -61,9 +62,9 @@ class PropertyMap : public JSValue {
 #endif
     Handle<JSValue> jsval = HeapObject::New(kElementOffset + num_fixed_slots * kPtrSize - HeapObject::kHeapObjectOffset);
 
-    Handle<HashMap> hashmap = HashMap::New();
+    Handle<HashMapV2> hashmap = HashMapV2::New();
     SET_VALUE(jsval.val(), kNumFixedSlotsOffset, num_fixed_slots, size_t);
-    SET_HANDLE_VALUE(jsval.val(), kHashMapOffset, hashmap, HashMap);
+    SET_HANDLE_VALUE(jsval.val(), kHashMapOffset, hashmap, HashMapV2);
 
     for (size_t i = 0; i < num_fixed_slots; ++i) {
       SET_VALUE(jsval.val(), kElementOffset + i * kPtrSize, nullptr, JSValue*);
@@ -74,8 +75,8 @@ class PropertyMap : public JSValue {
   }
 
   uint32_t num_fixed_slots() { return READ_VALUE(this, kNumFixedSlotsOffset, uint32_t); }
-  Handle<HashMap> hashmap() { return READ_HANDLE_VALUE(this, kHashMapOffset, HashMap); }
-  void SetHashMap(Handle<HashMap> hashmap) { SET_HANDLE_VALUE(this, kHashMapOffset, hashmap, HashMap); }
+  Handle<HashMapV2> hashmap() { return READ_HANDLE_VALUE(this, kHashMapOffset, HashMapV2); }
+  void SetHashMap(Handle<HashMapV2> hashmap) { SET_HANDLE_VALUE(this, kHashMapOffset, hashmap, HashMapV2); }
   JSValue* GetRawArray(size_t index) {
     ASSERT(index < num_fixed_slots());
     return READ_VALUE(this, kElementOffset + index * kPtrSize, JSValue*);
@@ -94,7 +95,7 @@ class PropertyMap : public JSValue {
       return;
     }
     auto hashmap = map.val()->hashmap();
-    hashmap = HashMap::Set(hashmap, key, val);
+    hashmap = HashMapV2::Set(hashmap, key, val);
     map.val()->SetHashMap(hashmap);
   }
 

@@ -68,6 +68,19 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
       }
       return pointers;
     }
+    case HASHMAP_V2: {
+      HashMapV2* map = reinterpret_cast<HashMapV2*>(heap_obj);
+      std::vector<HeapObject**> pointers;
+      for (size_t i = 0; i < map->capacity(); ++i) {
+        HashMapV2::Entry* p = map->map_start() + i;
+        if (p->key != nullptr) {
+          pointers.emplace_back(HEAP_PTR(p, 0));
+          pointers.emplace_back(HEAP_PTR(p, kPtrSize));
+        }
+      }
+      ASSERT(pointers.size() == 2 * map->occupancy());
+      return pointers;
+    }
     case HASHMAP: {
       size_t n = READ_VALUE(heap_obj, HashMap::kNumBucketOffset, size_t);
       std::vector<HeapObject**> pointers(n);
@@ -231,6 +244,8 @@ std::string HeapObject::ToString(Type type) {
       return "ERROR";
     case FIXED_ARRAY:
       return "FIXED_ARRAY";
+    case HASHMAP_V2:
+      return "HASHMAP_V2";
     case HASHMAP:
       return "HASHMAP";
     case PROPERTY_MAP:
@@ -239,6 +254,9 @@ std::string HeapObject::ToString(Type type) {
       return "BINDING";
     case LIST_NODE:
       return "LIST_NODE";
+    default:
+      std::cout << "\033[1;31m" << "unknown type: " << u_int32_t(type) << "\033[0m" << std::endl;
+      assert(false);
   }
 }
 

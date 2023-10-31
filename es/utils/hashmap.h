@@ -1,5 +1,5 @@
-#ifndef ES_UTILS_MAP_H
-#define ES_UTILS_MAP_H
+#ifndef ES_UTILS_HASHMAP_H
+#define ES_UTILS_HASHMAP_H
 
 #include <queue>
 #include <unordered_map>
@@ -248,4 +248,4 @@ class HashMap : public JSValue {
 
 }  // namespace es
 
-#endif
+#endif  // ES_UTILS_HASHMAP_H
