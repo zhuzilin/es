@@ -378,31 +378,22 @@ class LHS : public AST {
 
 class Function : public AST {
  public:
-  Function(std::vector<std::u16string> params, AST* body,
+  Function(Handle<String> name, std::vector<Handle<String>> params, AST* body,
            std::u16string source, size_t start, size_t end) :
-    Function(Token(Token::TK_NOT_FOUND, u"", 0, 0), params, body, source, start, end) {}
-
-  Function(Token name, std::vector<std::u16string> params, AST* body,
-           std::u16string source, size_t start, size_t end) :
-    AST(AST_FUNC, source, start, end) {
+    AST(AST_FUNC, source, start, end), params_(params) {
       ASSERT(body->type() == AST::AST_FUNC_BODY);
       body_ = body;
-      if (name.type() != Token::TK_NOT_FOUND) {
-        name_ = String::New(name.source(), GCFlag::CONST);
-        name_is_eval_or_arguments_ = name.source() == u"eval" || name.source() == u"arguments";
-      } else {
-        name_ = Handle<String>();
-        name_is_eval_or_arguments_ = false;
-      }
+      name_ = name;
+      name_is_eval_or_arguments_ = !name.IsNullptr() &&
+                                   (StringEqual(name_, String::eval()) || StringEqual(name_, String::arguments()));
       params_have_eval_or_arguments_ = false;
       params_have_duplicated_ = false;
       for (size_t i = 0; i < params.size(); ++i) {
-        params_.emplace_back(String::New(params[i], GCFlag::CONST));
-        if (params[i] == u"eval" || params[i] == u"arguments") {
+        if (StringEqual(params[i], String::eval()) || StringEqual(params[i], String::arguments())) {
           params_have_eval_or_arguments_ = true;
         }
         for (size_t j = 0; j < i; ++j) {
-          if (params[i] == params[j]) {
+          if (StringEqual(params[i], params[j])) {
             params_have_duplicated_ = true;
           }
         }

@@ -142,15 +142,15 @@ error:
     START_POS;
     assert(lexer_.Next().source() == u"function");
 
-    Token name(Token::TK_NOT_FOUND, source_, 0, 0);
-    std::vector<std::u16string> params;
+    Handle<String> name;
+    std::vector<Handle<String>> params;
     AST* body;
     Function* func;
 
     // Identifier_opt
     Token token = lexer_.Next();
     if (token.IsIdentifier()) {
-      name = token;
+      name = String::New(token.source_ref(), GCFlag::CONST);
       token = lexer_.Next();  // skip "("
     } else if (must_be_named) {
       goto error;
@@ -160,7 +160,7 @@ error:
     }
     token = lexer_.NextAndRewind();
     if (token.IsIdentifier()) {
-      if (!ParseFormalParameterList(params)) {
+      if (!ParseFormalParameterList(params, GCFlag::CONST)) {
         goto error;
       }
     }
@@ -180,11 +180,7 @@ error:
       goto error;
     }
 
-    if (name.type() == Token::TK_NOT_FOUND) {
-      func = new Function(params, body, SOURCE_PARSED);
-    } else {
-      func = new Function(name, params, body, SOURCE_PARSED);
-    }
+    func = new Function(name, std::move(params), body, SOURCE_PARSED);
 
     return func;
 error:
@@ -248,13 +244,13 @@ error:
           if (lexer_.Next().type() != Token::TK_LPAREN) {
             goto error;
           }
-          std::vector<std::u16string> params;
+          std::vector<Handle<String>> params;
           if (type == ObjectLiteral::Property::SET) {
             Token param = lexer_.Next();
             if (!param.IsIdentifier()) {
               goto error;
             }
-            params.emplace_back(param.source());
+            params.emplace_back(String::New(param.source_ref(), GCFlag::CONST));
           }
           if (lexer_.Next().type() != Token::TK_RPAREN) { // Skip )
             goto error;
@@ -271,7 +267,8 @@ error:
             delete body;
             goto error;
           }
-          Function* value = new Function(params, body, SOURCE_PARSED);
+          Function* value = new Function(
+            Handle<String>(), std::move(params), body, SOURCE_PARSED);
           obj->AddProperty(ObjectLiteral::Property(key, value, type));
         } else {
           if (lexer_.Next().type() != Token::TK_COLON)

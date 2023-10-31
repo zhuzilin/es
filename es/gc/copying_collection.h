@@ -45,7 +45,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
   void* AllocateImpl(size_t size, flag_t flag) {
     char* result = free_;
     char* newfree = result + size;
-    if (newfree > top_)
+    if (unlikely(newfree > top_))
       return nullptr;
     free_ = newfree;
     // Set header
