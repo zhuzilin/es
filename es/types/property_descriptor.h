@@ -193,15 +193,13 @@ class StackPropertyDescriptor {
 class PropertyDescriptor : public JSValue {
  public:
   static Handle<PropertyDescriptor> New() {
-    Handle<JSValue> jsval = HeapObject::New(kConfigurableOffset + kBoolSize - kJSValueOffset);
+    Handle<JSValue> jsval = HeapObject::New(kDescSize - kJSValueOffset);
 
     jsval.val()->SetBitMask(0);
     SET_HANDLE_VALUE(jsval.val(), kValueOffset, Undefined::Instance(), JSValue);
     SET_HANDLE_VALUE(jsval.val(), kGetOffset, Undefined::Instance(), JSValue);
     SET_HANDLE_VALUE(jsval.val(), kSetOffset, Undefined::Instance(), JSValue);
     SET_VALUE(jsval.val(), kWritableOffset, false, bool);
-    SET_VALUE(jsval.val(), kEnumerableOffset, false, bool);
-    SET_VALUE(jsval.val(), kConfigurableOffset, false, bool);
 
     jsval.val()->SetType(JS_PROP_DESC);
     return Handle<PropertyDescriptor>(jsval);
@@ -210,16 +208,16 @@ class PropertyDescriptor : public JSValue {
   static Handle<PropertyDescriptor> NewDataDescriptor(
     Handle<JSValue> value, bool writable, bool enumerable, bool configurable
   ) {
-    Handle<JSValue> jsval = HeapObject::New(kConfigurableOffset + kBoolSize - kJSValueOffset);
+    Handle<JSValue> jsval = HeapObject::New(kDescSize - kJSValueOffset);
 
     char bitmask = VALUE | WRITABLE | ENUMERABLE | CONFIGURABLE;
+    if (enumerable) bitmask |= ENUMERABLE_V;
+    if (configurable) bitmask |= CONFIGURABLE_V;
     jsval.val()->SetBitMask(bitmask);
     SET_HANDLE_VALUE(jsval.val(), kValueOffset, value, JSValue);
     SET_HANDLE_VALUE(jsval.val(), kGetOffset, Undefined::Instance(), JSValue);
     SET_HANDLE_VALUE(jsval.val(), kSetOffset, Undefined::Instance(), JSValue);
     SET_VALUE(jsval.val(), kWritableOffset, writable, bool);
-    SET_VALUE(jsval.val(), kEnumerableOffset, enumerable, bool);
-    SET_VALUE(jsval.val(), kConfigurableOffset, configurable, bool);
 
     jsval.val()->SetType(JS_PROP_DESC);
     return Handle<PropertyDescriptor>(jsval);
@@ -267,17 +265,15 @@ class PropertyDescriptor : public JSValue {
   }
 
   inline bool HasEnumerable() { return bitmask() & ENUMERABLE; }
-  inline bool Enumerable() { return READ_VALUE(this, kEnumerableOffset, bool); }
+  inline bool Enumerable() { return bitmask() & ENUMERABLE_V; }
   inline void SetEnumerable(bool enumerable) {
-    SetBitMask(bitmask() | ENUMERABLE);
-    SET_VALUE(this, kEnumerableOffset, enumerable, bool);
+    SetBitMask(bitmask() | ENUMERABLE | (enumerable ? ENUMERABLE_V : 0));
   }
 
   inline bool HasConfigurable() { return bitmask() & CONFIGURABLE; }
-  inline bool Configurable() { return READ_VALUE(this, kConfigurableOffset, bool); }
+  inline bool Configurable() { return bitmask() & CONFIGURABLE_V; }
   inline void SetConfigurable(bool configurable) {
-    SetBitMask(bitmask() | CONFIGURABLE);
-    SET_VALUE(this, kConfigurableOffset, configurable, bool);
+    SetBitMask(bitmask() | CONFIGURABLE | (configurable ? CONFIGURABLE_V : 0));
   }
 
   inline void SetDataDescriptor(
@@ -314,48 +310,25 @@ class PropertyDescriptor : public JSValue {
       SetEnumerable(other.val()->Enumerable());
   }
 
-  inline void Reset(char new_bitmask, bool enumerable, bool configurable) {
-    SetBitMask(new_bitmask);
-    SET_HANDLE_VALUE(this, kValueOffset, Undefined::Instance(), JSValue);
-    SET_HANDLE_VALUE(this, kGetOffset, Undefined::Instance(), JSValue);
-    SET_HANDLE_VALUE(this, kSetOffset, Undefined::Instance(), JSValue);
-    SET_VALUE(this, kWritableOffset, false, bool);
-    SET_VALUE(this, kEnumerableOffset, enumerable, bool);
-    SET_VALUE(this, kConfigurableOffset, configurable, bool);
-  }
-
-  inline bool IsSameAs(Handle<PropertyDescriptor> other) {
-    if (HasValue() && !SameValue(Value(), other.val()->Value()))
-      return false;
-    if (HasWritable() && (Writable() != other.val()->Writable()))
-      return false;
-    if (HasGet() && !SameValue(Get(), other.val()->Get()))
-      return false;
-    if (HasSet() && !SameValue(Set(), other.val()->Set()))
-      return false;
-    if (HasConfigurable() && (Configurable() != other.val()->Configurable()))
-      return false;
-    if (HasEnumerable() && (Enumerable() != other.val()->Enumerable()))
-      return false;
-    return true;
-  }
-
  public:
-  static constexpr size_t kValueOffset = kJSValueOffset;
-  static constexpr size_t kGetOffset = kValueOffset + kPtrSize;
+  static constexpr size_t kGetOffset = kJSValueOffset;
   static constexpr size_t kSetOffset = kGetOffset + kPtrSize;
-  static constexpr size_t kWritableOffset = kSetOffset + kPtrSize;
-  static constexpr size_t kEnumerableOffset = kWritableOffset + kBoolSize;
-  static constexpr size_t kConfigurableOffset = kEnumerableOffset + kBoolSize;
+
+  static constexpr size_t kValueOffset = kJSValueOffset;
+  static constexpr size_t kWritableOffset = kValueOffset + kPtrSize;
+
+  static constexpr size_t kDescSize = kSetOffset + kPtrSize;
 
  private:
   enum Field : uint8_t {
-    VALUE        = 1 << 0,
-    WRITABLE     = 1 << 1,
-    GET          = 1 << 2,
-    SET          = 1 << 3,
-    ENUMERABLE   = 1 << 4,
-    CONFIGURABLE = 1 << 5,
+    VALUE          = 1 << 0,
+    WRITABLE       = 1 << 1,
+    GET            = 1 << 2,
+    SET            = 1 << 3,
+    ENUMERABLE     = 1 << 4,
+    CONFIGURABLE   = 1 << 5,
+    ENUMERABLE_V   = 1 << 6,
+    CONFIGURABLE_V = 1 << 7,
   };
 };
 
