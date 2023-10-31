@@ -47,6 +47,18 @@ class HashMapV2 : public JSValue {
     if (capacity < kDefaultHashMapSize)
       capacity = kDefaultHashMapSize;
 
+    if (released_maps_[capacity].size()) {
+      // no memory allocation
+      Handle<HashMapV2> jsval(released_maps_[capacity].top());
+      released_maps_[capacity].pop();
+      SET_VALUE(jsval.val(), kOccupancyOffset, 0, uint32_t);
+      Entry* map = TYPED_PTR(jsval.val(), kElementOffset, Entry);
+      for (size_t i = 0; i < capacity; i++) {
+        map[i].key = nullptr;
+      }
+      return jsval;
+    }
+
     Handle<JSValue> jsval = HeapObject::New(kElementOffset + capacity * sizeof(Entry) - HeapObject::kHeapObjectOffset);
 
     SET_VALUE(jsval.val(), kCapacityOffset, capacity, uint32_t);
@@ -71,7 +83,9 @@ class HashMapV2 : public JSValue {
   // Set can not be method as there can be gc happening inside.
   static Handle<HashMapV2> Set(Handle<HashMapV2> map, Handle<String> key, Handle<JSValue> val) {
     if (map.val()->occupancy() + map.val()->occupancy() / 4 + 1 >= map.val()->capacity()) {
-      map = Resize(map);
+      Handle<HashMapV2> new_map = Resize(map);
+      HashMapV2::released_maps_[map.val()->capacity()].push(map.val());
+      map = new_map;
     }
 
     // There will not be any new memory allocated after this line.
@@ -240,7 +254,11 @@ class HashMapV2 : public JSValue {
   static constexpr size_t kElementOffset = kOccupancyOffset + kUint32Size;
 
   static constexpr size_t kDefaultHashMapSize = 4;
+
+  static std::unordered_map<uint32_t, std::stack<HashMapV2*>> released_maps_;
 };
+
+std::unordered_map<uint32_t, std::stack<HashMapV2*>> HashMapV2::released_maps_;
 
 }  // namespace es
 

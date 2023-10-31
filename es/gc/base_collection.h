@@ -46,8 +46,11 @@ class GC {
   }
 
   void Collect() {
+    CleanUpBeforeCollect();
     static_cast<T*>(this)->CollectImpl();
   }
+
+  void CleanUpBeforeCollect();
 
 #ifdef TIMER
   double time = 0;
