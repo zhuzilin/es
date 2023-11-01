@@ -9,7 +9,7 @@ Clone and compile:
 ```
 $ git clone git@github.com:zhuzilin/es.git
 $ cd es
-$ g++ es.cc -std=c++17 -I$(PWD) -O2 -Wall -Wextra -Wno-unused-parameter -Wno-deprecated-declarations -o bin/es
+$ g++ es.cc -std=c++17 -I$(PWD) -O3 -Wall -Wextra -Wno-unused-parameter -Wno-deprecated-declarations -o bin/es
 ```
 
 Run:
@@ -43,7 +43,7 @@ The quickjs tests pass if there is no output.
 Compile with:
 
 ```
-g++ es.cc -std=c++17 -I$(PWD) -Wall -Wno-deprecated-declarations -Wextra -Wno-unused-parameter -o bin/es -O2 -DPERF -lprofiler
+g++ es.cc -std=c++17 -I$(PWD) -Wall -Wno-deprecated-declarations -Wextra -Wno-unused-parameter -o bin/es -O3 -DPERF -lprofiler
 ```
 
 And run with:

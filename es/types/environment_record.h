@@ -24,7 +24,6 @@ class EnvironmentRecord : public JSValue {
 
   size_t ref_count() { return READ_VALUE(this, kRefCountOffset, size_t); }
   void AddRefCount() {
-    ASSERT(!env_rec().IsNullptr());
     size_t old_rc = ref_count();
     SET_VALUE(this, kRefCountOffset, old_rc + 1, size_t);
     // First use, add 1 to outer env_rec.

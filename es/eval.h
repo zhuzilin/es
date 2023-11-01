@@ -1568,7 +1568,6 @@ Handle<Reference> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref
   CheckObjectCoercible(e, base_value);
   if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
-  bool strict = Runtime::TopContext().strict();
   return Runtime::TopContext().AddReference(base_value, identifier_name);
 }
 
