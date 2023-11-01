@@ -17,8 +17,7 @@ namespace es {
 class Parser {
  public:
   Parser(std::u16string source) : source_(source), lexer_(source) {
-    // For test
-    var_decl_stack_.push({});
+    EnterFunctionScope();
   }
 
   AST* ParsePrimaryExpression() {
@@ -539,7 +538,7 @@ error:
     }
 
     ProgramOrFunctionBody* prog = new ProgramOrFunctionBody(program_or_function, strict);
-    var_decl_stack_.push({});
+    EnterFunctionScope();
 
     AST* element;
     token = lexer_.NextAndRewind();
@@ -562,8 +561,9 @@ error:
       token = lexer_.NextAndRewind();
     }
     assert(token.type() == ending_token_type);
-    prog->SetVarDecls(std::move(var_decl_stack_.top()));
-    var_decl_stack_.pop();
+    prog->SetUseArguments(lexer_.meet_arguments_ident_);
+    auto info = ExitFunctionScope();
+    prog->SetVarDecls(std::move(info.var_decls_));
     prog->SetSource(SOURCE_PARSED);
     return prog;
   }
@@ -658,7 +658,7 @@ error:
     assert(ident.IsIdentifier());
     if (lexer_.NextAndRewind().type() != Token::TK_ASSIGN) {
       VarDecl* var_decl = new VarDecl(ident, SOURCE_PARSED);
-      var_decl_stack_.top().emplace_back(var_decl);
+      function_scope_stack_.top().var_decls_.emplace_back(var_decl);
       return var_decl;
     }
     lexer_.Next();  // skip =
@@ -666,7 +666,7 @@ error:
     if (init->IsIllegal())
       return init;
     VarDecl* var_decl =  new VarDecl(ident, init, SOURCE_PARSED);
-    var_decl_stack_.top().emplace_back(var_decl);
+    function_scope_stack_.top().var_decls_.emplace_back(var_decl);
     return var_decl;
   }
 
@@ -1219,11 +1219,31 @@ error:
     return new LabelledStmt(ident, stmt, SOURCE_PARSED);
   }
 
+  struct FunctionScopeInfo {
+    std::vector<VarDecl*> var_decls_;
+    bool use_arguments_;
+  };
+
+  void EnterFunctionScope() {
+    if (function_scope_stack_.size()) {
+      function_scope_stack_.top().use_arguments_ = lexer_.meet_arguments_ident_;
+    }
+    FunctionScopeInfo info;
+    function_scope_stack_.push(info);
+  }
+
+  FunctionScopeInfo ExitFunctionScope() {
+    FunctionScopeInfo info = function_scope_stack_.top();
+    function_scope_stack_.pop();
+    lexer_.meet_arguments_ident_ = function_scope_stack_.top().use_arguments_;
+    return info;
+  }
+
  private:
   std::u16string source_;
   Lexer lexer_;
 
-  std::stack<std::vector<VarDecl*>> var_decl_stack_;
+  std::stack<FunctionScopeInfo> function_scope_stack_;
 };
 
 }  // namespace es

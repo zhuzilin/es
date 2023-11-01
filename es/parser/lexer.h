@@ -780,6 +780,9 @@ error:
         return Token(Token::Type::TK_STRICT_FUTURE, source, start, pos_);
       }
     }
+    if (source == u"arguments") {
+      meet_arguments_ident_ = true;
+    }
     return Token(Token::Type::TK_IDENT, source, start, pos_);
 error:
     return Token(Token::Type::TK_ILLEGAL, source_.substr(start, pos_ - start), start, pos_); 
@@ -790,6 +793,10 @@ error:
   size_t pos_;
   size_t end_;
   Token token_;
+
+ public:
+  // for parser
+  bool meet_arguments_ident_ = false;
 };
 
 }  // namespace es

@@ -446,11 +446,14 @@ class ProgramOrFunctionBody : public AST {
 
   std::vector<VarDecl*>& var_decls() { return var_decls_; }
   void SetVarDecls(std::vector<VarDecl*>&& var_decls) { var_decls_ = var_decls; }
+  void SetUseArguments(bool b) { use_arguments_ = b; }
 
   size_t num_decls() { return func_decls_.size() + var_decls_.size(); }
+  bool use_arguments() { return use_arguments_; }
 
  private:
   bool strict_;
+  bool use_arguments_ = true;
   std::vector<Function*> func_decls_;
   std::vector<AST*> stmts_;
 

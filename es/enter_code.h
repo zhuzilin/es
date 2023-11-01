@@ -28,7 +28,7 @@ enum CodeType {
 
 // 10.6 Arguments Object
 Handle<ArgumentsObject> CreateArgumentsObject(
-  Handle<FunctionObject> func, std::vector<Handle<JSValue>>& args,
+  Handle<FunctionObject> func, const std::vector<Handle<JSValue>>& args,
   Handle<LexicalEnvironment> env, bool strict
 ) {
   TEST_LOG("\033[2menter\033[0m CreateArgumentsObject");
@@ -81,7 +81,8 @@ void DeclarationBindingInstantiation(
   Handle<FunctionObject> f = Handle<FunctionObject>(), std::vector<Handle<JSValue>> args = {}
 ) {
   TEST_LOG("\033[2menter\033[0m DeclarationBindingInstantiation");
-  Handle<EnvironmentRecord> env = Runtime::TopContext().variable_env().val()->env_rec();  // 1
+  Handle<LexicalEnvironment> variable_env = Runtime::TopContext().variable_env();
+  Handle<EnvironmentRecord> env = variable_env.val()->env_rec();  // 1
   bool configurable_bindings = false;
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
   if (code_type == CODE_EVAL) {
@@ -141,7 +142,7 @@ void DeclarationBindingInstantiation(
     }
   }
   // 7
-  if (code_type == CODE_FUNC) {
+  if (code_type == CODE_FUNC && body->use_arguments()) {
     // 6
     bool arguments_already_declared = HasBinding(env, String::arguments());
     if (!arguments_already_declared) {
