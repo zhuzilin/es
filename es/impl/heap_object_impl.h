@@ -95,7 +95,7 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
       std::vector<HeapObject**> pointers;
       for (size_t i = 0; i < map->capacity(); ++i) {
         HashMapV2::Entry* p = map->map_start() + i;
-        if (p->key != nullptr) {
+        if (!p->is_empty()) {
           pointers.emplace_back(HEAP_PTR(p, 0));
           pointers.emplace_back(HEAP_PTR(p, kPtrSize));
         }

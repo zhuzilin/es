@@ -40,6 +40,42 @@ class HeapObject {
   Header h_;
 };
 
+class HashMapV2;
+class DeclarativeEnvironmentRecord;
+class ProgramOrFunctionBody;
+struct ExtracGC {
+  // save the resized hashmap
+  static std::unordered_map<uint32_t, std::stack<HashMapV2*>> resize_released_maps;
+
+  struct FunctionDeclarativeEnvironmentRecord {
+    size_t call_count;
+    size_t stack_depth;
+    DeclarativeEnvironmentRecord** env_rec;
+
+    FunctionDeclarativeEnvironmentRecord() :
+      call_count(0), stack_depth(0) {
+      env_rec = new DeclarativeEnvironmentRecord*[1];
+      env_rec[0] = nullptr;
+    }
+
+    void destruct() { delete[] env_rec; }
+  };
+
+  static void TrySaveFunctionEnvRec(
+    ProgramOrFunctionBody* body, Handle<DeclarativeEnvironmentRecord> env_rec
+  );
+
+  static Handle<DeclarativeEnvironmentRecord> TryPopFunctionEnvRec(
+    ProgramOrFunctionBody* body
+  );
+
+  static std::vector<HeapObject**> Pointers();
+
+  static std::unordered_map<ProgramOrFunctionBody*, FunctionDeclarativeEnvironmentRecord>
+    function_env_recs;
+  static constexpr size_t kMinFunctionEnvRecSavingThreshold = 3;
+};
+
 }  // namespace es
 
 #endif  // ES_GC_HEAP_OBJECT_H

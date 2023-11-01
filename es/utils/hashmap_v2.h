@@ -49,6 +49,7 @@ class HashMapV2 : public JSValue {
       };
       uint32_t meta_;
     };
+    bool is_empty() { return key == NULL; }
   };
 
   static_assert(sizeof(Entry) == 24);
@@ -65,30 +66,22 @@ class HashMapV2 : public JSValue {
     if (capacity < kDefaultHashMapSize)
       capacity = kDefaultHashMapSize;
 
-    if (released_maps_[capacity].size()) {
+    if (ExtracGC::resize_released_maps[capacity].size()) {
       // no memory allocation
-      Handle<HashMapV2> jsval(released_maps_[capacity].top());
-      released_maps_[capacity].pop();
-      SET_VALUE(jsval.val(), kOccupancyOffset, 0, uint32_t);
-      Entry* map = TYPED_PTR(jsval.val(), kElementOffset, Entry);
-      for (size_t i = 0; i < capacity; i++) {
-        map[i].key = nullptr;
-      }
+      Handle<HashMapV2> jsval(ExtracGC::resize_released_maps[capacity].top());
+      ExtracGC::resize_released_maps[capacity].pop();
+      jsval.val()->Clear();
       return jsval;
     }
 
-    Handle<JSValue> jsval = HeapObject::New(kElementOffset + capacity * sizeof(Entry) - HeapObject::kHeapObjectOffset);
+    Handle<HashMapV2> jsval = HeapObject::New(kElementOffset + capacity * sizeof(Entry) - HeapObject::kHeapObjectOffset);
 
     SET_VALUE(jsval.val(), kCapacityOffset, capacity, uint32_t);
-    SET_VALUE(jsval.val(), kOccupancyOffset, 0, uint32_t);
-
-    Entry* map = TYPED_PTR(jsval.val(), kElementOffset, Entry);
-    for (size_t i = 0; i < capacity; i++) {
-      map[i].key = nullptr;
-    }
+    memset(PTR(jsval.val(), kOccupancyOffset), 0, capacity * sizeof(Entry) + kSizeTSize);
 
     jsval.val()->SetType(HASHMAP_V2);
-    return Handle<HashMapV2>(jsval);
+    jsval.val()->Clear();
+    return jsval;
   }
 
   uint32_t occupancy() { return READ_VALUE(this, kOccupancyOffset, uint32_t); }
@@ -105,7 +98,7 @@ class HashMapV2 : public JSValue {
   ) {
     if (map.val()->occupancy() + map.val()->occupancy() / 4 + 1 >= map.val()->capacity()) {
       Handle<HashMapV2> new_map = Resize(map);
-      HashMapV2::released_maps_[map.val()->capacity()].push(map.val());
+      ExtracGC::resize_released_maps[map.val()->capacity()].push(map.val());
       map = new_map;
     }
 
@@ -113,7 +106,7 @@ class HashMapV2 : public JSValue {
     // So we could use pointer.
     uint32_t hash = key.val()->Hash();
     Entry* p = map.val()->Probe(key.val(), hash);
-    if (p->key == nullptr) {
+    if (p->is_empty()) {
       map.val()->set_occupancy(map.val()->occupancy() + 1);
       p->key = key.val();
     }
@@ -133,7 +126,7 @@ class HashMapV2 : public JSValue {
     ASSERT(map <= p && p < end);
 
     ASSERT(occ < cap);
-    while (p->key != nullptr && (hash != p->hash || !StringEqual(key, p->key))) {
+    while (!p->is_empty() && (hash != p->hash || !StringEqual(key, p->key))) {
       p++;
       if (p >= end) {
         p = map;
@@ -151,7 +144,7 @@ class HashMapV2 : public JSValue {
   JSValue* GetRaw(Handle<String> key, EntryFn entry_fn = DoNothing) {
     uint32_t hash = key.val()->Hash();
     Entry* p = Probe(key.val(), hash);
-    if (p->key == nullptr)
+    if (p->is_empty())
       return nullptr;
     entry_fn(p);
     return p->val;
@@ -160,7 +153,7 @@ class HashMapV2 : public JSValue {
   void Delete(Handle<String> key) {
     uint32_t hash = key.val()->Hash();
     Entry* p = Probe(key.val(), hash);
-    if (p->key == nullptr)
+    if (p->is_empty())
       return;
 
     Entry* map = map_start();
@@ -215,7 +208,7 @@ class HashMapV2 : public JSValue {
     }
 
     // Clear the entry which is allowed to en emptied.
-    p->key = nullptr;
+    p->key = NULL;
     set_occupancy(occupancy() - 1);
   }
 
@@ -224,7 +217,7 @@ class HashMapV2 : public JSValue {
     std::priority_queue<Entry*, std::vector<Entry*>, CompareListNode> pq;
     uint32_t n = occupancy();
     for (Entry* p = map_start(); n > 0; ++p) {
-      if (p->key != nullptr) {
+      if (!p->is_empty()) {
         pq.push(p);
         n--;
       }
@@ -238,6 +231,10 @@ class HashMapV2 : public JSValue {
     return result;
   }
 
+  void Clear() {
+    memset(PTR(this, kOccupancyOffset), 0, capacity() * sizeof(Entry) + kUint32Size);
+  }
+
  private:
   static Handle<HashMapV2> Resize(Handle<HashMapV2> map) {
     Handle<HashMapV2> new_map = HashMapV2::New(2 * map.val()->capacity());
@@ -246,7 +243,7 @@ class HashMapV2 : public JSValue {
     new_map.val()->set_occupancy(n);
     // Rehash all current entries.
     for (Entry* p = map.val()->map_start(); n > 0; p++) {
-      if (p->key != nullptr) {
+      if (!p->is_empty()) {
         Entry* new_p = new_map.val()->Probe(p->key, p->hash);
         new_p->hash = p->hash;
         new_p->key = p->key;
@@ -280,11 +277,7 @@ class HashMapV2 : public JSValue {
   static constexpr size_t kElementOffset = kOccupancyOffset + kUint32Size;
 
   static constexpr size_t kDefaultHashMapSize = 4;
-
-  static std::unordered_map<uint32_t, std::stack<HashMapV2*>> released_maps_;
 };
-
-std::unordered_map<uint32_t, std::stack<HashMapV2*>> HashMapV2::released_maps_;
 
 }  // namespace es
 

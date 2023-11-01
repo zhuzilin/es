@@ -129,7 +129,10 @@ class Runtime {
   }
 
   void PopContext() {
-    context_stack_.back().Rewind();
+    ExecutionContext& context = context_stack_.back();
+    context.Rewind();
+    ASSERT(!context.lexical_env().IsNullptr());
+    context.lexical_env().val()->ReduceRefCount();
     context_stack_.pop_back();
   }
 
@@ -172,6 +175,8 @@ class Runtime {
     }
     auto scope_pointers = HandleScope::AllPointers();
     pointers.insert(pointers.end(), scope_pointers.begin(), scope_pointers.end());
+    auto extra_pointers = ExtracGC::Pointers();
+    pointers.insert(pointers.end(), extra_pointers.begin(), extra_pointers.end());
 #ifdef GC_DEBUG
     for (size_t i = 0; i < pointers.size(); ++i) {
       assert(pointers[i] != nullptr);

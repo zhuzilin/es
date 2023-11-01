@@ -10,13 +10,39 @@ namespace es {
 class LexicalEnvironment : public JSValue {
  public:
   static Handle<LexicalEnvironment> New(Handle<LexicalEnvironment> outer, Handle<EnvironmentRecord> env_rec) {
-    Handle<JSValue> jsval = HeapObject::New<2 * kPtrSize>();
+    Handle<LexicalEnvironment> jsval = HeapObject::New<2 * kPtrSize>();
 
     SET_HANDLE_VALUE(jsval.val(), kOuterOffset, outer, LexicalEnvironment);
     SET_HANDLE_VALUE(jsval.val(), kEnvRecOffset, env_rec, EnvironmentRecord);
 
     jsval.val()->SetType(JS_LEX_ENV);
-    return Handle<LexicalEnvironment>(jsval);
+    jsval.val()->AddRefCount();
+    return jsval;
+  }
+
+  void AddRefCount() {
+    ASSERT(!env_rec().IsNullptr());
+    size_t old_rc = env_rec().val()->ref_count();
+    env_rec().val()->AddRefCount();
+    // First use, add 1 to outer env_rec.
+    if (old_rc == 0) {
+      if (unlikely(outer().IsNullptr())) {
+        return;
+      }
+      outer().val()->AddRefCount();
+    }
+    
+  }
+
+  // Reduce the ref_count of outer lexical env.
+  void ReduceRefCount() {
+    size_t rc = env_rec().val()->ReduceRefCount();
+    // No longer use, reduce 1 to outer env_rec
+    if (rc == 0) {
+      if (!outer().IsNullptr()) {
+        outer().val()->ReduceRefCount();
+      }
+    }
   }
 
   Handle<LexicalEnvironment> outer() { return READ_HANDLE_VALUE(this, kOuterOffset, LexicalEnvironment); }

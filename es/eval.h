@@ -550,6 +550,7 @@ Completion EvalWithStatement(AST* ast) {
     return Completion(Completion::THROW, e, u"");
   // Prevent garbage collect old env.
   Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
+  std::cout << "NewObjectEnvironment" << std::endl;
   Handle<LexicalEnvironment> new_env = NewObjectEnvironment(obj, old_env, true);
   Runtime::TopContext().SetLexicalEnv(new_env);
   Completion C = EvalStatement(with_stmt->stmt());

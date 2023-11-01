@@ -15,15 +15,29 @@ class EnvironmentRecord : public JSValue {
  public:
   template<size_t size>
   static Handle<EnvironmentRecord> New() {
-    Handle<JSValue> jsval = HeapObject::New<size>();
+    Handle<JSValue> jsval = HeapObject::New<size + kSizeTSize>();
+    SET_VALUE(jsval.val(), kRefCountOffset, 0, size_t);
     return static_cast<Handle<EnvironmentRecord>>(jsval);
   }
 
   bool IsDeclarativeEnv() { return type() == JS_ENV_REC_DECL; }
   bool IsObjectEnv() { return type() == JS_ENV_REC_OBJ; }
 
+  size_t ref_count() { return READ_VALUE(this, kRefCountOffset, size_t); }
+  void AddRefCount() {
+    size_t rc = ref_count();
+    SET_VALUE(this, kRefCountOffset, rc + 1, size_t);
+  }
+  size_t ReduceRefCount() {
+    ASSERT(ref_count() > 0);
+    size_t rc = ref_count();
+    SET_VALUE(this, kRefCountOffset, rc - 1, size_t);
+    return rc - 1;
+  }
+
  public:
-  static constexpr size_t kEnvironmentRecordOffset = kJSValueOffset;
+  static constexpr size_t kRefCountOffset = kJSValueOffset;
+  static constexpr size_t kEnvironmentRecordOffset = kJSValueOffset + kSizeTSize;
 };
 
 class DeclarativeEnvironmentRecord : public EnvironmentRecord {

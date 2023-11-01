@@ -239,11 +239,10 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
 
 // 10.4.3
 void EnterFunctionCode(
-  Handle<Error>& e, Handle<JSObject> F, ProgramOrFunctionBody* body,
-  Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict
+  Handle<Error>& e, Handle<FunctionObject> func, ProgramOrFunctionBody* body,
+  Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict,
+  Handle<LexicalEnvironment> local_env
 ) {
-  ASSERT(F.val()->type() == Type::OBJ_FUNC);
-  Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(F);
   Handle<JSValue> this_binding;
   if (strict) {  // 1
     this_binding = this_arg;
@@ -254,7 +253,6 @@ void EnterFunctionCode(
   } else {
     this_binding = this_arg;
   }
-  Handle<LexicalEnvironment> local_env = NewDeclarativeEnvironment(func.val()->Scope(), body->num_decls());
   Runtime::Global()->AddContext(ExecutionContext(local_env, local_env, this_binding, strict));  // 8
   // 9
   DeclarationBindingInstantiation(e, body, CODE_FUNC, func, args);

@@ -67,8 +67,16 @@ Handle<JSValue> Call__Function(
   Handle<Error>& e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   ProgramOrFunctionBody* code = O.val()->Code();
-  TEST_LOG("\033[1;32menter FunctionObject::Call\033[0m\n\n", code->source(), "\n");
-  EnterFunctionCode(e, O, code, this_arg, arguments, O.val()->strict());
+  TEST_LOG("\033[1;32menter FunctionObject::Call\033[0m\n", code->source(), "\n");
+  Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(O);
+  Handle<DeclarativeEnvironmentRecord> env_rec = ExtracGC::TryPopFunctionEnvRec(code);
+  Handle<LexicalEnvironment> local_env;
+  if (env_rec.IsNullptr()) {
+    local_env = NewDeclarativeEnvironment(func.val()->Scope(), code->num_decls());
+  } else {
+    local_env = LexicalEnvironment::New(func.val()->Scope(), env_rec);
+  }
+  EnterFunctionCode(e, func, code, this_arg, arguments, O.val()->strict(), local_env);
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
 
   Completion result;
@@ -76,15 +84,16 @@ Handle<JSValue> Call__Function(
     result = EvalProgram(code);
   }
   Runtime::Global()->PopContext();   // 3
-  TEST_LOG("\033[1;32mexit FunctionObject::Call\033[0m\n");
+  ExtracGC::TrySaveFunctionEnvRec(code, local_env.val()->env_rec());
+  TEST_LOG("\033[1;32mexit FunctionObject::Call\033[0m");
   switch (result.type()) {
     case Completion::RETURN:
       if (unlikely(log::Debugger::On()))
-        log::PrintSource("\033[2mexit\033[0m FunctionObject::Call RETURN");
+        log::PrintSource("\033[1;32mexit FunctionObject::Call RETURN\033[0m");
       return result.value();
     case Completion::THROW: {
       if (unlikely(log::Debugger::On()))
-        log::PrintSource("\033[2mexit\033[0m FunctionObject::Call THROW");
+        log::PrintSource("\033[1;31exit FunctionObject::Call THROW\033[0m");
       Handle<JSValue> throw_value = result.value();
       if (throw_value.val()->IsError()) {
         e = throw_value;
@@ -99,7 +108,7 @@ Handle<JSValue> Call__Function(
     }
     default:
       if (unlikely(log::Debugger::On()))
-        log::PrintSource("\033[2mexit\033[0m FunctionObject::Call NORMAL");
+        log::PrintSource("\033[1;32mexit FunctionObject::Call NORMAL\033[0m");
       ASSERT(result.type() == Completion::NORMAL);
       return Undefined::Instance();
   }

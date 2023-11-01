@@ -16,9 +16,11 @@ double ToNumber(Handle<Error>& e, Handle<JSValue> input);
 Handle<String> NumberToString(double m);
 Completion EvalProgram(AST* ast);
 
+class FunctionObject;
 void EnterFunctionCode(
-  Handle<Error>& e, Handle<JSObject> F, ProgramOrFunctionBody* body,
-  Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict
+  Handle<Error>& e, Handle<FunctionObject> func, ProgramOrFunctionBody* body,
+  Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict,
+  Handle<LexicalEnvironment> local_env
 );
 
 class FunctionProto : public JSObject {
