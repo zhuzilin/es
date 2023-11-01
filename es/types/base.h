@@ -240,6 +240,44 @@ class String : public JSValue {
     return str;
   }
 
+  static Handle<String> Concat(std::vector<Handle<String>> vals) {
+    size_t size = 0;
+    bool maybe_array_index = true;
+    for (size_t i = 0; i < vals.size(); ++i) {
+      std::cout << vals[i].ToString() << std::endl;
+      size_t size_i = vals[i].val()->size();
+      if (!vals[i].val()->IsArrayIndex() && size_i > 0)
+        maybe_array_index = false;
+      size += size_i;
+    }
+
+    if (size == 0)
+      return String::Empty();
+
+    if (maybe_array_index && size <= 10) {
+      std::u16string res(size, 0);
+      size_t offset = 0;
+      for (size_t i = 0; i < vals.size(); ++i) {
+        size_t size_i = vals[i].val()->size();
+        memcpy((void*)(res.c_str() + offset), vals[i].val()->data().c_str(), size_i * kChar16Size);
+        offset += size_i;
+      }
+      return New(res);
+    }
+
+    Handle<String> res = String::Alloc(size);
+    size_t offset = 0;
+    for (size_t i = 0; i < vals.size(); ++i) {
+      size_t size_i = vals[i].val()->size();
+      if (vals[i].val()->IsArrayIndex())
+        memcpy((void*)(res.val()->c_str() + offset), vals[i].val()->data().c_str(), size_i * kChar16Size);
+      else
+        memcpy((void*)(res.val()->c_str() + offset), vals[i].val()->c_str(), size_i * kChar16Size);
+      offset += size_i;
+    }
+    return res;
+  }
+
   template <flag_t flag>
   static Handle<JSValue> Eval(const std::u16string& source);
 

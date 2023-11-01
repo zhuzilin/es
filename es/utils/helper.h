@@ -95,7 +95,21 @@ std::u16string StrCat(std::vector<std::u16string> vals) {
   std::u16string res(size, 0);
   size_t offset = 0;
   for (auto val : vals) {
-    memcpy((void*)(res.c_str() + offset), (void*)(val.data()), val.size() * 2);
+    memcpy((void*)(res.c_str() + offset), (void*)(val.data()), val.size() * kChar16Size);
+    offset += val.size();
+  }
+  return res;
+}
+
+std::string StrCat(std::vector<std::string> vals) {
+  size_t size = 0;
+  for (auto val : vals) {
+    size += val.size();
+  }
+  std::string res(size, 0);
+  size_t offset = 0;
+  for (auto val : vals) {
+    memcpy((void*)(res.c_str() + offset), (void*)(val.data()), val.size() * kCharSize);
     offset += val.size();
   }
   return res;

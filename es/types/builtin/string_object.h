@@ -81,14 +81,13 @@ class StringProto : public JSObject {
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<String> S = ::es::ToString(e, val);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    std::u16string R = S.val()->data();
     std::vector<Handle<JSValue>> args = vals;
+    std::vector<Handle<String>> strs = {S};
     for (auto arg : args) {
-      std::u16string next = ToU16String(e, arg);
+      strs.emplace_back(::es::ToString(e, arg));
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      R += next;
     }
-    return String::New(R);
+    return String::Concat(strs);
   }
 
   static Handle<JSValue> indexOf(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {

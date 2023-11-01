@@ -71,22 +71,22 @@ Handle<JSValue> ArrayProto::join(Handle<Error>& e, Handle<JSValue> this_arg, std
   }
   if (len == 0)
     return String::Empty();
-  Handle<JSValue> element0 = Get(e, O, String::New(u"0"));
+  Handle<JSValue> element0 = Get(e, O, String::New(0));
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  std::u16string R = u"";
+  std::vector<std::u16string> R;
   if (!element0.val()->IsUndefined() && !element0.val()->IsNull()) {
-    R = ToU16String(e, element0);
+    R .emplace_back(ToU16String(e, element0));
   }
   for (double k = 1; k < len; k++) {
-    Handle<JSValue> element = Get(e, O, NumberToString(k));
+    Handle<JSValue> element = Get(e, O, String::New(k));
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     std::u16string next = u"";
     if (!element.val()->IsUndefined() && !element.val()->IsNull()) {
       next = ToU16String(e, element);
     }
-    R += sep + next;
+    R.emplace_back(sep + next);
   }
-  return String::New(R);
+  return String::New(StrCat(R));
 }
 
 // 15.4.4.6 Array.prototype.pop ( )

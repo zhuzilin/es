@@ -16,12 +16,14 @@ class Console : public JSObject {
   }
 
   static Handle<JSValue> log(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
-    if (vals.size())
-      std::cout << vals[0].ToString();
-    for (size_t i = 1; i < vals.size(); i++) {
-      std::cout << " " << vals[i].ToString();
+    std::vector<std::string> strs;
+    for (size_t i = 0; i < vals.size(); ++i) {
+      if (i != 0)
+        strs.emplace_back(" ");
+      strs.emplace_back(vals[i].ToString());
     }
-    std::cout << "\n";
+    strs.emplace_back("\n");
+    std::cout << StrCat(strs);
     return Number::Zero();
   }
 
