@@ -28,6 +28,7 @@ void ExtracGC::TrySaveFunctionEnvRec(
     return;
   }
   if (function_env_rec.env_rec[0] == nullptr) {
+    env_rec.val()->SetOuter(Handle<JSValue>());
     env_rec.val()->bindings()->Clear();
     function_env_rec.env_rec[0] = env_rec.val();
   }

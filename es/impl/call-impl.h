@@ -70,11 +70,11 @@ Handle<JSValue> Call__Function(
   TEST_LOG("\033[1;32menter FunctionObject::Call\033[0m\n", code->source(), "\n");
   Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(O);
   Handle<DeclarativeEnvironmentRecord> env_rec = ExtracGC::TryPopFunctionEnvRec(code);
-  Handle<LexicalEnvironment> local_env;
+  Handle<EnvironmentRecord> local_env;
   if (env_rec.IsNullptr()) {
     local_env = NewDeclarativeEnvironment(func.val()->Scope(), code->num_decls());
   } else {
-    local_env = LexicalEnvironment::New(func.val()->Scope(), env_rec);
+    local_env.val()->SetOuter(func.val()->Scope());
   }
   EnterFunctionCode(e, func, code, this_arg, arguments, O.val()->strict(), local_env);
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
@@ -84,7 +84,7 @@ Handle<JSValue> Call__Function(
     result = EvalProgram(code);
   }
   Runtime::Global()->PopContext();   // 3
-  ExtracGC::TrySaveFunctionEnvRec(code, local_env.val()->env_rec());
+  ExtracGC::TrySaveFunctionEnvRec(code, local_env);
   TEST_LOG("\033[1;32mexit FunctionObject::Call\033[0m");
   switch (result.type()) {
     case Completion::RETURN:

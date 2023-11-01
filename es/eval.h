@@ -549,8 +549,8 @@ Completion EvalWithStatement(AST* ast) {
   if (unlikely(!e.val()->IsOk()))
     return Completion(Completion::THROW, e, u"");
   // Prevent garbage collect old env.
-  Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
-  Handle<LexicalEnvironment> new_env = NewObjectEnvironment(obj, old_env, true);
+  Handle<EnvironmentRecord> old_env = Runtime::TopLexicalEnv();
+  Handle<EnvironmentRecord> new_env = NewObjectEnvironment(obj, old_env, true);
   Runtime::TopContext().SetLexicalEnv(new_env);
   Completion C = EvalStatement(with_stmt->stmt());
   Runtime::TopContext().SetLexicalEnv(old_env);
@@ -652,25 +652,25 @@ Completion EvalThrowStatement(AST* ast) {
 Completion EvalCatch(Try* try_stmt, Completion C) {
   Handle<Error> e = Error::Ok();
   // Prevent garbage collect old env.
-  Handle<LexicalEnvironment> old_env = Runtime::TopLexicalEnv();
+  Handle<EnvironmentRecord> old_env = Runtime::TopLexicalEnv();
   // this 8 is randomly picked.
-  Handle<LexicalEnvironment> catch_env = NewDeclarativeEnvironment(
+  Handle<EnvironmentRecord> catch_env = NewDeclarativeEnvironment(
     old_env, DeclarativeEnvironmentRecord::kDefaultNumDecls);
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
   Handle<JSValue> val;
   if (C.value().val()->IsError()) {
-    Handle<Error> error = static_cast<Handle<Error>>(C.value());
+    Handle<Error> error = C.value();
     if (error.val()->IsNativeError()) {
       val = error.val()->value();
     } else {
       val = ErrorObject::New(error);
     }
   } else {
-    val = static_cast<Handle<JSValue>>(C.value());
+    val = C.value();
   }
   CreateAndSetMutableBinding(
-    e, catch_env.val()->env_rec(), try_stmt->catch_ident(), false, static_cast<Handle<JSValue>>(val), false);  // 4 & 5
+    e, catch_env, try_stmt->catch_ident(), false, val, false);  // 4 & 5
   if (unlikely(!e.val()->IsOk())) {
     return Completion(Completion::THROW, e, u"");
   }
@@ -867,7 +867,7 @@ Handle<JSValue> EvalPrimaryExpression(Handle<Error>& e, AST* ast) {
 // This will prevent use from creating a new ref
 void IdentifierResolutionAndPutValue(Handle<Error>& e, Handle<String> name, Handle<JSValue> value) {
   // 10.3.1 Identifier Resolution
-  Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
+  Handle<EnvironmentRecord> env = Runtime::TopLexicalEnv();
   bool strict = Runtime::TopContext().strict();
   GetIdentifierReferenceAndPutValue(e, env, name, strict, value);
 }
@@ -876,7 +876,7 @@ Handle<Reference> EvalIdentifier(AST* ast) {
   ASSERT(ast->type() == AST::AST_EXPR_IDENT || ast->type() == AST::AST_EXPR_STRICT_FUTURE);
   ASSERT(!ast->jsval().IsNullptr());
   // 10.3.1 Identifier Resolution
-  Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
+  Handle<EnvironmentRecord> env = Runtime::TopLexicalEnv();
   Handle<String> ref_name = ast->jsval();
   bool strict = Runtime::TopContext().strict();
   return GetIdentifierReference(env, ref_name, strict);
@@ -886,7 +886,7 @@ Handle<JSValue> EvalIdentifierAndGetValue(Handle<Error>& e, AST* ast) {
   ASSERT(ast->type() == AST::AST_EXPR_IDENT || ast->type() == AST::AST_EXPR_STRICT_FUTURE);
   ASSERT(!ast->jsval().IsNullptr());
   // 10.3.1 Identifier Resolution
-  Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
+  Handle<EnvironmentRecord> env = Runtime::TopLexicalEnv();
   Handle<String> ref_name = ast->jsval();
   bool strict = Runtime::TopContext().strict();
   return GetIdentifierReferenceAndGetValue(e, env, ref_name, strict);
@@ -896,7 +896,7 @@ void EvalIdentifierAndPutValue(Handle<Error>& e, AST* ast, Handle<JSValue> val) 
   ASSERT(ast->type() == AST::AST_EXPR_IDENT || ast->type() == AST::AST_EXPR_STRICT_FUTURE);
   ASSERT(!ast->jsval().IsNullptr());
   // 10.3.1 Identifier Resolution
-  Handle<LexicalEnvironment> env = Runtime::TopLexicalEnv();
+  Handle<EnvironmentRecord> env = Runtime::TopLexicalEnv();
   Handle<String> ref_name = ast->jsval();
   bool strict = Runtime::TopContext().strict();
   return GetIdentifierReferenceAndPutValue(e, env, ref_name, strict, val);

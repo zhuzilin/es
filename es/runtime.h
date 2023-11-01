@@ -22,8 +22,8 @@ class ExecutionContext {
   using ReferenceBlockStack = BlockStack<StackReference, 1024>;
 
   ExecutionContext(
-    Handle<LexicalEnvironment> variable_env,
-    Handle<LexicalEnvironment> lexical_env,
+    Handle<EnvironmentRecord> variable_env,
+    Handle<EnvironmentRecord> lexical_env,
     Handle<JSValue> this_binding,
     bool strict
   ) : variable_env_(variable_env), lexical_env_(lexical_env), this_binding_(this_binding),
@@ -37,12 +37,12 @@ class ExecutionContext {
     ref_block_stack_.Rewind(start_idx_);
   }
 
-  Handle<LexicalEnvironment> variable_env() { return variable_env_; }
-  Handle<LexicalEnvironment> lexical_env() { return lexical_env_; }
+  Handle<EnvironmentRecord> variable_env() { return variable_env_; }
+  Handle<EnvironmentRecord> lexical_env() { return lexical_env_; }
   Handle<JSValue> this_binding() { return this_binding_; }
   bool strict() { return strict_; }
 
-  void SetLexicalEnv(Handle<LexicalEnvironment> lexical_env) {
+  void SetLexicalEnv(Handle<EnvironmentRecord> lexical_env) {
     lexical_env_ = lexical_env;
   }
 
@@ -93,8 +93,8 @@ class ExecutionContext {
   static ReferenceBlockStack& ref_block_stack() { return ref_block_stack_; }
 
  private:
-  Handle<LexicalEnvironment> variable_env_;
-  Handle<LexicalEnvironment> lexical_env_;
+  Handle<EnvironmentRecord> variable_env_;
+  Handle<EnvironmentRecord> lexical_env_;
   Handle<JSValue> this_binding_;
 
   bool strict_;
@@ -124,7 +124,7 @@ class Runtime {
     return Runtime::Global()->context_stack_.back();
   }
 
-  static Handle<LexicalEnvironment> TopLexicalEnv() {
+  static Handle<EnvironmentRecord> TopLexicalEnv() {
     return Runtime::TopContext().lexical_env();
   }
 

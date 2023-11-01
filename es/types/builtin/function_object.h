@@ -20,7 +20,7 @@ class FunctionObject;
 void EnterFunctionCode(
   Handle<Error>& e, Handle<FunctionObject> func, ProgramOrFunctionBody* body,
   Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict,
-  Handle<LexicalEnvironment> local_env
+  Handle<EnvironmentRecord> local_env
 );
 
 class FunctionProto : public JSObject {
@@ -106,7 +106,7 @@ class FunctionProto : public JSObject {
 class FunctionObject : public JSObject {
  public:
   static Handle<FunctionObject> New(
-    std::vector<Handle<String>> names, AST* body, Handle<LexicalEnvironment> scope,
+    std::vector<Handle<String>> names, AST* body, Handle<EnvironmentRecord> scope,
     bool strict, size_t size = 0
   ) {
     Handle<JSObject> jsobj = JSObject::New(
@@ -124,7 +124,7 @@ class FunctionObject : public JSObject {
     } else {
       SET_VALUE(jsobj.val(), kCodeOffset, nullptr, ProgramOrFunctionBody*);
     }
-    SET_HANDLE_VALUE(jsobj.val(), kScopeOffset, scope, LexicalEnvironment);
+    SET_HANDLE_VALUE(jsobj.val(), kScopeOffset, scope, EnvironmentRecord);
     SET_VALUE(jsobj.val(), kStrictOffset, strict, bool);
     jsobj.val()->SetType(OBJ_FUNC);
 
@@ -145,9 +145,9 @@ class FunctionObject : public JSObject {
     return obj;
   }
 
-  Handle<LexicalEnvironment> Scope() {
+  Handle<EnvironmentRecord> Scope() {
     ASSERT(!from_bind());
-    return READ_HANDLE_VALUE(this, kScopeOffset, LexicalEnvironment);
+    return READ_HANDLE_VALUE(this, kScopeOffset, EnvironmentRecord);
   };
   Handle<FixedArray> FormalParameters() {
     ASSERT(!from_bind());
@@ -274,10 +274,9 @@ Handle<JSValue> FunctionProto::bind(Handle<Error>& e, Handle<JSValue> this_arg, 
 Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function* func_ast) {
     ASSERT(func_ast->is_named());
     ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
-    Handle<es::LexicalEnvironment> func_env = NewDeclarativeEnvironment(  // 1
+    Handle<EnvironmentRecord> env_rec = NewDeclarativeEnvironment(  // 1, 2
       Runtime::TopLexicalEnv(), body->num_decls()
     );
-    auto env_rec = static_cast<Handle<DeclarativeEnvironmentRecord>>(func_env.val()->env_rec());  // 2
     Handle<String> identifier = func_ast->name();
     bool strict = body->strict() || Runtime::TopContext().strict();
     if (strict) {
@@ -306,7 +305,7 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function
       }
     }
     Handle<FunctionObject> closure = FunctionObject::New(
-      func_ast->params(), func_ast->body(), func_env, strict);  // 4
+      func_ast->params(), func_ast->body(), env_rec, strict);  // 4
     CreateAndInitializeImmutableBinding(env_rec, identifier, closure);  // 5
     return closure;  // 6
 }

@@ -57,13 +57,12 @@ std::string JSValue::ToString(JSValue* jsval) {
     }
     case JS_ENV_REC_DECL:
       return "DeclarativeEnvRec(" + log::ToString(jsval) + "," +
-              ToString(static_cast<DeclarativeEnvironmentRecord*>(jsval)->bindings()) + ")";
+              ToString(static_cast<DeclarativeEnvironmentRecord*>(jsval)->bindings()) + "," +
+              static_cast<EnvironmentRecord*>(jsval)->outer().ToString() + ")";
     case JS_ENV_REC_OBJ:
       return "ObjectEnvRec(" + log::ToString(jsval) + "," +
-             static_cast<ObjectEnvironmentRecord*>(jsval)->bindings().ToString() + ")";
-    case JS_LEX_ENV:
-      return "LexicalEnvironment(" + log::ToString(jsval) + "," +
-             static_cast<LexicalEnvironment*>(jsval)->env_rec().ToString() + ")";
+             static_cast<ObjectEnvironmentRecord*>(jsval)->bindings().ToString() + "," +
+             static_cast<EnvironmentRecord*>(jsval)->outer().ToString() + ")";
     case ERROR:
       return static_cast<Error*>(jsval)->IsOk() ?
         "ok" :

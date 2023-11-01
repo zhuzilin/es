@@ -52,8 +52,7 @@ enum Type : uint16_t {
   JS_PROP_DESC    = 1 << 8 | 2,
   JS_ENV_REC_DECL = 1 << 8 | 3,
   JS_ENV_REC_OBJ  = 1 << 8 | 4,
-  JS_LEX_ENV      = 1 << 8 | 5,
-  JS_GET_SET      = 1 << 8 | 6,
+  JS_GET_SET      = 1 << 8 | 5,
 
   NON_JSVALUE  = 1 << 10,
 

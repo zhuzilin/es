@@ -67,16 +67,13 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
     }
     case JS_ENV_REC_DECL:
       return {
+        HEAP_PTR(heap_obj, EnvironmentRecord::kOuterOffset),
         HEAP_PTR(heap_obj, DeclarativeEnvironmentRecord::kBindingsOffset)
       };
     case JS_ENV_REC_OBJ:
       return {
+        HEAP_PTR(heap_obj, EnvironmentRecord::kOuterOffset),
         HEAP_PTR(heap_obj, ObjectEnvironmentRecord::kBindingsOffset)
-      };
-    case JS_LEX_ENV:
-      return {
-        HEAP_PTR(heap_obj, LexicalEnvironment::kOuterOffset),
-        HEAP_PTR(heap_obj, LexicalEnvironment::kEnvRecOffset)
       };
     case ERROR:
       return {
@@ -253,8 +250,6 @@ std::string HeapObject::ToString(Type type) {
       return "JS_ENV_REC_DECL";
     case JS_ENV_REC_OBJ:
       return "JS_ENV_REC_OBJ";
-    case JS_LEX_ENV:
-      return "JS_LEX_ENV";
 
     case NON_JSVALUE:
       return "NON_JSVALUE";

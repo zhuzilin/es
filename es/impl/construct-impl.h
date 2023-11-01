@@ -160,7 +160,7 @@ Handle<JSObject> Construct__FunctionConstructor(
       return Handle<JSValue>();
     }
   }
-  Handle<LexicalEnvironment> scope = LexicalEnvironment::Global();
+  Handle<EnvironmentRecord> scope = EnvironmentRecord::Global();
   bool strict = static_cast<ProgramOrFunctionBody*>(body_ast)->strict();
   if (strict) {
     // 13.1

@@ -10,40 +10,65 @@
 
 namespace es {
 
-// EnvironmentRecord is also of type JSValue 
+// EnvironmentRecord is a merge of EnvironmentRecord and LexicalEnv
 class EnvironmentRecord : public JSValue {
  public:
   template<size_t size>
-  static Handle<EnvironmentRecord> New() {
-    Handle<JSValue> jsval = HeapObject::New<size + kSizeTSize>();
+  static Handle<EnvironmentRecord> New(Handle<JSValue> outer) {
+    Handle<JSValue> jsval = HeapObject::New<size + kEnvironmentRecordOffset - kJSValueOffset>();
     SET_VALUE(jsval.val(), kRefCountOffset, 0, size_t);
+    SET_HANDLE_VALUE(jsval.val(), kOuterOffset, outer, JSValue);
+
     return static_cast<Handle<EnvironmentRecord>>(jsval);
   }
+
+  size_t ref_count() { return READ_VALUE(this, kRefCountOffset, size_t); }
+  void AddRefCount() {
+    ASSERT(!env_rec().IsNullptr());
+    size_t old_rc = ref_count();
+    SET_VALUE(this, kRefCountOffset, old_rc + 1, size_t);
+    // First use, add 1 to outer env_rec.
+    if (old_rc == 0) {
+      if (unlikely(outer().IsNullptr())) {
+        return;
+      }
+      outer().val()->AddRefCount();
+    }
+  }
+
+  // Reduce the ref_count of outer lexical env.
+  void ReduceRefCount() {
+    ASSERT(ref_count() > 0);
+    size_t rc = ref_count() - 1;
+    SET_VALUE(this, kRefCountOffset, rc, size_t);
+    // No longer use, reduce 1 to outer env_rec
+    if (rc == 0) {
+      if (!outer().IsNullptr()) {
+        outer().val()->ReduceRefCount();
+      }
+    }
+  }
+
+  void SetOuter(Handle<EnvironmentRecord> outer) {
+    SET_HANDLE_VALUE(this, kOuterOffset, outer, EnvironmentRecord);
+  }
+  Handle<EnvironmentRecord> outer() { return READ_HANDLE_VALUE(this, kOuterOffset, EnvironmentRecord); }
+
+  static Handle<EnvironmentRecord> Global();
 
   bool IsDeclarativeEnv() { return type() == JS_ENV_REC_DECL; }
   bool IsObjectEnv() { return type() == JS_ENV_REC_OBJ; }
 
-  size_t ref_count() { return READ_VALUE(this, kRefCountOffset, size_t); }
-  void AddRefCount() {
-    size_t rc = ref_count();
-    SET_VALUE(this, kRefCountOffset, rc + 1, size_t);
-  }
-  size_t ReduceRefCount() {
-    ASSERT(ref_count() > 0);
-    size_t rc = ref_count();
-    SET_VALUE(this, kRefCountOffset, rc - 1, size_t);
-    return rc - 1;
-  }
-
  public:
   static constexpr size_t kRefCountOffset = kJSValueOffset;
-  static constexpr size_t kEnvironmentRecordOffset = kJSValueOffset + kSizeTSize;
+  static constexpr size_t kOuterOffset = kRefCountOffset + kSizeTSize;
+  static constexpr size_t kEnvironmentRecordOffset = kOuterOffset + kPtrSize;
 };
 
 class DeclarativeEnvironmentRecord : public EnvironmentRecord {
  public:
-  static Handle<DeclarativeEnvironmentRecord> New(size_t num_decls) {
-    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New<kPtrSize>();
+  static Handle<DeclarativeEnvironmentRecord> New(Handle<JSValue> outer, size_t num_decls) {
+    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New<kPtrSize>(outer);
     auto bindings = HashMapV2::New(num_decls);
 
     SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, bindings, HashMapV2);
@@ -64,8 +89,8 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
 
 class ObjectEnvironmentRecord : public EnvironmentRecord {
  public:
-  static Handle<ObjectEnvironmentRecord> New(Handle<JSObject> obj, bool provide_this = false) {
-    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New<kPtrSize + kBoolSize>();
+  static Handle<ObjectEnvironmentRecord> New(Handle<JSValue> outer, Handle<JSObject> obj, bool provide_this = false) {
+    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New<kPtrSize + kBoolSize>(outer);
 
     SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, obj, JSObject);
     SET_VALUE(env_rec.val(), kProvideThisOffset, provide_this, bool);
@@ -75,6 +100,8 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
 
   Handle<JSObject> bindings() { return READ_HANDLE_VALUE(this, kBindingsOffset, JSObject); }
   bool provide_this() { return READ_VALUE(this, kProvideThisOffset, bool); }
+
+  static Handle<EnvironmentRecord> Global();
 
  public:
   static constexpr size_t kBindingsOffset = kEnvironmentRecordOffset;

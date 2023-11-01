@@ -29,7 +29,7 @@ enum CodeType {
 // 10.6 Arguments Object
 Handle<ArgumentsObject> CreateArgumentsObject(
   Handle<FunctionObject> func, const std::vector<Handle<JSValue>>& args,
-  Handle<LexicalEnvironment> env, bool strict
+  Handle<EnvironmentRecord> env, bool strict
 ) {
   TEST_LOG("\033[2menter\033[0m CreateArgumentsObject");
   Handle<FixedArray> names = func.val()->FormalParameters();
@@ -45,7 +45,7 @@ Handle<ArgumentsObject> CreateArgumentsObject(
       if (mapped_names.find(name_str) == mapped_names.end()) {  // 11.c.ii
         mapped_names.insert(name_str);
         is_accessor_desc = true;
-        Handle<GetterSetter> gs = GetterSetter::New(env.val()->env_rec(), name, true);
+        Handle<GetterSetter> gs = GetterSetter::New(env, name, true);
         Handle<PropertyDescriptor> desc = PropertyDescriptor::New();
         desc.val()->SetSet(gs);
         desc.val()->SetGet(gs);
@@ -81,8 +81,7 @@ void DeclarationBindingInstantiation(
   Handle<FunctionObject> f = Handle<FunctionObject>(), std::vector<Handle<JSValue>> args = {}
 ) {
   TEST_LOG("\033[2menter\033[0m DeclarationBindingInstantiation");
-  Handle<LexicalEnvironment> variable_env = Runtime::TopContext().variable_env();
-  Handle<EnvironmentRecord> env = variable_env.val()->env_rec();  // 1
+  Handle<EnvironmentRecord> env = Runtime::TopContext().variable_env(); // 1
   bool configurable_bindings = false;
   ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
   if (code_type == CODE_EVAL) {
@@ -120,7 +119,7 @@ void DeclarationBindingInstantiation(
       CreateAndSetMutableBinding(e, env, fn, configurable_bindings, fo, strict);
       if (unlikely(!e.val()->IsOk())) return;
     } else {
-      if (env.val() == LexicalEnvironment::Global().val()->env_rec().val()) {  // 5.e
+      if (env.val() == EnvironmentRecord::Global().val()) {  // 5.e
         auto go = GlobalObject::Instance();
         StackPropertyDescriptor existing_prop_desc = GetProperty(go, fn);
         if (existing_prop_desc.Configurable()) {  // 5.e.iii
@@ -191,7 +190,7 @@ void EnterGlobalCode(Handle<Error>& e, AST* ast) {
     }
   }
   // 1 10.4.1.1
-  Handle<LexicalEnvironment> global_env = LexicalEnvironment::Global();
+  Handle<EnvironmentRecord> global_env = EnvironmentRecord::Global();
   Runtime::Global()->AddContext(ExecutionContext(global_env, global_env, GlobalObject::Instance(), program->strict()));
   // 2
   DeclarationBindingInstantiation(e, program, CODE_GLOBAL);
@@ -201,11 +200,11 @@ void EnterGlobalCode(Handle<Error>& e, AST* ast) {
 void EnterEvalCode(Handle<Error>& e, AST* ast) {
   ASSERT(ast->type() == AST::AST_PROGRAM);
   ProgramOrFunctionBody* program = static_cast<ProgramOrFunctionBody*>(ast);  
-  Handle<LexicalEnvironment> variable_env;
-  Handle<LexicalEnvironment> lexical_env;
+  Handle<EnvironmentRecord> variable_env;
+  Handle<EnvironmentRecord> lexical_env;
   Handle<JSValue> this_binding;
   if (!GlobalObject::Instance().val()->direct_eval()) {  // 1
-    Handle<LexicalEnvironment> global_env = LexicalEnvironment::Global();
+    Handle<EnvironmentRecord> global_env = EnvironmentRecord::Global();
     variable_env = global_env;
     lexical_env = global_env;
     this_binding = GlobalObject::Instance();
@@ -218,7 +217,7 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
   bool strict = Runtime::TopContext().strict() ||
                 (program->strict() && GlobalObject::Instance().val()->direct_eval());
   if (strict) {  // 3
-    Handle<LexicalEnvironment> strict_var_env = NewDeclarativeEnvironment(lexical_env, program->num_decls());
+    Handle<EnvironmentRecord> strict_var_env = NewDeclarativeEnvironment(lexical_env, program->num_decls());
     lexical_env = strict_var_env;
     variable_env = strict_var_env;
 
@@ -242,7 +241,7 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
 void EnterFunctionCode(
   Handle<Error>& e, Handle<FunctionObject> func, ProgramOrFunctionBody* body,
   Handle<JSValue> this_arg, std::vector<Handle<JSValue>> args, bool strict,
-  Handle<LexicalEnvironment> local_env
+  Handle<EnvironmentRecord> local_env
 ) {
   Handle<JSValue> this_binding;
   if (strict) {  // 1

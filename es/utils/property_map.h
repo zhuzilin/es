@@ -17,14 +17,16 @@ Handle<JSValue> ToHeap(StackPropertyDescriptor desc) {
   if (desc.IsUndefined())
     return Undefined::Instance();
   auto new_desc = PropertyDescriptor::New();
-  if (desc.HasValue())
+  if (desc.HasValue()) {
     new_desc.val()->SetValue(desc.Value());
-  if (desc.HasWritable())
-    new_desc.val()->SetWritable(desc.Writable());
-  if (desc.HasGet())
-    new_desc.val()->SetGet(desc.Get());
-  if (desc.HasSet())
-    new_desc.val()->SetSet(desc.Set());
+    if (desc.HasWritable())
+      new_desc.val()->SetWritable(desc.Writable());
+  } else {
+    if (desc.HasGet())
+      new_desc.val()->SetGet(desc.Get());
+    if (desc.HasSet())
+      new_desc.val()->SetSet(desc.Set());
+  }
   if (desc.HasConfigurable())
     new_desc.val()->SetConfigurable(desc.Configurable());
   if (desc.HasEnumerable())
@@ -38,14 +40,16 @@ StackPropertyDescriptor ToStack(JSValue* val) {
   ASSERT(val->IsPropertyDescriptor());
   PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(val);
   StackPropertyDescriptor new_desc;
-  if (desc->HasValue())
+  if (desc->HasValue()) {
     new_desc.SetValue(desc->Value());
-  if (desc->HasWritable())
-    new_desc.SetWritable(desc->Writable());
-  if (desc->HasGet())
-    new_desc.SetGet(desc->Get());
-  if (desc->HasSet())
-    new_desc.SetSet(desc->Set());
+    if (desc->HasWritable())
+      new_desc.SetWritable(desc->Writable());
+  } else {
+    if (desc->HasGet())
+      new_desc.SetGet(desc->Get());
+    if (desc->HasSet())
+      new_desc.SetSet(desc->Set());
+  }
   if (desc->HasConfigurable())
     new_desc.SetConfigurable(desc->Configurable());
   if (desc->HasEnumerable())
