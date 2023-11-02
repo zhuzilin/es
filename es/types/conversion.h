@@ -12,13 +12,14 @@
 
 namespace es {
 
-Handle<JSValue> ToPrimitive(Handle<Error>& e, Handle<JSValue> input, std::u16string preferred_type) {
+template <Type preferred_type = JS_UNINIT>
+Handle<JSValue> ToPrimitive(Handle<Error>& e, Handle<JSValue> input) {
   ASSERT(input.val()->IsLanguageType());
   if (input.val()->IsPrimitive()) {
     return input;
   }
   Handle<JSObject> obj = static_cast<Handle<JSObject>>(input);
-  return DefaultValue(e, obj, preferred_type);
+  return DefaultValue<preferred_type>(e, obj);
 }
 
 bool ToBoolean(Handle<JSValue> input) {
@@ -220,7 +221,7 @@ double ToNumber(Handle<Error>& e, Handle<JSValue> input) {
       return StringToNumber(static_cast<Handle<String>>(input));
     default:
       if (input.val()->IsObject()) {
-        Handle<JSValue> prim_value = ToPrimitive(e, input, u"Number");
+        Handle<JSValue> prim_value = ToPrimitive<JS_NUMBER>(e, input);
         if (unlikely(!e.val()->IsOk())) return 0.0;
         return ToNumber(e, prim_value);
       }
@@ -524,7 +525,7 @@ Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input) {
       return static_cast<Handle<String>>(input);
     default:
       if (input.val()->IsObject()) {
-        Handle<JSValue> prim_value = ToPrimitive(e, input, u"String");
+        Handle<JSValue> prim_value = ToPrimitive<JS_STRING>(e, input);
         if (unlikely(!e.val()->IsOk())) return String::Empty();
         return ToString(e, prim_value);
       }

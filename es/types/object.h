@@ -158,7 +158,8 @@ bool CanPut(Handle<JSObject> O, Handle<String> P);
 bool HasProperty(Handle<JSObject> O, Handle<String> P);
 bool Delete(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool throw_flag);
 bool Delete__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, bool throw_flag);
-Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16string hint);
+template<Type hint>
+Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O);
 bool DefineOwnProperty(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, StackPropertyDescriptor desc, bool throw_flag);
 bool DefineOwnProperty__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, StackPropertyDescriptor desc, bool throw_flag);
 bool HasInstance(Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> V);

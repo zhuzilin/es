@@ -12,14 +12,14 @@ namespace es {
 Handle<JSValue> LessThan(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y, bool left_first = true) {
   Handle<JSValue> px, py;
   if (left_first) {
-    px = ToPrimitive(e, x, u"Number");
+    px = ToPrimitive<JS_NUMBER>(e, x);
     if (unlikely(!e.val()->IsOk())) return Undefined::Instance();
-    py = ToPrimitive(e, y, u"Number");
+    py = ToPrimitive<JS_NUMBER>(e, y);
     if (unlikely(!e.val()->IsOk())) return Undefined::Instance();
   } else {
-    py = ToPrimitive(e, y, u"Number");
+    py = ToPrimitive<JS_NUMBER>(e, y);
     if (unlikely(!e.val()->IsOk())) return Undefined::Instance();
-    px = ToPrimitive(e, x, u"Number");
+    px = ToPrimitive<JS_NUMBER>(e, x);
     if (unlikely(!e.val()->IsOk())) return Undefined::Instance();
   }
   if (!(px.val()->IsString() && py.val()->IsString())) {  // 3
@@ -94,11 +94,11 @@ bool Equal(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y) {
     if (unlikely(!e.val()->IsOk())) return false;
     return Equal(e, x, Number::New(numy));
   } else if ((x.val()->IsNumber() || x.val()->IsString()) && y.val()->IsObject()) {  // 8
-    Handle<JSValue> primy = ToPrimitive(e, y, u"");
+    Handle<JSValue> primy = ToPrimitive(e, y);
     if (unlikely(!e.val()->IsOk())) return false;
     return Equal(e, x, primy);
   } else if (x.val()->IsObject() && (y.val()->IsNumber() || y.val()->IsString())) {  // 9
-    Handle<JSValue> primx = ToPrimitive(e, x, u"");
+    Handle<JSValue> primx = ToPrimitive(e, x);
     if (unlikely(!e.val()->IsOk())) return false;
     return Equal(e, primx, y);
   }

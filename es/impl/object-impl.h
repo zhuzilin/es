@@ -228,14 +228,23 @@ bool Delete__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<Strin
 
 // [[DefaultValue]]
 // 8.12.8 [[DefaultValue]] (hint)
-Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O, std::u16string hint) {
+template<Type hint>
+Handle<JSValue> DefaultValue(Handle<Error>& e, Handle<JSObject> O) {
   Handle<String> first, second;
-  if (hint == u"String" || (hint == u"" && O.val()->IsDateObject())) {
+  if constexpr (hint == JS_STRING) {
     first = String::toString();
     second = String::valueOf();
-  } else if (hint == u"Number" || (hint == u"" && !O.val()->IsDateObject())) {
+  } else if (hint == JS_NUMBER) {
     first = String::valueOf();
     second = String::toString();
+  } else if (hint == JS_UNINIT) {
+    if (O.val()->IsDateObject()) {
+      first = String::toString();
+      second = String::valueOf();
+    } else {
+      first = String::valueOf();
+      second = String::toString();
+    }
   } else {
     assert(false);
   }

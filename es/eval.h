@@ -1239,9 +1239,9 @@ Handle<JSValue> EvalArithmeticOperator(Handle<Error>& e, Token& op, Handle<JSVal
 
 // 11.6 Additive Operators
 Handle<JSValue> EvalAddOperator(Handle<Error>& e, Handle<JSValue> lval, Handle<JSValue> rval) {
-  Handle<JSValue> lprim = ToPrimitive(e, lval, u"");
+  Handle<JSValue> lprim = ToPrimitive(e, lval);
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  Handle<JSValue> rprim = ToPrimitive(e, rval, u"");
+  Handle<JSValue> rprim = ToPrimitive(e, rval);
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
 
   if (lprim.val()->IsString() || rprim.val()->IsString()) {
