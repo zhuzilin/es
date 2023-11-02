@@ -233,6 +233,8 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
     }
   }
   Runtime::Global()->AddContext(ExecutionContext(variable_env, lexical_env, this_binding, strict));
+  // make sure the eval used env won't be released.
+  lexical_env.val()->AddRefCount();
   // 4
   DeclarationBindingInstantiation(e, program, CODE_EVAL);
 }

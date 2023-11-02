@@ -117,6 +117,7 @@ class Runtime {
   }
 
   void AddContext(ExecutionContext&& context) {
+    context.lexical_env().val()->AddRefCount();
     context_stack_.emplace_back(std::move(context));
   }
 
@@ -132,7 +133,7 @@ class Runtime {
     ExecutionContext& context = context_stack_.back();
     context.Rewind();
     ASSERT(!context.lexical_env().IsNullptr());
-    //context.lexical_env().val()->ReduceRefCount();
+    context.lexical_env().val()->ReduceRefCount();
     context_stack_.pop_back();
   }
 

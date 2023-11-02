@@ -17,9 +17,6 @@ class EnvironmentRecord : public JSValue {
   static Handle<EnvironmentRecord> New(Handle<JSValue> outer) {
     Handle<EnvironmentRecord> jsval = HeapObject::New<size + kEnvironmentRecordOffset - kJSValueOffset>();
     SET_VALUE(jsval.val(), kRefCountOffset, 0, size_t);
-
-    jsval.val()->AddRefCount();
-
     return jsval;
   }
 

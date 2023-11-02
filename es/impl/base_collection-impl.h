@@ -40,6 +40,7 @@ Handle<DeclarativeEnvironmentRecord> ExtracGC::TryPopFunctionEnvRec(
   auto iter = function_env_recs.find(body);
   if (iter == function_env_recs.end())
     return Handle<DeclarativeEnvironmentRecord>();
+  ASSERT(iter->second.stack_depth > 0);
   iter->second.stack_depth--;
   if (iter->second.env_rec[0] != nullptr) {
 #ifdef GC_DEBUG
