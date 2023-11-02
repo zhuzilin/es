@@ -34,7 +34,7 @@ class ErrorProto : public JSObject {
   template<flag_t flag>
   static Handle<ErrorProto> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Error", true, Handle<JSValue>(), false, false, nullptr);
+      CLASS_ERROR, true, Handle<JSValue>(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<ErrorProto>(jsobj);
@@ -45,7 +45,7 @@ class ErrorObject : public JSObject {
  public:
   static Handle<ErrorObject> New(Handle<Error> e) {
     Handle<JSObject> jsobj = JSObject::New<kPtrSize>(
-      u"Error", true, Handle<JSValue>(), false, false, nullptr
+      CLASS_ERROR, true, Handle<JSValue>(), false, false, nullptr
     );
 
     SET_HANDLE_VALUE(jsobj.val(), kErrorOffset, e, Error);
@@ -80,7 +80,7 @@ class ErrorConstructor : public JSObject {
   template<flag_t flag>
   static Handle<ErrorConstructor> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Error", true, Handle<JSValue>(), true, true, nullptr);
+      CLASS_ERROR, true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_ERROR_CONSTRUCTOR);
     return Handle<ErrorConstructor>(jsobj);

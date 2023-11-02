@@ -23,7 +23,7 @@ class JSObject : public JSValue {
  public:
   template<flag_t flag = 0>
   static Handle<JSObject> New(
-    std::u16string klass,
+    ClassType klass,
     bool extensible,
     Handle<JSValue> primitive_value,
     bool is_constructor,
@@ -41,15 +41,14 @@ class JSObject : public JSValue {
     // NOTE(zhuzilin) We need to put the operation that may need memory allocation to
     // the front, because the jsval is not initialized with JSObject vptr and therefore
     // could not forward the pointers.
-    auto class_str = String::New(klass);
-
     auto property_map = PropertyMap::New(property_map_num_fixed_slots, property_map_hashmap_capacity);
 
-    SET_HANDLE_VALUE(jsval.val(), kClassOffset, class_str, String);
-    SET_VALUE(jsval.val(), kExtensibleOffset, extensible, bool);
+    jsval.val()->h_.klass = klass;
+    jsval.val()->h_.extensible = extensible;
+    jsval.val()->h_.is_constructor = is_constructor;
+    jsval.val()->h_.is_callable = is_callable;
+
     SET_HANDLE_VALUE(jsval.val(), kPrimitiveValueOffset, primitive_value, JSValue);
-    SET_VALUE(jsval.val(), kIsConstructorOffset, is_constructor, bool);
-    SET_VALUE(jsval.val(), kIsCallableOffset, is_callable, bool);
     // NOTE(zhuzilin) function pointer is different.
     TYPED_PTR(jsval.val(), kCallableOffset, inner_func)[0] = callable;
     SET_HANDLE_VALUE(jsval.val(), kPrototypeOffset, Null::Instance(), JSValue);
@@ -61,7 +60,7 @@ class JSObject : public JSValue {
 
   template<size_t size, flag_t flag = 0>
   static Handle<JSObject> New(
-    std::u16string klass,
+    ClassType klass,
     bool extensible,
     Handle<JSValue> primitive_value,
     bool is_constructor,
@@ -78,15 +77,14 @@ class JSObject : public JSValue {
     // NOTE(zhuzilin) We need to put the operation that may need memory allocation to
     // the front, because the jsval is not initialized with JSObject vptr and therefore
     // could not forward the pointers.
-    auto class_str = String::New(klass);
-
     auto property_map = PropertyMap::New(property_map_num_fixed_slots, property_map_hashmap_capacity);
 
-    SET_HANDLE_VALUE(jsval.val(), kClassOffset, class_str, String);
-    SET_VALUE(jsval.val(), kExtensibleOffset, extensible, bool);
+    jsval.val()->h_.klass = klass;
+    jsval.val()->h_.extensible = extensible;
+    jsval.val()->h_.is_constructor = is_constructor;
+    jsval.val()->h_.is_callable = is_callable;
+
     SET_HANDLE_VALUE(jsval.val(), kPrimitiveValueOffset, primitive_value, JSValue);
-    SET_VALUE(jsval.val(), kIsConstructorOffset, is_constructor, bool);
-    SET_VALUE(jsval.val(), kIsCallableOffset, is_callable, bool);
     // NOTE(zhuzilin) function pointer is different.
     TYPED_PTR(jsval.val(), kCallableOffset, inner_func)[0] = callable;
     SET_HANDLE_VALUE(jsval.val(), kPrototypeOffset, Null::Instance(), JSValue);
@@ -106,9 +104,9 @@ class JSObject : public JSValue {
     ASSERT(proto.val()->IsPrototype());
     SET_HANDLE_VALUE(this, kPrototypeOffset, proto, JSValue);
   }
-  std::u16string Class() { return (READ_VALUE(this, kClassOffset, String*))->data(); };
-  bool Extensible() { return READ_VALUE(this, kExtensibleOffset, bool); };
-  void SetExtensible(bool extensible) { SET_VALUE(this, kExtensibleOffset, extensible, bool); }
+  ClassType Class() { return h_.klass; };
+  bool Extensible() { return h_.extensible; };
+  void SetExtensible(bool extensible) { h_.extensible = extensible; }
   // Internal Properties Only Defined for Some Objects
   // [[PrimitiveValue]]
   Handle<JSValue> PrimitiveValue() {
@@ -143,12 +141,8 @@ class JSObject : public JSValue {
   }
 
  public:
-  static constexpr size_t kClassOffset = kJSValueOffset;
-  static constexpr size_t kExtensibleOffset = kClassOffset + kPtrSize;
-  static constexpr size_t kPrimitiveValueOffset = kExtensibleOffset + kBoolSize;
-  static constexpr size_t kIsConstructorOffset = kPrimitiveValueOffset + kPtrSize;
-  static constexpr size_t kIsCallableOffset = kIsConstructorOffset + kBoolSize;
-  static constexpr size_t kCallableOffset = kIsCallableOffset + kBoolSize;
+  static constexpr size_t kPrimitiveValueOffset = kJSValueOffset;
+  static constexpr size_t kCallableOffset = kPrimitiveValueOffset + kPtrSize;
   static constexpr size_t kPrototypeOffset = kCallableOffset + kFuncPtrSize;
   static constexpr size_t kNamedPropertiesOffset = kPrototypeOffset + kPtrSize;
   static constexpr size_t kJSObjectOffset = kNamedPropertiesOffset + kPtrSize;

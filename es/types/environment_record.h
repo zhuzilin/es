@@ -17,7 +17,6 @@ class EnvironmentRecord : public JSValue {
   static Handle<EnvironmentRecord> New(Handle<JSValue> outer) {
     Handle<EnvironmentRecord> jsval = HeapObject::New<size + kEnvironmentRecordOffset - kJSValueOffset>();
     SET_VALUE(jsval.val(), kRefCountOffset, 0, size_t);
-    SET_HANDLE_VALUE(jsval.val(), kOuterOffset, outer, JSValue);
 
     jsval.val()->AddRefCount();
 
@@ -72,6 +71,8 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
     Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New<kPtrSize>(outer);
     auto bindings = HashMapV2::New(num_decls);
 
+    // need to set outer here as EnvironmentRecord base class does not set type
+    SET_HANDLE_VALUE(env_rec.val(), kOuterOffset, outer, JSValue);
     SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, bindings, HashMapV2);
     env_rec.val()->SetType(JS_ENV_REC_DECL);
     return Handle<DeclarativeEnvironmentRecord>(env_rec);
@@ -93,6 +94,8 @@ class ObjectEnvironmentRecord : public EnvironmentRecord {
   static Handle<ObjectEnvironmentRecord> New(Handle<JSValue> outer, Handle<JSObject> obj, bool provide_this = false) {
     Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New<kPtrSize + kBoolSize>(outer);
 
+    // need to set outer here as EnvironmentRecord base class does not set type
+    SET_HANDLE_VALUE(env_rec.val(), kOuterOffset, outer, JSValue);
     SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, obj, JSObject);
     SET_VALUE(env_rec.val(), kProvideThisOffset, provide_this, bool);
     env_rec.val()->SetType(JS_ENV_REC_OBJ);

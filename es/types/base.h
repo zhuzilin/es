@@ -244,7 +244,6 @@ class String : public JSValue {
     size_t size = 0;
     bool maybe_array_index = true;
     for (size_t i = 0; i < vals.size(); ++i) {
-      std::cout << vals[i].ToString() << std::endl;
       size_t size_i = vals[i].val()->size();
       if (!vals[i].val()->IsArrayIndex() && size_i > 0)
         maybe_array_index = false;

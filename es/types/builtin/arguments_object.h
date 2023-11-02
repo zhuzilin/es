@@ -14,7 +14,7 @@ class ArgumentsObject : public JSObject {
  public:
   static Handle<ArgumentsObject> New(size_t len) {
     Handle<JSObject> jsobj = JSObject::New<0, 0>(
-      u"Arguments", true, Handle<JSValue>(), false, false, nullptr, len
+      CLASS_ARGUMENTS, true, Handle<JSValue>(), false, false, nullptr, len
     );
 
     jsobj.val()->SetType(OBJ_ARGUMENTS);

@@ -14,11 +14,11 @@ void CheckObjectCoercible(Handle<Error>& e, Handle<JSValue> val) {
 }
 
 bool JSValue::IsCallable() {
-  return (IsObject() && READ_VALUE(this, JSObject::kIsCallableOffset, bool)) || IsGetterSetter();
+  return (IsObject() && h_.is_callable) || IsGetterSetter();
 }
 
 bool JSValue::IsConstructor() {
-  return IsObject() && READ_VALUE(this, JSObject::kIsConstructorOffset, bool);
+  return IsObject() && h_.is_constructor;
 }
 
 std::string JSValue::ToString(JSValue* jsval) {
@@ -110,7 +110,7 @@ std::string JSValue::ToString(JSValue* jsval) {
     }
     default:
       if (jsval->IsObject()) {
-        return ToString(READ_VALUE(jsval, JSObject::kClassOffset, String*));
+        return log::ToString(ClassToString(jsval->h_.klass));
       }
       std::cout << "\033[1;31m" << HeapObject::ToString(jsval->type()) << "\033[0m" << std::endl;
       assert(false);

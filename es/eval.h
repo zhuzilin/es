@@ -973,20 +973,17 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
     if (!previous_desc.IsUndefined()) {  // 4
       if (strict &&
           previous_desc.IsDataDescriptor() && desc.IsDataDescriptor()) {  // 4.a
-        std::cout << "error 1" << std::endl;
         e = Error::SyntaxError(u"repeat object property name " + prop_name_str.val()->data());
         return Handle<JSValue>();
       }
       if ((previous_desc.IsDataDescriptor() && desc.IsAccessorDescriptor()) ||  // 4.b
           (previous_desc.IsAccessorDescriptor() && desc.IsDataDescriptor())) {  // 4.c
-          std::cout << "error 2" << std::endl;
         e = Error::SyntaxError(u"repeat object property name " + prop_name_str.val()->data());
         return Handle<JSValue>();
       }
       if (previous_desc.IsAccessorDescriptor() && desc.IsAccessorDescriptor() &&  // 4.d
           ((previous_desc.HasGet() && desc.HasGet()) ||
            (previous_desc.HasSet() && desc.HasSet()))) {
-            std::cout << "error 3" << std::endl;
         e = Error::SyntaxError(u"repeat object property name " + prop_name_str.val()->data());
         return Handle<JSValue>();
       }

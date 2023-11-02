@@ -31,7 +31,7 @@ class Console : public JSObject {
   template<flag_t flag>
   static Handle<Console> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Console", true, Handle<JSValue>(), false, false, nullptr
+      CLASS_CONSOLE, true, Handle<JSValue>(), false, false, nullptr
     );
 
     jsobj.val()->SetType(OBJ_HOST);

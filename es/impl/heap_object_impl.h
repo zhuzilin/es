@@ -127,7 +127,6 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
     default:
       if (reinterpret_cast<JSValue*>(heap_obj)->IsObject()) {
         std::vector<HeapObject**> pointers {
-          HEAP_PTR(heap_obj, JSObject::kClassOffset),
           HEAP_PTR(heap_obj, JSObject::kPrimitiveValueOffset),
           HEAP_PTR(heap_obj, JSObject::kPrototypeOffset),
           HEAP_PTR(heap_obj, JSObject::kNamedPropertiesOffset) 

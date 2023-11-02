@@ -22,7 +22,15 @@ struct Header {
   uint32_t size = 0;
   Type type = Type::JS_UNINIT;
   flag_t flag = 0;
-  uint8_t bitmask = 0;
+  union {
+    uint8_t bitmask = 0;
+    struct {
+      ClassType klass : 5;
+      bool extensible : 1;
+      bool is_constructor : 1;
+      bool is_callable : 1;
+    };
+  };
 };
 
 inline Header* H(void* ref) { return static_cast<Header*>(ref); }

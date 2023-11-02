@@ -96,7 +96,7 @@ class FunctionProto : public JSObject {
   template<flag_t flag>
   static Handle<FunctionProto> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Function", true, Handle<JSValue>(), false, true, nullptr);
+      CLASS_FUNCTION, true, Handle<JSValue>(), false, true, nullptr);
 
     jsobj.val()->SetType(OBJ_FUNC_PROTO);
     return Handle<FunctionProto>(jsobj);
@@ -110,7 +110,7 @@ class FunctionObject : public JSObject {
     bool strict, size_t size = 0
   ) {
     Handle<JSObject> jsobj = JSObject::New(
-      u"Function", true, Handle<JSValue>(), true, true, nullptr,
+      CLASS_FUNCTION, true, Handle<JSValue>(), true, true, nullptr,
       kFunctionObjectOffset - kJSObjectOffset + size
     );
     Handle<FixedArray> formal_parameter = FixedArray::New<String>(names);
@@ -213,7 +213,7 @@ class FunctionConstructor : public JSObject {
   template<flag_t flag>
   static Handle<FunctionConstructor> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Function", true, Handle<JSValue>(), true, true, nullptr);
+      CLASS_FUNCTION, true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_FUNC_CONSTRUCTOR);
     return Handle<FunctionConstructor>(jsobj);
@@ -260,7 +260,7 @@ Handle<JSValue> FunctionProto::bind(Handle<Error>& e, Handle<JSValue> this_arg, 
   }
   Handle<BindFunctionObject> F = BindFunctionObject::New(target, this_arg_for_F, A);
   size_t len = 0;
-  if (target.val()->Class() == u"Function") {
+  if (target.val()->Class() == CLASS_FUNCTION) {
     size_t L = ToNumber(e, Get(e, target, String::Length()));
     if (L - A.size() > 0)
       len = L - A.size();
@@ -343,7 +343,7 @@ void AddFuncProperty(
   bool enumerable, bool configurable
 ) {
   Handle<JSObject> value = JSObject::New<0>(
-    u"InternalFunc", false, Handle<JSValue>(), false, true, callable);
+    CLASS_INTERNAL_FUNCTION, false, Handle<JSValue>(), false, true, callable);
   value.val()->SetType(Type::OBJ_INNER_FUNC);
   value.val()->SetPrototype(FunctionProto::Instance());
   AddValueProperty(O, name, value, writable, enumerable, configurable);

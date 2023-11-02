@@ -29,7 +29,7 @@ class RegExpProto : public JSObject {
   template<flag_t flag>
   static Handle<RegExpProto> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"RegExp", true, Handle<JSValue>(), false, false, nullptr);
+      CLASS_REGEXP, true, Handle<JSValue>(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<RegExpProto>(jsobj);
@@ -40,7 +40,7 @@ class RegExpObject : public JSObject {
  public:
   static Handle<RegExpObject> New(Handle<String> pattern, Handle<String> flag) {
     Handle<JSObject> jsobj = JSObject::New<kRegExpObjectOffset - kJSObjectOffset>(
-      u"RegExp", true, Handle<JSValue>(), false, false, nullptr);
+      CLASS_REGEXP, true, Handle<JSValue>(), false, false, nullptr);
 
     SET_HANDLE_VALUE(jsobj.val(), kPatternOffset, pattern, String);
     SET_HANDLE_VALUE(jsobj.val(), kFlagOffset, flag, String);
@@ -104,7 +104,7 @@ class RegExpConstructor : public JSObject {
   template<flag_t flag>
   static Handle<RegExpConstructor> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"RegExp", true, Handle<JSValue>(), true, true, nullptr);
+      CLASS_REGEXP, true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_REGEXP_CONSTRUCTOR);
     return Handle<RegExpConstructor>(jsobj);

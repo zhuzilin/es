@@ -119,13 +119,15 @@ class HashMapV2 : public JSValue {
   HashMapV2::Entry* Probe(String* key, uint32_t hash) {
     ASSERT(key != NULL);
     size_t cap = capacity();
-    size_t occ = occupancy();
     Entry* map = map_start();
     const Entry* end = map_end();
     Entry* p = map + (hash & (cap - 1));
     ASSERT(map <= p && p < end);
 
+#ifdef TEST
+    size_t occ = occupancy();
     ASSERT(occ < cap);
+#endif
     while (!p->is_empty() && (hash != p->hash || !StringEqual(key, p->key))) {
       p++;
       if (p >= end) {

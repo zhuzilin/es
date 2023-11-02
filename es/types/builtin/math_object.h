@@ -173,7 +173,7 @@ class Math : public JSObject {
   template<flag_t flag>
   static Handle<Math> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Math", true, Handle<JSValue>(), false, false, nullptr);
+      CLASS_MATH, true, Handle<JSValue>(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<Math>(jsobj);

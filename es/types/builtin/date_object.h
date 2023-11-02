@@ -188,7 +188,7 @@ class DateProto : public JSObject {
   template<flag_t flag>
   static Handle<DateProto> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Date", true, Handle<JSValue>(), false, false, nullptr);
+      CLASS_DATE, true, Handle<JSValue>(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<DateProto>(jsobj);
@@ -199,7 +199,7 @@ class DateObject : public JSObject {
  public:
   static Handle<DateObject> New(Handle<JSValue> primitive_value) {
     Handle<JSObject> jsobj = JSObject::New<0>(
-      u"Date", true, Handle<JSValue>(), false, false, nullptr
+      CLASS_DATE, true, Handle<JSValue>(), false, false, nullptr
     );
 
     jsobj.val()->SetType(OBJ_DATE);
@@ -238,7 +238,7 @@ class DateConstructor : public JSObject {
   template<flag_t flag>
   static Handle<DateConstructor> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Date", true, Handle<JSValue>(), true, true, nullptr);
+      CLASS_DATE, true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_DATE_CONSTRUCTOR);
     return Handle<DateConstructor>(jsobj);

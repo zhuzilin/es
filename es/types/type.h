@@ -62,7 +62,61 @@ enum Type : uint16_t {
   HASHMAP_V2  = 1 << 10 | 4,
   LIST_NODE   = 1 << 10 | 5,
   PROPERTY_MAP = 1 << 10 | 6,
-  
 };
+
+enum ClassType : uint8_t {
+  CLASS_OBJECT = 1,
+  CLASS_ARRAY = 2,
+  CLASS_NUMBER = 3,
+  CLASS_STRING = 4,
+  CLASS_FUNCTION = 5,
+  CLASS_ARGUMENTS = 6,
+  CLASS_BOOL = 7,
+  CLASS_DATE = 8,
+  CLASS_ERROR = 9,
+  CLASS_INTERNAL_FUNCTION = 10,
+  CLASS_GLOBAL = 11,
+  CLASS_MATH = 12,
+  CLASS_REGEXP = 13,
+  CLASS_CONSOLE = 14,
+  NUM_CLASS,
+};
+
+static_assert(NUM_CLASS <= (1 << 5));
+
+std::u16string ClassToString(ClassType t) {
+  switch (t) {
+    case CLASS_OBJECT:
+      return u"Object";
+    case CLASS_ARRAY:
+      return u"Array";
+    case CLASS_NUMBER:
+      return u"Number";
+    case CLASS_STRING:
+      return u"String";
+    case CLASS_FUNCTION:
+      return u"Function";
+    case CLASS_ARGUMENTS:
+      return u"Arguments";
+    case CLASS_BOOL:
+      return u"Boolean";
+    case CLASS_DATE:
+      return u"Date";
+    case CLASS_ERROR:
+      return u"Error";
+    case CLASS_INTERNAL_FUNCTION:
+      return u"InternalFunc";
+    case CLASS_GLOBAL:
+      return u"Global";
+    case CLASS_MATH:
+      return u"Math";
+    case CLASS_REGEXP:
+      return u"RegExp";
+    case CLASS_CONSOLE:
+      return u"Console";
+    default:
+      assert(false);
+  }
+}
 
 }  // namespace es

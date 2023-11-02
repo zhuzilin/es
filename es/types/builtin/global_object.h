@@ -62,7 +62,7 @@ class GlobalObject : public JSObject {
     Handle<JSObject> jsobj = JSObject::New<kBoolSize, flag>(
       // 15.1 The values of the [[Prototype]] and [[Class]]
       // of the global object are implementation-dependent.
-      u"Global",
+      CLASS_GLOBAL,
       // NOTE(zhuzilin) global object need to have [[Extensible]] as true,
       // otherwise we cannot define variable in global code, as global varaibles
       // are the property of global object.

@@ -72,7 +72,7 @@ class NumberProto : public JSObject {
   template<flag_t flag>
   static Handle<NumberProto> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Number", true, Number::Zero(), false, false, nullptr);
+      CLASS_NUMBER, true, Number::Zero(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<NumberProto>(jsobj);
@@ -83,7 +83,7 @@ class NumberObject : public JSObject {
  public:
   static Handle<NumberObject> New(Handle<JSValue> primitive_value) {
     Handle<JSObject> jsobj = JSObject::New<0>(
-      u"Number", true, primitive_value, false, false, nullptr
+      CLASS_NUMBER, true, primitive_value, false, false, nullptr
     );
 
     jsobj.val()->SetType(OBJ_NUMBER);
@@ -108,7 +108,7 @@ class NumberConstructor : public JSObject {
   template<flag_t flag>
   static Handle<NumberConstructor> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Number", true, Handle<JSValue>(), true, true, nullptr);
+      CLASS_NUMBER, true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_NUMBER_CONSTRUCTOR);
     return Handle<NumberConstructor>(jsobj);

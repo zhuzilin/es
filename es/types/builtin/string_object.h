@@ -237,7 +237,7 @@ class StringProto : public JSObject {
   template<flag_t flag>
   static Handle<StringProto> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"String", true, String::Empty(), false, false, nullptr);
+      CLASS_STRING, true, String::Empty(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<StringProto>(jsobj);
@@ -248,7 +248,7 @@ class StringObject : public JSObject {
  public:
   static Handle<StringObject> New(Handle<JSValue> primitive_value) {
     Handle<JSObject> jsobj = JSObject::New<0>(
-      u"String", true, primitive_value, false, false, nullptr
+      CLASS_STRING, true, primitive_value, false, false, nullptr
     );
 
     jsobj.val()->SetType(OBJ_STRING);
@@ -286,7 +286,7 @@ class StringConstructor : public JSObject {
   template<flag_t flag>
   static Handle<StringConstructor> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"String", true, Handle<JSValue>(), true, true, nullptr);
+      CLASS_STRING, true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_STRING_CONSTRUCTOR);
     return Handle<StringConstructor>(jsobj);

@@ -99,7 +99,7 @@ class ArrayProto : public JSObject {
   template<flag_t flag>
   static Handle<ArrayProto> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Array", true, Handle<JSValue>(), false, false, nullptr);
+      CLASS_ARRAY, true, Handle<JSValue>(), false, false, nullptr);
 
     jsobj.val()->SetType(OBJ_OTHER);
     return Handle<ArrayProto>(jsobj);
@@ -110,7 +110,7 @@ class ArrayObject : public JSObject {
  public:
   static Handle<ArrayObject> New(double len) {
     Handle<JSObject> jsobj = JSObject::New<0, 0>(
-      u"Array", true, Handle<JSValue>(), false, false, nullptr, len
+      CLASS_ARRAY, true, Handle<JSValue>(), false, false, nullptr, len
     );
 
     jsobj.val()->SetType(OBJ_ARRAY);
@@ -136,7 +136,7 @@ class ArrayConstructor : public JSObject {
     if (vals.size() == 0 || !vals[0].val()->IsObject())
       return Bool::False();
     Handle<JSObject> obj = static_cast<Handle<JSObject>>(vals[0]);
-    return Bool::Wrap(obj.val()->Class() == u"Array");
+    return Bool::Wrap(obj.val()->Class() == CLASS_ARRAY);
   }
 
   static Handle<JSValue> toString(Handle<Error>& e, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> vals) {
@@ -147,7 +147,7 @@ class ArrayConstructor : public JSObject {
   template<flag_t flag>
   static Handle<ArrayConstructor> New() {
     Handle<JSObject> jsobj = JSObject::New<0, flag>(
-      u"Array", true, Handle<JSValue>(), true, true, nullptr);
+      CLASS_ARRAY, true, Handle<JSValue>(), true, true, nullptr);
 
     jsobj.val()->SetType(OBJ_ARRAY_CONSTRUCTOR);
     return Handle<ArrayConstructor>(jsobj);
