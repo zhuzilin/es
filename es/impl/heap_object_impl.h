@@ -124,13 +124,16 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
         HEAP_PTR(heap_obj, ListNode::kNextOffset)
       };
     }
-    default:
-      if (reinterpret_cast<JSValue*>(heap_obj)->IsObject()) {
+    default: {
+      JSObject* obj = reinterpret_cast<JSObject*>(heap_obj);
+      if (obj->IsObject()) {
         std::vector<HeapObject**> pointers {
-          HEAP_PTR(heap_obj, JSObject::kPrimitiveValueOffset),
           HEAP_PTR(heap_obj, JSObject::kPrototypeOffset),
           HEAP_PTR(heap_obj, JSObject::kNamedPropertiesOffset) 
         };
+        if (obj->HasPrimitiveValue()) {
+          pointers.emplace_back(HEAP_PTR(heap_obj, FunctionObject::kPrimitiveValueOffset));
+        }
         switch (heap_obj->type()) {
           case OBJ_FUNC: {
             pointers.emplace_back(HEAP_PTR(heap_obj, FunctionObject::kFormalParametersOffset));
@@ -154,6 +157,7 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
         return pointers;
       }
       assert(false);
+    }
   }
 }
 

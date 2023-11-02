@@ -48,9 +48,13 @@ class JSObject : public JSValue {
     jsval.val()->h_.is_constructor = is_constructor;
     jsval.val()->h_.is_callable = is_callable;
 
-    SET_HANDLE_VALUE(jsval.val(), kPrimitiveValueOffset, primitive_value, JSValue);
-    // NOTE(zhuzilin) function pointer is different.
-    TYPED_PTR(jsval.val(), kCallableOffset, inner_func)[0] = callable;
+    ASSERT(!(callable != nullptr && !primitive_value.IsNullptr()));
+    if (!primitive_value.IsNullptr()) {
+      SET_HANDLE_VALUE(jsval.val(), kPrimitiveValueOffset, primitive_value, JSValue);
+    } else {
+      // NOTE(zhuzilin) function pointer is different.
+      TYPED_PTR(jsval.val(), kCallableOffset, inner_func)[0] = callable;
+    }
     SET_HANDLE_VALUE(jsval.val(), kPrototypeOffset, Null::Instance(), JSValue);
     SET_HANDLE_VALUE(jsval.val(), kNamedPropertiesOffset, property_map, PropertyMap);
 
@@ -84,9 +88,13 @@ class JSObject : public JSValue {
     jsval.val()->h_.is_constructor = is_constructor;
     jsval.val()->h_.is_callable = is_callable;
 
-    SET_HANDLE_VALUE(jsval.val(), kPrimitiveValueOffset, primitive_value, JSValue);
-    // NOTE(zhuzilin) function pointer is different.
-    TYPED_PTR(jsval.val(), kCallableOffset, inner_func)[0] = callable;
+    ASSERT(!(callable != nullptr && !primitive_value.IsNullptr()));
+    if (!primitive_value.IsNullptr()) {
+      SET_HANDLE_VALUE(jsval.val(), kPrimitiveValueOffset, primitive_value, JSValue);
+    } else {
+      // NOTE(zhuzilin) function pointer is different.
+      TYPED_PTR(jsval.val(), kCallableOffset, inner_func)[0] = callable;
+    }
     SET_HANDLE_VALUE(jsval.val(), kPrototypeOffset, Null::Instance(), JSValue);
     SET_HANDLE_VALUE(jsval.val(), kNamedPropertiesOffset, property_map, PropertyMap);
 
@@ -110,6 +118,7 @@ class JSObject : public JSValue {
   // Internal Properties Only Defined for Some Objects
   // [[PrimitiveValue]]
   Handle<JSValue> PrimitiveValue() {
+    ASSERT(!IsCallable());
     Handle<JSValue> primitive_value = READ_HANDLE_VALUE(this, kPrimitiveValueOffset, JSValue);
     ASSERT(!primitive_value.IsNullptr());
     return primitive_value;
@@ -118,7 +127,10 @@ class JSObject : public JSValue {
     return type() == OBJ_BOOL || type() == OBJ_DATE ||
            type() == OBJ_NUMBER || type() == OBJ_STRING;
   }
-  inner_func callable() { return TYPED_PTR(this, kCallableOffset, inner_func)[0]; }
+  inner_func callable() {
+    ASSERT(!HasPrimitiveValue());
+    return TYPED_PTR(this, kCallableOffset, inner_func)[0];
+  }
 
   // This for for-in statement.
   std::vector<std::pair<Handle<String>, StackPropertyDescriptor>> AllEnumerableProperties() {
@@ -141,8 +153,10 @@ class JSObject : public JSValue {
   }
 
  public:
+  // primitive value and offset are saved together.
   static constexpr size_t kPrimitiveValueOffset = kJSValueOffset;
-  static constexpr size_t kCallableOffset = kPrimitiveValueOffset + kPtrSize;
+  static constexpr size_t kCallableOffset = kJSValueOffset;
+
   static constexpr size_t kPrototypeOffset = kCallableOffset + kFuncPtrSize;
   static constexpr size_t kNamedPropertiesOffset = kPrototypeOffset + kPtrSize;
   static constexpr size_t kJSObjectOffset = kNamedPropertiesOffset + kPtrSize;
