@@ -125,7 +125,7 @@ class FunctionObject : public JSObject {
       SET_VALUE(jsobj.val(), kCodeOffset, nullptr, ProgramOrFunctionBody*);
     }
     SET_HANDLE_VALUE(jsobj.val(), kScopeOffset, scope, EnvironmentRecord);
-    SET_VALUE(jsobj.val(), kStrictOffset, strict, bool);
+    jsobj.val()->h_.strict = strict;
     jsobj.val()->SetType(OBJ_FUNC);
 
     Handle<FunctionObject> obj(jsobj);
@@ -159,7 +159,7 @@ class FunctionObject : public JSObject {
   }
   bool strict() {
     ASSERT(!from_bind());
-    return READ_VALUE(this, kStrictOffset, bool);
+    return h_.strict;
   }
   bool from_bind() { return type() == OBJ_BIND_FUNC; }
 
@@ -167,8 +167,7 @@ class FunctionObject : public JSObject {
   static constexpr size_t kFormalParametersOffset = kJSObjectOffset;
   static constexpr size_t kCodeOffset = kFormalParametersOffset + kPtrSize;
   static constexpr size_t kScopeOffset = kCodeOffset + kPtrSize;
-  static constexpr size_t kStrictOffset = kScopeOffset + kPtrSize;
-  static constexpr size_t kFunctionObjectOffset = kStrictOffset + kBoolSize;
+  static constexpr size_t kFunctionObjectOffset = kScopeOffset + kPtrSize;
 };
 
 class BindFunctionObject : public FunctionObject {

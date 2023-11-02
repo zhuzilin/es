@@ -33,11 +33,11 @@ class GetterSetter : public JSValue {
     Handle<String> reference_name,
     bool strict_reference
   ) {
-    Handle<JSValue> jsval = HeapObject::New<kStrictOffset + kBoolSize - kJSValueOffset>();
+    Handle<JSValue> jsval = HeapObject::New<kGetterSetterSize - kJSValueOffset>();
 
+    jsval.val()->h_.strict = strict_reference;
     SET_HANDLE_VALUE(jsval.val(), kBaseOffset, base, JSValue);
     SET_HANDLE_VALUE(jsval.val(), kReferenceNameOffset, reference_name, String);
-    SET_VALUE(jsval.val(), kStrictOffset, strict_reference, bool);
 
     jsval.val()->SetType(JS_GET_SET);
     return Handle<Reference>(jsval);
@@ -45,12 +45,12 @@ class GetterSetter : public JSValue {
 
   Handle<JSValue> GetBase() { return READ_HANDLE_VALUE(this, kBaseOffset, JSValue); }
   Handle<String> GetReferencedName() { return READ_HANDLE_VALUE(this, kReferenceNameOffset, String); }
-  bool IsStrictReference() { return READ_VALUE(this, kStrictOffset, bool); }
+  bool IsStrictReference() { return h_.strict; }
 
  public:
   static constexpr size_t kBaseOffset = kJSValueOffset;
   static constexpr size_t kReferenceNameOffset = kBaseOffset + kPtrSize;
-  static constexpr size_t kStrictOffset = kReferenceNameOffset + kPtrSize;
+  static constexpr size_t kGetterSetterSize = kReferenceNameOffset + kPtrSize;
 };
 
 Handle<JSValue> Get__Arguments(Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P);

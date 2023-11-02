@@ -89,24 +89,23 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
 class ObjectEnvironmentRecord : public EnvironmentRecord {
  public:
   static Handle<ObjectEnvironmentRecord> New(Handle<JSValue> outer, Handle<JSObject> obj, bool provide_this = false) {
-    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New<kPtrSize + kBoolSize>(outer);
+    Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New<kPtrSize>(outer);
 
     // need to set outer here as EnvironmentRecord base class does not set type
     SET_HANDLE_VALUE(env_rec.val(), kOuterOffset, outer, JSValue);
     SET_HANDLE_VALUE(env_rec.val(), kBindingsOffset, obj, JSObject);
-    SET_VALUE(env_rec.val(), kProvideThisOffset, provide_this, bool);
     env_rec.val()->SetType(JS_ENV_REC_OBJ);
+    env_rec.val()->h_.provide_this = provide_this;
     return Handle<ObjectEnvironmentRecord>(env_rec);
   }
 
   Handle<JSObject> bindings() { return READ_HANDLE_VALUE(this, kBindingsOffset, JSObject); }
-  bool provide_this() { return READ_VALUE(this, kProvideThisOffset, bool); }
+  bool provide_this() { return h_.provide_this; }
 
   static Handle<EnvironmentRecord> Global();
 
  public:
   static constexpr size_t kBindingsOffset = kEnvironmentRecordOffset;
-  static constexpr size_t kProvideThisOffset = kBindingsOffset + kPtrSize;
 };
 
 bool HasBinding(Handle<EnvironmentRecord> env_rec, Handle<String> N);

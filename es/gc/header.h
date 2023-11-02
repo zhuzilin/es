@@ -25,11 +25,13 @@ struct Header {
   union {
     uint8_t bitmask = 0;
     struct {
-      ClassType klass : 5;
+      ClassType klass : 4;
       bool extensible : 1;
       bool is_constructor : 1;
       bool is_callable : 1;
+      bool strict : 1;
     };
+    bool provide_this;
   };
 };
 

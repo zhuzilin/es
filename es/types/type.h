@@ -82,7 +82,7 @@ enum ClassType : uint8_t {
   NUM_CLASS,
 };
 
-static_assert(NUM_CLASS <= (1 << 5));
+static_assert(NUM_CLASS <= (1 << 4));
 
 std::u16string ClassToString(ClassType t) {
   switch (t) {
