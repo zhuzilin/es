@@ -15,11 +15,13 @@ class EnvironmentRecord : public JSValue {
  public:
   template<size_t size>
   static Handle<EnvironmentRecord> New(Handle<JSValue> outer) {
-    Handle<JSValue> jsval = HeapObject::New<size + kEnvironmentRecordOffset - kJSValueOffset>();
+    Handle<EnvironmentRecord> jsval = HeapObject::New<size + kEnvironmentRecordOffset - kJSValueOffset>();
     SET_VALUE(jsval.val(), kRefCountOffset, 0, size_t);
     SET_HANDLE_VALUE(jsval.val(), kOuterOffset, outer, JSValue);
 
-    return static_cast<Handle<EnvironmentRecord>>(jsval);
+    jsval.val()->AddRefCount();
+
+    return jsval;
   }
 
   size_t ref_count() { return READ_VALUE(this, kRefCountOffset, size_t); }
