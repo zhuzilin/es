@@ -32,15 +32,15 @@ Handle<ArgumentsObject> CreateArgumentsObject(
   Handle<EnvironmentRecord> env, bool strict
 ) {
   TEST_LOG("\033[2menter\033[0m CreateArgumentsObject");
-  Handle<FixedArray> names = func.val()->FormalParameters();
+  std::vector<Handle<String>> names = func.val()->FormalParameters();
   int len = args.size();
   Handle<JSObject> obj = ArgumentsObject::New(len);
   int indx = len - 1;  // 10
   std::set<std::u16string> mapped_names;
   while (indx >= 0) {  // 11
     bool is_accessor_desc = false;
-    if (!strict && (size_t)indx < names.val()->size()) {  // 11.c
-      Handle<String> name = static_cast<Handle<String>>(names.val()->Get(indx));
+    if (!strict && (size_t)indx < names.size()) {  // 11.c
+      Handle<String> name = names[indx];
       std::u16string name_str = name.val()->data();  // 11.c.i
       if (mapped_names.find(name_str) == mapped_names.end()) {  // 11.c.ii
         mapped_names.insert(name_str);
@@ -77,23 +77,22 @@ Handle<ArgumentsObject> CreateArgumentsObject(
 
 // 10.5 Declaration Binding Instantiation
 void DeclarationBindingInstantiation(
-  Handle<Error>& e, AST* code, CodeType code_type,
+  Handle<Error>& e, ProgramOrFunctionBody* body, CodeType code_type,
   Handle<FunctionObject> f = Handle<FunctionObject>(), std::vector<Handle<JSValue>> args = {}
 ) {
   TEST_LOG("\033[2menter\033[0m DeclarationBindingInstantiation");
   Handle<EnvironmentRecord> env = Runtime::TopContext().variable_env(); // 1
   bool configurable_bindings = false;
-  ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(code);
   if (code_type == CODE_EVAL) {
     configurable_bindings = true;  // 2
   }
   bool strict = body->strict() || Runtime::TopContext().strict();  // 3
   if (code_type == CODE_FUNC) {  // 4
     ASSERT(!f.IsNullptr());
-    auto names = f.val()->FormalParameters();  // 4.a
+    std::vector<Handle<String>> names = f.val()->FormalParameters();  // 4.a
     size_t arg_count = args.size();  // 4.b
-    for (size_t i = 0; i < names.val()->size(); i++) {
-      Handle<String> arg_name = names.val()->Get(i);  // 4.d
+    for (size_t i = 0; i < names.size(); i++) {
+      Handle<String> arg_name = names[i];  // 4.d
       Handle<JSValue> v = Undefined::Instance();
       if (i < arg_count)  // 4.d.i & 4.d.ii
         v = args[i];

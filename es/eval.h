@@ -949,9 +949,7 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
           }
         }
         Handle<FunctionObject> closure = FunctionObject::New(
-          func_ast->params(), func_ast->body(),
-          Runtime::TopLexicalEnv(),
-          strict || strict_func
+          func_ast, Runtime::TopLexicalEnv(), strict || strict_func
         );
         if (property.type == ObjectLiteral::Property::GET) {
           desc.SetGet(closure);

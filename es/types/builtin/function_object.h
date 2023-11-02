@@ -106,21 +106,16 @@ class FunctionProto : public JSObject {
 class FunctionObject : public JSObject {
  public:
   static Handle<FunctionObject> New(
-    std::vector<Handle<String>> names, AST* body, Handle<EnvironmentRecord> scope,
-    bool strict, size_t size = 0
+    Function* func_ast, Handle<EnvironmentRecord> scope, bool strict, size_t size = 0
   ) {
     Handle<JSObject> jsobj = JSObject::New(
       CLASS_FUNCTION, true, Handle<JSValue>(), true, true, nullptr,
       kFunctionObjectOffset - kJSObjectOffset + size
     );
-    Handle<FixedArray> formal_parameter = FixedArray::New<String>(names);
-
-    SET_HANDLE_VALUE(jsobj.val(), kFormalParametersOffset, formal_parameter, FixedArray);
-    if (body != nullptr) {
-      ASSERT(body->type() == AST::AST_FUNC_BODY);
-      ProgramOrFunctionBody* func_body = static_cast<ProgramOrFunctionBody*>(body);
-      strict |= func_body->strict();
-      SET_VALUE(jsobj.val(), kCodeOffset, func_body, ProgramOrFunctionBody*);
+    if (func_ast != nullptr) {
+      ASSERT(func_ast->type() == AST::AST_FUNC);
+      strict |= func_ast->body()->strict();
+      SET_VALUE(jsobj.val(), kCodeOffset, func_ast, Function*);
     } else {
       SET_VALUE(jsobj.val(), kCodeOffset, nullptr, ProgramOrFunctionBody*);
     }
@@ -132,8 +127,8 @@ class FunctionObject : public JSObject {
     // 13.2 Creating Function Objects
     obj.val()->SetPrototype(FunctionProto::Instance());
     // Whether the function is made from bind.
-    if (body != nullptr) {
-      AddValueProperty(obj, String::Length(), Number::New(names.size()), false, false, false);  // 14 & 15
+    if (func_ast != nullptr) {
+      AddValueProperty(obj, String::Length(), Number::New(func_ast->params().size()), false, false, false);  // 14 & 15
       Handle<JSObject> proto = Object::New();  // 16
       AddValueProperty(proto, String::Constructor(), obj, true, false, true);
       // 15.3.5.2 prototype
@@ -149,13 +144,13 @@ class FunctionObject : public JSObject {
     ASSERT(!from_bind());
     return READ_HANDLE_VALUE(this, kScopeOffset, EnvironmentRecord);
   };
-  Handle<FixedArray> FormalParameters() {
+  std::vector<Handle<String>> FormalParameters() {
     ASSERT(!from_bind());
-    return READ_HANDLE_VALUE(this, kFormalParametersOffset, FixedArray);
+    return Code()->params();
   };
-  ProgramOrFunctionBody* Code() {
+  Function* Code() {
     ASSERT(!from_bind());
-    return READ_VALUE(this, kCodeOffset, ProgramOrFunctionBody*);
+    return READ_VALUE(this, kCodeOffset, Function*);
   }
   bool strict() {
     ASSERT(!from_bind());
@@ -164,8 +159,7 @@ class FunctionObject : public JSObject {
   bool from_bind() { return type() == OBJ_BIND_FUNC; }
 
  public:
-  static constexpr size_t kFormalParametersOffset = kJSObjectOffset;
-  static constexpr size_t kCodeOffset = kFormalParametersOffset + kPtrSize;
+  static constexpr size_t kCodeOffset = kJSObjectOffset;
   static constexpr size_t kScopeOffset = kCodeOffset + kPtrSize;
   static constexpr size_t kFunctionObjectOffset = kScopeOffset + kPtrSize;
 };
@@ -176,7 +170,7 @@ class BindFunctionObject : public FunctionObject {
     Handle<JSObject> target_function, Handle<JSValue> bound_this, std::vector<Handle<JSValue>> bound_args
   ) {
     Handle<FunctionObject> func = FunctionObject::New(
-      {}, nullptr, Handle<JSValue>(), Runtime::TopContext().strict(),
+      nullptr, Handle<JSValue>(), Runtime::TopContext().strict(),
       kBindFunctionObjectOffset - kFunctionObjectOffset);
 
     SET_HANDLE_VALUE(func.val(), kTargetFunctionOffset, target_function, JSObject);
@@ -231,11 +225,11 @@ Handle<JSValue> FunctionProto::toString(Handle<Error>& e, Handle<JSValue> this_a
   }
   Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(val);
   std::u16string str = u"function (";
-  auto params = func.val()->FormalParameters();
-  if (params.val()->size() > 0) {
-    str += static_cast<String*>(params.val()->Get(0).val())->data();
-    for (size_t i = 1; i < params.val()->size(); i++) {
-      str += u"," + static_cast<String*>(params.val()->Get(i).val())->data();
+  std::vector<Handle<String>> params = func.val()->FormalParameters();
+  if (params.size() > 0) {
+    str += params[0].val()->data();
+    for (size_t i = 1; i < params.size(); i++) {
+      str += u"," + params[i].val()->data();
     }
   }
   str += u")";
@@ -303,8 +297,7 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function
         }
       }
     }
-    Handle<FunctionObject> closure = FunctionObject::New(
-      func_ast->params(), func_ast->body(), env_rec, strict);  // 4
+    Handle<FunctionObject> closure = FunctionObject::New(func_ast, env_rec, strict);  // 4
     CreateAndInitializeImmutableBinding(env_rec, identifier, closure);  // 5
     return closure;  // 6
 }
@@ -329,10 +322,7 @@ Handle<JSValue> EvalFunction(Handle<Error>& e, AST* ast) {
         return Handle<JSValue>();
       }
     }
-    return FunctionObject::New(
-      func_ast->params(), func_ast->body(),
-      Runtime::TopLexicalEnv(), strict
-    );
+    return FunctionObject::New(func_ast, Runtime::TopLexicalEnv(), strict);
   }
 }
 

@@ -376,33 +376,13 @@ class LHS : public AST {
   std::vector<Handle<String>> prop_name_list_;
 };
 
+class ProgramOrFunctionBody;
 class Function : public AST {
  public:
   Function(Handle<String> name, std::vector<Handle<String>> params, AST* body,
-           std::u16string source, size_t start, size_t end) :
-    AST(AST_FUNC, source, start, end), params_(params) {
-      ASSERT(body->type() == AST::AST_FUNC_BODY);
-      body_ = body;
-      name_ = name;
-      name_is_eval_or_arguments_ = !name.IsNullptr() &&
-                                   (StringEqual(name_, String::eval()) || StringEqual(name_, String::arguments()));
-      params_have_eval_or_arguments_ = false;
-      params_have_duplicated_ = false;
-      for (size_t i = 0; i < params.size(); ++i) {
-        if (StringEqual(params[i], String::eval()) || StringEqual(params[i], String::arguments())) {
-          params_have_eval_or_arguments_ = true;
-        }
-        for (size_t j = 0; j < i; ++j) {
-          if (StringEqual(params[i], params[j])) {
-            params_have_duplicated_ = true;
-          }
-        }
-      }
-    }
+           std::u16string source, size_t start, size_t end);
 
-  ~Function() override {
-    delete body_;
-  }
+  ~Function() override;
 
   bool is_named() { return !name_.IsNullptr(); }
   Handle<String> name() { return name_; }
@@ -410,7 +390,7 @@ class Function : public AST {
   std::vector<Handle<String>> params() { return params_; }
   bool params_have_eval_or_arguments() { return params_have_eval_or_arguments_; }
   bool params_have_duplicated() { return params_have_duplicated_; }
-  AST* body() { return body_; }
+  ProgramOrFunctionBody* body() { return body_; }
 
  private:
   bool name_is_eval_or_arguments_;
@@ -418,7 +398,7 @@ class Function : public AST {
   bool params_have_duplicated_;
   Handle<String> name_;
   std::vector<Handle<String>> params_;
-  AST* body_;
+  ProgramOrFunctionBody* body_;
 };
 
 class VarDecl;
@@ -459,6 +439,32 @@ class ProgramOrFunctionBody : public AST {
 
   std::vector<VarDecl*> var_decls_;
 };
+
+Function::Function(Handle<String> name, std::vector<Handle<String>> params, AST* body,
+          std::u16string source, size_t start, size_t end) :
+  AST(AST_FUNC, source, start, end), params_(params) {
+    ASSERT(body->type() == AST::AST_FUNC_BODY);
+    body_ = static_cast<ProgramOrFunctionBody*>(body);
+    name_ = name;
+    name_is_eval_or_arguments_ = !name.IsNullptr() &&
+                                  (StringEqual(name_, String::eval()) || StringEqual(name_, String::arguments()));
+    params_have_eval_or_arguments_ = false;
+    params_have_duplicated_ = false;
+    for (size_t i = 0; i < params.size(); ++i) {
+      if (StringEqual(params[i], String::eval()) || StringEqual(params[i], String::arguments())) {
+        params_have_eval_or_arguments_ = true;
+      }
+      for (size_t j = 0; j < i; ++j) {
+        if (StringEqual(params[i], params[j])) {
+          params_have_duplicated_ = true;
+        }
+      }
+    }
+  }
+
+Function::~Function() {
+  delete body_;
+}
 
 class LabelledStmt : public AST {
  public:

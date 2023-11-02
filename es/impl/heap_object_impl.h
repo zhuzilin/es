@@ -136,7 +136,6 @@ std::vector<HeapObject**> HeapObject::Pointers(HeapObject* heap_obj) {
         }
         switch (heap_obj->type()) {
           case OBJ_FUNC: {
-            pointers.emplace_back(HEAP_PTR(heap_obj, FunctionObject::kFormalParametersOffset));
             pointers.emplace_back(HEAP_PTR(heap_obj, FunctionObject::kScopeOffset));
             break;
           }

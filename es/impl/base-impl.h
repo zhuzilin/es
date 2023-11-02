@@ -87,12 +87,13 @@ std::string JSValue::ToString(JSValue* jsval) {
       return "Array(" + std::to_string(num) + ")";
     }
     case OBJ_FUNC: {
+      FunctionObject* func = static_cast<FunctionObject*>(jsval);
       std::string result = "Function(";
-      FixedArray* params = READ_VALUE(jsval, FunctionObject::kFormalParametersOffset, FixedArray*);
-      if (params->size() > 0) {
-        result += ToString(params->GetRaw(0));
-        for (size_t i = 1; i < params->size(); i++) {
-          result += "," + ToString(params->GetRaw(i));
+      std::vector<Handle<String>> params = func->FormalParameters();
+      if (params.size() > 0) {
+        result += params[0].ToString();
+        for (size_t i = 1; i < params.size(); i++) {
+          result += "," + params[i].ToString();
         }
       }
       result += ")";

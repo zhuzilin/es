@@ -143,10 +143,11 @@ Handle<JSObject> Construct__FunctionConstructor(
   }
   std::u16string P_view = Runtime::Global()->AddSource(std::move(P));
   std::vector<Handle<String>> names;
+  // here will have some memory leak.
   AST* body_ast;
   if (P_view.size() > 0) {
     Parser parser(P_view);
-    if (!parser.ParseFormalParameterList(names)) {
+    if (!parser.ParseFormalParameterList<GCFlag::CONST>(names)) {
       e = Error::SyntaxError(u"invalid parameter name");
       return Handle<JSValue>();
     }
@@ -162,20 +163,19 @@ Handle<JSObject> Construct__FunctionConstructor(
   }
   Handle<EnvironmentRecord> scope = EnvironmentRecord::Global();
   bool strict = static_cast<ProgramOrFunctionBody*>(body_ast)->strict();
+  Function* func_ast = new Function(Handle<String>(), std::move(names), body_ast, u"", 0, 0);
   if (strict) {
     // 13.1
-    if (HaveDuplicate(names)) {
+    if (func_ast->params_have_duplicated()) {
       e = Error::SyntaxError(u"have duplicate parameter name in strict mode");
       return Handle<JSValue>();
     }
-    for (auto name : names) {
-      if (StringEqual(name, String::eval()) || StringEqual(name, String::arguments())) {
-        e = Error::SyntaxError(u"param name cannot be eval or arguments in strict mode");
-        return Handle<JSValue>();
-      }
+    if (func_ast->params_have_eval_or_arguments()) {
+      e = Error::SyntaxError(u"param name cannot be eval or arguments in strict mode");
+      return Handle<JSValue>();
     }
   }
-  return FunctionObject::New(names, body_ast, scope, strict);
+  return FunctionObject::New(func_ast, scope, strict);
 }
 
 Handle<JSObject> Construct__NumberConstructor(
