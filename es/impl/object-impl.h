@@ -283,8 +283,6 @@ bool DefineOwnProperty(
   TEST_LOG("\033[2menter\033[0m DefineOwnProperty " + HeapObject::ToString(O.val()->type()) + "." + P.ToString() + " = " + desc.ToString());
   if (O.val()->IsArrayObject()) {
     return DefineOwnProperty__Array(e, static_cast<Handle<ArrayObject>>(O), P, desc, throw_flag);
-  } else if (O.val()->IsArgumentsObject()) {
-    return DefineOwnProperty__Arguments(e, static_cast<Handle<ArgumentsObject>>(O), P, desc, throw_flag);
   } else {
     return DefineOwnProperty__Base(e, O, P, desc, throw_flag);
   }
@@ -452,13 +450,6 @@ reject:
     e = Error::TypeError(u"failed to DefineOwnProperty on Array");
   }
   return false;
-}
-
-bool DefineOwnProperty__Arguments(
-  Handle<Error>& e, Handle<ArgumentsObject> O, Handle<String> P, StackPropertyDescriptor desc, bool throw_flag
-) {
-  bool allowed = DefineOwnProperty__Base(e, O, P, desc, throw_flag);
-  return allowed;
 }
 
 // [[HasInstance]]

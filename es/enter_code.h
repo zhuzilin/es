@@ -68,8 +68,8 @@ Handle<ArgumentsObject> CreateArgumentsObject(
     Handle<JSValue> thrower = Undefined::Instance();
     StackPropertyDescriptor desc;
     desc.SetAccessorDescriptor(thrower, thrower, false, false);
-    DefineOwnProperty(Error::Empty(), obj, String::caller(), desc, false);
-    DefineOwnProperty(Error::Empty(), obj, String::callee(), desc, false);
+    PropertyMap::Set(Handle<PropertyMap>(obj.val()->named_properties()), String::caller(), desc);
+    PropertyMap::Set(Handle<PropertyMap>(obj.val()->named_properties()), String::callee(), desc);
   }
   TEST_LOG("\033[2mexit\033[0m CreateArgumentsObject");
   return obj;  // 15
