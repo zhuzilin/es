@@ -1233,7 +1233,7 @@ error:
       function_scope_stack_.top().use_arguments_ = lexer_.meet_arguments_ident_;
       lexer_.meet_arguments_ident_ = false;
     }
-    FunctionScopeInfo info;
+    FunctionScopeInfo info{};
     function_scope_stack_.push(info);
   }
 

@@ -114,7 +114,7 @@ Handle<JSValue> GetBindingValue__Declarative(
   Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
   TEST_LOG("\033[2menter\033[0m GetBindingValue__Declarative " + N.ToString());
-  bool is_immutable_undefined;
+  bool is_immutable_undefined = false;
   auto entry_fn = [&is_immutable_undefined] (HashMapV2::Entry* p) mutable {
     is_immutable_undefined = p->val->IsUndefined() && !p->is_mutable;
   };
@@ -218,6 +218,7 @@ void CreateAndInitializeImmutableBinding(
     p->can_delete = false;
     p->is_mutable = false;
   };
+
   auto new_bindings = HashMapV2::Set(Handle<HashMapV2>(env_rec.val()->bindings()), N, V, entry_fn);
   env_rec.val()->SetBindings(new_bindings);
 }

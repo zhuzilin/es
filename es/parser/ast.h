@@ -418,6 +418,21 @@ class ProgramOrFunctionBody : public AST {
   }
   void AddStatement(AST* stmt) {
     stmts_.emplace_back(stmt);
+    if (stmt->type() != AST_EXPR_BINARY)
+      return;
+    Binary* b = static_cast<Binary*>(stmt);
+    if (b->op().type() != Token::TK_ASSIGN)
+      return;
+    if (b->lhs()->type() != AST_EXPR_LHS)
+      return;
+    LHS* lhs = static_cast<LHS*>(b->lhs());
+    if (lhs->total_count() != 1 ||
+        lhs->prop_name_list().size() != 1) {
+      return;
+    }
+    if (lhs->base()->type() == AST_EXPR_THIS) {
+      num_this_properties_++;
+    }
   }
 
   bool strict() { return strict_; }
@@ -430,6 +445,7 @@ class ProgramOrFunctionBody : public AST {
 
   size_t num_decls() { return func_decls_.size() + var_decls_.size(); }
   bool use_arguments() { return use_arguments_; }
+  size_t num_this_properties() { return num_this_properties_; }
 
  private:
   bool strict_;
@@ -438,6 +454,8 @@ class ProgramOrFunctionBody : public AST {
   std::vector<AST*> stmts_;
 
   std::vector<VarDecl*> var_decls_;
+  // this may not be accurate
+  size_t num_this_properties_;
 };
 
 Function::Function(Handle<String> name, std::vector<Handle<String>> params, AST* body,

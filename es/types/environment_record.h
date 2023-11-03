@@ -66,7 +66,7 @@ class DeclarativeEnvironmentRecord : public EnvironmentRecord {
  public:
   static Handle<DeclarativeEnvironmentRecord> New(Handle<JSValue> outer, size_t num_decls) {
     Handle<EnvironmentRecord> env_rec = EnvironmentRecord::New<kPtrSize>(outer);
-    auto bindings = HashMapV2::New(num_decls);
+    auto bindings = HashMapV2::New<kDefaultNumDecls>(num_decls);
 
     // need to set outer here as EnvironmentRecord base class does not set type
     SET_HANDLE_VALUE(env_rec.val(), kOuterOffset, outer, JSValue);

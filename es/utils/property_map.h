@@ -59,14 +59,14 @@ StackPropertyDescriptor ToStack(JSValue* val) {
 
 class PropertyMap : public JSValue {
  public:
-  static Handle<PropertyMap> New(size_t num_fixed_slots = 0, size_t capacity = 0) {
+  static Handle<PropertyMap> New(size_t num_fixed_slots = 0, size_t guessed_occupancy = 0) {
 #ifdef GC_DEBUG
     if (unlikely(log::Debugger::On()))
       std::cout << "PropertyMap::New" << "\n";
 #endif
     Handle<JSValue> jsval = HeapObject::New(kElementOffset + num_fixed_slots * kPtrSize - HeapObject::kHeapObjectOffset);
 
-    Handle<HashMapV2> hashmap = HashMapV2::New(capacity);
+    Handle<HashMapV2> hashmap = HashMapV2::New(guessed_occupancy);
     SET_VALUE(jsval.val(), kNumFixedSlotsOffset, num_fixed_slots, size_t);
     SET_HANDLE_VALUE(jsval.val(), kHashMapOffset, hashmap, HashMapV2);
 

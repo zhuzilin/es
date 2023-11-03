@@ -46,7 +46,10 @@ Handle<JSObject> Construct__Function(
 ) {
   TEST_LOG("\033[2menter\033[0m FunctionObject::Construct");
   // NOTE(zhuzilin) I'm not sure if the object type should be OBJ_OBJECT or OBJ_OTHER...
-  Handle<JSObject> obj = JSObject::New<0>(CLASS_OBJECT, true, Handle<JSValue>(), false, false, nullptr);
+  Function* func_ast = O.val()->Code();
+  Handle<JSObject> obj = JSObject::New<0>(
+    CLASS_OBJECT, true, Handle<JSValue>(), false, false, nullptr, 0, 0, func_ast->body()->num_this_properties()
+  );
   obj.val()->SetType(Type::OBJ_OBJECT);
   Handle<JSValue> proto = Get(e, O, String::Prototype());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();

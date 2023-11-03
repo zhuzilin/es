@@ -1,4 +1,7 @@
-namespace {
+#ifndef ES_TYPES_TYPE_H
+#define ES_TYPES_TYPE_H
+
+namespace es {
 
 constexpr uint64_t STACK_MASK = 7;
 constexpr uint64_t STACK_SHIFT = 3;
@@ -120,3 +123,4 @@ std::u16string ClassToString(ClassType t) {
 }
 
 }  // namespace es
+#endif

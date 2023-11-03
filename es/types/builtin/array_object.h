@@ -110,7 +110,8 @@ class ArrayObject : public JSObject {
  public:
   static Handle<ArrayObject> New(double len) {
     Handle<JSObject> jsobj = JSObject::New<0, 0>(
-      CLASS_ARRAY, true, Handle<JSValue>(), false, false, nullptr, len
+      CLASS_ARRAY, true, Handle<JSValue>(), false, false, nullptr,
+      len < kMinNumArrayElements ? kMinNumArrayElements : len
     );
 
     jsobj.val()->SetType(OBJ_ARRAY);
@@ -123,6 +124,8 @@ class ArrayObject : public JSObject {
     DefineOwnProperty__Base(Error::Empty(), obj, String::Length(), desc, false);
     return obj;
   }
+
+  static constexpr size_t kMinNumArrayElements = 4;
 };
 
 class ArrayConstructor : public JSObject {

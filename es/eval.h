@@ -653,9 +653,7 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   Handle<Error> e = Error::Ok();
   // Prevent garbage collect old env.
   Handle<EnvironmentRecord> old_env = Runtime::TopLexicalEnv();
-  // this 8 is randomly picked.
-  Handle<EnvironmentRecord> catch_env = NewDeclarativeEnvironment(
-    old_env, DeclarativeEnvironmentRecord::kDefaultNumDecls);
+  Handle<EnvironmentRecord> catch_env = NewDeclarativeEnvironment(old_env, 0);
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
   Handle<JSValue> val;
@@ -1142,6 +1140,7 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
         if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         return Undefined::Instance();
       }
+      assert(false);
     }
     default:
       assert(false);

@@ -57,12 +57,13 @@ class HashMapV2 : public JSValue {
   static void DoNothing(Entry* entry) {}
   static JSValue* ReturnValue(Entry* entry) { return entry->val; }
 
-  static Handle<HashMapV2> New(size_t capacity = kDefaultHashMapSize) {
+  template<size_t kDefaultHashMapSize = 4>
+  static Handle<HashMapV2> New(size_t guessed_occupancy = 0) {
 #ifdef GC_DEBUG
     if (unlikely(log::Debugger::On()))
       std::cout << "HashMapV2::New" << "\n";
 #endif
-    capacity = NextPowerOf2(capacity);
+    size_t capacity = NextPowerOf2(guessed_occupancy + guessed_occupancy / 4 + 1);
     if (capacity < kDefaultHashMapSize)
       capacity = kDefaultHashMapSize;
 
@@ -77,10 +78,10 @@ class HashMapV2 : public JSValue {
     Handle<HashMapV2> jsval = HeapObject::New(kElementOffset + capacity * sizeof(Entry) - HeapObject::kHeapObjectOffset);
 
     SET_VALUE(jsval.val(), kCapacityOffset, capacity, uint32_t);
-    memset(PTR(jsval.val(), kOccupancyOffset), 0, capacity * sizeof(Entry) + kSizeTSize);
 
     jsval.val()->SetType(HASHMAP_V2);
-    jsval.val()->Clear();
+    // do not need to set to 0 as the heap is already 0ed.
+    //jsval.val()->Clear();
     return jsval;
   }
 
@@ -277,8 +278,6 @@ class HashMapV2 : public JSValue {
   static constexpr size_t kCapacityOffset = HeapObject::kHeapObjectOffset;
   static constexpr size_t kOccupancyOffset = kCapacityOffset + kUint32Size;
   static constexpr size_t kElementOffset = kOccupancyOffset + kUint32Size;
-
-  static constexpr size_t kDefaultHashMapSize = 4;
 };
 
 }  // namespace es
