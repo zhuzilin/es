@@ -41,6 +41,10 @@ class Heap {
     }
   }
 
+  void Stats() {
+    new_space_.Stats();
+  }
+
  private:
   Heap() :
     new_space_(kNewSpaceSize),
@@ -61,6 +65,10 @@ inline void* Allocate() {
 template<flag_t flag>
 inline void* Allocate(uint32_t size_with_header) {
   return Heap::Global()->Allocate<flag>(size_with_header);
+}
+
+inline void Stats() {
+  return Heap::Global()->Stats();
 }
 
 }  // namespace es

@@ -232,10 +232,12 @@ struct CopyingCollection : public GC<CopyingCollection> {
   void Stats() {
     std::map<Type, size_t> stats;
     std::map<Type, size_t> count;
+    size_t total = 0;
     char* ptr = tospace_;
     while (ptr != free_) {
       Header* header = reinterpret_cast<Header*>(ptr);
       HeapObject* heap_obj = reinterpret_cast<HeapObject*>(header);
+      total += header->size;
       stats[heap_obj->type()] += header->size;
       count[heap_obj->type()]++;
       ptr += header->size;
@@ -245,6 +247,7 @@ struct CopyingCollection : public GC<CopyingCollection> {
         std::cout << HeapObject::ToString(pair.first) << ": " << pair.second / 1024 / 1024
                   << " MB, count: " << count[pair.first] / 1024 << " K." << std::endl;
     }
+    std::cout << "Total: " << total / 1024 / 1024 << " MB." << std::endl;;
   }
 
   void* worklist_ = nullptr;

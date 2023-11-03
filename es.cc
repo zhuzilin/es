@@ -130,5 +130,9 @@ int main(int argc, char* argv[]) {
     }
     default:
       break;
-  } 
+  }
+#ifdef STATS
+  std::cout << "Heap stats in the end:" << std::endl;
+  Stats();
+#endif
 }
