@@ -271,7 +271,7 @@ class HashMapV2 : public JSValue {
 
  private:
   static Handle<HashMapV2> Resize(Handle<HashMapV2> map) {
-    Handle<HashMapV2> new_map = HashMapV2::New(2 * map.val()->capacity());
+    Handle<HashMapV2> new_map = HashMapV2::New(map.val()->capacity());
 
     uint32_t n = map.val()->occupancy();
     new_map.val()->set_occupancy(n);

@@ -59,6 +59,8 @@ Handle<JSObject> Construct__Function(
     obj.val()->SetPrototype(ObjectProto::Instance());
   }
   Handle<JSValue> result = Call(e, O, obj, arguments);  // 8
+  // get more accurate num_decls from runtime.
+  func_ast->body()->SetNumThisProperties(obj.val()->named_properties()->hashmap().val()->occupancy());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   if (result.val()->IsObject())  // 9
     return static_cast<Handle<JSObject>>(result);

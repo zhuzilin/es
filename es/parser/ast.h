@@ -449,6 +449,7 @@ class ProgramOrFunctionBody : public AST {
   size_t num_decls() { return func_decls_.size() + var_decls_.size(); }
   bool use_arguments() { return use_arguments_; }
   size_t num_this_properties() { return num_this_properties_; }
+  void SetNumThisProperties(size_t num) { num_this_properties_ = num; }
 
  private:
   bool strict_;
