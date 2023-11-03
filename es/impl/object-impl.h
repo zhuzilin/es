@@ -152,38 +152,109 @@ bool CanPut(Handle<JSObject> O, Handle<String> P) {
 void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
   TEST_LOG("\033[2menter\033[0m Put " + O.ToString() + "." + P.ToString() + " = " + V.ToString());
   ASSERT(V.val()->IsLanguageType());
-  if (!CanPut(O, P)) {  // 1
-    if (throw_flag) {  // 1.a
-      e = Error::TypeError(u"cannot put " + P.val()->data());
-    }
-    return;  // 1.b
-  }
+  // if (!CanPut(O, P)) {  // 1
+  //   if (throw_flag) {  // 1.a
+  //     e = Error::TypeError(u"cannot put " + P.val()->data());
+  //   }
+  //   return;  // 1.b
+  // }
+  // StackPropertyDescriptor desc = GetOwnProperty(O, P);
+  // if (!desc.IsUndefined()) { // 2
+  //   if (desc.IsDataDescriptor()) {  // 3
+  //     StackPropertyDescriptor value_desc;
+  //     value_desc.SetValue(V);
+  //     DefineOwnProperty(e, O, P, value_desc, throw_flag);
+  //     return;
+  //   }
+  // } else {
+  //   // expand GetProperty to prevent another GetOwnProperty(O, P)
+  //   Handle<JSValue> proto = O.val()->Prototype();
+  //   if (!proto.val()->IsNull()) {
+  //     ASSERT(proto.val()->IsObject());
+  //     desc = GetProperty(static_cast<Handle<JSObject>>(proto), P);
+  //   }
+  // }
+  // if (!desc.IsUndefined()) {
+  //   if (desc.IsAccessorDescriptor()) {
+  //     if (unlikely(log::Debugger::On()))
+  //       log::PrintSource("Use parent prototype's setter");
+  //     Handle<JSValue> setter = desc.Set();
+  //     ASSERT(!setter.val()->IsUndefined());
+  //     Call(e, setter, O, {V});
+  //     return;
+  //   }
+  // }
+  // StackPropertyDescriptor new_desc = StackPropertyDescriptor::NewDataDescriptor(
+  //   V, true, true, true);  // 6.a
+  // DefineOwnProperty(e, O, P, new_desc, throw_flag);
+
+  // merge Put and CanPut
+  bool can_put;
   StackPropertyDescriptor desc = GetOwnProperty(O, P);
   if (!desc.IsUndefined()) { // 2
     if (desc.IsDataDescriptor()) {  // 3
+      can_put = desc.Writable();
+      if (!can_put) {
+        if (throw_flag) {  // 1.a
+          e = Error::TypeError(u"cannot put " + P.val()->data());
+        }
+        return;  // 1.b
+      }
       StackPropertyDescriptor value_desc;
       value_desc.SetValue(V);
       DefineOwnProperty(e, O, P, value_desc, throw_flag);
-      return;
-    }
-  } else {
-    // expand GetProperty to prevent another GetOwnProperty(O, P)
-    Handle<JSValue> proto = O.val()->Prototype();
-    if (!proto.val()->IsNull()) {
-      ASSERT(proto.val()->IsObject());
-      desc = GetProperty(static_cast<Handle<JSObject>>(proto), P);
-    }
-  }
-  if (!desc.IsUndefined()) {
-    if (desc.IsAccessorDescriptor()) {
-      if (unlikely(log::Debugger::On()))
-        log::PrintSource("Use parent prototype's setter");
+    } else {
+      ASSERT(desc.IsAccessorDescriptor());
+      can_put = !desc.Set().val()->IsUndefined();
+      if (!can_put) {
+        if (throw_flag) {  // 1.a
+          e = Error::TypeError(u"cannot put " + P.val()->data());
+        }
+        return;  // 1.b
+      }
       Handle<JSValue> setter = desc.Set();
       ASSERT(!setter.val()->IsUndefined());
       Call(e, setter, O, {V});
+    }
+    return;
+  }
+  // expand GetProperty to prevent another GetOwnProperty(O, P)
+  Handle<JSValue> proto = O.val()->Prototype();
+  if (!proto.val()->IsNull()) {
+    Handle<JSObject> proto_obj = static_cast<Handle<JSObject>>(proto);
+    StackPropertyDescriptor inherit = GetProperty(proto_obj, P);
+    if (inherit.IsUndefined()) {
+      can_put = O.val()->Extensible();
+      if (!can_put) {
+        if (throw_flag) {  // 1.a
+          e = Error::TypeError(u"cannot put " + P.val()->data());
+        }
+        return;  // 1.b
+      }
+    } else if (inherit.IsAccessorDescriptor()) {
+      can_put = !inherit.Set().val()->IsUndefined();
+      if (!can_put) {
+        if (throw_flag) {  // 1.a
+          e = Error::TypeError(u"cannot put " + P.val()->data());
+        }
+        return;  // 1.b
+      }
+      Handle<JSValue> setter = inherit.Set();
+      ASSERT(!setter.val()->IsUndefined());
+      Call(e, setter, O, {V});
       return;
+    } else {
+      ASSERT(inherit.IsDataDescriptor());
+      can_put = O.val()->Extensible() ? inherit.Writable() : false;
+      if (!can_put) {
+        if (throw_flag) {  // 1.a
+          e = Error::TypeError(u"cannot put " + P.val()->data());
+        }
+        return;  // 1.b
+      }
     }
   }
+  // null prototype or prototype has not such property or prototype has data descriptor
   StackPropertyDescriptor new_desc = StackPropertyDescriptor::NewDataDescriptor(
     V, true, true, true);  // 6.a
   DefineOwnProperty(e, O, P, new_desc, throw_flag);

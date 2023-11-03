@@ -48,17 +48,24 @@ struct ExtracGC {
   static std::unordered_map<uint32_t, std::stack<HashMapV2*>> resize_released_maps;
 
   struct FunctionDeclarativeEnvironmentRecord {
+    size_t id;
     size_t call_count;
     size_t stack_depth;
+    size_t num_pushed;
     DeclarativeEnvironmentRecord** env_rec;
 
-    FunctionDeclarativeEnvironmentRecord() :
-      call_count(0), stack_depth(0) {
-      env_rec = new DeclarativeEnvironmentRecord*[1];
-      env_rec[0] = nullptr;
+    FunctionDeclarativeEnvironmentRecord(size_t id) :
+      call_count(0), stack_depth(0), num_pushed(0) {
+      env_rec = new DeclarativeEnvironmentRecord*[kMaxNumPushed];
     }
 
-    void destruct() { delete[] env_rec; }
+    DeclarativeEnvironmentRecord** operator[](size_t index) {
+      return env_rec + 8 * id + index;
+    }
+
+    static constexpr size_t kMaxNumPushed = 8;
+    static constexpr size_t kMaxFunctionStored = 1024 * 1024;
+    static DeclarativeEnvironmentRecord* env_recs[kMaxNumPushed * kMaxFunctionStored];
   };
 
   static void TrySaveFunctionEnvRec(
@@ -75,6 +82,8 @@ struct ExtracGC {
     function_env_recs;
   static constexpr size_t kMinFunctionEnvRecSavingThreshold = 3;
 };
+
+DeclarativeEnvironmentRecord* ExtracGC::FunctionDeclarativeEnvironmentRecord::env_recs[kMaxNumPushed * kMaxFunctionStored];
 
 }  // namespace es
 

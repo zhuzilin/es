@@ -246,6 +246,9 @@ struct CopyingCollection : public GC<CopyingCollection> {
       if (pair.second / 1024 / 1024)
         std::cout << HeapObject::ToString(pair.first) << ": " << pair.second / 1024 / 1024
                   << " MB, count: " << count[pair.first] / 1024 << " K." << std::endl;
+      else if (count[pair.first] / 1024)
+        std::cout << HeapObject::ToString(pair.first) << ": " << pair.second / 1024
+                  << " KB, count: " << count[pair.first] / 1024 << " K." << std::endl;
     }
     std::cout << "Total: " << total / 1024 / 1024 << " MB." << std::endl;;
   }
