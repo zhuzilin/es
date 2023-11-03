@@ -392,6 +392,9 @@ class Function : public AST {
   bool params_have_duplicated() { return params_have_duplicated_; }
   ProgramOrFunctionBody* body() { return body_; }
 
+  // this may not be accurate as there may be duplication.
+  size_t num_decls();
+
  private:
   bool name_is_eval_or_arguments_;
   bool params_have_eval_or_arguments_;
@@ -461,28 +464,30 @@ class ProgramOrFunctionBody : public AST {
 Function::Function(Handle<String> name, std::vector<Handle<String>> params, AST* body,
           std::u16string source, size_t start, size_t end) :
   AST(AST_FUNC, source, start, end), params_(params) {
-    ASSERT(body->type() == AST::AST_FUNC_BODY);
-    body_ = static_cast<ProgramOrFunctionBody*>(body);
-    name_ = name;
-    name_is_eval_or_arguments_ = !name.IsNullptr() &&
-                                  (StringEqual(name_, String::eval()) || StringEqual(name_, String::arguments()));
-    params_have_eval_or_arguments_ = false;
-    params_have_duplicated_ = false;
-    for (size_t i = 0; i < params.size(); ++i) {
-      if (StringEqual(params[i], String::eval()) || StringEqual(params[i], String::arguments())) {
-        params_have_eval_or_arguments_ = true;
-      }
-      for (size_t j = 0; j < i; ++j) {
-        if (StringEqual(params[i], params[j])) {
-          params_have_duplicated_ = true;
-        }
+  ASSERT(body->type() == AST::AST_FUNC_BODY);
+  body_ = static_cast<ProgramOrFunctionBody*>(body);
+  name_ = name;
+  name_is_eval_or_arguments_ = !name.IsNullptr() &&
+                                (StringEqual(name_, String::eval()) || StringEqual(name_, String::arguments()));
+  params_have_eval_or_arguments_ = false;
+  params_have_duplicated_ = false;
+  for (size_t i = 0; i < params.size(); ++i) {
+    if (StringEqual(params[i], String::eval()) || StringEqual(params[i], String::arguments())) {
+      params_have_eval_or_arguments_ = true;
+    }
+    for (size_t j = 0; j < i; ++j) {
+      if (StringEqual(params[i], params[j])) {
+        params_have_duplicated_ = true;
       }
     }
   }
+}
 
 Function::~Function() {
   delete body_;
 }
+
+size_t Function::num_decls() { return params_.size() + body_->num_decls(); }
 
 class LabelledStmt : public AST {
  public:

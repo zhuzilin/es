@@ -66,6 +66,7 @@ class HashMapV2 : public JSValue {
     size_t capacity = NextPowerOf2(guessed_occupancy + guessed_occupancy / 4 + 1);
     if (capacity < kDefaultHashMapSize)
       capacity = kDefaultHashMapSize;
+    assert(IsPowerOf2(capacity));
 
     if (ExtracGC::resize_released_maps[capacity].size()) {
       // no memory allocation
@@ -107,6 +108,36 @@ class HashMapV2 : public JSValue {
     // So we could use pointer.
     uint32_t hash = key.val()->Hash();
     Entry* p = map.val()->Probe(key.val(), hash);
+    if (p->is_empty()) {
+      map.val()->set_occupancy(map.val()->occupancy() + 1);
+      p->key = key.val();
+    }
+    p->hash = hash;
+    p->val = val.val();
+    entry_fn(p);
+    return map;
+  }
+
+  // Return when there exists one.
+  template<typename EntryFn = decltype(DoNothing)>
+  static Handle<HashMapV2> Create(
+    Handle<HashMapV2> map, Handle<String> key, Handle<JSValue> val, bool& created, EntryFn entry_fn = DoNothing
+  ) {
+    if (map.val()->occupancy() + map.val()->occupancy() / 4 + 1 >= map.val()->capacity()) {
+      Handle<HashMapV2> new_map = Resize(map);
+      ExtracGC::resize_released_maps[map.val()->capacity()].push(map.val());
+      map = new_map;
+    }
+
+    // There will not be any new memory allocated after this line.
+    // So we could use pointer.
+    uint32_t hash = key.val()->Hash();
+    Entry* p = map.val()->Probe(key.val(), hash);
+    // return when exists one.
+    created = p->is_empty();
+    if (!p->is_empty())
+      return map;
+
     if (p->is_empty()) {
       map.val()->set_occupancy(map.val()->occupancy() + 1);
       p->key = key.val();

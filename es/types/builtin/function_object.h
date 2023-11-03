@@ -268,7 +268,7 @@ Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function
     ASSERT(func_ast->is_named());
     ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
     Handle<EnvironmentRecord> env_rec = NewDeclarativeEnvironment(  // 1, 2
-      Runtime::TopLexicalEnv(), body->num_decls()
+      Runtime::TopLexicalEnv(), func_ast->num_decls()
     );
     Handle<String> identifier = func_ast->name();
     bool strict = body->strict() || Runtime::TopContext().strict();

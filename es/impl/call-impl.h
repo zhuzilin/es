@@ -72,7 +72,7 @@ Handle<JSValue> Call__Function(
   ASSERT(func.val()->IsFunctionObject());
   Handle<EnvironmentRecord> local_env = ExtracGC::TryPopFunctionEnvRec(code);
   if (local_env.IsNullptr()) {
-    local_env = NewDeclarativeEnvironment(func.val()->Scope(), code->num_decls());
+    local_env = NewDeclarativeEnvironment(func.val()->Scope(), O.val()->Code()->num_decls());
   } else {
     local_env.val()->SetOuter(func.val()->Scope());
   }

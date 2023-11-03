@@ -96,12 +96,20 @@ void DeclarationBindingInstantiation(
       Handle<JSValue> v = Undefined::Instance();
       if (i < arg_count)  // 4.d.i & 4.d.ii
         v = args[i];
-      bool arg_already_declared = HasBinding(env, arg_name);  // 4.d.iii
-      if (!arg_already_declared) {  // 4.d.iv
+      bool arg_already_declared;
+      if (env.val()->IsDeclarativeEnv()) {
         // NOTE(zhuzlin) I'm not sure if this should be false.
-        CreateAndSetMutableBinding(e, env, arg_name, false, v, strict);
-        if (unlikely(!e.val()->IsOk())) return;
+        arg_already_declared = !CreateNotExistsMutableBinding(
+          e, env, arg_name, false, v, strict);
       } else {
+        arg_already_declared = HasBinding(env, arg_name);  // 4.d.iii
+        if (!arg_already_declared) {
+          // NOTE(zhuzlin) I'm not sure if this should be false.
+          CreateAndSetMutableBinding(e, env, arg_name, false, v, strict);
+          if (unlikely(!e.val()->IsOk())) return;
+        }
+      }
+      if (arg_already_declared) {
         SetMutableBinding(e, env, arg_name, v, strict);  // 4.d.v
         if (unlikely(!e.val()->IsOk())) return;
       }
@@ -113,11 +121,18 @@ void DeclarationBindingInstantiation(
     Handle<String> fn = func_decl->name();
     Handle<FunctionObject> fo = InstantiateFunctionDeclaration(e, func_decl);
     if (unlikely(!e.val()->IsOk())) return;
-    bool func_already_declared = HasBinding(env, fn);
-    if (!func_already_declared) {  // 5.d
-      CreateAndSetMutableBinding(e, env, fn, configurable_bindings, fo, strict);
-      if (unlikely(!e.val()->IsOk())) return;
+    bool func_already_declared;
+    if (env.val()->IsDeclarativeEnv()) {
+      func_already_declared = !CreateNotExistsMutableBinding(
+        e, env, fn, configurable_bindings, fo, strict);
     } else {
+      func_already_declared = HasBinding(env, fn);
+      if (!func_already_declared) {  // 5.d
+        CreateAndSetMutableBinding(e, env, fn, configurable_bindings, fo, strict);
+        if (unlikely(!e.val()->IsOk())) return;
+      }
+    }
+    if (func_already_declared) {
       if (env.val() == EnvironmentRecord::Global().val()) {  // 5.e
         auto go = GlobalObject::Instance();
         StackPropertyDescriptor existing_prop_desc = GetProperty(go, fn);
@@ -158,10 +173,16 @@ void DeclarationBindingInstantiation(
   std::vector<VarDecl*>& decls = body->var_decls();
   for (VarDecl* d : decls) {
     Handle<String> dn = d->ident();
-    bool var_already_declared = HasBinding(env, dn);
-    if (!var_already_declared) {
-      CreateAndSetMutableBinding(e, env, dn, configurable_bindings, Undefined::Instance(), strict);
-      if (unlikely(!e.val()->IsOk())) return;
+    bool var_already_declared;
+    if (env.val()->IsDeclarativeEnv()) {
+      var_already_declared = !CreateNotExistsMutableBinding(
+        e, env, dn, configurable_bindings, Undefined::Instance(), strict);
+    } else {
+      var_already_declared = HasBinding(env, dn);
+      if (!var_already_declared) {
+        CreateAndSetMutableBinding(e, env, dn, configurable_bindings, Undefined::Instance(), strict);
+        if (unlikely(!e.val()->IsOk())) return;
+      }
     }
   }
 }

@@ -49,6 +49,21 @@ void CreateAndSetMutableBinding__Declarative(
   env_rec.val()->SetBindings(new_bindings);
 }
 
+bool CreateNotExistsMutableBinding(
+  Handle<Error>& e, Handle<DeclarativeEnvironmentRecord> env_rec, Handle<String> N, bool D, Handle<JSValue> V, bool S
+) {
+  ASSERT(V.val()->IsLanguageType());
+  ASSERT(env_rec.val()->IsDeclarativeEnv());
+  auto entry_fn = [D](HashMapV2::Entry* p) {
+    p->can_delete = D;
+    p->is_mutable = true;
+  };
+  bool created;
+  auto new_bindings = HashMapV2::Create(Handle<HashMapV2>(env_rec.val()->bindings()), N, V, created, entry_fn);
+  env_rec.val()->SetBindings(new_bindings);
+  return created;
+}
+
 // 10.2.1.2.2 CreateMutableBinding (N, D)
 // 10.2.1.2.3 SetMutableBinding (N,V,S)
 void CreateAndSetMutableBinding__Object(
@@ -140,8 +155,8 @@ Handle<JSValue> GetBindingValue__Object(
   Handle<Error>& e, Handle<ObjectEnvironmentRecord> env_rec, Handle<String> N, bool S
 ) {
   TEST_LOG("\033[2menter\033[0m GetBindingValue__Object " + N.ToString());
-  bool value = HasBinding(env_rec, N);
-  if (!value) {
+  StackPropertyDescriptor desc = GetProperty(env_rec.val()->bindings(), N);
+  if (desc.IsUndefined()) {
     if (S) {
       e = Error::ReferenceError(N.val()->data() + u" is not defined");
       return Handle<JSValue>();
@@ -149,7 +164,16 @@ Handle<JSValue> GetBindingValue__Object(
       return Undefined::Instance();
     }
   }
-  return Get(e, env_rec.val()->bindings(), N);
+  // The other half of Get
+  if (desc.IsDataDescriptor()) {
+    return desc.Value();
+  } else {
+    ASSERT(desc.IsAccessorDescriptor());
+    Handle<JSValue> getter = desc.Get();
+    if (getter.val()->IsUndefined())
+      return Undefined::Instance();
+    return Call(e, getter, env_rec.val()->bindings());
+  }
 }
 
 bool DeleteBinding(
