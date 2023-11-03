@@ -1560,7 +1560,14 @@ Handle<Reference> EvalIndexExpression(Handle<Error>& e, Handle<JSValue> base_ref
   if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   guard.AddValue(base_value);
-  CheckObjectCoercible(e, base_value);
+  if (unlikely(base_value.val()->IsUndefined() || base_value.val()->IsNull())) {
+    if (base_value.val()->IsUndefined()) {
+      e = Error::TypeError(u"cannot read property " + identifier_name.val()->data() + u" of undefined");
+    } else {
+      e = Error::TypeError(u"cannot read property " + identifier_name.val()->data() + u" of null");
+    }
+    return Handle<Reference>();
+  }
   if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   return Runtime::TopContext().AddReference(base_value, identifier_name);

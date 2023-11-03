@@ -199,10 +199,11 @@ error:
     assert(lexer_.Next().type() == Token::TK_LBRACE);
 
     ObjectLiteral* obj = new ObjectLiteral();
-    Token token = lexer_.NextAndRewind();
+    // don't detect arguments here.
+    Token token = lexer_.NextAndRewind(false, false);  // get next key
     while (token.type() != Token::TK_RBRACE) {
       if (token.IsPropertyName()) {
-        lexer_.Next();
+        lexer_.Next(false, false);
         if ((token.source() == u"get" || token.source() == u"set") &&
             lexer_.NextAndRewind().IsPropertyName()) {
           START_POS;
@@ -211,7 +212,8 @@ error:
             type = ObjectLiteral::Property::GET;
           else
             type = ObjectLiteral::Property::SET;
-          Token key = lexer_.Next();  // skip property name
+          // don't detect arguments here.
+          Token key = lexer_.Next(false, false);  // skip property name
           if (!key.IsPropertyName()) {
             goto error;
           }
@@ -259,7 +261,8 @@ error:
       token = lexer_.NextAndRewind();
       if (token.type() == Token::TK_COMMA) {
         lexer_.Next();  // Skip ,
-        token = lexer_.NextAndRewind();
+        // don't detect arguments here.
+        token = lexer_.NextAndRewind(false, false);  // get next key
       }
     }
     assert(token.type() == Token::TK_RBRACE);
@@ -458,7 +461,8 @@ error:
         }
         case Token::TK_DOT: {  // .
           lexer_.Next();  // skip .
-          token = lexer_.Next();  // skip IdentifierName
+          // don't detect arguments here.
+          token = lexer_.Next(false, false);  // skip IdentifierName
           if (!token.IsIdentifierName()) {
             delete lhs;
             goto error;
@@ -1227,6 +1231,7 @@ error:
   void EnterFunctionScope() {
     if (function_scope_stack_.size()) {
       function_scope_stack_.top().use_arguments_ = lexer_.meet_arguments_ident_;
+      lexer_.meet_arguments_ident_ = false;
     }
     FunctionScopeInfo info;
     function_scope_stack_.push(info);

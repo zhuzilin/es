@@ -19,7 +19,7 @@ class Lexer {
     UpdateC();
   }
 
-  Token Next(bool line_terminator = false) {
+  Token Next(bool line_terminator = false, bool detect_arguments = true) {
     Token token = Token(Token::Type::TK_NOT_FOUND, u"", 0, 0);
     do {
       size_t start = pos_;
@@ -329,7 +329,7 @@ class Lexer {
           } else if (character::IsDecimalDigit(c_)) {
             token = ScanNumericLiteral();
           } else if (character::IsIdentifierStart(c_)) {
-            token = ScanIdentifier();
+            token = ScanIdentifier(detect_arguments);
           } else {
             Advance();
             token = Token(Token::TK_ILLEGAL, source_.substr(start, 1), start, start + 1);
@@ -349,10 +349,10 @@ class Lexer {
     UpdateC();
   }
 
-  Token NextAndRewind(bool line_terminator = false) {
+  Token NextAndRewind(bool line_terminator = false, bool detect_arguments = true) {
     size_t old_pos = Pos();
     Token old_token = Last();
-    Token token = Next(line_terminator);
+    Token token = Next(line_terminator, detect_arguments);
     Rewind(old_pos, old_token);
     return token;
   }
@@ -732,7 +732,7 @@ error:
     return true;
   }
 
-  Token ScanIdentifier() {
+  Token ScanIdentifier(bool detect_arguments) {
     ASSERT(character::IsIdentifierStart(c_));
     size_t start = pos_;
     std::u16string source = u"";
@@ -780,7 +780,7 @@ error:
         return Token(Token::Type::TK_STRICT_FUTURE, source, start, pos_);
       }
     }
-    if (source == u"arguments") {
+    if (detect_arguments && source == u"arguments") {
       meet_arguments_ident_ = true;
     }
     return Token(Token::Type::TK_IDENT, source, start, pos_);
