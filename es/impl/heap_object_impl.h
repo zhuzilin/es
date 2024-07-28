@@ -6,7 +6,7 @@
 namespace es {
 
 template<typename T>
-std::string Handle<T>::ToString() {
+std::string Handle<T>::ToString() const {
   if (IsNullptr())
     return "nullptr";
   return JSValue::ToString(val());

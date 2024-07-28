@@ -144,19 +144,19 @@ class Handle {
     ptr_ = reinterpret_cast<T**>(base.ptr());
   }
 
-  T* val() {
+  T* val() const {
     if (ptr_ == nullptr)
       return nullptr;
     return *reinterpret_cast<T**>(ptr_);
   }
 
-  T** ptr() {
+  T** ptr() const {
     return ptr_;
   }
 
-  bool IsNullptr() { return ptr() == nullptr; }
+  bool IsNullptr() const { return ptr() == nullptr; }
 
-  std::string ToString();
+  std::string ToString() const;
 
  private:
   T** ptr_;

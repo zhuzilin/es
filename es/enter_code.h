@@ -32,7 +32,7 @@ Handle<ArgumentsObject> CreateArgumentsObject(
   Handle<EnvironmentRecord> env, bool strict
 ) {
   TEST_LOG("\033[2menter\033[0m CreateArgumentsObject");
-  std::vector<Handle<String>> names = func.val()->FormalParameters();
+  const std::vector<Handle<String>>& names = func.val()->FormalParameters();
   int len = args.size();
   Handle<JSObject> obj = ArgumentsObject::New(len);
   int indx = len - 1;  // 10
@@ -89,7 +89,7 @@ void DeclarationBindingInstantiation(
   bool strict = body->strict() || Runtime::TopContext().strict();  // 3
   if (code_type == CODE_FUNC) {  // 4
     ASSERT(!f.IsNullptr());
-    std::vector<Handle<String>> names = f.val()->FormalParameters();  // 4.a
+    const std::vector<Handle<String>>& names = f.val()->FormalParameters();  // 4.a
     size_t arg_count = args.size();  // 4.b
     for (size_t i = 0; i < names.size(); i++) {
       Handle<String> arg_name = names[i];  // 4.d

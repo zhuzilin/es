@@ -144,7 +144,7 @@ class FunctionObject : public JSObject {
     ASSERT(!from_bind());
     return READ_HANDLE_VALUE(this, kScopeOffset, EnvironmentRecord);
   };
-  std::vector<Handle<String>> FormalParameters() {
+  const std::vector<Handle<String>>& FormalParameters() {
     ASSERT(!from_bind());
     return Code()->params();
   };
@@ -225,7 +225,7 @@ Handle<JSValue> FunctionProto::toString(Handle<Error>& e, Handle<JSValue> this_a
   }
   Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(val);
   std::u16string str = u"function (";
-  std::vector<Handle<String>> params = func.val()->FormalParameters();
+  const std::vector<Handle<String>>& params = func.val()->FormalParameters();
   if (params.size() > 0) {
     str += params[0].val()->data();
     for (size_t i = 1; i < params.size(); i++) {

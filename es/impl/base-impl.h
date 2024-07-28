@@ -89,7 +89,7 @@ std::string JSValue::ToString(JSValue* jsval) {
     case OBJ_FUNC: {
       FunctionObject* func = static_cast<FunctionObject*>(jsval);
       std::string result = "Function(";
-      std::vector<Handle<String>> params = func->FormalParameters();
+      const std::vector<Handle<String>>& params = func->FormalParameters();
       if (params.size() > 0) {
         result += params[0].ToString();
         for (size_t i = 1; i < params.size(); i++) {

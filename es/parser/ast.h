@@ -146,7 +146,7 @@ class ArrayLiteral : public AST {
   }
 
   size_t length() { return len_; }
-  std::vector<std::pair<size_t, AST*>> elements() { return elements_; }
+  const std::vector<std::pair<size_t, AST*>>& elements() { return elements_; }
 
   void AddElement(AST* element) {
     if (element != nullptr) {
@@ -210,7 +210,7 @@ class ObjectLiteral : public AST {
     }
   }
 
-  std::vector<Property> properties() { return properties_; }
+  const std::vector<Property>& properties() { return properties_; }
 
   size_t length() { return properties_.size(); }
 
@@ -300,7 +300,7 @@ class Expression : public AST {
 
   void AddElement(AST* element) { elements_.push_back(element); }
 
-  std::vector<AST*> elements() { return elements_; }
+  std::vector<AST*>& elements() { return elements_; }
 
  private:
   std::vector<AST*> elements_;
@@ -315,7 +315,7 @@ class Arguments : public AST {
       delete arg;
   }
 
-  std::vector<AST*> args() { return args_; }
+  const std::vector<AST*>& args() { return args_; }
 
  private:
   std::vector<AST*> args_;
@@ -360,10 +360,10 @@ class LHS : public AST {
   AST* base() { return base_; }
   size_t total_count() { return total_count_; }
   size_t new_count() { return new_count_; }
-  std::vector<std::pair<size_t, PostfixType>> order() { return order_; }
-  std::vector<Arguments*> args_list() { return args_list_; }
-  std::vector<AST*> index_list() { return index_list_; }
-  std::vector<Handle<String>> prop_name_list() { return prop_name_list_; }
+  const std::vector<std::pair<size_t, PostfixType>>& order() { return order_; }
+  const std::vector<Arguments*>& args_list() { return args_list_; }
+  const std::vector<AST*>& index_list() { return index_list_; }
+  const std::vector<Handle<String>>& prop_name_list() { return prop_name_list_; }
 
  private:
   AST* base_;
@@ -387,7 +387,7 @@ class Function : public AST {
   bool is_named() { return !name_.IsNullptr(); }
   Handle<String> name() { return name_; }
   bool name_is_eval_or_arguments() { return name_is_eval_or_arguments_; }
-  std::vector<Handle<String>> params() { return params_; }
+  const std::vector<Handle<String>>& params() { return params_; }
   bool params_have_eval_or_arguments() { return params_have_eval_or_arguments_; }
   bool params_have_duplicated() { return params_have_duplicated_; }
   ProgramOrFunctionBody* body() { return body_; }
@@ -439,8 +439,8 @@ class ProgramOrFunctionBody : public AST {
   }
 
   bool strict() { return strict_; }
-  std::vector<Function*> func_decls() { return func_decls_; }
-  std::vector<AST*> statements() { return stmts_; }
+  const std::vector<Function*>& func_decls() { return func_decls_; }
+  const std::vector<AST*>& statements() { return stmts_; }
 
   std::vector<VarDecl*>& var_decls() { return var_decls_; }
   void SetVarDecls(std::vector<VarDecl*>&& var_decls) { var_decls_ = var_decls; }
@@ -587,7 +587,7 @@ class VarStmt : public AST {
     decls_.emplace_back(static_cast<VarDecl*>(decl));
   }
 
-  std::vector<VarDecl*> decls() { return decls_; }
+  const std::vector<VarDecl*>& decls() { return decls_; }
 
  public:
   std::vector<VarDecl*> decls_;
@@ -605,7 +605,7 @@ class Block : public AST {
     stmts_.emplace_back(stmt);
   }
 
-  std::vector<AST*> statements() { return stmts_; }
+  const std::vector<AST*>& statements() { return stmts_; }
 
  public:
   std::vector<AST*> stmts_;
@@ -760,13 +760,13 @@ class Switch : public AST {
   }
 
   AST* expr() { return expr_; }
-  std::vector<CaseClause> before_default_case_clauses() { return before_default_case_clauses_; }
+  const std::vector<CaseClause>& before_default_case_clauses() { return before_default_case_clauses_; }
   bool has_default_clause() { return has_default_clause_; }
   DefaultClause default_clause() {
     ASSERT(has_default_clause());
     return default_clause_;
   }
-  std::vector<CaseClause> after_default_case_clauses() { return after_default_case_clauses_; }
+  const std::vector<CaseClause>& after_default_case_clauses() { return after_default_case_clauses_; }
 
  private:
   AST* expr_;
@@ -782,7 +782,7 @@ class For : public AST {
       std::u16string source, size_t start, size_t end) :
     AST(AST_STMT_FOR, source, start, end), expr0s_(expr0s), expr1_(expr1), expr2_(expr2), stmt_(stmt) {}
 
-  std::vector<AST*> expr0s() { return expr0s_; }
+  std::vector<AST*>& expr0s() { return expr0s_; }
   AST* expr1() { return expr1_; }
   AST* expr2() { return expr2_; }
   AST* statement() { return stmt_; }
