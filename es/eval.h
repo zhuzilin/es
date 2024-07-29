@@ -939,7 +939,7 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
       default: {
         ASSERT(property.value->type() == AST::AST_FUNC);
         Function* func_ast = static_cast<Function*>(property.value);
-        bool strict_func = static_cast<ProgramOrFunctionBody*>(func_ast->body())->strict();
+        bool strict_func = func_ast->body()->strict();
         if (strict || strict_func) {
           if (func_ast->params_have_eval_or_arguments()) {
             e = Error::SyntaxError(u"object cannot have getter or setter named eval or arguments");
@@ -1080,66 +1080,68 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
       bool b = ToBoolean(val);
       return Bool::Wrap(!b);
     }
-    case Token::TK_KEYWORD: {
-      if (op.source_ref() == u"delete") {  // 11.4.1 The delete Operator
-        if (!expr.val()->IsReference())  // 2
-          return Bool::True();
+    case Token::TK_KEYWORD_DELETE: {  // 11.4.1 The delete Operator
+      if (!expr.val()->IsReference())  // 2
+        return Bool::True();
+      Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
+      auto stack_ref = Runtime::TopContext().GetReference(ref.val()->id());
+      Handle<JSValue> base = stack_ref.base;
+      Handle<String> ref_name = stack_ref.name;
+      bool is_strict_ref = Runtime::TopContext().strict();
+      if (Reference::IsUnresolvableReference(base)) {  // 3
+        if (is_strict_ref) {
+          e = Error::SyntaxError(u"delete not exist variable " + ref_name.val()->data());
+          return Bool::False();
+        }
+        return Bool::True();
+      }
+      if (Reference::IsPropertyReference(base)) {  // 4
+        Handle<JSObject> obj = ToObject(e, base);
+        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+        return Bool::Wrap(Delete(e, obj, ref_name, is_strict_ref));
+      } else {
+        if (is_strict_ref) {
+          e = Error::SyntaxError(u"cannot delete environment record in strict mode");
+          return Bool::False();
+        }
+        Handle<EnvironmentRecord> bindings = static_cast<Handle<EnvironmentRecord>>(base);
+        return Bool::Wrap(DeleteBinding(e, bindings, ref_name));
+      }
+      assert(false);
+    }
+    case Token::TK_KEYWORD_TYPEOF: {
+      if (expr.val()->IsReference()) {
         Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
         auto stack_ref = Runtime::TopContext().GetReference(ref.val()->id());
         Handle<JSValue> base = stack_ref.base;
-        Handle<String> ref_name = stack_ref.name;
-        bool is_strict_ref = Runtime::TopContext().strict();
-        if (Reference::IsUnresolvableReference(base)) {  // 3
-          if (is_strict_ref) {
-            e = Error::SyntaxError(u"delete not exist variable " + ref_name.val()->data());
-            return Bool::False();
-          }
-          return Bool::True();
-        }
-        if (Reference::IsPropertyReference(base)) {  // 4
-          Handle<JSObject> obj = ToObject(e, base);
-          if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-          return Bool::Wrap(Delete(e, obj, ref_name, is_strict_ref));
-        } else {
-          if (is_strict_ref) {
-            e = Error::SyntaxError(u"cannot delete environment record in strict mode");
-            return Bool::False();
-          }
-          Handle<EnvironmentRecord> bindings = static_cast<Handle<EnvironmentRecord>>(base);
-          return Bool::Wrap(DeleteBinding(e, bindings, ref_name));
-        }
-      } else if (op.source_ref() == u"typeof") {
-        if (expr.val()->IsReference()) {
-          Handle<Reference> ref = static_cast<Handle<Reference>>(expr);
-          auto stack_ref = Runtime::TopContext().GetReference(ref.val()->id());
-          Handle<JSValue> base = stack_ref.base;
-          if (Reference::IsUnresolvableReference(base))
-            return String::undefined();
-        }
-        Handle<JSValue> val = GetValue(e, expr);
-        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-        switch (val.val()->type()) {
-          case Type::JS_UNDEFINED:
-            return String::undefined();
-          case Type::JS_NULL:
-            return String::object();
-          case Type::JS_BOOL:
-            return String::boolean();
-          case Type::JS_NUMBER:
-            return String::number();
-          case Type::JS_LONG_STRING:
-          case Type::JS_STRING:
-            return String::string();
-          default:
-            if (val.val()->IsCallable())
-              return String::function();
-            return String::object();
-        }
-      } else if (op.source_ref() == u"void") {
-        GetValue(e, expr);
-        if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-        return Undefined::Instance();
+        if (Reference::IsUnresolvableReference(base))
+          return String::undefined();
       }
+      Handle<JSValue> val = GetValue(e, expr);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      switch (val.val()->type()) {
+        case Type::JS_UNDEFINED:
+          return String::undefined();
+        case Type::JS_NULL:
+          return String::object();
+        case Type::JS_BOOL:
+          return String::boolean();
+        case Type::JS_NUMBER:
+          return String::number();
+        case Type::JS_LONG_STRING:
+        case Type::JS_STRING:
+          return String::string();
+        default:
+          if (val.val()->IsCallable())
+            return String::function();
+          return String::object();
+      }
+      assert(false);
+    }
+    case Token::TK_KEYWORD_VOID: {
+      GetValue(e, expr);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      return Undefined::Instance();
       assert(false);
     }
     default:
@@ -1200,10 +1202,8 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, Handle<JSValue
     case Token::TK_BIT_OR:   // |
     case Token::TK_BIT_XOR:  // ^
       return EvalBitwiseOperator(e, op, lval, rval);
-    case Token::TK_KEYWORD:
-      if (op.source_ref() != u"instanceof" && op.source_ref() != u"in")
-        assert(false);
-      [[fallthrough]];
+    case Token::TK_KEYWORD_INSTANCE_OF:
+    case Token::TK_KEYWORD_IN:
     case Token::TK_LT:   // <
     case Token::TK_GT:   // >
     case Token::TK_LE:   // <=
@@ -1310,27 +1310,25 @@ Handle<JSValue> EvalRelationalOperator(Handle<Error>& e, Token& op, Handle<JSVal
         return Bool::False();
       return Bool::Wrap(!static_cast<Handle<Bool>>(r).val()->data());
     }
-    case Token::TK_KEYWORD: {
-      if (op.source_ref() == u"instanceof") {
-        if (!rval.val()->IsObject()) {
-          e = Error::TypeError(u"Right-hand side of 'instanceof' is not an object");
-          return Handle<JSValue>();
-        }
-        if (!rval.val()->IsCallable()) {
-          e = Error::TypeError(u"Right-hand side of 'instanceof' is not callable");
-          return Handle<JSValue>();
-        }
-        Handle<JSObject> obj = static_cast<Handle<JSObject>>(rval);
-        return Bool::Wrap(HasInstance(e, obj, lval));
-      } else if (op.source_ref() == u"in") {
-        if (!rval.val()->IsObject()) {
-          e = Error::TypeError(u"in called on non-object");
-          return Handle<JSValue>();
-        }
-        Handle<JSObject> obj = static_cast<Handle<JSObject>>(rval);
-        return Bool::Wrap(HasProperty(obj, ToString(e, lval)));
+    case Token::TK_KEYWORD_INSTANCE_OF: {
+      if (!rval.val()->IsObject()) {
+        e = Error::TypeError(u"Right-hand side of 'instanceof' is not an object");
+        return Handle<JSValue>();
       }
-      [[fallthrough]];
+      if (!rval.val()->IsCallable()) {
+        e = Error::TypeError(u"Right-hand side of 'instanceof' is not callable");
+        return Handle<JSValue>();
+      }
+      Handle<JSObject> obj = static_cast<Handle<JSObject>>(rval);
+      return Bool::Wrap(HasInstance(e, obj, lval));
+    }
+    case Token::TK_KEYWORD_IN: {
+      if (!rval.val()->IsObject()) {
+        e = Error::TypeError(u"in called on non-object");
+        return Handle<JSValue>();
+      }
+      Handle<JSObject> obj = static_cast<Handle<JSObject>>(rval);
+      return Bool::Wrap(HasProperty(obj, ToString(e, lval)));
     }
     default:
       assert(false);

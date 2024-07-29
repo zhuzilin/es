@@ -66,7 +66,7 @@ Handle<JSValue> Call__Construct(
 Handle<JSValue> Call__Function(
   Handle<Error>& e, Handle<FunctionObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
-  ProgramOrFunctionBody* code = O.val()->Code()->body();
+  ProgramOrFunctionBody* const code = O.val()->Code()->body();
   TEST_LOG("\033[1;32menter FunctionObject::Call\033[0m\n", code->source(), "\n");
   Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(O);
   ASSERT(func.val()->IsFunctionObject());

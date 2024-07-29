@@ -266,7 +266,7 @@ Handle<JSValue> FunctionProto::bind(Handle<Error>& e, Handle<JSValue> this_arg, 
 
 Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function* func_ast) {
     ASSERT(func_ast->is_named());
-    ProgramOrFunctionBody* body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
+    auto body = func_ast->body();
     Handle<EnvironmentRecord> env_rec = NewDeclarativeEnvironment(  // 1, 2
       Runtime::TopLexicalEnv(), func_ast->num_decls()
     );
@@ -309,7 +309,7 @@ Handle<JSValue> EvalFunction(Handle<Error>& e, AST* ast) {
   if (func_ast->is_named()) {
     return InstantiateFunctionDeclaration(e, func_ast);
   } else {
-    auto body = static_cast<ProgramOrFunctionBody*>(func_ast->body());
+    auto body = func_ast->body();
     bool strict = body->strict() || Runtime::TopContext().strict();
     if (strict) {
       // 13.1

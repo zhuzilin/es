@@ -35,7 +35,7 @@ class Completion {
   void SetValue(JSValue* val) {
     value_ = Handle<JSValue>(val);
   }
-  std::u16string target() { return target_; }
+  const std::u16string& target() { return target_; }
 
   bool IsAbruptCompletion() { return type_ != NORMAL; }
   bool IsThrow() { return type_ == THROW; }

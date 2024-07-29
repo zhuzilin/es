@@ -765,6 +765,24 @@ error:
     if (source == u"true" || source == u"false") {
       return Token(Token::Type::TK_BOOL, source, start, pos_);
     }
+    if (source == u"delete") {
+      return Token(Token::Type::TK_KEYWORD_DELETE, source, start, pos_);
+    }
+    if (source == u"void") {
+      return Token(Token::Type::TK_KEYWORD_VOID, source, start, pos_);
+    }
+    if (source == u"typeof") {
+      return Token(Token::Type::TK_KEYWORD_TYPEOF, source, start, pos_);
+    }
+    if (source == u"in") {
+      return Token(Token::Type::TK_KEYWORD_IN, source, start, pos_);
+    }
+    if (source == u"instanceof") {
+      return Token(Token::Type::TK_KEYWORD_INSTANCE_OF, source, start, pos_);
+    }
+    if (source == u"this") {
+      return Token(Token::Type::TK_KEYWORD_THIS, source, start, pos_);
+    }
     for (auto keyword : kKeywords) {
       if (source == keyword) {
         return Token(Token::Type::TK_KEYWORD, source, start, pos_);

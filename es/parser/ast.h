@@ -109,7 +109,7 @@ class AST {
 
   bool IsIllegal() { return type_ == AST_ILLEGAL; }
 
-  std::u16string label() { return label_; }
+  const std::u16string& label() { return label_; }
   void SetLabel(std::u16string label) { label_ = label; }
 
  private:
@@ -195,6 +195,12 @@ class ObjectLiteral : public AST {
     switch (token.type()) {
       case Token::TK_STRICT_FUTURE:
       case Token::TK_IDENT:
+      case Token::TK_KEYWORD_DELETE:
+      case Token::TK_KEYWORD_VOID:
+      case Token::TK_KEYWORD_TYPEOF:
+      case Token::TK_KEYWORD_IN:
+      case Token::TK_KEYWORD_INSTANCE_OF:
+      case Token::TK_KEYWORD_THIS:
       case Token::TK_KEYWORD:
       case Token::TK_FUTURE:
       case Token::TK_NULL:
@@ -384,13 +390,13 @@ class Function : public AST {
 
   ~Function() override;
 
-  bool is_named() { return !name_.IsNullptr(); }
-  Handle<String> name() { return name_; }
-  bool name_is_eval_or_arguments() { return name_is_eval_or_arguments_; }
-  const std::vector<Handle<String>>& params() { return params_; }
-  bool params_have_eval_or_arguments() { return params_have_eval_or_arguments_; }
-  bool params_have_duplicated() { return params_have_duplicated_; }
-  ProgramOrFunctionBody* body() { return body_; }
+  bool is_named() const { return !name_.IsNullptr(); }
+  Handle<String> name() const { return name_; }
+  bool name_is_eval_or_arguments() const { return name_is_eval_or_arguments_; }
+  const std::vector<Handle<String>>& params() const { return params_; }
+  bool params_have_eval_or_arguments() const { return params_have_eval_or_arguments_; }
+  bool params_have_duplicated() const { return params_have_duplicated_; }
+  ProgramOrFunctionBody* body() const { return body_; }
 
   // this may not be accurate as there may be duplication.
   size_t num_decls();
@@ -493,16 +499,16 @@ size_t Function::num_decls() { return params_.size() + body_->num_decls(); }
 class LabelledStmt : public AST {
  public:
   LabelledStmt(Token label, AST* stmt, std::u16string source, size_t start, size_t end) :
-    AST(AST_STMT_LABEL, source, start, end), label_(label), stmt_(stmt) {}
+    AST(AST_STMT_LABEL, source, start, end), label_(label.source()), stmt_(stmt) {}
   ~LabelledStmt() {
     delete stmt_;
   }
 
-  std::u16string label() { return label_.source(); }
+  const std::u16string& label() { return label_; }
   AST* statement() { return stmt_; }
 
  private:
-  Token label_;
+  std::u16string label_;
   AST* stmt_;
 };
 

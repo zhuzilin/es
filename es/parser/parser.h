@@ -23,12 +23,9 @@ class Parser {
   AST* ParsePrimaryExpression() {
     Token token = lexer_.NextAndRewind();
     switch (token.type()) {
-      case Token::TK_KEYWORD:
-        if (token.source() == u"this") {
-          lexer_.Next();
-          return new AST(AST::AST_EXPR_THIS, TOKEN_SOURCE);
-        }
-        goto error;
+      case Token::TK_KEYWORD_THIS:
+        lexer_.Next();
+        return new AST(AST::AST_EXPR_THIS, TOKEN_SOURCE);
       case Token::TK_STRICT_FUTURE:
         lexer_.Next();
         return new AST(AST::AST_EXPR_STRICT_FUTURE, TOKEN_SOURCE);

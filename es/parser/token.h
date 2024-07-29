@@ -15,6 +15,12 @@ class Token {
     TK_IDENT = 0,
 
     // Keywords
+    TK_KEYWORD_DELETE,
+    TK_KEYWORD_VOID,
+    TK_KEYWORD_TYPEOF,
+    TK_KEYWORD_IN,
+    TK_KEYWORD_INSTANCE_OF,
+    TK_KEYWORD_THIS,
     TK_KEYWORD,
 
     // Future Reserved Words
@@ -183,11 +189,11 @@ class Token {
       case TK_MOD:
         return 11;
 
-      case TK_KEYWORD:
-        if (source() == u"instanceof") {
-          return 8;
+      case TK_KEYWORD_INSTANCE_OF:
+        return 8;
+      case TK_KEYWORD_IN:
         // To prevent parsing for(a in b).
-        } else if (!no_in && source() == u"in") {
+        if (!no_in) {
           return 8;
         }
         [[fallthrough]];
@@ -207,11 +213,10 @@ class Token {
       case TK_LOGICAL_NOT:
         return 100;  // UnaryExpresion always have higher priority.
 
-      case TK_KEYWORD:
-        if (source() == u"delete" || source() == u"void" || source() == u"typeof") {
-          return 100;
-        }
-        [[fallthrough]];
+      case TK_KEYWORD_DELETE:
+      case TK_KEYWORD_VOID:
+      case TK_KEYWORD_TYPEOF:
+        return 100;
       default:
         return -1;
     }
@@ -247,13 +252,13 @@ class Token {
 };
 
 const std::array<std::u16string, 26> kKeywords = {
-  u"break",    u"do",       u"instanceof", u"typeof",
+  u"break",    u"do",
   u"case",     u"else",     u"new",        u"var",
   u"catch",    u"finally",  u"return",     u"void",
   u"continue", u"for",      u"switch",     u"while",
-  u"debugger", u"function", u"this",       u"with",
+  u"debugger", u"function", u"with",
   u"default",  u"if",       u"throw",
-  u"delete",   u"in",       u"try",
+  u"try",
 };
 
 const std::array<std::u16string, 7> kFutureReservedWords = {

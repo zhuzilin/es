@@ -126,10 +126,6 @@ class PropertyMap : public JSValue {
     } else {
       StackPropertyDescriptor desc;
       auto entry_fn = [&desc](HashMapV2::Entry* p) mutable {
-        if (p->key == nullptr) {
-          desc = StackPropertyDescriptor::Undefined();
-          return;
-        }
         ASSERT(p != nullptr && p->val != nullptr);
         if (p->val->IsPropertyDescriptor()) {
           desc = ToStack(p->val);
