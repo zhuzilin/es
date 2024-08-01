@@ -12,12 +12,12 @@ Handle<JSValue> ObjectConstructor::keys(Handle<Error>& e, Handle<JSValue> this_a
     return Handle<JSValue>();
   }
   Handle<JSObject> O = static_cast<Handle<JSObject>>(vals[0]);
-  auto properties = O.val()->AllEnumerableProperties();
-  size_t n = properties.size();
+  auto keys = O.val()->AllEnumerableKeys();
+  size_t n = keys.size();
   Handle<ArrayObject> arr_obj = ArrayObject::New(n);
   for (size_t index = 0; index < n; index++) {
     AddValueProperty(arr_obj, 
-      NumberToString(index), properties[index].first, true, true, true);
+      NumberToString(index), keys[index], true, true, true);
   }
   return arr_obj;
 }

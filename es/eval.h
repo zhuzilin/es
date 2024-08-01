@@ -425,8 +425,7 @@ Completion EvalForInStatement(AST* ast) {
     obj = ToObject(e, expr_val);
     if (unlikely(!e.val()->IsOk())) goto error;
 
-    for (auto pair : obj.val()->AllEnumerableProperties()) {
-      Handle<String> P = pair.first;
+    for (Handle<String> P : obj.val()->AllEnumerableKeys()) {
       IdentifierResolutionAndPutValue(e, var_name, P);
       if (unlikely(!e.val()->IsOk())) goto error;
 
@@ -453,8 +452,7 @@ Completion EvalForInStatement(AST* ast) {
       return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
     }
     obj = ToObject(e, expr_val);
-    for (auto pair : obj.val()->AllEnumerableProperties()) {
-      Handle<String> P = pair.first;
+    for (Handle<String> P : obj.val()->AllEnumerableKeys()) {
       EvalExpressionAndPutValue(e, for_in_stmt->expr0(), P);
       if (unlikely(!e.val()->IsOk())) goto error;
 

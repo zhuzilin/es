@@ -155,39 +155,17 @@ class PropertyMap : public JSValue {
     hashmap().val()->Delete(key);
   }
 
-  template<typename Filter>
-  std::vector<std::pair<String*, StackPropertyDescriptor>> SortedKeyValPairs(Filter filter) {
-    std::vector<std::pair<String*, StackPropertyDescriptor>> result;
+  template<typename DescFilter, typename EntryFilter>
+  std::vector<Handle<String>> SortedKeys(DescFilter desc_filter, EntryFilter entry_filter) {
+    std::vector<Handle<String>> result;
     for (uint32_t i = 0; i < num_fixed_slots(); ++i) {
-      StackPropertyDescriptor val = ToStack(GetRawArray(i));
-      if (!val.IsUndefined())
-        result.emplace_back(std::make_pair(String::New(i).val(), val));
-    }
-    auto entry_fn = [](HashMapV2::Entry* p) -> StackPropertyDescriptor {
-      if (p->key == nullptr) {
-        return StackPropertyDescriptor::Undefined();
+      PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(GetRawArray(i));
+      if (desc && desc_filter(desc)) {
+        result.emplace_back(String::New(i));
       }
-      ASSERT(p->val != nullptr);
-      if (p->val->IsPropertyDescriptor()) {
-        return ToStack(p->val);
-      } else {
-        StackPropertyDescriptor desc;
-        desc.SetValue(Handle<JSValue>(p->val));
-        if (p->has_writable)
-          desc.SetWritable(p->writable);
-        if (p->has_configurable)
-          desc.SetConfigurable(p->configurable);
-        if (p->has_enumerable)
-          desc.SetEnumerable(p->enumerable);
-        return desc;
-      }
-    };
-    std::vector<std::pair<String*, StackPropertyDescriptor>> hashmap_result =
-      hashmap().val()->SortedKeyValPairs<StackPropertyDescriptor>(entry_fn);
-    for (auto pair : hashmap_result) {
-      if (filter(pair.second))
-        result.emplace_back(pair.first, pair.second);
     }
+    std::vector<Handle<String>> hashmap_result = hashmap().val()->SortedKeys(entry_filter);
+    result.insert(result.end(), hashmap_result.begin(), hashmap_result.end());
     return result;
   }
 

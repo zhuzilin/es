@@ -196,6 +196,7 @@ bool UpdateOwnProperty__ArrayObject(Handle<Error>& e, Handle<JSObject> O, Handle
     }
   }
 
+  // fallback to deal with length
   StackPropertyDescriptor desc = O.val()->named_properties()->Get(P);
   if (desc.IsUndefined()) {
     return false;
@@ -278,7 +279,6 @@ bool UpdateOwnProperty__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String
 void Put(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
   TEST_LOG("\033[2menter\033[0m Put " + O.ToString() + "." + P.ToString() + " = " + V.ToString());
   ASSERT(V.val()->IsLanguageType());
-  // merge Put and CanPut
   if (UpdateOwnProperty(e, O, P, V, throw_flag)) {
     return;
   }

@@ -133,19 +133,23 @@ class JSObject : public JSValue {
   }
 
   // This for for-in statement.
-  std::vector<std::pair<Handle<String>, StackPropertyDescriptor>> AllEnumerableProperties() {
-    auto filter = [](StackPropertyDescriptor desc) {
-      return desc.HasEnumerable() && desc.Enumerable();
+  std::vector<Handle<String>> AllEnumerableKeys() {
+    auto desc_filter = [](PropertyDescriptor* desc) -> bool {
+      return desc->HasEnumerable() && desc->Enumerable();
     };
-    std::vector<std::pair<Handle<String>, StackPropertyDescriptor>> result;
-    for (auto pair : named_properties()->SortedKeyValPairs(filter)) {
-      result.emplace_back(std::make_pair(Handle<String>(pair.first), pair.second));
-    }
+    auto entry_filter = [](HashMapV2::Entry* p) -> bool {
+      if (p->val->IsPropertyDescriptor()) {
+        auto desc = static_cast<PropertyDescriptor*>(p->val);
+        return desc->HasEnumerable() && desc->Enumerable();
+      }
+      return p->has_enumerable && p->enumerable;
+    };
+    std::vector<Handle<String>> result = named_properties()->SortedKeys(desc_filter, entry_filter);
     if (!Prototype().val()->IsNull()) {
       Handle<JSObject> proto = static_cast<Handle<JSObject>>(Prototype());
-      for (auto pair : proto.val()->AllEnumerableProperties()) {
-        if (named_properties()->Get(pair.first).IsUndefined()) {
-          result.emplace_back(pair);
+      for (auto key : proto.val()->AllEnumerableKeys()) {
+        if (named_properties()->Get(key).IsUndefined()) {
+          result.emplace_back(key);
         }
       }
     }

@@ -216,7 +216,7 @@ TEST(TestEvalExpr, Object) {
     Handle<JSValue> val = EvalObject(e, ast);
     EXPECT_EQ(JSValue::OBJ_OBJECT, val.val()->type());
     Handle<Object> obj = static_cast<Handle<Object>>(val);
-    EXPECT_EQ(2, obj.val()->AllEnumerableProperties().size());
+    EXPECT_EQ(2, obj.val()->AllEnumerableKeys().size());
   }
 }
 

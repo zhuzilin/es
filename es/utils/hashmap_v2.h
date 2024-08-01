@@ -254,8 +254,8 @@ class HashMapV2 : public JSValue {
     set_occupancy(occupancy() - 1);
   }
 
-  template<typename T = JSValue*, typename EntryFn = decltype(ReturnValue)>
-  std::vector<std::pair<String*, T>> SortedKeyValPairs(EntryFn entry_fn = ReturnValue) {
+  template<typename Filter>
+  std::vector<Handle<String>> SortedKeys(Filter filter) {
     std::priority_queue<Entry*, std::vector<Entry*>, CompareListNode> pq;
     uint32_t n = occupancy();
     for (Entry* p = map_start(); n > 0; ++p) {
@@ -264,11 +264,13 @@ class HashMapV2 : public JSValue {
         n--;
       }
     }
-    std::vector<std::pair<String*, T>> result;
+    std::vector<Handle<String>> result;
     while (!pq.empty()) {
       Entry* p = pq.top();
       pq.pop();
-      result.emplace_back(std::make_pair(p->key, entry_fn(p)));
+      if (filter(p)) {
+        result.emplace_back(p->key);
+      }
     }
     return result;
   }
