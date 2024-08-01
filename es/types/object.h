@@ -202,6 +202,10 @@ Handle<JSValue> Call__Construct(Handle<Error>& e, Handle<JSObject> O, Handle<JSV
 
 Handle<JSObject> Construct(Handle<Error>& e, Handle<JSObject> O, std::vector<Handle<JSValue>> arguments);
 
+bool UpdateOwnProperty(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag);
+bool UpdateOwnProperty__ArrayObject(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag);
+bool UpdateOwnProperty__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag);
+
 }  // namespace
 
 #endif  // ES_OBJECT_H

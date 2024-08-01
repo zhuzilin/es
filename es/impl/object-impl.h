@@ -140,28 +140,72 @@ bool CanPut(Handle<JSObject> O, Handle<String> P) {
   }
 }
 
-// if O has property P and P can be updated, return true
-// if error, return true
-// otherwise return false, so that Put could check the prototype.
-bool UpdateOwnProperty(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
-  StackPropertyDescriptor desc = O.val()->named_properties()->Get(P);
-  if (desc.IsUndefined()) {
-    // Raise on all array index is not what spec does, but what node does...
-    if (O.val()->IsStringObject() && P.val()->IsArrayIndex()) {
+bool UpdatePropertyDescriptor(
+    Handle<Error>& e,
+    Handle<PropertyDescriptor> desc,
+    Handle<JSObject> O,
+    Handle<String> P,
+    Handle<JSValue> V,
+    bool throw_flag
+) {
+  ASSERT(!desc.IsNullptr());
+  if (desc.val()->IsAccessorDescriptor()) {
+    Handle<JSValue> setter = desc.val()->Set();
+    if (unlikely(setter.val()->IsUndefined())) {
       if (throw_flag) {
         e = Error::TypeError(u"cannot put " + P.val()->data());
       }
       return true;
     }
-    return false;
-  }
-  // 2
-  if (desc.IsDataDescriptor()) {  // 3
-    if (!desc.Writable()) {
-      if (throw_flag) {  // 1.a
+    Call(e, setter, O, {V});
+    return true;
+  } else {
+    ASSERT(desc.val()->IsDataDescriptor());
+    if (unlikely(!desc.val()->Writable())) {
+      if (throw_flag) {
         e = Error::TypeError(u"cannot put " + P.val()->data());
       }
-      return true;  // 1.b
+      return true;
+    }
+    desc.val()->SetValue(V);
+  }
+  return true;
+}
+
+bool UpdateOwnProperty(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
+  if (O.val()->IsArrayObject()) {
+    return UpdateOwnProperty__ArrayObject(e, O, P, V, throw_flag);
+  }
+  return UpdateOwnProperty__Base(e, O, P, V, throw_flag);
+}
+
+bool UpdateOwnProperty__ArrayObject(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
+  bool is_array_index = P.val()->IsArrayIndex();
+  if (!is_array_index && !StringEqual(P, String::Length())) {
+    return UpdateOwnProperty__Base(e, static_cast<Handle<JSObject>>(O), P, V, throw_flag);
+  }
+  if (is_array_index) {
+    // get length if index <= length go back to Base
+    double index = P.val()->Index();
+    StackPropertyDescriptor len_desc = GetOwnProperty(O, String::Length());
+    ASSERT(!len_desc.IsUndefined());
+    double len = ToNumber(e, len_desc.Value());
+    if (unlikely(!e.val()->IsOk())) return true;
+    if (index < len) {
+      return UpdateOwnProperty__Base(e, static_cast<Handle<JSObject>>(O), P, V, throw_flag);
+    }
+  }
+
+  StackPropertyDescriptor desc = O.val()->named_properties()->Get(P);
+  if (desc.IsUndefined()) {
+    return false;
+  }
+  if (desc.IsDataDescriptor()) {
+    if (!desc.Writable()) {
+      if (throw_flag) {
+        e = Error::TypeError(u"cannot put " + P.val()->data());
+      }
+      return true;
     }
     StackPropertyDescriptor value_desc;
     value_desc.SetValue(V);
@@ -169,16 +213,64 @@ bool UpdateOwnProperty(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, H
   } else {
     ASSERT(desc.IsAccessorDescriptor());
     if (desc.Set().val()->IsUndefined()) {
-      if (throw_flag) {  // 1.a
+      if (throw_flag) {
         e = Error::TypeError(u"cannot put " + P.val()->data());
       }
-      return true;  // 1.b
+      return true;
     }
     Handle<JSValue> setter = desc.Set();
     ASSERT(!setter.val()->IsUndefined());
     Call(e, setter, O, {V});
   }
   return true;
+}
+
+// if O has property P and P can be updated, return true
+// if error, return true
+// otherwise return false, so that Put could check the prototype.
+bool UpdateOwnProperty__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P, Handle<JSValue> V, bool throw_flag) {
+  Handle<PropertyMap> map(O.val()->named_properties());
+  if (map.val()->IsSmallArrayIndex(P)) {
+    uint32_t index = P.val()->Index();
+    Handle<PropertyDescriptor> desc(
+        static_cast<PropertyDescriptor*>(map.val()->GetRawArray(index)));
+    if (desc.IsNullptr()) {
+      if (unlikely(O.val()->IsStringObject() && P.val()->IsArrayIndex())) {
+        if (throw_flag) {
+          e = Error::TypeError(u"cannot put " + P.val()->data());
+        }
+        return true;
+      }
+      return false;
+    }
+    return UpdatePropertyDescriptor(e, desc, O, P, V, throw_flag);
+  } else {
+    HashMapV2::Entry* p = map.val()->hashmap().val()->GetEntry(P);
+    if (p == nullptr) {
+      if (unlikely(O.val()->IsStringObject() && P.val()->IsArrayIndex())) {
+        if (throw_flag) {
+          e = Error::TypeError(u"cannot put " + P.val()->data());
+        }
+        return true;
+      }
+      return false;
+    }
+
+    if (p->val->IsPropertyDescriptor()) {
+      Handle<PropertyDescriptor> desc(static_cast<PropertyDescriptor*>(p->val));
+      return UpdatePropertyDescriptor(e, desc, O, P, V, throw_flag);
+    } else {
+      if (unlikely(!p->writable)) {
+        if (throw_flag) {
+          e = Error::TypeError(u"cannot put " + P.val()->data());
+          return true;
+        }
+        return true;
+      }
+      p->val = V.val();
+    }
+    return true;
+  }
 }
 
 // [[Put]]

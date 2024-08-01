@@ -191,7 +191,6 @@ class PropertyMap : public JSValue {
     return result;
   }
 
- private:
   bool IsSmallArrayIndex(Handle<String> key) {
     return key.val()->IsArrayIndex() && key.val()->Index() < num_fixed_slots();
   }

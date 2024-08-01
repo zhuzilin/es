@@ -184,6 +184,14 @@ class HashMapV2 : public JSValue {
     return p->val;
   }
 
+  Entry* GetEntry(Handle<String> key) {
+    uint32_t hash = key.val()->Hash();
+    Entry* p = Probe(key.val(), hash);
+    if (p->is_empty())
+      return nullptr;
+    return p;
+  }
+
   void Delete(Handle<String> key) {
     uint32_t hash = key.val()->Hash();
     Entry* p = Probe(key.val(), hash);
