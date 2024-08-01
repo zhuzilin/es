@@ -9,7 +9,7 @@ Clone and compile:
 ```
 $ git clone git@github.com:zhuzilin/es.git
 $ cd es
-$ makedir bin
+$ mkdir bin
 $ g++ es.cc -std=c++17 -I$(PWD) -O3 -Wall -Wextra -Wno-unused-parameter -Wno-deprecated-declarations -o bin/es
 ```
 
