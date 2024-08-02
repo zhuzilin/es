@@ -150,8 +150,6 @@ class Token {
 
   inline bool IsIdentifier() { return type_ == TK_IDENT || type_ == TK_STRICT_FUTURE; }
 
-  inline bool IsBinaryLogical() { return type_ == TK_LOGICAL_AND || type_ == TK_LOGICAL_OR; }
-
   inline bool IsCompoundAssign() { return TK_ADD_ASSIGN <= type_ && type_ <= TK_BIT_XOR_ASSIGN; }
 
   inline int BinaryPriority(bool no_in) {

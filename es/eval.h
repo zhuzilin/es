@@ -61,7 +61,6 @@ Handle<JSValue> EvalEqualityOperator(Handle<Error>& e, Token& op, Handle<JSValue
 Handle<JSValue> EvalBitwiseOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval);
 Handle<JSValue> EvalLogicalOperator(Handle<Error>& e, Token& op, AST* lhs, AST* rhs);
 Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Handle<JSValue> rval);
-Handle<JSValue> EvalCompoundAssignment(Handle<Error>& e, Token& op, Handle<JSValue> lref, Handle<JSValue> rval);
 Handle<JSValue> EvalTripleConditionExpression(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast);
 std::vector<Handle<JSValue>> EvalArgumentsList(Handle<Error>& e, Arguments* ast);
@@ -1144,28 +1143,55 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
 }
 
 Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lhs, AST* rhs) {
-  // && and || are different, as there are not &&= and ||=
-  if (op.IsBinaryLogical()) {
-    return EvalLogicalOperator(e, op, lhs, rhs);
-  }
-  if (op.type() == Token::TK_ASSIGN || op.IsCompoundAssign()) {
-    Handle<JSValue> lref = EvalLeftHandSideExpression(e, lhs);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    // TODO(zhuzilin) The compound assignment should do lval = GetValue(lref)
-    // here. Check if changing the order will have any influence.
-    Handle<JSValue> rval = EvalExpressionAndGetValue(e, rhs);
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    if (op.type() == Token::TK_ASSIGN) {  // =
+  switch (op.type()) {
+    // && and || are different, as there are not &&= and ||=
+    case Token::TK_LOGICAL_AND:  // &&
+    case Token::TK_LOGICAL_OR:   // ||
+      return EvalLogicalOperator(e, op, lhs, rhs);
+    case Token::TK_ASSIGN: {
+      Handle<JSValue> lref = EvalLeftHandSideExpression(e, lhs);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      // TODO(zhuzilin) The compound assignment should do lval = GetValue(lref)
+      // here. Check if changing the order will have any influence.
+      Handle<JSValue> rval = EvalExpressionAndGetValue(e, rhs);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       return EvalSimpleAssignment(e, lref, rval);
-    } else {
-      return EvalCompoundAssignment(e, op, lref, rval);
+    }
+    // 11.13.2 Compound Assignment ( op= )
+    case Token::TK_ADD_ASSIGN:  // +=
+    case Token::TK_SUB_ASSIGN:  // -=
+    case Token::TK_MUL_ASSIGN:  // *=
+    case Token::TK_DIV_ASSIGN:  // /=
+    case Token::TK_MOD_ASSIGN:  // %=
+    case Token::TK_BIT_LSH_ASSIGN:   // <<=
+    case Token::TK_BIT_RSH_ASSIGN:   // >>=
+    case Token::TK_BIT_URSH_ASSIGN:  // >>>=
+    case Token::TK_BIT_AND_ASSIGN:   // &=
+    case Token::TK_BIT_OR_ASSIGN:    // |=
+    case Token::TK_BIT_XOR_ASSIGN: { // ^=
+      Handle<JSValue> lref = EvalLeftHandSideExpression(e, lhs);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      // TODO(zhuzilin) The compound assignment should do lval = GetValue(lref)
+      // here. Check if changing the order will have any influence.
+      Handle<JSValue> rval = EvalExpressionAndGetValue(e, rhs);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      Token calc_op = op.ToCalc();
+      Handle<JSValue> lval = GetValue(e, lref);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      Handle<JSValue> rref = EvalBinaryExpression(e, calc_op, lval, rval);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      Handle<JSValue> val = GetValue(e, rref);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      return EvalSimpleAssignment(e, lref, val);
+    }
+    default: {
+      Handle<JSValue> lval = EvalExpressionAndGetValue(e, lhs);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      Handle<JSValue> rval = EvalExpressionAndGetValue(e, rhs);
+      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+      return EvalBinaryExpression(e, op, lval, rval);
     }
   }
-  Handle<JSValue> lval = EvalExpressionAndGetValue(e, lhs);
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  Handle<JSValue> rval = EvalExpressionAndGetValue(e, rhs);
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  return EvalBinaryExpression(e, op, lval, rval);
 }
 
 Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
@@ -1396,18 +1422,6 @@ Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Han
   if (unlikely(!e.val()->IsOk()))
     return Handle<JSValue>();
   return rval;
-}
-
-// 11.13.2 Compound Assignment ( op= )
-Handle<JSValue> EvalCompoundAssignment(Handle<Error>& e, Token& op, Handle<JSValue> lref, Handle<JSValue> rval) {
-  Token calc_op = op.ToCalc();
-  Handle<JSValue> lval = GetValue(e, lref);
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  Handle<JSValue> rref = EvalBinaryExpression(e, calc_op, lval, rval);
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  Handle<JSValue> val = GetValue(e, rref);
-  if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-  return EvalSimpleAssignment(e, lref, val);
 }
 
 // 11.12 Conditional Operator ( ? : )
