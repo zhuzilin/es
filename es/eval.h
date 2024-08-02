@@ -51,7 +51,6 @@ Handle<String> EvalString(Handle<Error>& e, AST* ast);
 Handle<Object> EvalObject(Handle<Error>& e, AST* ast);
 Handle<ArrayObject> EvalArray(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast);
-Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lval, AST* rval);
 Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval);
 Handle<JSValue> EvalArithmeticOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval);
@@ -64,7 +63,6 @@ Handle<JSValue> EvalLogicalOperator(Handle<Error>& e, Token& op, AST* lhs, AST* 
 Handle<JSValue> EvalSimpleAssignment(Handle<Error>& e, Handle<JSValue> lref, Handle<JSValue> rval);
 Handle<JSValue> EvalCompoundAssignment(Handle<Error>& e, Token& op, Handle<JSValue> lref, Handle<JSValue> rval);
 Handle<JSValue> EvalTripleConditionExpression(Handle<Error>& e, AST* ast);
-Handle<JSValue> EvalAssignmentExpression(Handle<Error>& e, AST* ast);
 Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast);
 std::vector<Handle<JSValue>> EvalArgumentsList(Handle<Error>& e, Arguments* ast);
 Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::vector<Handle<JSValue>> arg_list);
@@ -204,7 +202,7 @@ Handle<String> EvalVarDecl(Handle<Error>& e, AST* ast) {
   Handle<String> ident = decl->ident();
   if (decl->init() == nullptr)
     return ident;
-  Handle<JSValue> rhs = EvalAssignmentExpression(e, decl->init());
+  Handle<JSValue> rhs = EvalExpression(e, decl->init());
   if (unlikely(!e.val()->IsOk())) return ident;
   Handle<JSValue> value = GetValue(e, rhs);
   if (unlikely(!e.val()->IsOk())) return ident;
@@ -793,9 +791,11 @@ Handle<JSValue> EvalExpression(Handle<Error>& e, AST* ast) {
     case AST::AST_EXPR_UNARY:
       val = EvalUnaryOperator(e, ast);
       break;
-    case AST::AST_EXPR_BINARY:
-      val = EvalBinaryExpression(e, ast);
+    case AST::AST_EXPR_BINARY: {
+      Binary* b = static_cast<Binary*>(ast);
+      val = EvalBinaryExpression(e, b->op(), b->lhs(), b->rhs());
       break;
+    }
     case AST::AST_EXPR_TRIPLE:
       val = EvalTripleConditionExpression(e, ast);
       break;
@@ -927,7 +927,7 @@ Handle<Object> EvalObject(Handle<Error>& e, AST* ast) {
     StackPropertyDescriptor desc;
     switch (property.type) {
       case ObjectLiteral::Property::NORMAL: {
-        Handle<JSValue> expr_value = EvalAssignmentExpression(e, property.value);
+        Handle<JSValue> expr_value = EvalExpression(e, property.value);
         if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         Handle<JSValue> prop_value = GetValue(e, expr_value);
         if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
@@ -993,17 +993,13 @@ Handle<ArrayObject> EvalArray(Handle<Error>& e, AST* ast) {
 
   Handle<ArrayObject> arr = ArrayObject::New(array_ast->length());
   for (auto pair : array_ast->elements()) {
-    Handle<JSValue> init_result = EvalAssignmentExpression(e, pair.second);
+    Handle<JSValue> init_result = EvalExpression(e, pair.second);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<JSValue> init_value = GetValue(e, init_result);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     AddValueProperty(arr, NumberToString(pair.first), init_value, true, true, true);
   }
   return arr;
-}
-
-Handle<JSValue> EvalAssignmentExpression(Handle<Error>& e, AST* ast) {
-  return EvalExpression(e, ast);
 }
 
 Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
@@ -1145,12 +1141,6 @@ Handle<JSValue> EvalUnaryOperator(Handle<Error>& e, AST* ast) {
     default:
       assert(false);
   }
-}
-
-Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, AST* ast) {
-  ASSERT(ast->type() == AST::AST_EXPR_BINARY);
-  Binary* b = static_cast<Binary*>(ast);
-  return EvalBinaryExpression(e, b->op(), b->lhs(), b->rhs());
 }
 
 Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lhs, AST* rhs) {
@@ -1427,11 +1417,11 @@ Handle<JSValue> EvalTripleConditionExpression(Handle<Error>& e, AST* ast) {
   Handle<JSValue> lval = EvalExpressionAndGetValue(e, t->cond());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   if (ToBoolean(lval)) {
-    Handle<JSValue> true_ref = EvalAssignmentExpression(e, t->true_expr());
+    Handle<JSValue> true_ref = EvalExpression(e, t->true_expr());
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     return GetValue(e, true_ref);
   } else {
-    Handle<JSValue> false_ref = EvalAssignmentExpression(e, t->false_expr());
+    Handle<JSValue> false_ref = EvalExpression(e, t->false_expr());
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     return GetValue(e, false_ref);
   }
@@ -1584,7 +1574,7 @@ Handle<JSValue> EvalExpressionList(Handle<Error>& e, AST* ast) {
   ASSERT(exprs->elements().size() > 0);
   Handle<JSValue> val;
   for (AST* expr : exprs->elements()) {
-    Handle<JSValue> ref = EvalAssignmentExpression(e, expr);
+    Handle<JSValue> ref = EvalExpression(e, expr);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     val = GetValue(e, ref);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();

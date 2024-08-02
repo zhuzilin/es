@@ -14,7 +14,6 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
   Handle<JSValue> base = stack_ref.base;
   Handle<String> name = stack_ref.name;
   TEST_LOG("GetValue: " + base.ToString() + "." + name.ToString());
-  bool is_strict = Runtime::TopContext().strict();
 
   if (Reference::IsUnresolvableReference(base)) {
     e = Error::ReferenceError(name.val()->data() + u" is not defined");
@@ -63,6 +62,7 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
     }
   } else {
     ASSERT(base.val()->IsEnvironmentRecord());
+    bool is_strict = Runtime::TopContext().strict();
     Handle<EnvironmentRecord> er = static_cast<Handle<EnvironmentRecord>>(base);
     return GetBindingValue(e, er, name, is_strict);
   }

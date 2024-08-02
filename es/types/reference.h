@@ -24,9 +24,6 @@ class Reference : public JSValue {
   }
   static bool IsPropertyReference(Handle<JSValue> base) { return base.val()->IsObject() || HasPrimitiveBase(base); }
   static bool IsUnresolvableReference(Handle<JSValue> base) { return base.val()->IsUndefined(); }
-
- private:
-  
 };
 
 Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V);
