@@ -11,22 +11,22 @@ Handle<JSValue> Call(
   if (O.val()->IsFunctionObject()) {
     Handle<FunctionObject> F = static_cast<Handle<FunctionObject>>(O);
     if (!F.val()->from_bind()) {
-      return Call__Function(e, F, this_arg, arguments);
+      return Call__Function(e, F, this_arg, std::move(arguments));
     } else {
-      return Call__BindFunction(e, static_cast<Handle<BindFunctionObject>>(O), this_arg, arguments);
+      return Call__BindFunction(e, static_cast<Handle<BindFunctionObject>>(O), this_arg, std::move(arguments));
     }
   } else if (O.val()->IsConstructor()) {
     switch (O.val()->type()) {
       case Type::OBJ_BOOL_CONSTRUCTOR:
-        return Call__BoolConstructor(e, static_cast<Handle<BoolConstructor>>(O), this_arg, arguments);
+        return Call__BoolConstructor(e, static_cast<Handle<BoolConstructor>>(O), this_arg, std::move(arguments));
       case Type::OBJ_NUMBER_CONSTRUCTOR:
-        return Call__NumberConstructor(e, static_cast<Handle<NumberConstructor>>(O), this_arg, arguments);
+        return Call__NumberConstructor(e, static_cast<Handle<NumberConstructor>>(O), this_arg, std::move(arguments));
       case Type::OBJ_OBJECT_CONSTRUCTOR:
-        return Call__ObjectConstructor(e, static_cast<Handle<ObjectConstructor>>(O), this_arg, arguments);
+        return Call__ObjectConstructor(e, static_cast<Handle<ObjectConstructor>>(O), this_arg, std::move(arguments));
       case Type::OBJ_REGEXP_CONSTRUCTOR:
-        return Call__RegExpConstructor(e, static_cast<Handle<RegExpConstructor>>(O), this_arg, arguments);
+        return Call__RegExpConstructor(e, static_cast<Handle<RegExpConstructor>>(O), this_arg, std::move(arguments));
       case Type::OBJ_STRING_CONSTRUCTOR:
-        return Call__StringConstructor(e, static_cast<Handle<StringConstructor>>(O), this_arg, arguments);
+        return Call__StringConstructor(e, static_cast<Handle<StringConstructor>>(O), this_arg, std::move(arguments));
       case Type::OBJ_FUNC_CONSTRUCTOR:
       case Type::OBJ_ARRAY_CONSTRUCTOR:
       case Type::OBJ_DATE_CONSTRUCTOR:
@@ -35,16 +35,16 @@ Handle<JSValue> Call(
         // 15.5.1.1 Array ( [ value ] )
         // 15.9.2.1 Date ( [ year [, month [, date [, hours [, minutes [, seconds [, ms ] ] ] ] ] ] ] )
         // 15.11.1.1 Error (message)
-        return Call__Construct(e, O, this_arg, arguments);
+        return Call__Construct(e, O, this_arg, std::move(arguments));
       default:
         assert(false);
     }
   } else if (O.val()->IsFunctionProto()) {
-    return Call__FunctionProto(e, static_cast<Handle<FunctionProto>>(O), this_arg, arguments);
+    return Call__FunctionProto(e, static_cast<Handle<FunctionProto>>(O), this_arg, std::move(arguments));
   } else if (O.val()->IsGetterSetter()) {
-    return Call__GetterSetter(e, static_cast<Handle<GetterSetter>>(O), this_arg, arguments);
+    return Call__GetterSetter(e, static_cast<Handle<GetterSetter>>(O), this_arg, std::move(arguments));
   } else {
-    return Call__Base(e, O, this_arg, arguments);
+    return Call__Base(e, O, this_arg, std::move(arguments));
   }
 }
 
@@ -53,13 +53,13 @@ Handle<JSValue> Call__Base(
 ) {
   inner_func callable = O.val()->callable();
   ASSERT(O.val()->IsCallable() && callable != nullptr);
-  return callable(e, O, arguments);
+  return callable(e, O, std::move(arguments));
 }
 
 Handle<JSValue> Call__Construct(
   Handle<Error>& e, Handle<JSObject> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
-  return Construct(e, O, arguments);
+  return Construct(e, O, std::move(arguments));
 }
 
 // 13.2.1 [[Call]]
@@ -169,7 +169,7 @@ Handle<JSValue> Call__ObjectConstructor(
   Handle<Error>& e, Handle<ObjectConstructor> O, Handle<JSValue> this_arg, std::vector<Handle<JSValue>> arguments
 ) {
   if (arguments.size() == 0 || arguments[0].val()->IsNull() || arguments[0].val()->IsUndefined())
-    return Construct(e, O, arguments);
+    return Construct(e, O, std::move(arguments));
   return ToObject(e, arguments[0]);
 }
 
@@ -184,7 +184,7 @@ Handle<JSValue> Call__RegExpConstructor(
   if ((arguments.size() == 1 || arguments[1].val()->IsUndefined()) && arguments[0].val()->IsRegExpObject()) {
       return arguments[0];
   }
-  return Construct(e, O, arguments);
+  return Construct(e, O, std::move(arguments));
 }
 
 // 15.5.1.1 String ( [ value ] )

@@ -9,30 +9,30 @@ Handle<JSObject> Construct(Handle<Error>& e, Handle<JSObject> O, std::vector<Han
   if (O.val()->IsFunctionObject()) {
     Handle<FunctionObject> F = static_cast<Handle<FunctionObject>>(O);
     if (!F.val()->from_bind()) {
-      return Construct__Function(e, F, arguments);
+      return Construct__Function(e, F, std::move(arguments));
     } else {
-      return Construct__BindFunction(e, static_cast<Handle<BindFunctionObject>>(O), arguments);
+      return Construct__BindFunction(e, static_cast<Handle<BindFunctionObject>>(O), std::move(arguments));
     }
   } else if (O.val()->IsConstructor()) {
     switch (O.val()->type()) {
       case Type::OBJ_BOOL_CONSTRUCTOR:
-        return Construct__BoolConstructor(e, static_cast<Handle<BoolConstructor>>(O), arguments);
+        return Construct__BoolConstructor(e, static_cast<Handle<BoolConstructor>>(O), std::move(arguments));
       case Type::OBJ_NUMBER_CONSTRUCTOR:
-        return Construct__NumberConstructor(e, static_cast<Handle<NumberConstructor>>(O), arguments);
+        return Construct__NumberConstructor(e, static_cast<Handle<NumberConstructor>>(O), std::move(arguments));
       case Type::OBJ_OBJECT_CONSTRUCTOR:
-        return Construct__ObjectConstructor(e, static_cast<Handle<ObjectConstructor>>(O), arguments);
+        return Construct__ObjectConstructor(e, static_cast<Handle<ObjectConstructor>>(O), std::move(arguments));
       case Type::OBJ_REGEXP_CONSTRUCTOR:
-        return Construct__RegExpConstructor(e, static_cast<Handle<RegExpConstructor>>(O), arguments);
+        return Construct__RegExpConstructor(e, static_cast<Handle<RegExpConstructor>>(O), std::move(arguments));
       case Type::OBJ_STRING_CONSTRUCTOR:
-        return Construct__StringConstructor(e, static_cast<Handle<StringConstructor>>(O), arguments);
+        return Construct__StringConstructor(e, static_cast<Handle<StringConstructor>>(O), std::move(arguments));
       case Type::OBJ_FUNC_CONSTRUCTOR:
-        return Construct__FunctionConstructor(e, static_cast<Handle<FunctionConstructor>>(O), arguments);
+        return Construct__FunctionConstructor(e, static_cast<Handle<FunctionConstructor>>(O), std::move(arguments));
       case Type::OBJ_ARRAY_CONSTRUCTOR:
-        return Construct__ArrayConstructor(e, static_cast<Handle<ArrayConstructor>>(O), arguments);
+        return Construct__ArrayConstructor(e, static_cast<Handle<ArrayConstructor>>(O), std::move(arguments));
       case Type::OBJ_DATE_CONSTRUCTOR:
         assert(false);
       case Type::OBJ_ERROR_CONSTRUCTOR:
-        return Construct__ErrorConstructor(e, static_cast<Handle<ErrorConstructor>>(O), arguments);
+        return Construct__ErrorConstructor(e, static_cast<Handle<ErrorConstructor>>(O), std::move(arguments));
       default:
         assert(false);
     }
@@ -58,7 +58,7 @@ Handle<JSObject> Construct__Function(
   } else {  // 7
     obj.val()->SetPrototype(ObjectProto::Instance());
   }
-  Handle<JSValue> result = Call(e, O, obj, arguments);  // 8
+  Handle<JSValue> result = Call(e, O, obj, std::move(arguments));  // 8
   // get more accurate num_decls from runtime.
   func_ast->body()->SetNumThisProperties(obj.val()->named_properties()->hashmap().val()->occupancy());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();

@@ -1151,8 +1151,6 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lhs, AST*
     case Token::TK_ASSIGN: {
       Handle<JSValue> lref = EvalLeftHandSideExpression(e, lhs);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      // TODO(zhuzilin) The compound assignment should do lval = GetValue(lref)
-      // here. Check if changing the order will have any influence.
       Handle<JSValue> rval = EvalExpressionAndGetValue(e, rhs);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       return EvalSimpleAssignment(e, lref, rval);
@@ -1464,11 +1462,11 @@ Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast) {
             return Handle<JSValue>();
           }
           Handle<JSObject> constructor = static_cast<Handle<JSObject>>(base);
-          base = Construct(e, constructor, arg_list);
+          base = Construct(e, constructor, std::move(arg_list));
           if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
           new_count--;
         } else {
-          base = EvalCallExpression(e, base, arg_list);
+          base = EvalCallExpression(e, base, std::move(arg_list));
           if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
         }
         break;
@@ -1543,14 +1541,14 @@ Handle<JSValue> EvalCallExpression(Handle<Error>& e, Handle<JSValue> ref, std::v
       this_value = ImplicitThisValue(env_rec);
     }
     // indirect
-    if (StringEqual(ref_name, String::eval())) {
+    if (unlikely(StringEqual(ref_name, String::eval()))) {
       DirectEvalGuard guard;
-      return Call(e, obj, this_value, arg_list);
+      return Call(e, obj, this_value, std::move(arg_list));
     }
   } else {
     this_value = Undefined::Instance();
   }
-  return Call(e, obj, this_value, arg_list);
+  return Call(e, obj, this_value, std::move(arg_list));
 }
 
 // 11.2.1 Property Accessors
