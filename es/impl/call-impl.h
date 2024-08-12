@@ -76,7 +76,7 @@ Handle<JSValue> Call__Function(
   } else {
     local_env.val()->SetOuter(func.val()->Scope());
   }
-  EnterFunctionCode(e, func, code, this_arg, arguments, O.val()->strict(), local_env);
+  EnterFunctionCode(e, func, code, this_arg, std::move(arguments), O.val()->strict(), local_env);
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
 
   Completion result;

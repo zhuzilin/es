@@ -277,7 +277,7 @@ void EnterFunctionCode(
   }
   Runtime::Global()->AddContext(ExecutionContext(local_env, local_env, this_binding, strict));  // 8
   // 9
-  DeclarationBindingInstantiation(e, body, CODE_FUNC, func, args);
+  DeclarationBindingInstantiation(e, body, CODE_FUNC, func, std::move(args));
 }
 
 void InitGlobalObject() {

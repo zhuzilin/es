@@ -20,7 +20,7 @@ namespace es {
 Completion EvalProgram(AST* ast);
 
 Completion EvalStatement(AST* ast);
-Completion EvalStatementList(std::vector<AST*> statements);
+Completion EvalStatementList(const std::vector<AST*>& statements);
 Completion EvalBlockStatement(AST* ast);
 Handle<String> EvalVarDecl(Handle<Error>& e, AST* ast);
 Completion EvalVarStatement(AST* ast);
@@ -176,7 +176,7 @@ Completion EvalStatement(AST* ast) {
   return C;
 }
 
-Completion EvalStatementList(std::vector<AST*> statements) {
+Completion EvalStatementList(const std::vector<AST*>& statements) {
   Completion sl;
   for (auto stmt : statements) {
     Completion s = EvalStatement(stmt);
