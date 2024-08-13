@@ -14,5 +14,6 @@
 #include <es/impl/builtin/global_object_impl.h>
 #include <es/impl/builtin/object_object_impl.h>
 #include <es/impl/builtin/string_object_impl.h>
+#include <es/impl/pass-impl.h>
 
 #endif  // ES_IMPL_H

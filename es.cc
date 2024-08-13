@@ -68,6 +68,14 @@ int main(int argc, char* argv[]) {
               << log::ToString(source.substr(ast->end(), end - ast->end())) << "\n";
     return 0;
   }
+#ifdef PERF
+  ProfilerStart("optimize_ast.profile");
+#endif
+  ast = Optimize(ast);
+#ifdef PERF
+  ProfilerStop();
+#endif
+
 #ifdef PARSER_ONLY
   std::cout << "finish parsing" << std::endl;
   return 0;

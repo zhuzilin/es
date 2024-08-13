@@ -713,12 +713,6 @@ Completion EvalExpressionStatement(AST* ast) {
 }
 
 Handle<JSValue> EvalExpressionAndGetValue(Handle<Error>& e, AST* ast) {
-  while (ast->type() == AST::AST_EXPR_LHS) {
-    LHS* lhs = static_cast<LHS*>(ast);
-    if (lhs->total_count() != 0)
-      break;
-    ast = lhs->base();
-  }
   switch (ast->type()) {
     case AST::AST_EXPR_STRICT_FUTURE:
       if (Runtime::TopContext().strict()) {
@@ -740,12 +734,6 @@ Handle<JSValue> EvalExpressionAndGetValue(Handle<Error>& e, AST* ast) {
 }
 
 void EvalExpressionAndPutValue(Handle<Error>& e, AST* ast, Handle<JSValue> val) {
-  while (ast->type() == AST::AST_EXPR_LHS) {
-    LHS* lhs = static_cast<LHS*>(ast);
-    if (lhs->total_count() != 0)
-      break;
-    ast = lhs->base();
-  }
   switch (ast->type()) {
     case AST::AST_EXPR_STRICT_FUTURE:
       if (Runtime::TopContext().strict()) {
@@ -991,12 +979,12 @@ Handle<ArrayObject> EvalArray(Handle<Error>& e, AST* ast) {
   ArrayLiteral* array_ast = static_cast<ArrayLiteral*>(ast);
 
   Handle<ArrayObject> arr = ArrayObject::New(array_ast->length());
-  for (auto pair : array_ast->elements()) {
-    Handle<JSValue> init_result = EvalExpression(e, pair.second);
+  for (size_t i = 0; i < array_ast->elements().size(); i++) {
+    Handle<JSValue> init_result = EvalExpression(e, array_ast->elements()[i]);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
     Handle<JSValue> init_value = GetValue(e, init_result);
     if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    AddValueProperty(arr, NumberToString(pair.first), init_value, true, true, true);
+    AddValueProperty(arr, NumberToString(i), init_value, true, true, true);
   }
   return arr;
 }
@@ -1149,7 +1137,7 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lhs, AST*
     case Token::TK_LOGICAL_OR:   // ||
       return EvalLogicalOperator(e, op, lhs, rhs);
     case Token::TK_ASSIGN: {
-      Handle<JSValue> lref = EvalLeftHandSideExpression(e, lhs);
+      Handle<JSValue> lref = EvalExpression(e, lhs);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       Handle<JSValue> rval = EvalExpressionAndGetValue(e, rhs);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
@@ -1167,7 +1155,7 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lhs, AST*
     case Token::TK_BIT_AND_ASSIGN:   // &=
     case Token::TK_BIT_OR_ASSIGN:    // |=
     case Token::TK_BIT_XOR_ASSIGN: { // ^=
-      Handle<JSValue> lref = EvalLeftHandSideExpression(e, lhs);
+      Handle<JSValue> lref = EvalExpression(e, lhs);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       // TODO(zhuzilin) The compound assignment should do lval = GetValue(lref)
       // here. Check if changing the order will have any influence.

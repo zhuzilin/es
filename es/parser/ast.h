@@ -10,6 +10,7 @@
 #include <es/parser/token.h>
 #include <es/utils/macros.h>
 #include <es/types/base.h>
+#include <es/pass.h>
 
 namespace es {
 
@@ -137,27 +138,27 @@ class RegExpLiteral : public AST {
 
 class ArrayLiteral : public AST {
  public:
-  ArrayLiteral() : AST(AST_EXPR_ARRAY), len_(0) {}
+  ArrayLiteral() : AST(AST_EXPR_ARRAY) {}
 
   ~ArrayLiteral() override {
-    for (auto pair : elements_) {
-      delete pair.second;
+    for (auto element : elements_) {
+      delete element;
     }
   }
 
-  size_t length() { return len_; }
-  const std::vector<std::pair<size_t, AST*>>& elements() { return elements_; }
+  size_t length() { return elements_.size(); }
+  const std::vector<AST*>& elements() { return elements_; }
 
   void AddElement(AST* element) {
     if (element != nullptr) {
-      elements_.emplace_back(len_, element);
+      elements_.emplace_back(element);
     }
-    len_++;
   }
 
+  friend AST* Optimize(AST* ast);
+
  private:
-  std::vector<std::pair<size_t, AST*>> elements_;
-  size_t len_;
+  std::vector<AST*> elements_;
 };
 
 Handle<String> NumberToStringConst(double m);
@@ -220,6 +221,8 @@ class ObjectLiteral : public AST {
 
   size_t length() { return properties_.size(); }
 
+  friend AST* Optimize(AST* ast);
+
  private:
   std::vector<Property> properties_;
 };
@@ -249,6 +252,8 @@ class Binary : public AST {
   AST* rhs() { return rhs_; }
   Token& op() { return op_; }
 
+  friend AST* Optimize(AST* ast);
+
  private:
   AST* lhs_;
   AST* rhs_;
@@ -267,6 +272,8 @@ class Unary : public AST {
   AST* node() { return node_; }
   Token& op() { return op_; }
   bool prefix() { return prefix_; }
+
+  friend AST* Optimize(AST* ast);
 
  private:
   AST* node_;
@@ -289,6 +296,8 @@ class TripleCondition : public AST {
   AST* true_expr() { return true_expr_; }
   AST* false_expr() { return false_expr_; }
 
+  friend AST* Optimize(AST* ast);
+
  private:
   AST* cond_;
   AST* true_expr_;
@@ -308,6 +317,8 @@ class Expression : public AST {
 
   std::vector<AST*>& elements() { return elements_; }
 
+  friend AST* Optimize(AST* ast);
+
  private:
   std::vector<AST*> elements_;
 };
@@ -322,6 +333,8 @@ class Arguments : public AST {
   }
 
   const std::vector<AST*>& args() { return args_; }
+
+  friend AST* Optimize(AST* ast);
 
  private:
   std::vector<AST*> args_;
@@ -371,6 +384,8 @@ class LHS : public AST {
   const std::vector<AST*>& index_list() { return index_list_; }
   const std::vector<Handle<String>>& prop_name_list() { return prop_name_list_; }
 
+  friend AST* Optimize(AST* ast);
+
  private:
   AST* base_;
   size_t total_count_;
@@ -400,6 +415,8 @@ class Function : public AST {
 
   // this may not be accurate as there may be duplication.
   size_t num_decls();
+
+  friend AST* Optimize(AST* ast);
 
  private:
   bool name_is_eval_or_arguments_;
@@ -457,6 +474,8 @@ class ProgramOrFunctionBody : public AST {
   size_t num_this_properties() { return num_this_properties_; }
   void SetNumThisProperties(size_t num) { num_this_properties_ = num; }
 
+  friend AST* Optimize(AST* ast);
+
  private:
   bool strict_;
   bool use_arguments_ = true;
@@ -507,6 +526,8 @@ class LabelledStmt : public AST {
   const std::u16string& label() { return label_; }
   AST* statement() { return stmt_; }
 
+  friend AST* Optimize(AST* ast);
+
  private:
   std::u16string label_;
   AST* stmt_;
@@ -537,6 +558,8 @@ class Return : public AST {
 
   AST* expr() { return expr_; }
 
+  friend AST* Optimize(AST* ast);
+
  private:
   AST* expr_;
 };
@@ -551,6 +574,8 @@ class Throw : public AST {
   }
 
   AST* expr() { return expr_; }
+
+  friend AST* Optimize(AST* ast);
 
  private:
   AST* expr_;
@@ -793,6 +818,8 @@ class For : public AST {
   AST* expr2() { return expr2_; }
   AST* statement() { return stmt_; }
 
+  friend AST* Optimize(AST* ast);
+
  private:
   std::vector<AST*> expr0s_;
   AST* expr1_;
@@ -810,6 +837,8 @@ class ForIn : public AST {
   AST* expr0() { return expr0_; }
   AST* expr1() { return expr1_; }
   AST* statement() { return stmt_; }
+
+  friend AST* Optimize(AST* ast);
 
  private:
   AST* expr0_;
