@@ -237,7 +237,7 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
   bool strict = Runtime::TopContext().strict() ||
                 (program->strict() && GlobalObject::Instance().val()->direct_eval());
   if (strict) {  // 3
-    Handle<EnvironmentRecord> strict_var_env = NewDeclarativeEnvironment(lexical_env, program->num_decls());
+    Handle<EnvironmentRecord> strict_var_env = DeclarativeEnvironmentRecord::New(lexical_env, program->num_decls());
     lexical_env = strict_var_env;
     variable_env = strict_var_env;
 

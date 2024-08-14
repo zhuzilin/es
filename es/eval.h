@@ -545,7 +545,7 @@ Completion EvalWithStatement(AST* ast) {
     return Completion(Completion::THROW, e, u"");
   // Prevent garbage collect old env.
   Handle<EnvironmentRecord> old_env = Runtime::TopLexicalEnv();
-  Handle<EnvironmentRecord> new_env = NewObjectEnvironment(obj, old_env, true);
+  Handle<EnvironmentRecord> new_env = ObjectEnvironmentRecord::New(old_env, obj, true);
   Runtime::TopContext().SetLexicalEnv(new_env);
   Completion C = EvalStatement(with_stmt->stmt());
   Runtime::TopContext().SetLexicalEnv(old_env);
@@ -648,7 +648,7 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   Handle<Error> e = Error::Ok();
   // Prevent garbage collect old env.
   Handle<EnvironmentRecord> old_env = Runtime::TopLexicalEnv();
-  Handle<EnvironmentRecord> catch_env = NewDeclarativeEnvironment(old_env, 0);
+  Handle<EnvironmentRecord> catch_env = DeclarativeEnvironmentRecord::New(old_env, 0);
   // NOTE(zhuzilin) The spec say to send C instead of C.value.
   // However, I think it should be send C.value...
   Handle<JSValue> val;

@@ -78,17 +78,16 @@ class HashMapV2 : public JSValue {
 
     Handle<HashMapV2> jsval = HeapObject::New(kElementOffset + capacity * sizeof(Entry) - HeapObject::kHeapObjectOffset);
 
-    SET_VALUE(jsval.val(), kCapacityOffset, capacity, uint32_t);
-
+    jsval.val()->capacity_ = capacity;
     jsval.val()->SetType(HASHMAP_V2);
     // do not need to set to 0 as the heap is already 0ed.
     //jsval.val()->Clear();
     return jsval;
   }
 
-  uint32_t occupancy() { return READ_VALUE(this, kOccupancyOffset, uint32_t); }
-  void set_occupancy(size_t s) { SET_VALUE(this, kOccupancyOffset, s, uint32_t); }
-  uint32_t capacity() { return READ_VALUE(this, kCapacityOffset, uint32_t); }
+  uint32_t occupancy() { return occupancy_; }
+  void set_occupancy(size_t s) { occupancy_ = s; }
+  uint32_t capacity() { return capacity_; }
 
   Entry* map_start() { return TYPED_PTR(this, kElementOffset, Entry); }
   const Entry* map_end() { return TYPED_PTR(this, kElementOffset, Entry) + capacity(); }
@@ -148,26 +147,22 @@ class HashMapV2 : public JSValue {
     return map;
   }
 
+  //__attribute__((noinline))
   HashMapV2::Entry* Probe(String* key, uint32_t hash) {
     ASSERT(key != NULL);
     size_t cap = capacity();
     Entry* map = map_start();
-    const Entry* end = map_end();
-    Entry* p = map + (hash & (cap - 1));
+    size_t i = hash & (cap - 1);
     ASSERT(map <= p && p < end);
 
 #ifdef TEST
     size_t occ = occupancy();
     ASSERT(occ < cap);
 #endif
-    while (!p->is_empty() && (hash != p->hash || !StringEqual(key, p->key))) {
-      p++;
-      if (p >= end) {
-        p = map;
-      }
+    while (!map[i].is_empty() && (hash != map[i].hash || !HashEqualStringEqual(key, map[i].key, hash))) {
+      i = (i + 1) & (cap - 1);
     }
-
-    return p;
+    return &map[i];
   }
 
   Handle<JSValue> Get(Handle<String> key) {
@@ -289,10 +284,7 @@ class HashMapV2 : public JSValue {
     for (Entry* p = map.val()->map_start(); n > 0; p++) {
       if (!p->is_empty()) {
         Entry* new_p = new_map.val()->Probe(p->key, p->hash);
-        new_p->hash = p->hash;
-        new_p->key = p->key;
-        new_p->val = p->val;
-        new_p->meta_ = p->meta_;
+        *new_p = *p;
         n--;
       }
     }
@@ -316,6 +308,10 @@ class HashMapV2 : public JSValue {
   };
 
  public:
+  uint32_t capacity_;
+  uint32_t occupancy_;
+  Entry* map_;
+
   static constexpr size_t kCapacityOffset = HeapObject::kHeapObjectOffset;
   static constexpr size_t kOccupancyOffset = kCapacityOffset + kUint32Size;
   static constexpr size_t kElementOffset = kOccupancyOffset + kUint32Size;

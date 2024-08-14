@@ -183,6 +183,7 @@ class String : public JSValue {
   size_t Hash() {
     if (IsArrayIndex())
       return Index();
+    ASSERT(type() != JS_LONG_STRING);
     size_t slot = length_slot();
     if (slot & 1) return slot >> 1;
     size_t hash = U16Hash(data());
@@ -477,6 +478,19 @@ inline bool StringEqual(String* a, String* b) {
   if (a->size() != b->size()) {
     return false;
   }
+  size_t size = a->size();
+  for (size_t i = 0; i < size; i++) {
+    if (a->get(i) != b->get(i))
+      return false;
+  }
+  return true;
+}
+
+inline bool HashEqualStringEqual(String* a, String* b, size_t hash) {
+  if (a->IsArrayIndex() != b->IsArrayIndex())
+    return false;
+  if (a->IsArrayIndex() && b->IsArrayIndex())
+    return true;
   size_t size = a->size();
   for (size_t i = 0; i < size; i++) {
     if (a->get(i) != b->get(i))

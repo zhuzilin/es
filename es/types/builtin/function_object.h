@@ -267,7 +267,7 @@ Handle<JSValue> FunctionProto::bind(Handle<Error>& e, Handle<JSValue> this_arg, 
 Handle<FunctionObject> InstantiateFunctionDeclaration(Handle<Error>& e, Function* func_ast) {
     ASSERT(func_ast->is_named());
     auto body = func_ast->body();
-    Handle<EnvironmentRecord> env_rec = NewDeclarativeEnvironment(  // 1, 2
+    Handle<EnvironmentRecord> env_rec = DeclarativeEnvironmentRecord::New(  // 1, 2
       Runtime::TopLexicalEnv(), func_ast->num_decls()
     );
     Handle<String> identifier = func_ast->name();

@@ -109,7 +109,6 @@ AST* Optimize(AST* ast) {
       auto lhs = static_cast<LHS*>(ast);
       AST* base = Optimize(lhs->base());
       if (lhs->total_count() == 0) {
-        //std::cout << "total_count == 0 " << log::ToString(base->source().substr(0, 30)) << std::endl;
         return base;
       }
       lhs->base_ = base;
