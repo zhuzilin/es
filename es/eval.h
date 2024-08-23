@@ -1491,12 +1491,13 @@ Handle<JSValue> EvalLeftHandSideExpression(Handle<Error>& e, AST* ast) {
 }
 
 std::vector<Handle<JSValue>> EvalArgumentsList(Handle<Error>& e, Arguments* ast) {
-  std::vector<Handle<JSValue>> arg_list;
-  for (AST* arg_ast : ast->args()) {
-    Handle<JSValue> arg = EvalExpressionAndGetValue(e, arg_ast);
+  size_t num_args = ast->args().size();
+  std::vector<Handle<JSValue>> arg_list(num_args);
+  for (size_t i = 0; i < num_args; i++) {
+    Handle<JSValue> arg = EvalExpressionAndGetValue(e, ast->args()[i]);
     if (unlikely(!e.val()->IsOk()))
       return {};
-    arg_list.emplace_back(arg);
+    arg_list[i] = arg;
   }
   return arg_list;
 }
