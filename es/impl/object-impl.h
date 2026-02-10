@@ -44,33 +44,67 @@ StackPropertyDescriptor GetOwnProperty__String(Handle<StringObject> O, Handle<St
 // [[GetProperty]]
 // 8.12.2 [[GetProperty]] (P)
 StackPropertyDescriptor GetProperty(Handle<JSObject> O, Handle<String> P) {
-  StackPropertyDescriptor own_property = GetOwnProperty(O, P);
-  if (!own_property.IsUndefined()) {
-    return own_property;
+  Handle<JSObject> cur = O;
+  while (true) {
+    StackPropertyDescriptor own_property = GetOwnProperty(cur, P);
+    if (!own_property.IsUndefined()) {
+      return own_property;
+    }
+    Handle<JSValue> proto = cur.val()->Prototype();
+    if (proto.val()->IsNull()) {
+      return StackPropertyDescriptor::Undefined();
+    }
+    ASSERT(proto.val()->IsObject());
+    cur = static_cast<Handle<JSObject>>(proto);
   }
-  Handle<JSValue> proto = O.val()->Prototype();
-  if (proto.val()->IsNull()) {
-    return StackPropertyDescriptor::Undefined();
-  }
-  ASSERT(proto.val()->IsObject());
-  Handle<JSObject> proto_obj = static_cast<Handle<JSObject>>(proto);
-  return GetProperty(proto_obj, P);
 }
 
 // [[Get]]
 Handle<JSValue> Get(Handle<Error>& e, Handle<JSObject> O, Handle<String> P) {
   TEST_LOG("\033[2menter\033[0m Get " + HeapObject::ToString(O.val()->type()) + "." + P.ToString());
-  if (O.val()->IsFunctionObject()) {
-    return Get__Function(e, static_cast<Handle<FunctionObject>>(O), P);
-  } else if (O.val()->IsArgumentsObject()) {
+  if (unlikely(O.val()->IsArgumentsObject())) {
     return Get__Arguments(e, static_cast<Handle<ArgumentsObject>>(O), P);
-  } else {
-    return Get__Base(e, O, P);
   }
+  Handle<JSValue> V = Get__Base(e, O, P);
+  if (unlikely(O.val()->IsFunctionObject() && V.val()->IsFunctionObject() && StringEqual(P, String::caller()))) {
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+    Handle<FunctionObject> func = static_cast<Handle<FunctionObject>>(V);
+    if (func.val()->strict()) {
+      e = Error::TypeError(u"cannot get caller property from function in strict mode.");
+      return Handle<JSValue>();
+    }
+  }
+  return V;
 }
 
 // 8.12.3 [[Get]] (P) 
 Handle<JSValue> Get__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String> P) {
+  // Fast path: walk prototype chain using raw pointers to avoid HandleScope::Add
+  JSObject* cur_raw = O.val();
+  while (true) {
+    JSValue* val;
+    if (likely(!cur_raw->IsStringObject())) {
+      val = cur_raw->named_properties()->GetDataValue(P);
+    } else {
+      // StringObject has special GetOwnProperty, fall through to slow path
+      goto slow_path;
+    }
+    if (val != nullptr) {
+      if (likely(val != reinterpret_cast<JSValue*>(1))) {
+        return Handle<JSValue>(val);  // data property found
+      }
+      // accessor property - fall through to slow path
+      goto slow_path;
+    }
+    // Not found on this object, walk prototype chain
+    JSValue* proto = cur_raw->Prototype_raw();
+    if (proto->IsNull()) {
+      return Undefined::Instance();
+    }
+    ASSERT(proto->IsObject());
+    cur_raw = static_cast<JSObject*>(proto);
+  }
+slow_path:
   StackPropertyDescriptor desc = GetProperty(O, P);
   if (desc.IsUndefined()) {
     return Undefined::Instance();
@@ -246,7 +280,7 @@ bool UpdateOwnProperty__Base(Handle<Error>& e, Handle<JSObject> O, Handle<String
     }
     return UpdatePropertyDescriptor(e, desc, O, P, V, throw_flag);
   } else {
-    HashMapV2::Entry* p = map.val()->hashmap().val()->GetEntry(P);
+    HashMapV2::Entry* p = map.val()->hashmap_raw()->GetEntry(P);
     if (p == nullptr) {
       if (unlikely(O.val()->IsStringObject() && P.val()->IsArrayIndex())) {
         if (throw_flag) {

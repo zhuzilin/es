@@ -7,15 +7,24 @@
 namespace es {
 
 Handle<Reference> GetIdentifierReference(Handle<EnvironmentRecord> env_rec, Handle<String> name, bool strict) {
-  bool exists = HasBinding(env_rec, name);
-  if (exists) {
-    return Runtime::TopContext().AddReference(env_rec, name);
+  EnvironmentRecord* cur_raw = env_rec.val();
+  while (cur_raw != nullptr) {
+    if (cur_raw->IsDeclarativeEnv()) {
+      // Fast path: check declarative env directly without creating Handle
+      auto decl_env = static_cast<DeclarativeEnvironmentRecord*>(cur_raw);
+      if (decl_env->bindings()->GetRaw(name) != nullptr) {
+        return Runtime::TopContext().AddReference(Handle<EnvironmentRecord>(cur_raw), name);
+      }
+    } else {
+      ASSERT(cur_raw->IsObjectEnv());
+      Handle<EnvironmentRecord> cur_handle(cur_raw);
+      if (HasBinding__Object(static_cast<Handle<ObjectEnvironmentRecord>>(cur_handle), name)) {
+        return Runtime::TopContext().AddReference(cur_handle, name);
+      }
+    }
+    cur_raw = cur_raw->outer_raw();
   }
-  auto outer = env_rec.val()->outer();
-  if (outer.IsNullptr()) {
-    return Runtime::TopContext().AddReference(Undefined::Instance(), name);
-  }
-  return GetIdentifierReference(outer, name, strict);
+  return Runtime::TopContext().AddReference(Undefined::Instance(), name);
 }
 
 }  // namespace es

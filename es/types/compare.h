@@ -10,6 +10,14 @@ namespace es {
 // 11.8.5 The Abstract Relational Comparison Algorithm
 // x < y
 Handle<JSValue> LessThan(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y, bool left_first = true) {
+  // Fast path: both numbers
+  if (likely(x.val()->IsNumber() && y.val()->IsNumber())) {
+    double nx = static_cast<Number*>(x.val())->data();
+    double ny = static_cast<Number*>(y.val())->data();
+    if (isnan(nx) || isnan(ny))
+      return Undefined::Instance();
+    return Bool::Wrap(nx < ny);
+  }
   Handle<JSValue> px, py;
   if (left_first) {
     px = ToPrimitive<JS_NUMBER>(e, x);
@@ -29,16 +37,6 @@ Handle<JSValue> LessThan(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y,
     if (unlikely(!e.val()->IsOk())) return Undefined::Instance();
     if (isnan(nx) || isnan(ny))
       return Undefined::Instance();
-    if (nx == ny)  // this includes +0 vs -0
-      return Bool::False();
-    if (isinf(nx) && !signbit(nx))  // nx = +inf
-      return Bool::False();
-    if (isinf(ny) && !signbit(ny))  // ny = +inf
-      return Bool::True();
-    if (isinf(ny) && signbit(ny))  // ny = -inf
-      return Bool::False();
-    if (isinf(nx) && signbit(nx))  // nx = -inf
-      return Bool::True();
     return Bool::Wrap(nx < ny);
   } else {  // 4
     Handle<String> sx = ToString(e, px);
@@ -58,14 +56,13 @@ bool Equal(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y) {
     } else if (x.val()->IsNull()) {
       return true;
     } else if (x.val()->IsNumber()) {
-      Handle<Number> numx = static_cast<Handle<Number>>(x);
-      Handle<Number> numy = static_cast<Handle<Number>>(y);
-      if (numx.val()->IsNaN() || numy.val()->IsNaN())
+      double dx = static_cast<Number*>(x.val())->data();
+      double dy = static_cast<Number*>(y.val())->data();
+      if (isnan(dx) || isnan(dy))
         return false;
-      if (numx.val()->IsInfinity() || numy.val()->IsInfinity()) {
-        return numx.val()->data() == numy.val()->data();
-      }
-      return ApproximatelyEqual(numx.val()->data(), numy.val()->data());
+      if (isinf(dx) || isinf(dy))
+        return dx == dy;
+      return ApproximatelyEqual(dx, dy);
     } else if (x.val()->IsString()) {
       Handle<String> sx = static_cast<Handle<String>>(x);
       Handle<String> sy = static_cast<Handle<String>>(y);
@@ -116,15 +113,12 @@ bool StrictEqual(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y) {
     case Type::JS_NULL:
       return true;
     case Type::JS_NUMBER: {
-      Handle<Number> num_x = static_cast<Handle<Number>>(x);
-      Handle<Number> num_y = static_cast<Handle<Number>>(y);
-      if (num_x.val()->IsNaN() || num_y.val()->IsNaN())
+      double dx = static_cast<Number*>(x.val())->data();
+      double dy = static_cast<Number*>(y.val())->data();
+      if (isnan(dx) || isnan(dy))
         return false;
-      if (num_x.val()->IsInfinity() || num_y.val()->IsInfinity()) {
-        return num_x.val()->data() == num_y.val()->data();
-      }
-      double dx = num_x.val()->data();
-      double dy = num_y.val()->data();
+      if (isinf(dx) || isinf(dy))
+        return dx == dy;
       return ApproximatelyEqual(dx, dy);
     }
     case Type::JS_LONG_STRING:
@@ -134,9 +128,7 @@ bool StrictEqual(Handle<Error>& e, Handle<JSValue> x, Handle<JSValue> y) {
       return StringEqual(str_x, str_y);
     }
     case Type::JS_BOOL: {
-      Handle<Bool> b_x = static_cast<Handle<Bool>>(x);
-      Handle<Bool> b_y = static_cast<Handle<Bool>>(y);
-      return b_x.val()->data() == b_y.val()->data();
+      return static_cast<Bool*>(x.val())->data() == static_cast<Bool*>(y.val())->data();
     }
     default:
       return x.val() == y.val();

@@ -2,6 +2,7 @@
 #define ES_TYPES_CONVERSION_H
 
 #include <math.h>
+#include <algorithm>
 
 #include <es/types/base.h>
 #include <es/types/object.h>
@@ -23,34 +24,30 @@ Handle<JSValue> ToPrimitive(Handle<Error>& e, Handle<JSValue> input) {
 }
 
 bool ToBoolean(Handle<JSValue> input) {
-  ASSERT(input.val()->IsLanguageType());
-  switch (input.val()->type()) {
+  JSValue* raw = input.val();
+  ASSERT(raw->IsLanguageType());
+  switch (raw->type()) {
     case Type::JS_UNDEFINED:
     case Type::JS_NULL:
       return false;
     case Type::JS_BOOL:
-      return static_cast<Handle<Bool>>(input).val()->data();
+      return static_cast<Bool*>(raw)->data();
     case Type::JS_NUMBER: {
-      Handle<Number> num = static_cast<Handle<Number>>(input);
-      if (num.val()->data() == 0.0 || num.val()->data() == -0.0 || num.val()->IsNaN()) {
-        return false;
-      }
-      return true;
+      double d = static_cast<Number*>(raw)->data();
+      return d != 0.0 && d != -0.0 && !isnan(d);
     }
     case Type::JS_LONG_STRING:
-    case Type::JS_STRING: {
-      Handle<String> str = static_cast<Handle<String>>(input);
-      return !StringEqual(str, String::Empty());
-    }
+    case Type::JS_STRING:
+      return static_cast<String*>(raw)->size() != 0;
     default:
-      if (input.val()->IsObject())
+      if (raw->IsObject())
         return true;
       assert(false);
   }
 }
 
 // 9.3.1 ToNumber Applied to the String Type
-double StringToNumber(std::u16string source) {
+double StringToNumber(const std::u16string& source) {
   size_t start = 0;
   size_t end = source.size();
   bool positive = true;
@@ -191,12 +188,14 @@ bool ToArrayIndex(const char16_t* str, size_t n, double& res) {
 
 std::u16string ArrayIndexToString(uint32_t index) {
   if (index == 0) return u"0";
-  std::u16string s = u"";
+  char16_t buf[10];
+  int len = 0;
   while (index > 0) {
-    s = static_cast<char16_t>(u'0' + index % 10) + s;
+    buf[len++] = static_cast<char16_t>(u'0' + index % 10);
     index /= 10;
   }
-  return s;
+  std::reverse(buf, buf + len);
+  return std::u16string(buf, len);
 }
 
 double StringToNumber(Handle<String> str) {
@@ -206,21 +205,22 @@ double StringToNumber(Handle<String> str) {
 }
 
 double ToNumber(Handle<Error>& e, Handle<JSValue> input) {
-  ASSERT(input.val()->IsLanguageType());
-  switch (input.val()->type()) {
+  JSValue* raw = input.val();
+  ASSERT(raw->IsLanguageType());
+  switch (raw->type()) {
     case Type::JS_UNDEFINED:
       return nan("");
     case Type::JS_NULL:
       return 0.0;
     case Type::JS_BOOL:
-      return static_cast<Handle<Bool>>(input).val()->data() ? 1.0 : 0.0;
+      return static_cast<Bool*>(raw)->data() ? 1.0 : 0.0;
     case Type::JS_NUMBER:
-      return static_cast<Handle<Number>>(input).val()->data();
+      return static_cast<Number*>(raw)->data();
     case Type::JS_LONG_STRING:
     case Type::JS_STRING:
       return StringToNumber(static_cast<Handle<String>>(input));
     default:
-      if (input.val()->IsObject()) {
+      if (raw->IsObject()) {
         Handle<JSValue> prim_value = ToPrimitive<JS_NUMBER>(e, input);
         if (unlikely(!e.val()->IsOk())) return 0.0;
         return ToNumber(e, prim_value);
@@ -248,13 +248,19 @@ double ToInt32(Handle<Error>& e, Handle<JSValue> input) {
   if (isnan(num) || isinf(num) || num == 0) {
     return 0.0;
   }
+  // Fast path for values that fit in int32
+  if (num >= -2147483648.0 && num <= 2147483647.0 && num == (double)(int32_t)num) {
+    return num;
+  }
   double pos_int = num > 0 ? floor(abs(num)) : -(floor(abs(-num)));
-  double int32_bit = fmod(pos_int, pow(2, 32));
+  constexpr double kPow2_32 = 4294967296.0;
+  constexpr double kPow2_31 = 2147483648.0;
+  double int32_bit = fmod(pos_int, kPow2_32);
   if (int32_bit < 0)
-    int32_bit += pow(2, 32);
+    int32_bit += kPow2_32;
 
-  if (int32_bit > pow(2, 31)) {
-    return int32_bit - pow(2, 32);
+  if (int32_bit >= kPow2_31) {
+    return int32_bit - kPow2_32;
   } else {
     return int32_bit;
   }
@@ -267,9 +273,10 @@ double ToUint(Handle<Error>& e, Handle<JSValue> input, char bits) {
     return 0.0;
   }
   double pos_int = num > 0 ? floor(abs(num)) : -(floor(abs(-num)));
-  double int_bit = fmod(pos_int, pow(2, bits));
+  double mod_val = (bits == 32) ? 4294967296.0 : (bits == 16) ? 65536.0 : pow(2, bits);
+  double int_bit = fmod(pos_int, mod_val);
   if (int_bit < 0)
-    int_bit += pow(2, bits);
+    int_bit += mod_val;
   return int_bit;
 }
 
@@ -510,21 +517,22 @@ Handle<String> NumberToString(Handle<Number> num) {
 }
 
 Handle<String> ToString(Handle<Error>& e, Handle<JSValue> input) {
-  ASSERT(input.val()->IsLanguageType());
-  switch (input.val()->type()) {
+  JSValue* raw = input.val();
+  ASSERT(raw->IsLanguageType());
+  switch (raw->type()) {
     case Type::JS_UNDEFINED:
       return String::undefined();
     case Type::JS_NULL:
       return String::Null();
     case Type::JS_BOOL:
-      return static_cast<Handle<Bool>>(input).val()->data() ? String::True() : String::False();
+      return static_cast<Bool*>(raw)->data() ? String::True() : String::False();
     case Type::JS_NUMBER:
       return NumberToString(static_cast<Handle<Number>>(input));
     case Type::JS_LONG_STRING:
     case Type::JS_STRING:
       return static_cast<Handle<String>>(input);
     default:
-      if (input.val()->IsObject()) {
+      if (raw->IsObject()) {
         Handle<JSValue> prim_value = ToPrimitive<JS_STRING>(e, input);
         if (unlikely(!e.val()->IsOk())) return String::Empty();
         return ToString(e, prim_value);

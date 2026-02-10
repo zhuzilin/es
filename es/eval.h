@@ -90,7 +90,7 @@ Completion EvalProgram(AST* ast) {
 
   Completion head_result;
   if (statements.size() == 0)
-    return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
+    return Completion::Normal();
   for (auto stmt : prog->statements()) {
     if (head_result.IsAbruptCompletion())
       break;
@@ -108,7 +108,7 @@ Completion EvalProgram(AST* ast) {
 
 Completion EvalStatement(AST* ast) {
   TEST_LOG("\033[1;33mEvalStatement\033[0m\n", ast->source(), "\n");
-  Completion C(Completion::NORMAL, Handle<JSValue>(), u"");
+  Completion C;
   JSValue* val = nullptr;
   {
     HandleScope scope;
@@ -182,9 +182,13 @@ Completion EvalStatementList(const std::vector<AST*>& statements) {
     Completion s = EvalStatement(stmt);
     if (s.IsThrow())
       return s;
-    sl = Completion(s.type(), s.IsEmpty() ? sl.value() : s.value(), s.target());
-    if (sl.IsAbruptCompletion())
+    if (!s.IsEmpty())
+      sl.SetValue(s.value().val());
+    if (s.type() != Completion::NORMAL) {
+      sl.SetType(s.type());
+      sl.SetTarget(s.target());
       return sl;
+    }
   }
   return sl;
 }
@@ -201,9 +205,7 @@ Handle<String> EvalVarDecl(Handle<Error>& e, AST* ast) {
   Handle<String> ident = decl->ident();
   if (decl->init() == nullptr)
     return ident;
-  Handle<JSValue> rhs = EvalExpression(e, decl->init());
-  if (unlikely(!e.val()->IsOk())) return ident;
-  Handle<JSValue> value = GetValue(e, rhs);
+  Handle<JSValue> value = EvalExpressionAndGetValue(e, decl->init());
   if (unlikely(!e.val()->IsOk())) return ident;
   IdentifierResolutionAndPutValue(e, ident, value);
   if (unlikely(!e.val()->IsOk())) return ident;
@@ -220,9 +222,9 @@ Completion EvalVarStatement(AST* ast) {
     EvalVarDecl(e, decl);
     if (unlikely(!e.val()->IsOk())) goto error;
   }
-  return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
+  return Completion::Normal();
 error:
-  return Completion(Completion::THROW, e, u"");
+  return Completion::Throw(e);
 }
 
 Completion EvalIfStatement(AST* ast) {
@@ -231,13 +233,13 @@ Completion EvalIfStatement(AST* ast) {
   If* if_stmt = static_cast<If*>(ast);
   Handle<JSValue> expr = EvalExpressionAndGetValue(e, if_stmt->cond());
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, e, u"");
+    return Completion::Throw(e);
   if (ToBoolean(expr)) {
     return EvalStatement(if_stmt->if_block());
   } else if (if_stmt->else_block() != nullptr){
     return EvalStatement(if_stmt->else_block());
   }
-  return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
+  return Completion::Normal();
 }
 
 // 12.6.1 The do-while Statement
@@ -256,7 +258,7 @@ Completion EvalDoWhileStatement(AST* ast) {
       case Completion::BREAK: {
         if (stmt.target() == ast->label() || stmt.target() == u"") {
           Runtime::TopContext().ExitIteration();
-          return Completion(Completion::NORMAL, stmt.value(), u"");
+          return Completion::Normal(stmt.value());
         }
         [[fallthrough]];
       }
@@ -281,10 +283,10 @@ Completion EvalDoWhileStatement(AST* ast) {
       break;
   }
   Runtime::TopContext().ExitIteration();
-  return Completion(Completion::NORMAL, stmt.value(), u"");
+  return Completion::Normal(stmt.value());
 error:
   Runtime::TopContext().ExitIteration();
-  return Completion(Completion::THROW, e, u"");
+  return Completion::Throw(e);
 }
 
 // 12.6.2 The while Statement
@@ -308,7 +310,7 @@ Completion EvalWhileStatement(AST* ast) {
       case Completion::BREAK: {
         if (stmt.target() == ast->label() || stmt.target() == u"") {
           Runtime::TopContext().ExitIteration();
-          return Completion(Completion::NORMAL, stmt.value(), u"");
+          return Completion::Normal(stmt.value());
         }
         [[fallthrough]];
       }
@@ -329,10 +331,10 @@ Completion EvalWhileStatement(AST* ast) {
     }
   }
   Runtime::TopContext().ExitIteration();
-  return Completion(Completion::NORMAL, stmt.value(), u"");
+  return Completion::Normal(stmt.value());
 error:
   Runtime::TopContext().ExitIteration();
-  return Completion(Completion::THROW, e, u"");
+  return Completion::Throw(e);
 }
 
 // 12.6.3 The for Statement
@@ -365,7 +367,7 @@ Completion EvalForStatement(AST* ast) {
       case Completion::BREAK: {
         if (stmt.target() == ast->label() || stmt.target() == u"") {
           Runtime::TopContext().ExitIteration();
-          return Completion(Completion::NORMAL, stmt.value(), u"");
+          return Completion::Normal(stmt.value());
         }
         [[fallthrough]];
       }
@@ -391,10 +393,10 @@ Completion EvalForStatement(AST* ast) {
     }
   }
   Runtime::TopContext().ExitIteration();
-  return Completion(Completion::NORMAL, stmt.value(), u"");
+  return Completion::Normal(stmt.value());
 error:
   Runtime::TopContext().ExitIteration();
-  return Completion(Completion::THROW, e, u"");
+  return Completion::Throw(e);
 }
 
 // 12.6.4 The for-in Statement
@@ -417,7 +419,7 @@ Completion EvalForInStatement(AST* ast) {
     if (unlikely(!e.val()->IsOk())) goto error;
     if (expr_val.val()->IsUndefined() || expr_val.val()->IsNull()) {
       Runtime::TopContext().ExitIteration();
-      return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
+      return Completion::Normal();
     }
     obj = ToObject(e, expr_val);
     if (unlikely(!e.val()->IsOk())) goto error;
@@ -433,7 +435,7 @@ Completion EvalForInStatement(AST* ast) {
       if (stmt.type() != Completion::CONTINUE || !has_label) {
         if (stmt.type() == Completion::BREAK && has_label) {
           Runtime::TopContext().ExitIteration();
-          return Completion(Completion::NORMAL, V, u"");
+          return Completion::Normal(V);
         }
         if (stmt.IsAbruptCompletion()) {
           Runtime::TopContext().ExitIteration();
@@ -446,7 +448,7 @@ Completion EvalForInStatement(AST* ast) {
     if (unlikely(!e.val()->IsOk())) goto error;
     if (expr_val.val()->IsUndefined() || expr_val.val()->IsNull()) {
       Runtime::TopContext().ExitIteration();
-      return Completion(Completion::NORMAL, Handle<JSValue>(), u"");
+      return Completion::Normal();
     }
     obj = ToObject(e, expr_val);
     for (Handle<String> P : obj.val()->AllEnumerableKeys()) {
@@ -460,7 +462,7 @@ Completion EvalForInStatement(AST* ast) {
       if (stmt.type() != Completion::CONTINUE || !has_label) {
         if (stmt.type() == Completion::BREAK && has_label) {
           Runtime::TopContext().ExitIteration();
-          return Completion(Completion::NORMAL, V, u"");
+          return Completion::Normal(V);
         }
         if (stmt.IsAbruptCompletion()) {
           Runtime::TopContext().ExitIteration();
@@ -470,10 +472,10 @@ Completion EvalForInStatement(AST* ast) {
     }
   }
   Runtime::TopContext().ExitIteration();
-  return Completion(Completion::NORMAL, V, u"");
+  return Completion::Normal(V);
 error:
   Runtime::TopContext().ExitIteration();
-  return Completion(Completion::THROW, e, u"");
+  return Completion::Throw(e);
 }
 
 Completion EvalContinueStatement(AST* ast) {
@@ -481,7 +483,7 @@ Completion EvalContinueStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   if (!Runtime::TopContext().InIteration()) {
     e = Error::SyntaxError(u"continue not in iteration");
-    return Completion(Completion::THROW, e, u"");
+    return Completion::Throw(e);
   }
   ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
   return Completion(Completion::CONTINUE, Handle<JSValue>(), stmt->ident());
@@ -492,7 +494,7 @@ Completion EvalBreakStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   if (!Runtime::TopContext().InIteration() && !Runtime::TopContext().InSwitch()) {
     e = Error::SyntaxError(u"break not in iteration or switch");
-    return Completion(Completion::THROW, e, u"");
+    return Completion::Throw(e);
   }
   ContinueOrBreak* stmt = static_cast<ContinueOrBreak*>(ast);
   return Completion(Completion::BREAK, Handle<JSValue>(), stmt->ident());
@@ -503,13 +505,13 @@ Completion EvalReturnStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   Return* return_stmt = static_cast<Return*>(ast);
   if (return_stmt->expr() == nullptr) {
-    return Completion(Completion::RETURN, Undefined::Instance(), u"");
+    return Completion::Return(Undefined::Instance());
   }
   Handle<JSValue> exp = EvalExpressionAndGetValue(e, return_stmt->expr());
   if (unlikely(!e.val()->IsOk())) {
-    return Completion(Completion::THROW, e, u"");
+    return Completion::Throw(e);
   }
-  return Completion(Completion::RETURN, exp, u"");
+  return Completion::Return(exp);
 }
 
 Completion EvalLabelledStatement(AST* ast) {
@@ -518,7 +520,7 @@ Completion EvalLabelledStatement(AST* ast) {
   label_stmt->statement()->SetLabel(label_stmt->label());
   Completion R = EvalStatement(label_stmt->statement());
   if (R.type() == Completion::BREAK && R.target() == label_stmt->label()) {
-    return Completion(Completion::NORMAL, R.value(), u"");
+    return Completion::Normal(R.value());
   }
   return R;
 }
@@ -536,13 +538,13 @@ Completion EvalWithStatement(AST* ast) {
   WhileOrWith* with_stmt = static_cast<WhileOrWith*>(ast);
   Handle<JSValue> ref = EvalExpression(e, with_stmt->expr());
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, e, u"");
+    return Completion::Throw(e);
   Handle<JSValue> val = GetValue(e, ref);
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, e, u"");
+    return Completion::Throw(e);
   Handle<JSObject> obj = ToObject(e, val);
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, e, u"");
+    return Completion::Throw(e);
   // Prevent garbage collect old env.
   Handle<EnvironmentRecord> old_env = Runtime::TopLexicalEnv();
   Handle<EnvironmentRecord> new_env = ObjectEnvironmentRecord::New(old_env, obj, true);
@@ -562,7 +564,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
       Handle<JSValue> clause_selector = EvalExpressionAndGetValue(e, C.expr);
       bool b = StrictEqual(e, input, clause_selector);
       if (unlikely(!e.val()->IsOk()))
-        return Completion(Completion::THROW, e, u"");
+        return Completion::Throw(e);
       if (b)
         found = true;
     }
@@ -582,7 +584,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
     Handle<JSValue> clause_selector = EvalExpressionAndGetValue(e, C.expr);
     bool b = StrictEqual(e, input, clause_selector);
     if (unlikely(!e.val()->IsOk()))
-      return Completion(Completion::THROW, e, u"");
+      return Completion::Throw(e);
     if (b) {
       found_in_b = true;
       Completion R = EvalStatementList(C.stmts);
@@ -608,7 +610,7 @@ Completion EvalCaseBlock(Switch* switch_stmt, Handle<JSValue> input) {
     if (R.IsAbruptCompletion())
       return Completion(R.type(), V, R.target());
   }
-  return Completion(Completion::NORMAL, V, u"");
+  return Completion::Normal(V);
 }
 
 // 12.11 The switch Statement
@@ -618,7 +620,7 @@ Completion EvalSwitchStatement(AST* ast) {
   Switch* switch_stmt = static_cast<Switch*>(ast);
   Handle<JSValue> expr_val = EvalExpressionAndGetValue(e, switch_stmt->expr());
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, e, u"");
+    return Completion::Throw(e);
   Runtime::TopContext().EnterSwitch();
   Completion R = EvalCaseBlock(switch_stmt, expr_val);
   Runtime::TopContext().ExitSwitch();
@@ -626,7 +628,7 @@ Completion EvalSwitchStatement(AST* ast) {
     return R;
   bool has_label = ast->label() == R.target();
   if (R.type() == Completion::BREAK && has_label)
-    return Completion(Completion::NORMAL, R.value(), u"");
+    return Completion::Normal(R.value());
   return R;
 }
 
@@ -637,11 +639,11 @@ Completion EvalThrowStatement(AST* ast) {
   Throw* throw_stmt = static_cast<Throw*>(ast);
   Handle<JSValue> exp_ref = EvalExpression(e, throw_stmt->expr());
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, e, u"");
+    return Completion::Throw(e);
   Handle<JSValue> val = GetValue(e, exp_ref);
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, e, u"");
-  return Completion(Completion::THROW, val, u"");
+    return Completion::Throw(e);
+  return Completion::Throw(val);
 }
 
 Completion EvalCatch(Try* try_stmt, Completion C) {
@@ -665,7 +667,7 @@ Completion EvalCatch(Try* try_stmt, Completion C) {
   CreateAndSetMutableBinding(
     e, catch_env, try_stmt->catch_ident(), false, val, false);  // 4 & 5
   if (unlikely(!e.val()->IsOk())) {
-    return Completion(Completion::THROW, e, u"");
+    return Completion::Throw(e);
   }
   Runtime::TopContext().SetLexicalEnv(catch_env);
   Completion B = EvalBlockStatement(try_stmt->catch_block());
@@ -679,7 +681,7 @@ Completion EvalTryStatement(AST* ast) {
   if (Runtime::TopContext().strict()) {
     if (try_stmt->catch_ident_is_eval_or_arguments()) {
       Handle<Error> e = Error::SyntaxError(u"use eval or arguments as identifier of catch in strict mode");
-      return Completion(Completion::THROW, e, u"");
+      return Completion::Throw(e);
     }
   }
   Completion B = EvalBlockStatement(try_stmt->try_block());
@@ -708,8 +710,8 @@ Completion EvalExpressionStatement(AST* ast) {
   Handle<Error> e = Error::Ok();
   Handle<JSValue> val = EvalExpressionAndGetValue(e, ast);
   if (unlikely(!e.val()->IsOk()))
-    return Completion(Completion::THROW, e, u"");
-  return Completion(Completion::NORMAL, val, u"");
+    return Completion::Throw(e);
+  return Completion::Normal(val);
 }
 
 Handle<JSValue> EvalExpressionAndGetValue(Handle<Error>& e, AST* ast) {
@@ -722,6 +724,31 @@ Handle<JSValue> EvalExpressionAndGetValue(Handle<Error>& e, AST* ast) {
       [[fallthrough]];
     case AST::AST_EXPR_IDENT: {
       return EvalIdentifierAndGetValue(e, ast);
+    }
+    // These expression types never return a Reference, so GetValue is a no-op.
+    case AST::AST_EXPR_NULL:
+    case AST::AST_EXPR_BOOL:
+    case AST::AST_EXPR_NUMBER:
+    case AST::AST_EXPR_STRING:
+    case AST::AST_EXPR_THIS:
+    case AST::AST_EXPR_OBJ:
+    case AST::AST_EXPR_ARRAY:
+    case AST::AST_EXPR_REGEXP:
+      return EvalPrimaryExpression(e, ast);
+    case AST::AST_EXPR_UNARY:
+      return EvalUnaryOperator(e, ast);
+    case AST::AST_EXPR_TRIPLE:
+      return EvalTripleConditionExpression(e, ast);
+    case AST::AST_FUNC:
+      return EvalFunction(e, ast);
+    case AST::AST_EXPR_PAREN: {
+      // Paren just wraps, recurse into child
+      return EvalExpressionAndGetValue(e, static_cast<Paren*>(ast)->expr());
+    }
+    case AST::AST_EXPR_BINARY: {
+      // Binary expressions never return references
+      Binary* b = static_cast<Binary*>(ast);
+      return EvalBinaryExpression(e, b->op(), b->lhs(), b->rhs());
     }
     default: {
       Handle<JSValue> ref = EvalExpression(e, ast);
@@ -1166,9 +1193,8 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, AST* lhs, AST*
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
       Handle<JSValue> rref = EvalBinaryExpression(e, calc_op, lval, rval);
       if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      Handle<JSValue> val = GetValue(e, rref);
-      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      return EvalSimpleAssignment(e, lref, val);
+      // EvalBinaryExpression never returns a reference, skip GetValue
+      return EvalSimpleAssignment(e, lref, rref);
     }
     default: {
       Handle<JSValue> lval = EvalExpressionAndGetValue(e, lhs);
@@ -1216,6 +1242,23 @@ Handle<JSValue> EvalBinaryExpression(Handle<Error>& e, Token& op, Handle<JSValue
 
 // 11.5 Multiplicative Operators
 Handle<JSValue> EvalArithmeticOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
+  // Fast path: both numbers
+  if (likely(lval.val()->IsNumber() && rval.val()->IsNumber())) {
+    double lnum = static_cast<Number*>(lval.val())->data();
+    double rnum = static_cast<Number*>(rval.val())->data();
+    switch (op.type()) {
+      case Token::TK_MUL:
+        return Number::New(lnum * rnum);
+      case Token::TK_DIV:
+        return Number::New(lnum / rnum);
+      case Token::TK_MOD:
+        return Number::New(fmod(lnum, rnum));
+      case Token::TK_SUB:
+        return Number::New(lnum - rnum);
+      default:
+        assert(false);
+    }
+  }
   double lnum = ToNumber(e, lval);
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   double rnum = ToNumber(e, rval);
@@ -1236,6 +1279,12 @@ Handle<JSValue> EvalArithmeticOperator(Handle<Error>& e, Token& op, Handle<JSVal
 
 // 11.6 Additive Operators
 Handle<JSValue> EvalAddOperator(Handle<Error>& e, Handle<JSValue> lval, Handle<JSValue> rval) {
+  // Fast path: both numbers (most common case in loops)
+  if (likely(lval.val()->IsNumber() && rval.val()->IsNumber())) {
+    return Number::New(
+      static_cast<Number*>(lval.val())->data() +
+      static_cast<Number*>(rval.val())->data());
+  }
   Handle<JSValue> lprim = ToPrimitive(e, lval);
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   Handle<JSValue> rprim = ToPrimitive(e, rval);
@@ -1258,6 +1307,27 @@ Handle<JSValue> EvalAddOperator(Handle<Error>& e, Handle<JSValue> lval, Handle<J
 
 // 11.7 Bitwise Shift Operators
 Handle<JSValue> EvalBitwiseShiftOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
+  // Fast path: both numbers and both are safe small integers
+  if (likely(lval.val()->IsNumber() && rval.val()->IsNumber())) {
+    double ld = static_cast<Number*>(lval.val())->data();
+    double rd = static_cast<Number*>(rval.val())->data();
+    if (likely(!isnan(ld) && !isnan(rd) && !isinf(ld) && !isinf(rd)
+               && ld == (double)(int32_t)ld && rd == (double)(int32_t)rd)) {
+      int32_t lnum = (int32_t)ld;
+      uint32_t rnum = (uint32_t)(int32_t)rd;
+      uint32_t shift_count = rnum & 0x1F;
+      switch (op.type()) {
+        case Token::TK_BIT_LSH:
+          return Number::New((double)(int32_t)(lnum << shift_count));
+        case Token::TK_BIT_RSH:
+          return Number::New(lnum >> shift_count);
+        case Token::TK_BIT_URSH:
+          return Number::New((double)((uint32_t)lnum >> shift_count));
+        default:
+          assert(false);
+      }
+    }
+  }
   int32_t lnum = ToInt32(e, lval);
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   uint32_t rnum = ToUint32(e, rval);
@@ -1353,6 +1423,26 @@ Handle<JSValue> EvalEqualityOperator(Handle<Error>& e, Token& op, Handle<JSValue
 
 // 11.10 Binary Bitwise Operators
 Handle<JSValue> EvalBitwiseOperator(Handle<Error>& e, Token& op, Handle<JSValue> lval, Handle<JSValue> rval) {
+  // Fast path: both numbers and both are safe small integers
+  if (likely(lval.val()->IsNumber() && rval.val()->IsNumber())) {
+    double ld = static_cast<Number*>(lval.val())->data();
+    double rd = static_cast<Number*>(rval.val())->data();
+    if (likely(!isnan(ld) && !isnan(rd) && !isinf(ld) && !isinf(rd)
+               && ld == (double)(int32_t)ld && rd == (double)(int32_t)rd)) {
+      int32_t lnum = (int32_t)ld;
+      int32_t rnum = (int32_t)rd;
+      switch (op.type()) {
+        case Token::TK_BIT_AND:
+          return Number::New(lnum & rnum);
+        case Token::TK_BIT_OR:
+          return Number::New(lnum | rnum);
+        case Token::TK_BIT_XOR:
+          return Number::New(lnum ^ rnum);
+        default:
+          assert(false);
+      }
+    }
+  }
   int32_t lnum = ToInt32(e, lval);
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   int32_t rnum = ToInt32(e, rval);
@@ -1417,13 +1507,9 @@ Handle<JSValue> EvalTripleConditionExpression(Handle<Error>& e, AST* ast) {
   Handle<JSValue> lval = EvalExpressionAndGetValue(e, t->cond());
   if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
   if (ToBoolean(lval)) {
-    Handle<JSValue> true_ref = EvalExpression(e, t->true_expr());
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    return GetValue(e, true_ref);
+    return EvalExpressionAndGetValue(e, t->true_expr());
   } else {
-    Handle<JSValue> false_ref = EvalExpression(e, t->false_expr());
-    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-    return GetValue(e, false_ref);
+    return EvalExpressionAndGetValue(e, t->false_expr());
   }
 }
 

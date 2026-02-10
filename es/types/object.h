@@ -108,6 +108,7 @@ class JSObject : public JSValue {
 
   // Internal Preperties Common to All Objects
   Handle<JSValue> Prototype() { return READ_HANDLE_VALUE(this, kPrototypeOffset, JSValue); }
+  JSValue* Prototype_raw() { return READ_VALUE(this, kPrototypeOffset, JSValue*); }
   void SetPrototype(Handle<JSValue> proto) {
     ASSERT(proto.val()->IsPrototype());
     SET_HANDLE_VALUE(this, kPrototypeOffset, proto, JSValue);

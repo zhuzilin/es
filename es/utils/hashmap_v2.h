@@ -147,22 +147,20 @@ class HashMapV2 : public JSValue {
     return map;
   }
 
-  //__attribute__((noinline))
-  HashMapV2::Entry* Probe(String* key, uint32_t hash) {
+  inline __attribute__((always_inline)) Entry* Probe(String* key, uint32_t hash) {
     ASSERT(key != NULL);
     size_t cap = capacity();
     Entry* map = map_start();
     size_t i = hash & (cap - 1);
-    ASSERT(map <= p && p < end);
 
-#ifdef TEST
-    size_t occ = occupancy();
-    ASSERT(occ < cap);
-#endif
-    while (!map[i].is_empty() && (hash != map[i].hash || !HashEqualStringEqual(key, map[i].key, hash))) {
+    while (true) {
+      Entry& e = map[i];
+      if (e.key == NULL) return &e;      // empty slot
+      if (e.key == key) return &e;        // pointer equality (common case)
+      if (e.hash == hash && HashEqualStringEqual(key, e.key, hash))
+        return &e;                         // same content, different pointer
       i = (i + 1) & (cap - 1);
     }
-    return &map[i];
   }
 
   Handle<JSValue> Get(Handle<String> key) {

@@ -49,18 +49,18 @@ class ExecutionContext {
   bool HasLabel(std::u16string label) {
     if (label == u"")
       return true;
-    return label_stack_.size() && label_stack_.top() == label;
+    return label_stack_.size() && label_stack_.back() == label;
   }
 
   void AddLabel(std::u16string label) {
     ASSERT(!HasLabel(label));
-    label_stack_.push(label);
+    label_stack_.push_back(label);
   }
 
   void RemoveLabel(std::u16string label) {
     if (label == u"") return;
     ASSERT(HasLabel(label));
-    label_stack_.pop();
+    label_stack_.pop_back();
   }
 
   Handle<Reference> AddReference(Handle<JSValue> base, Handle<String> name) {
@@ -98,7 +98,7 @@ class ExecutionContext {
   Handle<JSValue> this_binding_;
 
   bool strict_;
-  std::stack<std::u16string> label_stack_;
+  std::vector<std::u16string> label_stack_;
   size_t iteration_layers_;
   size_t switch_layers_;
 
@@ -112,13 +112,28 @@ ExecutionContext::ReferenceBlockStack ExecutionContext::ref_block_stack_;
 class Runtime {
  public:
   static Runtime* Global() {
-    static Runtime singleton;
-    return &singleton;
+    return global_instance_;
+  }
+
+  static void Init() {
+    if (!global_instance_) {
+      global_instance_ = new Runtime();
+    }
   }
 
   void AddContext(ExecutionContext&& context) {
     context.lexical_env().val()->AddRefCount();
     context_stack_.emplace_back(std::move(context));
+  }
+
+  void AddContext(
+    Handle<EnvironmentRecord> variable_env,
+    Handle<EnvironmentRecord> lexical_env,
+    Handle<JSValue> this_binding,
+    bool strict
+  ) {
+    lexical_env.val()->AddRefCount();
+    context_stack_.emplace_back(variable_env, lexical_env, this_binding, strict);
   }
 
   static ExecutionContext& TopContext() {
@@ -166,7 +181,7 @@ class Runtime {
     size_t offset = 3 * context_stack_.size();
     for (size_t i = 0; i < ref_block_stack.size(); ++i) {
       size_t limit = i == ref_block_stack.size() - 1 ?
-        ref_block_stack.back().offset_ :
+        ref_block_stack.last_block_offset() :
         ExecutionContext::ReferenceBlockStack::kBlockSize;
       for (size_t j = 0; j < limit; ++j) {
         pointers[offset + 2 * j] = reinterpret_cast<HeapObject**>(ref_block_stack.get({i, j})->base.ptr());
@@ -189,7 +204,11 @@ class Runtime {
  private:
   Runtime() {
     value_stack_.emplace_back(Null::Instance());
+    context_stack_.reserve(256);
+    value_stack_.reserve(64);
   }
+
+  static Runtime* global_instance_;
 
   std::vector<ExecutionContext> context_stack_;
   // This is to make sure builtin function like `array.push()`
@@ -197,6 +216,8 @@ class Runtime {
   std::vector<Handle<JSValue>> value_stack_;
   std::vector<std::u16string> sources_;
 };
+
+Runtime* Runtime::global_instance_ = nullptr;
 
 class ValueGuard {
  public:

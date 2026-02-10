@@ -430,7 +430,7 @@ class Function : public AST {
 class VarDecl;
 class ProgramOrFunctionBody : public AST {
  public:
-  ProgramOrFunctionBody(Type type, bool strict) : AST(type), strict_(strict) {}
+  ProgramOrFunctionBody(Type type, bool strict) : AST(type), strict_(strict), cached_env_rec_(nullptr) {}
   ~ProgramOrFunctionBody() override {
     for (auto func_decl : func_decls_)
       delete func_decl;
@@ -474,6 +474,10 @@ class ProgramOrFunctionBody : public AST {
   size_t num_this_properties() { return num_this_properties_; }
   void SetNumThisProperties(size_t num) { num_this_properties_ = num; }
 
+  // Cached pointer to ExtracGC env rec for fast function call pooling
+  void* cached_env_rec() { return cached_env_rec_; }
+  void set_cached_env_rec(void* p) { cached_env_rec_ = p; }
+
   friend AST* Optimize(AST* ast);
 
  private:
@@ -485,6 +489,8 @@ class ProgramOrFunctionBody : public AST {
   std::vector<VarDecl*> var_decls_;
   // this may not be accurate
   size_t num_this_properties_;
+  // Cached pointer to ExtracGC::FunctionDeclarativeEnvironmentRecord
+  void* cached_env_rec_;
 };
 
 Function::Function(Handle<String> name, std::vector<Handle<String>> params, AST* body,

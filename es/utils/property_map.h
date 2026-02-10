@@ -80,6 +80,7 @@ class PropertyMap : public JSValue {
 
   uint32_t num_fixed_slots() { return READ_VALUE(this, kNumFixedSlotsOffset, uint32_t); }
   Handle<HashMapV2> hashmap() { return READ_HANDLE_VALUE(this, kHashMapOffset, HashMapV2); }
+  HashMapV2* hashmap_raw() { return READ_VALUE(this, kHashMapOffset, HashMapV2*); }
   void SetHashMap(Handle<HashMapV2> hashmap) { SET_HANDLE_VALUE(this, kHashMapOffset, hashmap, HashMapV2); }
   JSValue* GetRawArray(size_t index) {
     ASSERT(index < num_fixed_slots());
@@ -139,11 +140,39 @@ class PropertyMap : public JSValue {
             desc.SetEnumerable(p->enumerable);
         }
       };
-      JSValue* val = hashmap().val()->GetRaw(key, entry_fn);
+      JSValue* val = hashmap_raw()->GetRaw(key, entry_fn);
       if (val == nullptr)
         return StackPropertyDescriptor::Undefined();
       return desc;
     }
+  }
+
+  // Fast path for Get__Base: returns the data value directly without constructing
+  // a StackPropertyDescriptor. Returns nullptr if not found, or if it's an accessor
+  // (PropertyDescriptor with getter/setter).
+  JSValue* GetDataValue(Handle<String> key) {
+    if (IsSmallArrayIndex(key)) {
+      uint32_t index = key.val()->Index();
+      JSValue* val = GetRawArray(index);
+      if (val == nullptr) return nullptr;
+      // Array slots store PropertyDescriptor objects
+      if (val->IsPropertyDescriptor()) {
+        PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(val);
+        if (desc->HasValue()) return desc->Value().val();
+        return reinterpret_cast<JSValue*>(1); // sentinel: accessor
+      }
+      return val;
+    }
+    uint32_t hash = key.val()->Hash();
+    HashMapV2::Entry* p = hashmap_raw()->Probe(key.val(), hash);
+    if (p->is_empty()) return nullptr;
+    JSValue* val = p->val;
+    if (likely(!val->IsPropertyDescriptor())) {
+      return val;  // common case: data property stored inline
+    }
+    PropertyDescriptor* desc = static_cast<PropertyDescriptor*>(val);
+    if (desc->HasValue()) return desc->Value().val();
+    return reinterpret_cast<JSValue*>(1); // sentinel: accessor
   }
 
   void Delete(Handle<String> key) {

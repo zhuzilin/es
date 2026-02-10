@@ -186,7 +186,7 @@ class String : public JSValue {
     ASSERT(type() != JS_LONG_STRING);
     size_t slot = length_slot();
     if (slot & 1) return slot >> 1;
-    size_t hash = U16Hash(data());
+    size_t hash = ComputeHash(c_str(), size());
     hash = hash << 1 | 1;
     hash = slot | (0x0000FFFF & hash);
     SET_VALUE(this, kLengthOffset, hash, size_t);
@@ -430,6 +430,11 @@ class String : public JSValue {
     return singleton;
   }
 
+  char16_t* c_str_const() {
+    ASSERT(!IsArrayIndex());
+    return TYPED_PTR(this, kStringDataOffset, char16_t);
+  }
+
  private:
   template<flag_t flag = 0>
   static Handle<String> Alloc(size_t n) {
@@ -463,10 +468,18 @@ class String : public JSValue {
 
   static constexpr size_t kLongStringSize = 65536;
 
-  static constexpr std::hash<std::u16string> U16Hash = std::hash<std::u16string>{};
+  static inline size_t ComputeHash(const char16_t* data, size_t len) {
+    size_t hash = 14695981039346656037ULL;
+    for (size_t i = 0; i < len; i++) {
+      hash ^= static_cast<size_t>(data[i]);
+      hash *= 1099511628211ULL;
+    }
+    return hash;
+  }
 };
 
 inline bool StringEqual(String* a, String* b) {
+  if (a == b) return true;
   if (a->IsArrayIndex() != b->IsArrayIndex())
     return false;
   if (a->IsArrayIndex() && b->IsArrayIndex())
@@ -475,28 +488,27 @@ inline bool StringEqual(String* a, String* b) {
     if (a->length_slot() != b->length_slot())
       return false;
   }
+  size_t size = a->size();
   if (a->size() != b->size()) {
     return false;
   }
-  size_t size = a->size();
-  for (size_t i = 0; i < size; i++) {
-    if (a->get(i) != b->get(i))
-      return false;
-  }
-  return true;
+  return memcmp(a->c_str_const(), b->c_str_const(), size * kChar16Size) == 0;
 }
 
+// Called from Probe when hash already matches.
+// When hash encodes size (JS_STRING), size equality is guaranteed by hash equality.
+// For ArrayIndex strings, hash equality means Index equality, so they must be equal.
 inline bool HashEqualStringEqual(String* a, String* b, size_t hash) {
-  if (a->IsArrayIndex() != b->IsArrayIndex())
+  if (a == b) return true;
+  // ArrayIndex strings encode their value in the pointer;
+  // if both are array indices with same hash, they're already pointer-equal (caught above).
+  // If one is array index and the other isn't, they can't be equal.
+  if (unlikely(a->IsArrayIndex() || b->IsArrayIndex()))
     return false;
-  if (a->IsArrayIndex() && b->IsArrayIndex())
-    return true;
-  size_t size = a->size();
-  for (size_t i = 0; i < size; i++) {
-    if (a->get(i) != b->get(i))
-      return false;
-  }
-  return true;
+  // Hash encodes size in upper bits, so if hashes match, sizes match.
+  // Go directly to memcmp.
+  size_t size_a = a->size();
+  return memcmp(a->c_str_const(), b->c_str_const(), size_a * kChar16Size) == 0;
 }
 
 inline bool StringEqual(Handle<String> a, Handle<String> b) {
@@ -514,10 +526,8 @@ inline bool StringLessThan(String* a, String* b) {
   size_t size_b = b->size();
   size_t size = size_a < size_b ? size_a : size_b;
 
-  for (size_t i = 0; i < size; i++) {
-    if (a->get(i) != b->get(i))
-      return a->get(i) < b->get(i);
-  }
+  int cmp = memcmp(a->c_str_const(), b->c_str_const(), size * kChar16Size);
+  if (cmp != 0) return cmp < 0;
   return size_a < size_b;
 }
 

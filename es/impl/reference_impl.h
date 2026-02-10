@@ -15,50 +15,50 @@ Handle<JSValue> GetValue(Handle<Error>& e, Handle<JSValue> V) {
   Handle<String> name = stack_ref.name;
   TEST_LOG("GetValue: " + base.ToString() + "." + name.ToString());
 
+  if (likely(base.val()->IsObject())) {
+    // Fast path: object property reference (most common case)
+    Handle<JSObject> obj = static_cast<Handle<JSObject>>(base);
+    return Get(e, obj, name);
+  }
   if (Reference::IsUnresolvableReference(base)) {
     e = Error::ReferenceError(name.val()->data() + u" is not defined");
     return Handle<JSValue>();
   }
   if (Reference::IsPropertyReference(base)) {  // 4
-    // 4.a & 4.b
-    if (base.val()->IsObject()) {
-      Handle<JSObject> obj = static_cast<Handle<JSObject>>(base);
-      return Get(e, obj, name);
-    } else {  // special [[Get]]
-      Handle<JSObject> O;
-      if (base.val()->IsString()) {
-        Handle<String> s = base;
-        size_t length = s.val()->size();
-        if (name.val()->IsArrayIndex()) {
-          size_t index = name.val()->Index();
-          if (index < length) {
-            return String::Substr(s, index, 1);
-          } else {
-            return Undefined::Instance();
-          }
-        } else if (StringEqual(name, String::Length())) {
-          return Number::New(length);
+    // primitive base (string, number, bool)
+    Handle<JSObject> O;
+    if (base.val()->IsString()) {
+      Handle<String> s = base;
+      size_t length = s.val()->size();
+      if (name.val()->IsArrayIndex()) {
+        size_t index = name.val()->Index();
+        if (index < length) {
+          return String::Substr(s, index, 1);
         } else {
-          O = StringProto::Instance();
-        }
-      } else {
-        O = ToObject(e, base);
-      }
-      if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
-      StackPropertyDescriptor desc = GetProperty(O, name);
-      if (desc.IsUndefined())
-        return Undefined::Instance();
-      if (desc.IsDataDescriptor()) {
-        return desc.Value();
-      } else {
-        ASSERT(desc.IsAccessorDescriptor());
-        Handle<JSValue> getter = desc.Get();
-        if (getter.val()->IsUndefined()) {
           return Undefined::Instance();
         }
-        Handle<JSObject> getter_obj = static_cast<Handle<JSObject>>(getter);
-        return Call(e, getter_obj, base, {});
+      } else if (StringEqual(name, String::Length())) {
+        return Number::New(length);
+      } else {
+        O = StringProto::Instance();
       }
+    } else {
+      O = ToObject(e, base);
+    }
+    if (unlikely(!e.val()->IsOk())) return Handle<JSValue>();
+    StackPropertyDescriptor desc = GetProperty(O, name);
+    if (desc.IsUndefined())
+      return Undefined::Instance();
+    if (desc.IsDataDescriptor()) {
+      return desc.Value();
+    } else {
+      ASSERT(desc.IsAccessorDescriptor());
+      Handle<JSValue> getter = desc.Get();
+      if (getter.val()->IsUndefined()) {
+        return Undefined::Instance();
+      }
+      Handle<JSObject> getter_obj = static_cast<Handle<JSObject>>(getter);
+      return Call(e, getter_obj, base, {});
     }
   } else {
     ASSERT(base.val()->IsEnvironmentRecord());

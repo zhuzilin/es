@@ -20,10 +20,12 @@ class Error : public JSValue {
     E_NATIVE,
   };
 
-  // TODO(zhuzilin) Fix memory leakage here.
   static Handle<Error> Ok() {
-    static Handle<Error> singleton = Error::New<E_OK, GCFlag::SINGLE>(String::Empty());
-    return singleton;
+    return ok_instance_;
+  }
+
+  static void InitOk() {
+    ok_instance_ = Error::New<E_OK, GCFlag::SINGLE>(String::Empty());
   }
 
   static Handle<Error>& Empty() {
@@ -115,7 +117,11 @@ class Error : public JSValue {
  public:
   static constexpr size_t kErrorTypeOffset = HeapObject::kHeapObjectOffset;
   static constexpr size_t kValueOffset = kErrorTypeOffset + kUint32Size;
+
+  static Handle<Error> ok_instance_;
 };
+
+Handle<Error> Error::ok_instance_;
 
 }  // namespace es
 

@@ -28,9 +28,19 @@ class BlockStack {
     }
   };
 
-  BlockStack() : stack_(1) {}
+  BlockStack() : stack_(1) {
+    block_base_ = stack_[0].pointers_.get();
+    cursor_ = block_base_;
+    cursor_end_ = cursor_ + kBlockSize;
+  }
 
-  size_t num_elements() { return (size() - 1) * kBlockSize + back().offset_; }
+  size_t num_elements() {
+    size_t cur_offset = static_cast<size_t>(cursor_ - block_base_);
+    return (size() - 1) * kBlockSize + cur_offset;
+  }
+  size_t last_block_offset() {
+    return static_cast<size_t>(cursor_ - block_base_);
+  }
   size_t size() { return stack_.size(); }
   Block& back() { return stack_.back(); }
   void pop_back() { stack_.pop_back(); }
@@ -40,30 +50,47 @@ class BlockStack {
     return stack_[idx.block_idx].pointers_.get() + idx.element_idx;
   }
 
-  T* Add(T val) {
-    if (stack_.back().offset_ == kBlockSize) {
-      stack_.emplace_back(Block());
+  inline T* Add(T val) {
+    if (likely(cursor_ < cursor_end_)) {
+      *cursor_ = val;
+      return cursor_++;
     }
-    Block& block = stack_.back();
-    size_t offset = block.offset_;
-    block.pointers_.get()[offset] = val;
-    block.offset_++;
-    return block.pointers_.get() + offset;
+    return AddSlow(val);
   }
 
   Idx GetNextPosition() {
-    return {size() - 1, back().offset_};
+    return {size() - 1, static_cast<size_t>(cursor_ - block_base_)};
   }
 
   void Rewind(Idx idx) {
+    if (likely(stack_.size() == idx.block_idx + 1)) {
+      // Common case: same block, just reset cursor
+      cursor_ = block_base_ + idx.element_idx;
+      return;
+    }
     while (stack_.size() > idx.block_idx + 1) {
       stack_.pop_back();
     }
-    stack_[idx.block_idx].offset_ = idx.element_idx;
+    block_base_ = stack_[idx.block_idx].pointers_.get();
+    cursor_ = block_base_ + idx.element_idx;
+    cursor_end_ = block_base_ + kBlockSize;
   }
 
  private:
+  T* AddSlow(T val) {
+    stack_.emplace_back(Block());
+    Block& block = stack_.back();
+    block.pointers_.get()[0] = val;
+    block_base_ = block.pointers_.get();
+    cursor_ = block_base_ + 1;
+    cursor_end_ = block_base_ + kBlockSize;
+    return block_base_;
+  }
+
   std::vector<Block> stack_;
+  T* block_base_;
+  T* cursor_;
+  T* cursor_end_;
 };
 
 }  // namespace es

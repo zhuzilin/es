@@ -12,7 +12,66 @@ namespace es {
 class HeapObject;
 
 constexpr size_t kNumSingletonHandle = 32;
-constexpr size_t kNumConstantHandle = 10 * 1024 * 1024;  // 10M
+constexpr size_t kNumConstantHandle = 256 * 1024;
+
+// Open-addressing hash table for constant handle dedup.
+// Stores index into constant_pointers_ array.
+struct ConstantHandleMap {
+  struct Entry {
+    HeapObject* key;
+    uint32_t value;
+  };
+
+  Entry* entries;
+  uint32_t capacity;
+  uint32_t mask;
+
+  void Init(uint32_t initial_capacity) {
+    capacity = initial_capacity;
+    mask = capacity - 1;
+    entries = new Entry[capacity];
+    memset(entries, 0, capacity * sizeof(Entry));
+  }
+
+  // Returns pointer to value slot if found, nullptr otherwise.
+  uint32_t* Find(HeapObject* key) {
+    uint32_t h = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(key) >> 4);
+    h ^= h >> 16;
+    uint32_t idx = h & mask;
+    while (true) {
+      Entry& e = entries[idx];
+      if (e.key == nullptr) return nullptr;
+      if (e.key == key) return &e.value;
+      idx = (idx + 1) & mask;
+    }
+  }
+
+  void Insert(HeapObject* key, uint32_t value) {
+    uint32_t h = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(key) >> 4);
+    h ^= h >> 16;
+    uint32_t idx = h & mask;
+    while (true) {
+      Entry& e = entries[idx];
+      if (e.key == nullptr) {
+        e.key = key;
+        e.value = value;
+        return;
+      }
+      idx = (idx + 1) & mask;
+    }
+  }
+
+  void Grow(uint32_t new_capacity, HeapObject** constant_pointers, uint32_t count) {
+    delete[] entries;
+    capacity = new_capacity;
+    mask = capacity - 1;
+    entries = new Entry[capacity];
+    memset(entries, 0, capacity * sizeof(Entry));
+    for (uint32_t i = 0; i < count; i++) {
+      Insert(constant_pointers[i], i);
+    }
+  }
+};
 
 class HandleScope {
  public:
@@ -27,25 +86,40 @@ class HandleScope {
   }
 
   static HeapObject** Add(HeapObject* val) {
-    if (reinterpret_cast<uint64_t>(val) & STACK_MASK)
-      goto normal;
+    uint64_t raw = reinterpret_cast<uint64_t>(val);
+    if (raw & STACK_MASK) {
+      // For fixed stack-type singletons (Undefined, Null, Bool true/false),
+      // use dedicated static slots to avoid block_stack_ overhead.
+      if (raw < kNumStackSlots) {
+        stack_slots_[raw] = val;
+        return &stack_slots_[raw];
+      }
+      return block_stack_.Add(val);
+    }
 #ifdef PARSER_ONLY
     assert(Flag(val) & GCFlag::CONST);
 #endif
-    if ((Flag(val) & GCFlag::CONST)) {
-      if (constant_pointers_map_.size() == kNumConstantHandle) {
+    // Fast path: most heap objects are neither CONST nor SINGLE
+    flag_t flag = Flag(val);
+    if (likely(!(flag & (GCFlag::CONST | GCFlag::SINGLE)))) {
+      return block_stack_.Add(val);
+    }
+    if ((flag & GCFlag::CONST)) {
+      uint32_t* existing = constant_map_.Find(val);
+      if (existing) {
+        return constant_pointers_ + *existing;
+      }
+      if (constant_pointers_count_ == kNumConstantHandle) {
         throw std::runtime_error("too much constant handles");
       }
-      auto iter = constant_pointers_map_.find(val);
-      if (iter != constant_pointers_map_.end()) {
-        size_t offset = iter->second;
-        return constant_pointers_ + offset;
+      // Check if hash table needs growth (load factor > 0.7)
+      if (constant_pointers_count_ * 10 >= constant_map_.capacity * 7) {
+        constant_map_.Grow(constant_map_.capacity * 2, constant_pointers_, constant_pointers_count_);
       }
-      size_t offset = constant_pointers_map_.size();
-      HeapObject** ptr = constant_pointers_ + offset;
-      *ptr = val;
-      constant_pointers_map_[val] = offset;
-      return ptr;
+      uint32_t offset = constant_pointers_count_++;
+      constant_pointers_[offset] = val;
+      constant_map_.Insert(val, offset);
+      return constant_pointers_ + offset;
     } else if ((Flag(val) & GCFlag::SINGLE)) {
       if (singleton_pointers_count_ == kNumSingletonHandle) {
         throw std::runtime_error("too much singleton handles");
@@ -60,7 +134,6 @@ class HandleScope {
       singleton_pointers_count_++;
       return ptr;
     }
-normal:
     return block_stack_.Add(val);
   }
 
@@ -75,7 +148,7 @@ normal:
     }
     size_t offset = singleton_pointers_count_;
     for (size_t i = 0; i < block_stack_.size(); i++) {
-      size_t limit = i == block_stack_.size() - 1 ? block_stack_.back().offset_ : HandleBlockStack::kBlockSize;
+      size_t limit = i == block_stack_.size() - 1 ? block_stack_.last_block_offset() : HandleBlockStack::kBlockSize;
       for (size_t j = 0; j < limit; j++) {
         pointers[offset + j] = block_stack_.get({i, j});
       }
@@ -87,21 +160,35 @@ normal:
  private:
   HandleBlockStack::Idx start_idx_;
 
+  static constexpr size_t kNumStackSlots = 16;
+
   static HeapObject* singleton_pointers_[kNumSingletonHandle];
   static size_t singleton_pointers_count_;
 
   static HeapObject* constant_pointers_[kNumConstantHandle];
-  static std::unordered_map<HeapObject*, uint32_t> constant_pointers_map_;
+  static uint32_t constant_pointers_count_;
+  static ConstantHandleMap constant_map_;
 
   static HandleBlockStack block_stack_;
+  static HeapObject* stack_slots_[kNumStackSlots];
 };
 
 HeapObject* HandleScope::singleton_pointers_[kNumSingletonHandle];
 size_t HandleScope::singleton_pointers_count_ = 0;
 HandleScope::HandleBlockStack HandleScope::block_stack_;
+HeapObject* HandleScope::stack_slots_[HandleScope::kNumStackSlots] = {};
 
 HeapObject* HandleScope::constant_pointers_[kNumConstantHandle];
-std::unordered_map<HeapObject*, uint32_t> HandleScope::constant_pointers_map_;
+uint32_t HandleScope::constant_pointers_count_ = 0;
+
+namespace {
+  ConstantHandleMap MakeInitialConstantMap() {
+    ConstantHandleMap m;
+    m.Init(8192);
+    return m;
+  }
+}
+ConstantHandleMap HandleScope::constant_map_ = MakeInitialConstantMap();
 
 // Handle is used to solve the following situation:
 // ```

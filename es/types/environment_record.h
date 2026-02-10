@@ -50,6 +50,7 @@ class EnvironmentRecord : public JSValue {
     SET_HANDLE_VALUE(this, kOuterOffset, outer, EnvironmentRecord);
   }
   Handle<EnvironmentRecord> outer() { return READ_HANDLE_VALUE(this, kOuterOffset, EnvironmentRecord); }
+  EnvironmentRecord* outer_raw() { return READ_VALUE(this, kOuterOffset, EnvironmentRecord*); }
 
   static Handle<EnvironmentRecord> Global();
 

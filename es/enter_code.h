@@ -211,7 +211,7 @@ void EnterGlobalCode(Handle<Error>& e, AST* ast) {
   }
   // 1 10.4.1.1
   Handle<EnvironmentRecord> global_env = EnvironmentRecord::Global();
-  Runtime::Global()->AddContext(ExecutionContext(global_env, global_env, GlobalObject::Instance(), program->strict()));
+  Runtime::Global()->AddContext(global_env, global_env, GlobalObject::Instance(), program->strict());
   // 2
   DeclarationBindingInstantiation(e, program, CODE_GLOBAL);
 }
@@ -252,7 +252,7 @@ void EnterEvalCode(Handle<Error>& e, AST* ast) {
       }
     }
   }
-  Runtime::Global()->AddContext(ExecutionContext(variable_env, lexical_env, this_binding, strict));
+  Runtime::Global()->AddContext(variable_env, lexical_env, this_binding, strict);
   // make sure the eval used env won't be released.
   lexical_env.val()->AddRefCount();
   // 4
@@ -275,7 +275,7 @@ void EnterFunctionCode(
   } else {
     this_binding = this_arg;
   }
-  Runtime::Global()->AddContext(ExecutionContext(local_env, local_env, this_binding, strict));  // 8
+  Runtime::Global()->AddContext(local_env, local_env, this_binding, strict);  // 8
   // 9
   DeclarationBindingInstantiation(e, body, CODE_FUNC, func, std::move(args));
 }
@@ -607,6 +607,8 @@ void InitRegExp() {
 };
 
 void Init() {
+  Runtime::Init();
+  Error::InitOk();
   InitGlobalObject();
   InitObject();
   InitFunction();
